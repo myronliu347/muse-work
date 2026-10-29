@@ -309,7 +309,6 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     issueTitles[group.issueId] = group.title;
   }
   const [assistantWorkdir, setAssistantWorkdir] = useState<string | undefined>();
-  const [assistantSessionId, setAssistantSessionId] = useState<string | undefined>();
   const assistantVisible =
     host?.type === "desktop" &&
     (paneId !== undefined
@@ -331,7 +330,6 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       .then((info) => {
         if (cancelled) return;
         if (info.workdir) setAssistantWorkdir(info.workdir);
-        if (info.sessionId) setAssistantSessionId(info.sessionId);
       })
       .catch(() => undefined);
     return () => {
@@ -626,12 +624,13 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // stays with that issue. The file tree still shows the current issue's
   // directory. 终端 and 浏览器 are bot-level tabs: switching issues does not
   // swap or close them, and each one can be opened more than once. A new
-  // terminal starts in the current issue workdir. 会话 stays on the open
-  // session's directory, including its own terminal and browser. The column
-  // width and open flag stay on the assistant key, so Muse Bot and 会话 share
-  // one dock width.
-  const dockIssueId =
-    workspace.panel.kind === "issue" ? workspace.panel.issueId : workspace.lastIssueId;
+  // terminal starts in the current issue workdir. 会话用这条会话自己的目录，
+  // 不沿用 Muse Bot 上次打开的事项。栏宽仍跟 Muse Bot 共用。
+  const dockIssueId = assistantVisible
+    ? workspace.panel.kind === "issue"
+      ? workspace.panel.issueId
+      : workspace.lastIssueId
+    : undefined;
   const dockIssueGroup = dockIssueId
     ? (host?.issueGroups ?? []).find((group) => group.issueId === dockIssueId)
     : undefined;
@@ -640,7 +639,14 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     (paneId !== undefined
       ? providedShellSurface === "sessions"
       : noPaneRail === "sessions");
-  const sessionPanelWorkdir = effectiveWorkdir ?? host?.workdir ?? undefined;
+  // 会话页的目录以这条会话自己的 workdir 为准。state.workdir 还停留在上一页时，
+  // 不能拿它去画右侧面板。
+  const sessionOwnWorkdir =
+    state.currentSession?.id && state.currentSession.id !== "__draft__"
+      ? state.currentSession.workdir
+      : undefined;
+  const sessionPanelWorkdir =
+    sessionOwnWorkdir || effectiveWorkdir || host?.workdir || undefined;
   const dockWorkdir = dockIssueGroup
     ? issueGroupSessionWorkdir(
         dockIssueGroup,
@@ -856,8 +862,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // leaves 详情. List clicks only call selectPanel, so a stale active kind
   // must not pull the dock back off 详情. Closing the kind that was active
   // while 详情 is showing must not follow the next kind either. Each
-  // directory has its own dock; Muse Bot and 会话 show the selected issue's
-  // directory. 设置, 自动化, and the draft page do not
+  // directory has its own dock. Muse Bot shows the selected issue's directory.
+  // 会话 shows the open session's directory. 设置, 自动化, and the draft page do not
   // mount it, so those groupKey changes must not call selectDock. On a dock
   // surface a group switch keeps the chrome kind, unless this group does not
   // have it checked — then the chrome returns to 详情 instead of adopting the
@@ -1140,36 +1146,80 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     paneIdRef,
   });
   const { postToHost, patchPane, updatePanelGroup } = core;
-  // 当前会话跟着激活的标签走。切到 Issue 才选中那条会话；切回 Muse Bot 再交还给助手自己的会话。
-  const followedIssueSessionRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!assistantVisible) return;
-    if (workspace.active !== "bot") {
-      if (!openIssueSessionId) return;
-      followedIssueSessionRef.current = openIssueSessionId;
-      if (state.currentSession?.id === openIssueSessionId) return;
-      postToHost({ command: "desktopSelectSession", sessionId: openIssueSessionId });
+  // 会话页记住自己的会话。Muse Bot 看事项时会临时切到那条会话以接收流式，
+  // 但不改会话页记下的选择，回到会话页再切回去。Bot 主页不占用当前会话。
+  // 切回来时先在这一帧放上记下的会话，不等宿主往返，中间栏才不会空一拍。
+  const sessionsPageSessionRef = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    const listedSessionId = (id: string | undefined): string | null => {
+      if (!id || id === "__draft__") return null;
+      const listed = (hostRef.current?.sessionTree ?? []).some((group) =>
+        group.sessions.some((session) => session.sessionId === id),
+      );
+      return listed ? id : null;
+    };
+    const currentId = state.currentSession?.id;
+    const listed = listedSessionId(currentId);
+    if (listed) sessionsPageSessionRef.current = listed;
+
+    const ownsSessionsPage =
+      onSessionsSurface &&
+      (paneId === undefined || (hostRef.current?.focusedPaneId ?? paneId) === paneId);
+    if (ownsSessionsPage) {
+      let owned = sessionsPageSessionRef.current;
+      if (!owned) {
+        const panes = hostRef.current?.panes ?? [];
+        const paneSessionId = (
+          paneId ? panes.find((pane) => pane.paneId === paneId) : panes[0]
+        )?.sessionId;
+        owned = listedSessionId(paneSessionId);
+      }
+      if (!owned && currentId && currentId !== "__draft__" && !listed) {
+        let latest = 0;
+        for (const group of hostRef.current?.sessionTree ?? []) {
+          for (const session of group.sessions) {
+            if ((session.lastActiveAt ?? 0) >= latest) {
+              latest = session.lastActiveAt ?? 0;
+              owned = session.sessionId;
+            }
+          }
+        }
+      }
+      if (owned && currentId !== owned) {
+        const entry = (hostRef.current?.sessionTree ?? [])
+          .flatMap((group) => group.sessions)
+          .find((session) => session.sessionId === owned);
+        sessionsPageSessionRef.current = owned;
+        dispatch({
+          type: "SET_CURRENT_SESSION",
+          payload: {
+            id: owned,
+            sessionType: "main",
+            workdir: entry?.workdir ?? state.currentSession?.workdir ?? "",
+            createdAt: new Date(entry?.lastActiveAt ?? 0),
+            lastActiveAt: new Date(entry?.lastActiveAt ?? 0),
+            latestTotalTokens: 0,
+            firstMessage: entry?.title,
+          },
+        });
+        postToHost({ command: "desktopSelectSession", sessionId: owned });
+      }
       return;
     }
-    const taken = followedIssueSessionRef.current;
-    if (!taken || !assistantSessionId || assistantSessionId === taken) return;
-    if (state.currentSession?.id && state.currentSession.id !== taken) {
-      followedIssueSessionRef.current = null;
-      return;
-    }
-    if (state.currentSession?.id === assistantSessionId) {
-      followedIssueSessionRef.current = null;
-      return;
-    }
-    followedIssueSessionRef.current = null;
-    postToHost({ command: "desktopSelectSession", sessionId: assistantSessionId });
+
+    if (!assistantVisible || workspace.active === "bot" || !openIssueSessionId) return;
+    if (currentId === openIssueSessionId) return;
+    postToHost({ command: "desktopSelectSession", sessionId: openIssueSessionId });
   }, [
     assistantVisible,
+    onSessionsSurface,
     workspace.active,
     openIssueSessionId,
-    assistantSessionId,
     state.currentSession?.id,
+    state.currentSession?.workdir,
     postToHost,
+    paneId,
+    dispatch,
   ]);
   useEffect(() => {
     const loads = takeRestoredFileLoads();
@@ -2803,6 +2853,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       patchPane={patchPane}
       currentSession={state.currentSession}
       initialized={state.initialized}
+      hideWelcome={state.transcriptPending}
       effectiveWorkdir={effectiveWorkdir}
       dock={dock}
       vscode={vscode}

@@ -256,6 +256,52 @@ describe("issue tab", () => {
     delete (HTMLElement.prototype as { loadURL?: unknown }).loadURL;
   });
 
+  it("restores the session-page chat when leaving Muse Bot", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const vscode = createMockVscode();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={vscode}
+          host={createMockDesktopHost({
+            sessionTree: [
+              {
+                host: "local",
+                workdir: "/work/notes",
+                sessions: [session("sess-notes", "/work/notes", "会议记录")],
+              },
+            ],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    await screen.findByTestId("assistant-frame");
+    sendExtensionMessage({
+      command: "setInitialState",
+      messages: [textMessage("notes-1", NOTES_MESSAGE)],
+      session: { id: "sess-notes", title: "会议记录" },
+      workdir: "/work/notes",
+    });
+    sendExtensionMessage({
+      command: "setInitialState",
+      messages: [],
+      session: { id: "assistant", title: "Muse Bot" },
+      workdir: "/tmp/proj",
+    });
+
+    await user.click(screen.getByTestId("desktop-sessions-menu"));
+
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      command: "desktopSelectSession",
+      sessionId: "sess-notes",
+    });
+    expect((await screen.findAllByText(NOTES_MESSAGE)).length).toBeGreaterThan(0);
+  });
+
   it("opens the issue transcript from detail without leaving Muse Bot", async () => {
     resetWebviewStores();
     const fetched: string[] = [];
@@ -392,8 +438,8 @@ describe("issue tab", () => {
     const sessionDock = await within(chat).findByTestId("desktop-panel-dock");
     await user.click(within(sessionDock).getByRole("button", { name: "文件" }));
     const sessionTree = await within(sessionDock).findByTestId("file-tree-workdir");
-    expect(sessionTree).toHaveAttribute("title", "/work/radii");
-    expect(sessionTree).not.toHaveTextContent("notes");
+    expect(sessionTree).toHaveAttribute("title", "/work/notes");
+    expect(sessionTree).not.toHaveAttribute("title", "/work/radii");
 
     const callsAfterSession = onSelectSession.mock.calls.length;
     await user.click(screen.getByTestId("desktop-assistant-menu"));
@@ -635,7 +681,7 @@ describe("issue tab", () => {
     });
   });
 
-  it("shows the next issue directory on 会话 without the previous expansion", async () => {
+  it("keeps the session directory on 会话 when the bot's issue changes", async () => {
     await withElementBox(async () => {
       resetWebviewStores();
       stubAssistant([]);
@@ -682,25 +728,9 @@ describe("issue tab", () => {
       const dock = await within(chat).findByTestId("desktop-panel-dock");
       await user.click(within(dock).getByRole("button", { name: "文件" }));
       const tree = await within(dock).findByTestId("file-tree-workdir");
-      expect(tree).toHaveAttribute("title", "/work/radii");
-      replyListDir("", [dirEntry("src", "/work/radii", "src", true)]);
-      const src = await within(dock).findByTestId("file-tree-row-src");
-      await user.click(src);
-      await waitFor(() => {
-        expect(listDirMessages(vscode)).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ dir: "src", workdir: "/work/radii" }),
-          ]),
-        );
-      });
-      replyListDir("src", [
-        dirEntry("old-child.ts", "/work/radii", "src/old-child.ts", false),
-      ]);
-      expect(
-        await within(dock).findByTestId("file-tree-row-src/old-child.ts"),
-      ).toBeInTheDocument();
+      expect(tree).toHaveAttribute("title", "/work/notes");
+      expect(tree).not.toHaveAttribute("title", "/work/radii");
 
-      vscode.postMessage.mockClear();
       await user.click(screen.getByTestId("desktop-assistant-menu"));
       const frame = await screen.findByTestId("assistant-frame");
       const lists = within(frame).getByTestId("bot-lists");
@@ -708,34 +738,10 @@ describe("issue tab", () => {
       await user.click(screen.getByTestId("desktop-sessions-menu"));
 
       const chatAgain = await screen.findByTestId("chat-container");
-      expect(within(chatAgain).queryByRole("button", { name: "文件" })).toBeNull();
-      await user.click(within(chatAgain).getByTestId("panel-toggle-btn"));
       const dockAgain = await within(chatAgain).findByTestId("desktop-panel-dock");
-      await user.click(within(dockAgain).getByTestId("desktop-panel-add-btn"));
-      await user.click(await screen.findByTestId("panel-add-item-file"));
-      const expandNext = within(dockAgain).getByTestId("file-tree-expand-btn");
-      if (expandNext.getAttribute("aria-pressed") !== "true") {
-        await user.click(expandNext);
-      }
       const nextTree = await within(dockAgain).findByTestId("file-tree-workdir");
-      expect(nextTree).toHaveAttribute("title", "/work/a11y-exec");
-      await waitFor(() => {
-        expect(listDirMessages(vscode)).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ dir: "", workdir: "/work/a11y-exec" }),
-          ]),
-        );
-      });
-      expect(
-        listDirMessages(vscode).some(
-          (message) => message.dir === "src" && message.workdir === "/work/a11y-exec",
-        ),
-      ).toBe(false);
-      expect(within(dockAgain).queryByTestId("file-tree-row-src/old-child.ts")).toBeNull();
-      expect(within(dockAgain).queryByText("old-child.ts")).toBeNull();
-      expect(
-        usePanelGroupStore.getState().groups["/work/radii"]?.fileTree.expanded ?? [],
-      ).toContain("src");
+      expect(nextTree).toHaveAttribute("title", "/work/notes");
+      expect(nextTree).not.toHaveAttribute("title", "/work/a11y-exec");
     });
   });
 
@@ -1111,7 +1117,7 @@ describe("issue tab", () => {
     });
   });
 
-  it("keeps the issue diff when another normal session is selected on 会话", async () => {
+  it("uses the session directory dock on 会话 instead of the issue dock", async () => {
     resetWebviewStores();
     stubAssistant([]);
     stubWideViewport();
@@ -1121,8 +1127,8 @@ describe("issue tab", () => {
       active: "diff",
     });
     usePanelGroupStore.getState().patchGroup("/work/notes", {
-      checked: ["terminal"],
-      mounted: ["terminal"],
+      checked: ["terminal", "diff"],
+      mounted: ["terminal", "diff"],
       active: "terminal",
     });
     const vscode = createMockVscode();
@@ -1166,39 +1172,8 @@ describe("issue tab", () => {
     await user.click(screen.getByTestId("desktop-sessions-menu"));
     const chat = await screen.findByTestId("chat-container");
     const dock = await within(chat).findByTestId("desktop-panel-dock");
-    await user.click(within(dock).getByRole("button", { name: "变更" }));
-
-    await waitFor(() => {
-      const diffCalls = vscode.postMessage.mock.calls
-        .map((call) => call[0] as { command?: string; workdir?: string })
-        .filter((message) => message.command === "desktopGetWorkspaceDiff");
-      expect(diffCalls.some((message) => message.workdir === "/work/radii")).toBe(true);
-    });
-    const request = vscode.postMessage.mock.calls
-      .map((call) => call[0] as { command?: string; workdir?: string; requestId?: string })
-      .find(
-        (message) =>
-          message.command === "desktopGetWorkspaceDiff" && message.workdir === "/work/radii",
-      );
-    sendExtensionMessage({
-      command: "desktopWorkspaceDiff",
-      requestId: request?.requestId,
-      result: {
-        kind: "ok",
-        files: [
-          {
-            path: "issue-keep.ts",
-            status: "modified",
-            additions: 1,
-            deletions: 0,
-            hunks: "@@ -0,0 +1 @@\n+keep",
-            truncated: false,
-            binary: false,
-          },
-        ],
-      },
-    });
-    expect(await within(dock).findByText("issue-keep.ts")).toBeInTheDocument();
+    expect(within(dock).getByTestId("terminal-pane")).toBeInTheDocument();
+    expect(within(dock).queryByTestId("file-tree-workdir")).toBeNull();
 
     await user.click(screen.getByTestId("desktop-session-item-sess-other"));
     sendExtensionMessage({
@@ -1213,21 +1188,11 @@ describe("issue tab", () => {
       },
     });
 
-    await waitFor(() => {
-      expect(within(dock).getByTestId("diff-commit")).toBeInTheDocument();
-    });
-    expect(within(dock).getByText("issue-keep.ts")).toBeInTheDocument();
-    expect(within(dock).queryByText("无改动")).toBeNull();
+    expect(within(dock).getByTestId("terminal-pane")).toBeInTheDocument();
     const diffCalls = vscode.postMessage.mock.calls
       .map((call) => call[0] as { command?: string; workdir?: string })
-      .filter(
-        (message) =>
-          message.command === "desktopGetWorkspaceDiff" ||
-          message.command === "desktopGetBranchDiff",
-      );
-    expect(diffCalls.every((message) => message.command === "desktopGetWorkspaceDiff")).toBe(true);
-    expect(diffCalls.every((message) => message.workdir === "/work/radii")).toBe(true);
-    expect(diffCalls.some((message) => message.workdir === "/work/notes")).toBe(false);
+      .filter((message) => message.command === "desktopGetWorkspaceDiff");
+    expect(diffCalls.some((message) => message.workdir === "/work/radii")).toBe(false);
   });
 
   it("shows a failed issue transcript instead of an empty one and retries the load", async () => {
@@ -1792,11 +1757,12 @@ describe("issue tab", () => {
     });
 
     await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
-    await waitFor(() => {
-      expect(vscode.postMessage).toHaveBeenCalledWith({
-        command: "desktopSelectSession",
-        sessionId: "assistant",
-      });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+    expect(vscode.postMessage).not.toHaveBeenCalledWith({
+      command: "desktopSelectSession",
+      sessionId: "assistant",
     });
   });
 

@@ -718,6 +718,13 @@ export interface QueuedMessageListProps {
 // Chat state management
 export interface ChatState {
   messages: Message[];
+  /** Last transcript applied for each session, so a switch can paint it with the title. */
+  transcriptsBySession: Record<string, Message[]>;
+  /**
+   * The session id changed and its transcript is not on screen yet.
+   * The welcome page stays hidden until the transcript arrives.
+   */
+  transcriptPending: boolean;
   /** True when the session file has messages before the loaded window. */
   hasOlderMessages: boolean;
   tasks: Task[];

@@ -229,6 +229,8 @@ function nestedMessagesFromLoaded(messages: Message[]): Record<string, Message[]
 
 export const initialState: ChatState = {
   messages: [],
+  transcriptsBySession: {},
+  transcriptPending: false,
   hasOlderMessages: false,
   tasks: [],
   backgroundTasks: [],
@@ -265,12 +267,13 @@ export const initialState: ChatState = {
   unboundSubagentIds: [],
 };
 
-export function chatReducer(state: ChatState, action: ChatAction): ChatState {
+function reduceChat(state: ChatState, action: ChatAction): ChatState {
   switch (action.type) {
     case "SET_MESSAGES": {
       return {
         ...state,
         messages: action.payload,
+        transcriptPending: false,
         hasOlderMessages:
           typeof action.hasMore === "boolean" ? action.hasMore : false,
         currentSession: pinSessionTitle(state.currentSession, action.payload),
@@ -418,6 +421,14 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         }
       }
       const switched = state.currentSession?.id !== currentSession.id;
+      const realId =
+        currentSession.id && currentSession.id !== "__draft__"
+          ? currentSession.id
+          : null;
+      const cached =
+        switched && realId
+          ? state.transcriptsBySession?.[realId]
+          : undefined;
       return {
         ...state,
         currentSession,
@@ -436,10 +447,19 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
               // merges (never replaces) subagentMessages, so without clearing
               // here transcripts from previous sessions would be pinned in
               // memory forever (multi-MB per workflow run).
-              subagentMessages: {},
+              subagentMessages: cached ? nestedMessagesFromLoaded(cached) : {},
               agentToolSubagentIds: {},
               pendingAgentToolIds: [],
               unboundSubagentIds: [],
+              // 标题先到、消息后到时，空列表会被欢迎页占住。有记录就同一帧放回去；
+              // 还没有记录就先留空，等这次加载完成再决定是欢迎页还是正文。
+              ...(realId
+                ? {
+                    messages: cached ?? [],
+                    transcriptPending: cached === undefined,
+                    hasOlderMessages: false,
+                  }
+                : { transcriptPending: false }),
             }
           : {}),
       };
@@ -525,6 +545,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         // Same for the desktop restore overlay: each host push carries the
         // current restore state, defaulting to "not restoring".
         isRestoring: action.payload.isRestoring ?? false,
+        transcriptPending: false,
         sessions: action.payload.sessions || state.sessions || [],
         // Re-pin from the same-snapshot messages: hosts re-push the session
         // object without firstMessage on pane/webview re-init.
@@ -998,4 +1019,29 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
     default:
       return state;
   }
+}
+
+function withTranscriptMemory(prev: ChatState, next: ChatState): ChatState {
+  if (next === prev || next.transcriptPending) return next;
+  const id = next.currentSession?.id;
+  if (!id || id === "__draft__") return next;
+  if (
+    next.messages === prev.messages &&
+    id === prev.currentSession?.id
+  ) {
+    return next;
+  }
+  const book = next.transcriptsBySession ?? {};
+  if (book[id] === next.messages) return next;
+  return {
+    ...next,
+    transcriptsBySession: {
+      ...book,
+      [id]: next.messages,
+    },
+  };
+}
+
+export function chatReducer(state: ChatState, action: ChatAction): ChatState {
+  return withTranscriptMemory(state, reduceChat(state, action));
 }

@@ -1515,6 +1515,42 @@ describe("chatReducer", () => {
 
       expect(newState.subagentMessages).toEqual(subagentMessages);
     });
+
+    it("puts the remembered transcript back when switching to that session", () => {
+      const session = (
+        id: string,
+      ): SessionMetadata => ({
+        id,
+        sessionType: "main",
+        workdir: "/w",
+        createdAt: new Date(0),
+        lastActiveAt: new Date(0),
+        latestTotalTokens: 0,
+      });
+      const transcript: Message = {
+        id: "m1",
+        role: "user",
+        timestamp: "0",
+        blocks: [{ type: "text", content: "开场问候" }],
+      };
+      const loaded = chatReducer(
+        { ...initialState, currentSession: session("s1") },
+        { type: "SET_MESSAGES", payload: [transcript] },
+      );
+      const away = chatReducer(loaded, {
+        type: "SET_CURRENT_SESSION",
+        payload: session("s2"),
+      });
+      expect(away.messages).toEqual([]);
+      expect(away.transcriptPending).toBe(true);
+
+      const back = chatReducer(away, {
+        type: "SET_CURRENT_SESSION",
+        payload: session("s1"),
+      });
+      expect(back.messages).toEqual([transcript]);
+      expect(back.transcriptPending).toBe(false);
+    });
   });
 
   describe("SET_INITIAL_STATE", () => {
