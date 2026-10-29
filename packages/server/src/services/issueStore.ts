@@ -51,6 +51,10 @@ export interface Issue {
   items: ChecklistItem[];
   /** 完成时的结果结论，或取消时的原因。 */
   closeNote?: string;
+  /** 派活时留给自己的交代，例如做完发到群里。 */
+  replyNote?: string;
+  /** 这一轮结束了，还没决定要不要告诉用户。 */
+  replyPending?: true;
   createdAt: number;
   updatedAt: number;
 }
@@ -102,6 +106,9 @@ export interface IssueStore {
     itemId: string,
     patch: Partial<Pick<ChecklistItem, "content" | "status">>,
   ): Issue | undefined;
+  setReplyNote(id: string, note: string): Issue | undefined;
+  markReplyPending(id: string): Issue | undefined;
+  clearReplyPending(id: string): Issue | undefined;
   complete(id: string, note: string): Issue | undefined;
   cancel(id: string, note: string): Issue | undefined;
   maybeEnterReview(id: string): Issue | undefined;
@@ -213,8 +220,19 @@ function normalizeAgentMode(value: unknown): IssueAgentMode {
   return value === "single" ? "single" : "split";
 }
 
+function replyFields(record: {
+  replyNote?: unknown;
+  replyPending?: unknown;
+}): Pick<Issue, "replyNote" | "replyPending"> {
+  const replyNote = typeof record.replyNote === "string" ? record.replyNote.trim() : "";
+  return {
+    ...(replyNote ? { replyNote } : {}),
+    ...(record.replyPending === true ? { replyPending: true as const } : {}),
+  };
+}
+
 function hydrateIssue(record: Issue & { tags?: unknown }): Issue {
-  const { tags: _tags, ...rest } = record;
+  const { tags: _tags, replyNote: _note, replyPending: _pending, ...rest } = record;
   return {
     ...rest,
     title: record.title,
@@ -223,6 +241,7 @@ function hydrateIssue(record: Issue & { tags?: unknown }): Issue {
     type: normalizeIssueType(record.type),
     items: record.items ?? [],
     agentMode: normalizeAgentMode(record.agentMode),
+    ...replyFields(record),
   };
 }
 
@@ -520,6 +539,35 @@ export function createIssueStore(
       if (!issue) return undefined;
       if (issue.status !== "awaiting_close") return cloneIssue(issue);
       issue.status = "planning";
+      issue.updatedAt = Date.now();
+      persist();
+      return cloneIssue(issue);
+    },
+
+    setReplyNote(id, note): Issue | undefined {
+      const issue = issues.get(id);
+      if (!issue || isTerminal(issue.status)) return undefined;
+      const text = note.trim();
+      if (text) issue.replyNote = text;
+      else delete issue.replyNote;
+      issue.updatedAt = Date.now();
+      persist();
+      return cloneIssue(issue);
+    },
+
+    markReplyPending(id): Issue | undefined {
+      const issue = issues.get(id);
+      if (!issue || isTerminal(issue.status)) return undefined;
+      issue.replyPending = true;
+      issue.updatedAt = Date.now();
+      persist();
+      return cloneIssue(issue);
+    },
+
+    clearReplyPending(id): Issue | undefined {
+      const issue = issues.get(id);
+      if (!issue || isTerminal(issue.status)) return undefined;
+      delete issue.replyPending;
       issue.updatedAt = Date.now();
       persist();
       return cloneIssue(issue);

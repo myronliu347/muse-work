@@ -21,6 +21,10 @@ export type AssistantIssueEvent = {
   /** 这一轮用户发出的消息。一轮里有多条时按时间接在一起。 */
   request?: string;
   summary: string;
+  /** 这一轮结束了，还没决定要不要告诉用户。 */
+  replyPending?: true;
+  /** 派活时留下的交代。 */
+  replyNote?: string;
   /** 事件触发时的毫秒时间戳。 */
   timestamp?: number;
   retry?: 1;
@@ -188,6 +192,8 @@ export function formatAssistantEvent(event: AssistantEvent): string {
       ["workdir", event.workdir],
       ["request", event.request],
       ["summary", event.summary],
+      ["replyPending", event.replyPending ? "true" : undefined],
+      ["replyNote", event.replyNote],
     ]);
   } else if (event.type === "permission") {
     const description = truncateCodePoints(event.description, ASSISTANT_TEXT_MAX);

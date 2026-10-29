@@ -29,6 +29,7 @@ export async function enqueueIssueSessionTurn(args: {
     messages = [];
   }
   const request = turnUserRequest(messages);
+  const pending = args.issues.markReplyPending(issue.id) ?? issue;
   args.enqueue({
     type: "issue",
     issueId: issue.id,
@@ -36,6 +37,8 @@ export async function enqueueIssueSessionTurn(args: {
     workdir: issue.workdir,
     ...(request ? { request } : {}),
     summary: lastAssistantText(messages),
+    replyPending: true,
+    ...(pending.replyNote ? { replyNote: pending.replyNote } : {}),
   });
 }
 

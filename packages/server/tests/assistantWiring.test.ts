@@ -150,8 +150,39 @@ describe("assistant wiring", () => {
         workdir: "/tmp/repo",
         summary: "已经修好",
         request: "登录失败\n\n还有验证码",
+        replyPending: true,
       },
     ]);
+    expect(issues.get(issue.id)?.replyPending).toBe(true);
+  });
+
+  it("keeps the dispatch note on the issue event", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-assistant-note-"));
+    homes.push(home);
+    const issues = createIssueStore({ home });
+    const issue = issues.create({ title: "修登录" });
+    issues.setPlanning(issue.id, {
+      planningSessionId: "sess-1",
+      workdir: "/tmp/repo",
+      worktreeEnabled: false,
+    });
+    issues.setReplyNote(issue.id, "做完发到群里");
+    const events: AssistantEvent[] = [];
+    await enqueueIssueSessionTurn({
+      issues,
+      runner: {
+        getMessages: async () => [
+          { role: "assistant", blocks: [{ type: "text", content: "已经修好" }] },
+        ],
+      },
+      enqueue: (event) => events.push(event),
+      sessionId: "sess-1",
+    });
+    expect(events[0]).toMatchObject({
+      replyPending: true,
+      replyNote: "做完发到群里",
+    });
+    expect(issues.get(issue.id)?.replyNote).toBe("做完发到群里");
   });
 
   it("enqueues a permission event only for an issue session", () => {

@@ -409,6 +409,10 @@ describe("assistant tools", () => {
       properties: {
         issueId: { type: "string" },
         message: { type: "string" },
+        note: {
+          type: "string",
+          description: "派活时留给自己的交代，例如做完发到群里。空字符串会清掉。",
+        },
       },
       required: ["issueId", "message"],
     });
@@ -781,5 +785,128 @@ describe("assistant tools", () => {
     });
     expect(asked).toEqual([{ sessionId: execution.id, question: "做到哪了" }]);
     expect(sent).toEqual([]);
+  });
+
+  it("rejects a long chat body unless a file is attached or the user asked for the full text", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-length-"));
+    const log = createAssistantMessageLog({ home });
+    const sent: string[] = [];
+    const note = path.join(home, "report.md");
+    fs.writeFileSync(note, "报告正文");
+    const tools = createAssistantTools({
+      home,
+      issues: createIssueStore({ home }),
+      sessions: createSessionStore({ home }),
+      automations: createAutomationStore({ home }),
+      log,
+      hub: { broadcastAll: () => undefined } as WsHub,
+      runner: {} as never,
+      sendText: async (_receiver, content) => {
+        sent.push(content);
+        return ["m1"];
+      },
+      popoMasterUid: () => "master",
+    });
+    const context = { sessionId: "assistant", toolUseId: "tool-1" };
+    const long = "字".repeat(201);
+    const boundary = "字".repeat(200);
+
+    const rejected = await tool(tools, "SendMessage").execute(
+      { app: "muse", message: long },
+      context,
+    );
+    expect(rejected.success).toBe(false);
+    expect(rejected.error).toContain("200");
+    expect(log.page().messages).toEqual([]);
+    expect(sent).toEqual([]);
+
+    const exact = await tool(tools, "SendMessage").execute(
+      { app: "muse", message: boundary },
+      context,
+    );
+    expect(exact.success).toBe(true);
+    expect(log.page().messages.at(-1)?.message).toBe(boundary);
+
+    const attached = await tool(tools, "SendMessage").execute(
+      { app: "muse", message: long, files: [note] },
+      context,
+    );
+    expect(attached.success).toBe(true);
+    expect(log.page().messages.at(-1)?.message).toContain(long);
+
+    log.append("user", "写在聊天里，我要看全文，不要附件");
+    const inline = await tool(tools, "SendMessage").execute(
+      { app: "muse", message: long },
+      context,
+    );
+    expect(inline.success).toBe(true);
+    expect(log.page().messages.at(-1)?.message).toBe(long);
+
+    log.append("user", "好");
+    const later = await tool(tools, "SendMessage").execute(
+      { app: "muse", message: long },
+      context,
+    );
+    expect(later.success).toBe(false);
+    expect(log.page().messages.at(-1)?.message).toBe("好");
+  });
+
+  it("lists a pending reply and clears it when that issue is told", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-reply-"));
+    const issues = createIssueStore({ home });
+    const log = createAssistantMessageLog({ home });
+    const issue = issues.create({ title: "修登录", description: "修" });
+    issues.setReplyNote(issue.id, "做完发到群里");
+    issues.markReplyPending(issue.id);
+    issues.setPlanning(issue.id, {
+      planningSessionId: "s1",
+      workdir: "/tmp/a",
+      worktreeEnabled: false,
+      agentMode: "single",
+    });
+    issues.markReady(issue.id);
+    const tools = createAssistantTools({
+      home,
+      issues,
+      sessions: createSessionStore({ home }),
+      automations: createAutomationStore({ home }),
+      log,
+      hub: { broadcastAll: () => undefined } as WsHub,
+      runner: {} as never,
+    });
+    const context = { sessionId: "assistant", toolUseId: "tool-1" };
+
+    const listed = await tool(tools, "ListIssues").execute({}, context);
+    expect(JSON.parse(listed.content)).toEqual([
+      expect.objectContaining({
+        id: issue.id,
+        replyPending: true,
+        replyNote: "做完发到群里",
+      }),
+    ]);
+
+    const rewritten = await tool(tools, "UpdateIssue").execute(
+      { issueId: issue.id, note: "改成私聊说" },
+      context,
+    );
+    expect(rewritten.success).toBe(true);
+    expect(issues.get(issue.id)?.replyNote).toBe("改成私聊说");
+
+    const told = await tool(tools, "SendMessage").execute(
+      { app: "muse", message: "登录改好了", issueId: issue.id },
+      context,
+    );
+    expect(told.success).toBe(true);
+    expect(log.page().messages.at(-1)?.message).toBe("登录改好了");
+    expect(issues.get(issue.id)?.replyPending).toBeUndefined();
+    expect(issues.get(issue.id)?.replyNote).toBe("改成私聊说");
+
+    issues.markReplyPending(issue.id);
+    const missing = await tool(tools, "SendMessage").execute(
+      { app: "muse", message: "没有这件", issueId: "missing" },
+      context,
+    );
+    expect(missing.success).toBe(false);
+    expect(issues.get(issue.id)?.replyPending).toBe(true);
   });
 });

@@ -14,6 +14,17 @@ import {
 } from "./toolKit.js";
 
 const IMAGE_EXTS = new Set(["jpg", "jpeg", "gif", "png", "bmp"]);
+const SEND_MESSAGE_BODY_MAX = 200;
+
+function userWantsFullText(log: AssistantToolDeps["log"]): boolean {
+  const messages = log.page({ limit: 50 }).messages;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const line = messages[i];
+    if (line?.role !== "user") continue;
+    return /写在聊天里|全文|不要附件/.test(line.message);
+  }
+  return false;
+}
 
 type SessionWindowLine = {
   id?: string;
@@ -153,7 +164,7 @@ export function createMessageTools(deps: AssistantToolDeps) {
   return [
     tool(
       "SendMessage",
-      "回复 Muse 或 POPO。app 为 muse 或 popo。popo 有 groupId 则发群，否则发给 user。ats 用来 @：Muse 只能 @ issue，POPO 群只能 @ user。本地图片和文件用 files 传绝对路径，链接用 links。",
+      "回复 Muse 或 POPO。app 为 muse 或 popo。popo 有 groupId 则发群，否则发给 user。ats 用来 @：Muse 只能 @ issue，POPO 群只能 @ user。本地图片和文件用 files 传绝对路径，链接用 links。正文超过 200 字且没有 files 会被拒绝。",
       {
         type: "object",
         properties: {
@@ -176,6 +187,10 @@ export function createMessageTools(deps: AssistantToolDeps) {
           },
           files: { type: "array", items: { type: "string" } },
           links: { type: "array", items: { type: "string" } },
+          issueId: {
+            type: "string",
+            description: "这句是在交代这件事项的结果。传了就撕掉纸条，正文里不用提它。",
+          },
         },
         required: ["message", "app"],
       },
@@ -183,6 +198,18 @@ export function createMessageTools(deps: AssistantToolDeps) {
         let message = typeof args.message === "string" ? args.message.trim() : "";
         const files = stringList(args.files);
         const links = stringList(args.links);
+        const settleId = text(args.issueId);
+        if (args.issueId !== undefined && !settleId) return fail("issueId required");
+        if (settleId && !deps.issues.get(settleId)) return fail("not found");
+        if (
+          files.length === 0 &&
+          [...message].length > SEND_MESSAGE_BODY_MAX &&
+          !userWantsFullText(deps.log)
+        ) {
+          return fail(
+            "正文超过 200 字。收成一两句，或把报告写成文件，用 files 附上绝对路径。",
+          );
+        }
         const groupId = text(args.groupId);
         const parsedAts = parseAts(args.ats);
         if (typeof parsedAts === "string") return fail(parsedAts);
@@ -227,8 +254,9 @@ export function createMessageTools(deps: AssistantToolDeps) {
             undefined,
             undefined,
             undefined,
-            rememberedIssueId,
+            settleId || rememberedIssueId,
           );
+          if (settleId) deps.issues.clearReplyPending(settleId);
           deps.hub.broadcastAll({ type: "assistant:chat", line });
           return ok({ line });
         }
@@ -251,6 +279,7 @@ export function createMessageTools(deps: AssistantToolDeps) {
         } catch (err: unknown) {
           return fail(err instanceof Error ? err.message : String(err));
         }
+        if (settleId) deps.issues.clearReplyPending(settleId);
         const master = deps.popoMasterUid?.()?.trim();
         if (!groupId && master && user === master) {
           const line = deps.log.append(
@@ -259,7 +288,7 @@ export function createMessageTools(deps: AssistantToolDeps) {
             undefined,
             "popo",
             msgIds,
-            rememberedIssueId,
+            settleId || rememberedIssueId,
           );
           deps.hub.broadcastAll({ type: "assistant:chat", line });
           return ok({ sent: true, receiver, msgIds, line });

@@ -32,12 +32,12 @@ export function createIssueTools(deps: AssistantToolDeps) {
   return [
     tool(
       "ListIssues",
-      "列出未完成、且不是待关闭的 Issue：id、标题、描述、工作目录、会话是否已打开。已打开的还有 sessionStatus（idle、running、error）和 queued（还没收进当前轮、等当前这一步结束后进入同一轮的消息摘要）。待关闭的不在这里，用户点名后用 MessageIssue，它会回到进行中。",
+      "列出未完成、且不是待关闭的 Issue：id、标题、描述、工作目录、会话是否已打开。已打开的还有 sessionStatus（idle、running、error）和 queued（还没收进当前轮、等当前这一步结束后进入同一轮的消息摘要）。待关闭的不在这里，除非 replyPending。replyPending 表示这一轮结束了，还没决定要不要告诉用户。replyNote 是派活时的交代，例如完全做完再告诉我。用户点名后用 MessageIssue，它会回到进行中。",
       { type: "object", properties: {} },
       async () =>
         ok(
           await Promise.all(
-            deps.issues.listActive().filter((issue) => issue.status !== "awaiting_close").map(async (issue) => {
+            deps.issues.listActive().filter((issue) => issue.status !== "awaiting_close" || issue.replyPending).map(async (issue) => {
               const sessionId = issue.planningSessionId;
               const session = sessionId ? deps.sessions.get(sessionId) : undefined;
               let queued: string[] = [];
@@ -60,6 +60,8 @@ export function createIssueTools(deps: AssistantToolDeps) {
                 workdir: issue.workdir,
                 sessionOpen: Boolean(sessionId),
                 ...(session ? { sessionStatus: session.status, queued } : {}),
+                ...(issue.replyPending ? { replyPending: true as const } : {}),
+                ...(issue.replyNote ? { replyNote: issue.replyNote } : {}),
               };
             }),
           ),
@@ -102,6 +104,10 @@ export function createIssueTools(deps: AssistantToolDeps) {
             description:
               "只做分类。bug、feature、research（调研）、analysis（分析）、review（检查）、work（兜底）。",
           },
+          note: {
+            type: "string",
+            description: "派活时留给自己的交代，例如做完发到群里。空字符串会清掉。",
+          },
         },
         required: ["title", "description"],
       },
@@ -111,19 +117,23 @@ export function createIssueTools(deps: AssistantToolDeps) {
         if (!title || !description) return fail("title and description required");
         const priority =
           args.priority === "p0" || args.priority === "p2" ? args.priority : "p1";
-        const issue = deps.issues.create({
+        const created = deps.issues.create({
           title,
           description,
           priority,
           type: normalizeIssueType(args.type),
         });
+        const issue =
+          args.note === undefined
+            ? created
+            : deps.issues.setReplyNote(created.id, text(args.note)) ?? created;
         return ok(issue);
       },
       (params) => compactText(params.title),
     ),
     tool(
       "UpdateIssue",
-      "修改已有 Issue 的标题、描述、优先级或分类。只改传入的字段。分类不改变怎么开工。已关闭的不能改。",
+      "修改已有 Issue 的标题、描述、优先级、分类或交代。只改传入的字段。分类不改变怎么开工。已关闭的不能改。settle 为 true 时只撕掉还没转达的纸条。",
       {
         type: "object",
         properties: {
@@ -139,6 +149,14 @@ export function createIssueTools(deps: AssistantToolDeps) {
             enum: ["bug", "feature", "research", "analysis", "review", "work"],
             description:
               "只做分类。bug、feature、research（调研）、analysis（分析）、review（检查）、work（兜底）。",
+          },
+          note: {
+            type: "string",
+            description: "派活时留给自己的交代，例如做完发到群里。空字符串会清掉。",
+          },
+          settle: {
+            type: "boolean",
+            description: "不用把结果告诉用户时传 true，只撕掉还没转达的纸条。",
           },
         },
         required: ["issueId"],
@@ -177,10 +195,19 @@ export function createIssueTools(deps: AssistantToolDeps) {
           if (args.type !== type) return fail("type must be bug, feature, research, analysis, review, or work");
           patch.type = type;
         }
-        if (Object.keys(patch).length === 0) return fail("nothing to update");
+        const hasNote = args.note !== undefined;
+        const settle = args.settle === true;
+        if (Object.keys(patch).length === 0 && !hasNote && !settle) return fail("nothing to update");
         try {
-          const issue = deps.issues.update(issueId, patch);
+          let issue = Object.keys(patch).length > 0
+            ? deps.issues.update(issueId, patch)
+            : deps.issues.get(issueId);
           if (!issue) return fail("not found");
+          if (hasNote) {
+            if (typeof args.note !== "string") return fail("note must be a string");
+            issue = deps.issues.setReplyNote(issueId, args.note) ?? issue;
+          }
+          if (settle) issue = deps.issues.clearReplyPending(issueId) ?? issue;
           deps.hub.broadcastAll({ type: "issue:changed" });
           return ok(issue);
         } catch (err) {
@@ -267,6 +294,10 @@ export function createIssueTools(deps: AssistantToolDeps) {
         properties: {
           issueId: { type: "string" },
           message: { type: "string" },
+          note: {
+            type: "string",
+            description: "派活时留给自己的交代，例如做完发到群里。空字符串会清掉。",
+          },
         },
         required: ["issueId", "message"],
       },
@@ -281,6 +312,10 @@ export function createIssueTools(deps: AssistantToolDeps) {
         if (issue.status === "awaiting_close") {
           deps.issues.resume(issue.id);
           deps.hub.broadcastAll({ type: "issue:changed" });
+        }
+        if (args.note !== undefined) {
+          if (typeof args.note !== "string") return fail("note must be a string");
+          deps.issues.setReplyNote(issue.id, args.note);
         }
         const sessionId = issue.planningSessionId;
         const running = deps.sessions.get(sessionId)?.status === "running";

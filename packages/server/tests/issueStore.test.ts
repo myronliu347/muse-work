@@ -356,4 +356,32 @@ describe("issueStore", () => {
     expect(store.listActive()).toEqual([]);
     fs.rmSync(home, { recursive: true, force: true });
   });
+
+  it("keeps a reply note and sticks pending until the user has been told", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-note-"));
+    const store = createIssueStore({ home });
+    const issue = store.create({ title: "修登录" });
+    const noted = store.setReplyNote(issue.id, "  做完发到群里  ");
+    expect(noted?.replyNote).toBe("做完发到群里");
+    expect(noted?.replyPending).toBeUndefined();
+
+    const pending = store.markReplyPending(issue.id);
+    expect(pending).toMatchObject({
+      replyNote: "做完发到群里",
+      replyPending: true,
+    });
+
+    const cleared = store.clearReplyPending(issue.id);
+    expect(cleared?.replyPending).toBeUndefined();
+    expect(cleared?.replyNote).toBe("做完发到群里");
+
+    const reloaded = createIssueStore({ home });
+    expect(reloaded.get(issue.id)?.replyNote).toBe("做完发到群里");
+    expect(reloaded.get(issue.id)?.replyPending).toBeUndefined();
+
+    reloaded.markReplyPending(issue.id);
+    expect(createIssueStore({ home }).get(issue.id)?.replyPending).toBe(true);
+    expect(reloaded.setReplyNote(issue.id, "  ")?.replyNote).toBeUndefined();
+    fs.rmSync(home, { recursive: true, force: true });
+  });
 });
