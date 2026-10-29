@@ -30,6 +30,39 @@ export function tabStepDirection(
   return prev ? -1 : 1;
 }
 
+/** macOS gives ⌘W to Close Window. Report it so a focused tab can close instead. */
+export function isCloseFocusedInput(
+  input: TabStepInput,
+  platform: NodeJS.Platform = process.platform,
+): boolean {
+  if (input.type !== "keyDown") return false;
+  if (input.alt || input.shift) return false;
+  const key = input.key.length === 1 ? input.key.toLowerCase() : input.key;
+  if (key !== "w") return false;
+  const primary = platform === "darwin" ? input.meta : input.control;
+  const secondary = platform === "darwin" ? input.control : input.meta;
+  return primary && !secondary;
+}
+
+export function attachCloseFocusedShortcut(
+  contents: {
+    on: (
+      event: "before-input-event",
+      listener: (
+        event: { preventDefault: () => void },
+        input: TabStepInput,
+      ) => void,
+    ) => void;
+  },
+  send: () => void,
+): void {
+  contents.on("before-input-event", (event, input) => {
+    if (!isCloseFocusedInput(input)) return;
+    event.preventDefault();
+    send();
+  });
+}
+
 export function attachTabStepShortcut(
   contents: {
     on: (

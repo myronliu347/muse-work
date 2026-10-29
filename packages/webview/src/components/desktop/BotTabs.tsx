@@ -186,16 +186,25 @@ export function BotTabs({
       if (scope === "issues" && tab === "bot") return false;
       return true;
     });
-    return registerSidePanel(panel, (direction) => {
-      const next = stepTab(
-        visible,
-        visible.includes(state.active) ? state.active : null,
-        direction,
-      );
-      if (!next || (next === "bot" && lockBotTab)) return;
-      onFocus(next);
-    });
-  }, [lockBotTab, onFocus, scope, state.active, state.openIssueIds]);
+    return registerSidePanel(
+      panel,
+      (direction) => {
+        const next = stepTab(
+          visible,
+          visible.includes(state.active) ? state.active : null,
+          direction,
+        );
+        if (!next || (next === "bot" && lockBotTab)) return;
+        onFocus(next);
+      },
+      () => {
+        if (scope === "bot" || state.active === "bot") return false;
+        if (!visible.includes(state.active)) return false;
+        onClose(state.active);
+        return true;
+      },
+    );
+  }, [lockBotTab, onClose, onFocus, scope, state.active, state.openIssueIds]);
   return (
     <div className="bot-tabs" aria-label="Muse Bot" ref={scrollerRef}>
       {tabs.map((tab) => {

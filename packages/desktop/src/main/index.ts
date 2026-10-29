@@ -89,8 +89,17 @@ function installAppMenu(getWindow: () => BrowserWindow | null): void {
             });
           },
         },
+        {
+          label: "关闭",
+          accelerator: "CommandOrControl+W",
+          click: () => {
+            getWindow()?.webContents.send(TO_WEBVIEW, {
+              command: "desktopCloseFocused",
+            });
+          },
+        },
         { type: "separator" },
-        isMac ? { role: "close" } : { role: "quit" },
+        ...(isMac ? [] : [{ role: "quit" as const }]),
       ],
     },
     { role: "editMenu" },
@@ -227,6 +236,13 @@ if (!gotLock) {
     });
 
     installAppMenu(() => mainWindow);
+    ipcMain.on(FROM_WEBVIEW, (_event, raw: unknown) => {
+      const msg = raw as { command?: string } | null;
+      if (msg?.command !== "desktopCloseWindow") return;
+      const win = mainWindow;
+      if (!win || win.isDestroyed()) return;
+      win.close();
+    });
 
     const paths = resolveDesktopPaths();
 

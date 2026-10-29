@@ -1,12 +1,23 @@
-import { matchTabStepShortcut } from "./panelShortcuts";
+import { matchCloseFocusedShortcut, matchTabStepShortcut } from "./panelShortcuts";
 
 const PANEL_SELECTOR =
   ".desktop-panel-dock, .assistant-split-bot, .assistant-split-issue, .assistant-frame";
 
 const steps = new Map<HTMLElement, (direction: -1 | 1) => void>();
+const closers = new Map<HTMLElement, () => boolean>();
 let keyboardPanel: HTMLElement | null = null;
 let installed = false;
 let lastStep: { at: number; direction: -1 | 1; source: "keydown" | "message" } | null = null;
+let lastCloseAt = 0;
+let closeWindow: (() => void) | null = null;
+
+/** When ⌘W finds no focused side panel, the shell closes the window. */
+export function registerUnfocusedClose(close: () => void): () => void {
+  closeWindow = close;
+  return () => {
+    if (closeWindow === close) closeWindow = null;
+  };
+}
 
 function panelFrom(node: Element | null): HTMLElement | null {
   const panel = node?.closest(PANEL_SELECTOR);
@@ -54,7 +65,11 @@ function onPointerDown(event: Event): void {
     return;
   }
   keyboardPanel = panelFrom(target);
-  if (!keyboardPanel) return;
+  if (!keyboardPanel) {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && panelFrom(active)) active.blur();
+    return;
+  }
   if (
     target.closest(
       "input, textarea, select, button, a, [contenteditable='true'], .xterm, webview",
@@ -66,6 +81,23 @@ function onPointerDown(event: Event): void {
   keyboardPanel.focus();
 }
 
+/** Close the focused issue tab or dock tab. True when a tab actually closed. */
+function closeFocusedPanel(): boolean {
+  const panel = sidePanelForKeyboard();
+  const close = panel ? closers.get(panel) : undefined;
+  return Boolean(close?.());
+}
+
+function onCloseChord(): void {
+  const now = Date.now();
+  // The desktop shell reports ⌘W because the window menu would otherwise close
+  // the app. The page may also see the key. One press must close one tab.
+  if (now - lastCloseAt < 300) return;
+  lastCloseAt = now;
+  // Muse Bot 和右侧「详情」没有关闭按钮，⌘W 仍关掉窗口。
+  if (!closeFocusedPanel()) closeWindow?.();
+}
+
 function ensureInstalled(): void {
   if (installed || typeof window === "undefined") return;
   installed = true;
@@ -73,6 +105,12 @@ function ensureInstalled(): void {
   window.addEventListener(
     "keydown",
     (event) => {
+      if (matchCloseFocusedShortcut(event)) {
+        event.preventDefault();
+        event.stopPropagation();
+        onCloseChord();
+        return;
+      }
       const direction = matchTabStepShortcut(event);
       if (direction === null) return;
       if (!stepFocusedPanel(direction, "keydown")) return;
@@ -83,7 +121,12 @@ function ensureInstalled(): void {
   );
   window.addEventListener("message", (event: MessageEvent) => {
     const data = event.data as { command?: string; direction?: unknown } | null;
-    if (!data || data.command !== "desktopStepTab") return;
+    if (!data) return;
+    if (data.command === "desktopCloseFocused") {
+      onCloseChord();
+      return;
+    }
+    if (data.command !== "desktopStepTab") return;
     if (data.direction !== -1 && data.direction !== 1) return;
     stepFocusedPanel(data.direction, "message");
   });
@@ -92,11 +135,15 @@ function ensureInstalled(): void {
 export function registerSidePanel(
   panel: HTMLElement,
   step: (direction: -1 | 1) => void,
+  close?: () => boolean,
 ): () => void {
   ensureInstalled();
   steps.set(panel, step);
+  if (close) closers.set(panel, close);
+  else closers.delete(panel);
   return () => {
     steps.delete(panel);
+    closers.delete(panel);
     if (keyboardPanel === panel) keyboardPanel = null;
   };
 }

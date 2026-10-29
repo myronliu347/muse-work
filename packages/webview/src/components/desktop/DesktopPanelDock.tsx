@@ -172,26 +172,65 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   React.useEffect(() => {
     const dock = dockRef.current;
     if (!dock) return;
-    return registerSidePanel(dock, (direction) => {
-      const keys = reconcileTabOrder(
-        tabOrder,
-        defaultDockTabKeys({
-          detail: Boolean(onSelectDetail),
-          checked,
-          filePaths: fileTabs.map((tab) => tab.path),
-          tools: toolTabs,
-        }),
-      );
-      const current = activeDockTabKey({
-        orderedKeys: keys,
-        detailActive,
-        activeKind: active,
-        activeFilePath,
-        activeToolId,
-      });
-      const next = stepTab(keys, current, direction);
-      if (next) selectTab(next);
-    });
+    return registerSidePanel(
+      dock,
+      (direction) => {
+        const keys = reconcileTabOrder(
+          tabOrder,
+          defaultDockTabKeys({
+            detail: Boolean(onSelectDetail),
+            checked,
+            filePaths: fileTabs.map((tab) => tab.path),
+            tools: toolTabs,
+          }),
+        );
+        const current = activeDockTabKey({
+          orderedKeys: keys,
+          detailActive,
+          activeKind: active,
+          activeFilePath,
+          activeToolId,
+        });
+        const next = stepTab(keys, current, direction);
+        if (next) selectTab(next);
+      },
+      () => {
+        const keys = reconcileTabOrder(
+          tabOrder,
+          defaultDockTabKeys({
+            detail: Boolean(onSelectDetail),
+            checked,
+            filePaths: fileTabs.map((tab) => tab.path),
+            tools: toolTabs,
+          }),
+        );
+        const current = activeDockTabKey({
+          orderedKeys: keys,
+          detailActive,
+          activeKind: active,
+          activeFilePath,
+          activeToolId,
+        });
+        if (!current || current === DOCK_TAB_DETAIL_KEY) return false;
+        const toolId = toolIdFromTabKey(current);
+        if (toolId) {
+          if (!onCloseTool) return false;
+          onCloseTool(toolId);
+          return true;
+        }
+        const path = filePathFromTabKey(current);
+        if (path) {
+          if (!onCloseFileTab) return false;
+          onCloseFileTab(path);
+          return true;
+        }
+        if (current.startsWith("kind:")) {
+          onCloseTab(current.slice("kind:".length) as DesktopPanelKind);
+          return true;
+        }
+        return false;
+      },
+    );
   }, [
     active,
     activeFilePath,
@@ -199,6 +238,9 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
     checked,
     detailActive,
     fileTabs,
+    onCloseFileTab,
+    onCloseTab,
+    onCloseTool,
     onSelectDetail,
     selectTab,
     tabOrder,

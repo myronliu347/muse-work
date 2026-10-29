@@ -73,6 +73,7 @@ import {
   issueGroupSessionWorkdir,
   resolveIssuePlanningSessionId,
 } from "../utils/issueGroups";
+import { registerUnfocusedClose } from "../muse/sidePanelTabs";
 import { DRAFT_SESSION_ID, draftSessionMetadata } from "../utils/session";
 import {
   DesktopPanelSlots,
@@ -1151,6 +1152,13 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     paneIdRef,
   });
   const { postToHost, patchPane, updatePanelGroup } = core;
+  // 没有聚焦的 Issue 会话或右侧面板时，⌘W 仍关闭窗口。
+  useEffect(() => {
+    if (paneId !== undefined) return;
+    return registerUnfocusedClose(() => {
+      postToHost({ command: "desktopCloseWindow" });
+    });
+  }, [paneId, postToHost]);
   // 会话页记住自己的会话。Muse Bot 看事项时会临时切到那条会话以接收流式，
   // 但不改会话页记下的选择，回到会话页再切回去。Bot 主页不占用当前会话。
   // 切回来时先在这一帧放上记下的会话，不等宿主往返，中间栏才不会空一拍。

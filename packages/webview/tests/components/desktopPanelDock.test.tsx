@@ -140,6 +140,61 @@ describe("DesktopPanelDock", () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
+  it("closes the focused dock tab with Cmd+W and leaves 详情", () => {
+    const onCloseTab = vi.fn();
+    const onCloseTool = vi.fn();
+    const mac = /mac|iphone|ipad|ipod/i.test(navigator.platform);
+    const chord = mac ? { metaKey: true } : { ctrlKey: true };
+    const { rerender } = render(
+      <MuseTheme>
+        <DesktopPanelDock
+          {...baseProps}
+          checked={["terminal", "file"]}
+          active="terminal"
+          onCloseTab={onCloseTab}
+        >
+          <div data-testid="dock-body">body</div>
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+
+    const now = vi.spyOn(Date, "now");
+    now.mockReturnValue(10_000);
+    fireEvent.pointerDown(screen.getByTestId("dock-body"));
+    fireEvent.keyDown(document.body, { key: "w", code: "KeyW", ...chord });
+    expect(onCloseTab).toHaveBeenCalledWith("terminal");
+
+    onCloseTab.mockClear();
+    now.mockReturnValue(10_400);
+    fireEvent.pointerDown(document.body);
+    fireEvent.keyDown(document.body, { key: "w", code: "KeyW", ...chord });
+    expect(onCloseTab).not.toHaveBeenCalled();
+
+    now.mockReturnValue(10_800);
+    rerender(
+      <MuseTheme>
+        <DesktopPanelDock
+          {...baseProps}
+          checked={["terminal"]}
+          active="terminal"
+          detailActive
+          onSelectDetail={() => {}}
+          onCloseTab={onCloseTab}
+          onCloseTool={onCloseTool}
+          toolTabs={[{ id: "wave", kind: "terminal", label: "wave", title: "wave" }]}
+          activeToolId="wave"
+        >
+          <div data-testid="dock-body">body</div>
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+    fireEvent.pointerDown(screen.getByTestId("dock-body"));
+    fireEvent.keyDown(document.body, { key: "w", code: "KeyW", ...chord });
+    expect(onCloseTab).not.toHaveBeenCalled();
+    expect(onCloseTool).not.toHaveBeenCalled();
+    now.mockRestore();
+  });
+
   it("steps the highlighted tab when a browser tab is only remembered", () => {
     const onSelect = vi.fn();
     const onSelectDetail = vi.fn();

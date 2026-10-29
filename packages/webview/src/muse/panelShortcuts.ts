@@ -127,6 +127,15 @@ export function stepTab<T>(
   return items[nextIndex];
 }
 
+/** ⌘W / Ctrl+W — close the focused issue tab or the focused dock tab. */
+export function matchCloseFocusedShortcut(event: KeyboardEvent): boolean {
+  if (event.altKey || event.shiftKey || event.isComposing) return false;
+  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+  if (key !== "w") return false;
+  if (isMac) return event.metaKey && !event.ctrlKey;
+  return event.ctrlKey && !event.metaKey;
+}
+
 export function matchNewSessionShortcut(event: KeyboardEvent): boolean {
   if (event.altKey || event.shiftKey || event.isComposing) return false;
   const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;

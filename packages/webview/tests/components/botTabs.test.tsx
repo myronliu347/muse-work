@@ -180,6 +180,49 @@ describe("BotTabs", () => {
     expect(onClose).toHaveBeenCalledWith(ISSUE_ID);
     expect(onFocus).not.toHaveBeenCalled();
   });
+
+  it("closes the focused issue tab with Cmd+W and leaves Muse Bot", () => {
+    const onFocus = vi.fn();
+    const onClose = vi.fn();
+    const mac = /mac|iphone|ipad|ipod/i.test(navigator.platform);
+    const chord = mac ? { metaKey: true } : { ctrlKey: true };
+    const state = openIssueSession(initialBotWorkspace(null), ISSUE_ID);
+    const { rerender } = render(
+      <div className="assistant-frame">
+        <BotTabs
+          state={state}
+          titles={{ [ISSUE_ID]: ISSUE_TITLE }}
+          onFocus={onFocus}
+          onClose={onClose}
+        />
+        <div data-testid="issue-body">body</div>
+      </div>,
+    );
+
+    const now = vi.spyOn(Date, "now");
+    now.mockReturnValue(20_000);
+    fireEvent.pointerDown(screen.getByTestId("issue-body"));
+    fireEvent.keyDown(document.body, { key: "w", code: "KeyW", ...chord });
+    expect(onClose).toHaveBeenCalledWith(ISSUE_ID);
+
+    onClose.mockClear();
+    now.mockReturnValue(20_400);
+    rerender(
+      <div className="assistant-frame">
+        <BotTabs
+          state={focusTab(initialBotWorkspace(null), "bot")}
+          titles={{ [ISSUE_ID]: ISSUE_TITLE }}
+          onFocus={onFocus}
+          onClose={onClose}
+        />
+        <div data-testid="issue-body">body</div>
+      </div>,
+    );
+    fireEvent.pointerDown(screen.getByTestId("issue-body"));
+    fireEvent.keyDown(document.body, { key: "w", code: "KeyW", ...chord });
+    expect(onClose).not.toHaveBeenCalled();
+    now.mockRestore();
+  });
 });
 
 describe("bot workspace owner", () => {

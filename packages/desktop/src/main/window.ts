@@ -1,6 +1,10 @@
 import { app, BrowserWindow, nativeImage, shell } from "electron";
 import * as path from "path";
-import { attachTabStepShortcut, TAB_STEP_CHANNEL } from "./tabStepShortcut";
+import {
+  attachCloseFocusedShortcut,
+  attachTabStepShortcut,
+  TAB_STEP_CHANNEL,
+} from "./tabStepShortcut";
 
 export type CreateMainWindowOpts = {
   serverBaseUrl: string;
@@ -57,6 +61,11 @@ export function installPreviewGuestPolicy(): void {
       if (!host || host.isDestroyed()) return;
       host.send(TAB_STEP_CHANNEL, { command: "desktopStepTab", direction });
     });
+    attachCloseFocusedShortcut(contents, () => {
+      const host = contents.hostWebContents;
+      if (!host || host.isDestroyed()) return;
+      host.send(TAB_STEP_CHANNEL, { command: "desktopCloseFocused" });
+    });
   });
 }
 
@@ -107,6 +116,10 @@ export function createMainWindow(opts: CreateMainWindowOpts): BrowserWindow {
       command: "desktopStepTab",
       direction,
     });
+  });
+  attachCloseFocusedShortcut(win.webContents, () => {
+    if (win.isDestroyed()) return;
+    win.webContents.send(TAB_STEP_CHANNEL, { command: "desktopCloseFocused" });
   });
   installPreviewGuestPolicy();
 

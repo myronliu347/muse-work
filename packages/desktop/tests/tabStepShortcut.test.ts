@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { tabStepDirection, type TabStepInput } from "../src/main/tabStepShortcut.js";
+import {
+  isCloseFocusedInput,
+  tabStepDirection,
+  type TabStepInput,
+} from "../src/main/tabStepShortcut.js";
 
 function input(partial: Partial<TabStepInput>): TabStepInput {
   return {
@@ -27,5 +31,16 @@ describe("tabStepDirection", () => {
     expect(tabStepDirection(input({ type: "keyUp", meta: true }), "darwin")).toBeNull();
     expect(tabStepDirection(input({ meta: true, shift: true }), "darwin")).toBeNull();
     expect(tabStepDirection(input({ meta: true, alt: true }), "darwin")).toBeNull();
+  });
+});
+
+describe("isCloseFocusedInput", () => {
+  it("uses Command+W on macOS and Control+W elsewhere", () => {
+    expect(isCloseFocusedInput(input({ meta: true, key: "w", code: "KeyW" }), "darwin")).toBe(true);
+    expect(isCloseFocusedInput(input({ meta: true, key: "W", code: "KeyW" }), "darwin")).toBe(true);
+    expect(isCloseFocusedInput(input({ control: true, key: "w" }), "darwin")).toBe(false);
+    expect(isCloseFocusedInput(input({ meta: true, shift: true, key: "w" }), "darwin")).toBe(false);
+    expect(isCloseFocusedInput(input({ control: true, key: "w" }), "win32")).toBe(true);
+    expect(isCloseFocusedInput(input({ meta: true, key: "w" }), "win32")).toBe(false);
   });
 });
