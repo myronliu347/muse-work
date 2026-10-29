@@ -1,0 +1,56 @@
+packages/webview/src/types/index.ts
+  0f9be30eaa9d8066 721-727
+packages/webview/tests/components/issueTab.test.tsx
+  0f9be30eaa9d8066 259-304,441-442,684,731-732,743-744,1120,1130-1131,1175-1176,1191,1194-1195,1760-1765
+packages/webview/src/components/ChatApp.tsx
+  0f9be30eaa9d8066 627-633,642-649,865-866,1149-1206,1209-1212,1215,1219,1221-1222,2856
+packages/webview/src/reducers/chatReducer.ts
+  0f9be30eaa9d8066 232-233,270,276,424-431,450,454-462,548,1023-1047
+packages/webview/tests/reducers/chatReducer.test.ts
+  0f9be30eaa9d8066 1518-1553
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "cfefa66eb3415074d8b45fd46b237951447bee68",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 275,
+      "total_deletions": 169,
+      "accepted_lines": 245,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 78,
+          "deletions": 112,
+          "accepted_lines": 68
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 103,
+          "deletions": 52,
+          "accepted_lines": 86
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 51,
+          "deletions": 5,
+          "accepted_lines": 48
+        },
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "additions": 36,
+          "accepted_lines": 36
+        }
+      }
+    }
+  }
+}
