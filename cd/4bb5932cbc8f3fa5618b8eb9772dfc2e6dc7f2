@@ -1,0 +1,90 @@
+packages/webview/src/components/desktop/DesktopShell.tsx
+  0f9be30eaa9d8066 18-21,146-152
+packages/webview/src/muse/messageRouter.ts
+  0f9be30eaa9d8066 14,457-458,460-462
+packages/webview/src/components/ChatApp.tsx
+  0f9be30eaa9d8066 55-58,76,1157,1161,1175-1178,1180-1187,1195,2027-2050
+packages/webview/tests/webview/streamingButtonStates.test.tsx
+  0f9be30eaa9d8066 105-106,123-124
+packages/webview/tests/components/issueTab.test.tsx
+  0f9be30eaa9d8066 305-435
+packages/webview/src/hooks/useDialogs.ts
+  0f9be30eaa9d8066 17,80,83-86,90,95-98,104
+packages/webview/src/muse/desktopNewSessionNav.ts
+  0f9be30eaa9d8066 1-38
+packages/webview/src/hooks/usePanels.ts
+  0f9be30eaa9d8066 33,396-401
+packages/webview/tests/webview/clearChat.test.tsx
+  0f9be30eaa9d8066 53,69-70
+packages/webview/src/utils/session.ts
+  0f9be30eaa9d8066 89-103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "cd4bb5932cbc8f3fa5618b8eb9772dfc2e6dc7f2",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 272,
+      "total_deletions": 18,
+      "accepted_lines": 271,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 6,
+          "deletions": 2,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/hooks/useDialogs.ts": {
+          "additions": 12,
+          "deletions": 3,
+          "accepted_lines": 12
+        },
+        "packages/webview/tests/webview/streamingButtonStates.test.tsx": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/hooks/usePanels.ts": {
+          "additions": 7,
+          "deletions": 3,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/muse/desktopNewSessionNav.ts": {
+          "additions": 38,
+          "accepted_lines": 38
+        },
+        "packages/webview/src/utils/session.ts": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        "packages/webview/tests/webview/clearChat.test.tsx": {
+          "additions": 3,
+          "deletions": 4,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 132,
+          "deletions": 1,
+          "accepted_lines": 131
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 44,
+          "deletions": 2,
+          "accepted_lines": 44
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 11,
+          "accepted_lines": 11
+        }
+      }
+    }
+  }
+}
