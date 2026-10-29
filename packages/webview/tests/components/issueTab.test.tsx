@@ -1856,6 +1856,49 @@ describe("issue tab", () => {
     );
   });
 
+  it("sends from the execution tab into the planning session and switches to it", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const vscode = createMockVscode();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={vscode}
+          host={createMockDesktopHost({
+            issueGroups: [A11Y_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+    const transcript = await within(frame).findByTestId("issue-tab-transcript");
+    expect(within(frame).getByTestId("issue-session-tab-execution")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    const input = within(transcript).getByTestId("message-input");
+    await setInputText(input, "改一下方案");
+    await user.click(within(transcript).getByTestId("send-btn"));
+
+    expect(vscode.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "sendMessage",
+        text: "改一下方案",
+        sessionId: "plan-a11y",
+      }),
+    );
+    expect(within(frame).getByTestId("issue-session-tab-planning")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
   it("refreshes the visible issue transcript and stops while that tab is hidden", async () => {
     resetWebviewStores();
     stubAssistant([]);

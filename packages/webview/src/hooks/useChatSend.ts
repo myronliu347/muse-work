@@ -223,7 +223,8 @@ export function useChatSend({
           ? issueGroup.planningSessionId
           : undefined;
 
-      // Issue tab pins the visible planning/execution session. Otherwise a
+      // Issue tab pins the session that should receive this message. The
+      // execution tab retargets that pin to planning before send. Otherwise a
       // split issue still sends into its planning session.
       postToHost({
         command: "sendMessage",

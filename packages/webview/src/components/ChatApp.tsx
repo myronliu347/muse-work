@@ -2168,10 +2168,36 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       />
     ) : undefined;
 
+  // 执行会话不收用户消息。从执行标签发出去时，改投规划会话并切过去。
+  const sendIssueMessage = useCallback(
+    (
+      text: string,
+      images?: Array<{ data: string; mediaType: string }>,
+      force?: boolean,
+    ) => {
+      const planningId =
+        shownIssueGroup && isSplitIssueGroup(shownIssueGroup)
+          ? resolveIssuePlanningSessionId(shownIssueGroup)
+          : undefined;
+      if (
+        assistantVisible &&
+        shownIssueGroup &&
+        planningId &&
+        openIssueViewTab === "execution" &&
+        (text.trim() || (images && images.length > 0))
+      ) {
+        issueSendSessionRef.current = planningId;
+        setIssueTabChoice({ issueId: shownIssueGroup.issueId, tab: "planning" });
+      }
+      handleSendMessage(text, images, force);
+    },
+    [assistantVisible, shownIssueGroup, openIssueViewTab, handleSendMessage],
+  );
+
   const composer = (
     <ChatComposer
       ref={messageInputRef}
-      onSendMessage={handleSendMessage}
+      onSendMessage={sendIssueMessage}
       isStreaming={
         assistantVisible && shownIssueGroup ? issueStreaming : state.isStreaming
       }
@@ -2443,7 +2469,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     onOpenFile: handleOpenFile,
     onOpenFilePinned: handleOpenFilePin,
     onRefreshOpenFile: handleRefreshOpenFile,
-    onSendMessage: (text) => handleSendMessage(text),
+    onSendMessage: (text) => sendIssueMessage(text),
     fileView,
     fileTabs: shownFileTabs,
     activeFilePath: shownActiveFilePath,
