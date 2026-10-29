@@ -1,0 +1,33 @@
+packages/webview/src/styles/AssistantPage.css
+  0f9be30eaa9d8066 301-303,311,313,321-322
+packages/webview/src/styles/Message.css
+  0f9be30eaa9d8066 836-838
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "9e4b2d94add8c10cd900ee0b3ddbadb901f3cf03",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 10,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AssistantPage.css": {
+          "accepted_lines": 7
+        },
+        "packages/webview/src/styles/Message.css": {
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
