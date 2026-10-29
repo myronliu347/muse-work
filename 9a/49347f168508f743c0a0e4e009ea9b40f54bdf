@@ -1,0 +1,156 @@
+packages/server/src/services/assistant/observe.ts
+  506250d3b2c229b8 32,40-41
+packages/server/tests/assistantTools.test.ts
+  506250d3b2c229b8 412-415,789-911
+packages/server/src/services/assistant/tools/messageTools.ts
+  506250d3b2c229b8 17-27,167,190-193,201-212,257,259,282,291
+packages/server/src/services/assistant/prompt.ts
+  506250d3b2c229b8 1,3,5,7,9-11,13,15,17,19,21-30,32,34,36,39,51,55,57,61,64,68,70,82,88,90,101
+packages/server/tests/assistantSession.test.ts
+  506250d3b2c229b8 45-54,56-59,61-65
+packages/server/src/services/assistant/tools/issueTools.ts
+  506250d3b2c229b8 35,40,63-64,107-110,120,126-129,136,153-160,198-200,202-204,206-210,297-300,316-319
+packages/server/tests/issueStore.test.ts
+  506250d3b2c229b8 359-386
+packages/server/src/services/issueStore.ts
+  506250d3b2c229b8 54-57,109-111,223-233,235,244,547-575
+packages/server/tests/assistantWiring.test.ts
+  506250d3b2c229b8 153,156-185
+packages/server/src/services/assistant/events.ts
+  506250d3b2c229b8 24-27,195-196
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "9a49347f168508f743c0a0e4e009ea9b40f54bdf",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 79,
+      "total_deletions": 31,
+      "accepted_lines": 77,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/panels/FileTree.tsx": {
+          "additions": 21,
+          "deletions": 4,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 42,
+          "deletions": 11,
+          "accepted_lines": 41
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "deletions": 4
+        },
+        "packages/webview/src/styles/FilePane.css": {
+          "additions": 6,
+          "deletions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "additions": 6,
+          "deletions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 2,
+          "accepted_lines": 2
+        }
+      }
+    },
+    "506250d3b2c229b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b0bbd501-f328-4d26-90e2-74045bdb0651",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 387,
+      "total_deletions": 61,
+      "accepted_lines": 372,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 44,
+          "deletions": 41,
+          "accepted_lines": 36
+        },
+        "packages/server/src/services/assistant/tools/messageTools.ts": {
+          "additions": 32,
+          "deletions": 3,
+          "accepted_lines": 32
+        },
+        "packages/server/tests/assistantWiring.test.ts": {
+          "additions": 31,
+          "accepted_lines": 31
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 130,
+          "deletions": 3,
+          "accepted_lines": 127
+        },
+        "packages/server/src/services/assistant/events.ts": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 6
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 20,
+          "deletions": 4,
+          "accepted_lines": 19
+        },
+        "packages/server/src/services/assistant/observe.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/server/src/services/issueStore.ts": {
+          "additions": 50,
+          "deletions": 2,
+          "accepted_lines": 49
+        },
+        "packages/server/tests/issueStore.test.ts": {
+          "additions": 28,
+          "accepted_lines": 28
+        },
+        "packages/server/src/services/assistant/tools/issueTools.ts": {
+          "additions": 42,
+          "deletions": 7,
+          "accepted_lines": 41
+        }
+      }
+    },
+    "50db5e4d2a2c4f16": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "652294f2-53e0-412f-88ad-06285817db3e",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 270,
+      "total_deletions": 160,
+      "accepted_lines": 110,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/share/personal-agent.md": {
+          "additions": 270,
+          "deletions": 160,
+          "accepted_lines": 110
+        }
+      }
+    }
+  }
+}
