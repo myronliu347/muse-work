@@ -833,9 +833,9 @@
   background: none;
   color: var(--gray-11);
   font: inherit;
-  font-size: 13px;
-  line-height: 22px;
-  height: 22px;
+  font-size: var(--font-size-1);
+  line-height: 1.45;
+  height: auto;
   text-align: left;
 }
 
