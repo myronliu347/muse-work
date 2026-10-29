@@ -2,6 +2,8 @@
 import { describe, it, expect } from "vitest";
 import {
   highlightCode,
+  highlightFence,
+  langFromFence,
   langFromPath,
 } from "../../src/utils/shikiHighlighter";
 
@@ -19,6 +21,14 @@ describe("shikiHighlighter", () => {
     expect(lines).toHaveLength(1);
     expect(lines[0]).toContain("style=\"color:");
     expect(lines[0]).toContain("const");
+  });
+
+  it("colors a fenced typescript block", async () => {
+    expect(langFromFence("ts")).toBe("typescript");
+    expect(langFromFence("mermaid")).toBeNull();
+    const html = await highlightFence("const a = 1;", langFromFence("ts"), true);
+    expect(html).toContain("style=\"color:");
+    expect(html).toContain("const");
   });
 
   it("falls back to plain text for unsupported langs", async () => {

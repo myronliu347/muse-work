@@ -18,6 +18,11 @@ vi.mock("../../src/utils/shikiHighlighter", () => ({
         ? line.replace("const", '<span class="shiki-kw">const</span>')
         : line,
     ),
+  highlightFence: async (code: string) =>
+    code.includes("const")
+      ? code.replace("const", '<span style="color:#ff7b72">const</span>')
+      : null,
+  langFromFence: (info: string | null) => (info ? "typescript" : null),
   getShikiTheme: (dark: boolean) => (dark ? "github-dark" : "github-light"),
   langFromPath: () => "typescript",
 }));
@@ -429,6 +434,30 @@ describe("FilePane", () => {
     fireEvent.click(screen.getByText("源码"));
     await waitFor(() => {
       expect(container.querySelector(".file-pane-code")).not.toBeNull();
+    });
+  });
+
+  it("keeps a markdown table inside the preview and colors fenced code", async () => {
+    const { container } = renderPane({
+      fileView: {
+        path: "/work/a/README.md",
+        host: "local",
+        content: [
+          "| 位置 | 说明 |",
+          "| --- | --- |",
+          "| `src/a.ts` | 改这里 |",
+          "",
+          "```ts",
+          "const a = 1",
+          "```",
+        ].join("\n"),
+      },
+    });
+    const md = container.querySelector(".file-pane-markdown");
+    expect(md?.querySelector("table")).not.toBeNull();
+    await waitFor(() => {
+      const colored = md?.querySelector("pre code span");
+      expect(colored?.getAttribute("style")).toContain("color:");
     });
   });
 

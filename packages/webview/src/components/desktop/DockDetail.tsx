@@ -3,6 +3,7 @@ import DOMPurify from "dompurify";
 import { marked } from "marked";
 import type { DesktopIssueGroup } from "../../types";
 import { issueSidebarStatusLabel } from "../../utils/issueStatusLabel";
+import { MarkdownView } from "../message/MarkdownView";
 import { Tooltip } from "../shared/Tooltip";
 import { issueTabSessionId } from "./botWorkspace";
 
@@ -44,16 +45,13 @@ function detailMarkdown(text: string): string {
       "td",
       "del",
     ],
-    ALLOWED_ATTR: ["href"],
+    ALLOWED_ATTR: ["href", "class"],
   });
 }
 
 function DetailMarkdown({ text }: { text: string }) {
   return (
-    <div
-      className="dock-detail-md"
-      dangerouslySetInnerHTML={{ __html: detailMarkdown(text) }}
-    />
+    <MarkdownView className="dock-detail-md" html={detailMarkdown(text)} />
   );
 }
 

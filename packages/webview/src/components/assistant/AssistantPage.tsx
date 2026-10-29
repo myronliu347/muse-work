@@ -19,6 +19,7 @@ import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { MessageList } from "../chat/MessageList";
 import { FileIcon } from "../panels/FileIcon";
 import { ContextTag } from "../shared/ContextTag";
+import { MarkdownView } from "../message/MarkdownView";
 import { linkifyFilePaths, parseMentions } from "../../utils/messageUtils";
 import { resolveWorkspaceFilePath } from "../../utils/filePathDisplay";
 import { pathToFileUrl } from "../../utils/pathToFileUrl";
@@ -174,7 +175,7 @@ function markdownHtml(text: string, closed: ReadonlySet<string> = new Set()): st
       "h4",
       "blockquote",
     ],
-    ALLOWED_ATTR: ["href"],
+    ALLOWED_ATTR: ["href", "class"],
   });
   return stripClosedFileLinks(safe, closed);
 }
@@ -396,10 +397,11 @@ function UserLine({
     const hasLink = linked !== part.content || /https?:\/\//.test(part.content);
     if (!hasLink) return <span key={index}>{part.content}</span>;
     return (
-      <span
+      <MarkdownView
         key={index}
+        as="span"
         className="assistant-user-text"
-        dangerouslySetInnerHTML={{ __html: markdownHtml(part.content, closedFilePaths) }}
+        html={markdownHtml(part.content, closedFilePaths)}
       />
     );
   });
@@ -522,7 +524,7 @@ function AssistantBubbleBody({
         return (
           <div key={`${line.id}:text:${index}`}>
             {body.trim() ? (
-              <div
+              <MarkdownView
                 className="message-content markdown-content"
                 onClick={(event) => {
                   const quote = (event.target as HTMLElement).closest(
@@ -535,12 +537,10 @@ function AssistantBubbleBody({
                   }
                   onLinkClick(event);
                 }}
-                dangerouslySetInnerHTML={{
-                  __html: withIssueQuote(
-                    markdownHtml(body, closedFilePaths),
-                    line.issueId,
-                  ),
-                }}
+                html={withIssueQuote(
+                  markdownHtml(body, closedFilePaths),
+                  line.issueId,
+                )}
               />
             ) : null}
             {files.length > 0 ? (

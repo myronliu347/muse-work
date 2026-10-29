@@ -32,6 +32,7 @@ import { ReasoningBlockView } from "./ReasoningBlockView";
 import { CompactBlockView } from "./CompactBlockView";
 import { WriteToolPreview } from "./WriteToolPreview";
 import { openImagePreview, type PreviewImage } from "./imagePreview";
+import { MarkdownView } from "./MarkdownView";
 import {
   ToolActivityGroup,
   ThoughtLine,
@@ -338,12 +339,10 @@ export const Message: React.FC<MessageProps> = React.memo(
                 content={element.content}
               />
             ) : (
-              <div
+              <MarkdownView
                 key={`html-${index}-${elIndex}`}
                 className="message-content markdown-content"
-                dangerouslySetInnerHTML={{
-                  __html: element.content,
-                }}
+                html={element.content}
               />
             ),
           )}

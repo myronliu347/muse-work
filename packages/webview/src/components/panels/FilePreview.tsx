@@ -10,6 +10,7 @@ import {
   wrapLineMatches,
   type LineMatch,
 } from "../../utils/fileSearch";
+import { MarkdownView } from "../message/MarkdownView";
 import {
   encodeFileSelectionClipboard,
   FILE_SELECTION_CLIPBOARD_MIME,
@@ -440,12 +441,10 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
       )}
       <div className="file-pane-preview-body" ref={scrollRef}>
       {markdown && markdownMode === "preview" && (
-        <div
+        <MarkdownView
           className="message-content markdown-content file-pane-markdown"
           onClick={handleMarkdownClick}
-          dangerouslySetInnerHTML={{
-            __html: renderFileMarkdown(fileView.content),
-          }}
+          html={renderFileMarkdown(fileView.content)}
         />
       )}
       {showCode && lines && (

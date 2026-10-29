@@ -811,3 +811,22 @@
 .automations-md code {
   font-size: 12px;
 }
+
+.automations-md table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.automations-md th,
+.automations-md td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  vertical-align: top;
+}
+
+.automations-md pre {
+  max-width: 100%;
+  overflow-x: auto;
+}

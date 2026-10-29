@@ -628,6 +628,8 @@ body.is-panel-resizing .desktop-panel-dock {
 
 .dock-detail-md table {
   width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 12px;
 }
@@ -638,6 +640,14 @@ body.is-panel-resizing .desktop-panel-dock {
   border: 1px solid var(--gray-6);
   text-align: left;
   vertical-align: top;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.dock-detail-md pre {
+  max-width: 100%;
+  min-width: 0;
 }
 
 .dock-detail-md a {

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import type { MuseApiClient, MuseAutomationRun } from "../../muse/apiClient";
+import { MarkdownView } from "../message/MarkdownView";
 
 type TranscriptBlock = {
   type: string;
@@ -93,7 +94,7 @@ function markdownHtml(text: string): string {
       "h3",
       "h4",
     ],
-    ALLOWED_ATTR: ["href"],
+    ALLOWED_ATTR: ["href", "class"],
   });
 }
 
@@ -199,10 +200,7 @@ const TranscriptBubble: React.FC<{ message: TranscriptMessage }> = ({
         <div className="automations-msg-body">{body}</div>
       ) : null}
       {body && message.role !== "user" ? (
-        <div
-          className="automations-md"
-          dangerouslySetInnerHTML={{ __html: markdownHtml(body) }}
-        />
+        <MarkdownView className="automations-md" html={markdownHtml(body)} />
       ) : null}
     </div>
   );

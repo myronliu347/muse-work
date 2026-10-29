@@ -111,6 +111,24 @@ function getHighlighter(): Promise<Highlighter> {
 const escapeHtml = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+/** Fence info string (`ts`, `typescript`) → a bundled shiki language. */
+export function langFromFence(info: string | null | undefined): BundledLanguage | null {
+  const id = info?.trim().toLowerCase().split(/\s+/)[0] ?? "";
+  if (!id || id === "mermaid") return null;
+  const mapped = EXT_LANG[id] ?? id;
+  if (WEB_LANGS.has(mapped)) return mapped as BundledLanguage;
+  return null;
+}
+
+function lineHtml(line: { content: string; color?: string }[]): string {
+  return line
+    .map((token) => {
+      const text = escapeHtml(token.content);
+      return token.color ? `<span style="color:${token.color}">${text}</span>` : text;
+    })
+    .join("");
+}
+
 /** Highlight file content; returns per-line HTML fragments (inline-colored spans). */
 export async function highlightCode(
   code: string,
@@ -126,18 +144,25 @@ export async function highlightCode(
   try {
     const highlighter = await getHighlighter();
     const result = highlighter.codeToTokens(raw, { lang, theme });
-    return result.tokens.map((line) =>
-      line
-        .map((token) => {
-          const color = token.color;
-          const text = escapeHtml(token.content);
-          return color
-            ? `<span style="color:${color}">${text}</span>`
-            : text;
-        })
-        .join(""),
-    );
+    return result.tokens.map((line) => lineHtml(line));
   } catch {
     return plain();
+  }
+}
+
+/** Inner HTML for one fenced code block. Null when the language is unknown. */
+export async function highlightFence(
+  code: string,
+  lang: BundledLanguage | null,
+  dark: boolean,
+): Promise<string | null> {
+  if (!lang) return null;
+  const theme = getShikiTheme(dark);
+  try {
+    const highlighter = await getHighlighter();
+    const result = highlighter.codeToTokens(code.replace(/\n$/, ""), { lang, theme });
+    return result.tokens.map((line) => lineHtml(line)).join("\n");
+  } catch {
+    return null;
   }
 }
