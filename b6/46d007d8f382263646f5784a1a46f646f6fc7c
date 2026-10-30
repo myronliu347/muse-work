@@ -1,0 +1,56 @@
+packages/webview/src/styles/DesktopApp.css
+  0f9be30eaa9d8066 2630-2671
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  0f9be30eaa9d8066 28,137,406-409
+packages/webview/tests/hooks/useScrollOverflow.test.ts
+  0f9be30eaa9d8066 1-32
+packages/webview/src/hooks/useScrollOverflow.ts
+  0f9be30eaa9d8066 1-60
+packages/webview/src/components/desktop/BotTabs.tsx
+  0f9be30eaa9d8066 31,164,211-215
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b646d007d8f382263646f5784a1a46f646f6fc7c",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 196,
+      "total_deletions": 51,
+      "accepted_lines": 147,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/BotTabs.tsx": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 7
+        },
+        "packages/webview/tests/hooks/useScrollOverflow.test.ts": {
+          "additions": 32,
+          "accepted_lines": 32
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 91,
+          "deletions": 49,
+          "accepted_lines": 42
+        },
+        "packages/webview/src/hooks/useScrollOverflow.ts": {
+          "additions": 60,
+          "accepted_lines": 60
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 6,
+          "deletions": 1,
+          "accepted_lines": 6
+        }
+      }
+    }
+  }
+}
