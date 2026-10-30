@@ -1,0 +1,26 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "110f5d2173af111cc386d15840783c0792fe6cc4",
+  "prompts": {
+    "1b26f2d862f4c6d2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5496c529-1166-489f-a21e-da3c6fa61033",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 4,
+      "accepted_lines": 0,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/museAgentSettings.ts": {
+          "deletions": 4
+        }
+      }
+    }
+  }
+}
