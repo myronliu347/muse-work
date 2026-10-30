@@ -1,0 +1,78 @@
+packages/server/src/services/issuePlanning.ts
+  9a1a7cc0386ad078 95-105
+packages/server/src/services/assistant/prompt.ts
+  9a1a7cc0386ad078 40,68,101,115-117
+packages/server/plugins/issue/skills/issue-management/SKILL.md
+  9a1a7cc0386ad078 20,27-35,41-42
+packages/server/tests/assistantSession.test.ts
+  9a1a7cc0386ad078 32-36,88-91
+packages/server/tests/issuePlanning.test.ts
+  9a1a7cc0386ad078 68-72
+packages/server/src/services/assistant/tools/issueTools.ts
+  9a1a7cc0386ad078 221,233
+packages/server/src/services/assistant/tools/messageTools.ts
+  9a1a7cc0386ad078 186,192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1db230636a3e73d70103c6ae0b7e646e11bb8841",
+  "prompts": {
+    "9a1a7cc0386ad078": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b763b2b9-f26f-4669-b0a6-fa9318acd1ea",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 89,
+      "total_deletions": 67,
+      "accepted_lines": 68,
+      "overriden_lines": 1,
+      "per_file_stats": {
+        "packages/server/tests/issuePlanning.test.ts": {
+          "additions": 7,
+          "deletions": 2,
+          "accepted_lines": 5
+        },
+        "packages/server/plugins/issue/skills/issue-management/SKILL.md": {
+          "additions": 13,
+          "deletions": 8,
+          "accepted_lines": 12
+        },
+        "packages/server/src/services/issuePlanning.ts": {
+          "additions": 14,
+          "deletions": 11,
+          "accepted_lines": 11
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 12,
+          "deletions": 4,
+          "accepted_lines": 9
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 2,
+          "overriden_lines": 1
+        },
+        "packages/server/src/services/assistant/tools/messageTools.ts": {
+          "additions": 23,
+          "deletions": 23,
+          "accepted_lines": 21
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 11,
+          "deletions": 10,
+          "accepted_lines": 6
+        },
+        "packages/server/src/services/assistant/tools/issueTools.ts": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
