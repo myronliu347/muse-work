@@ -1,0 +1,107 @@
+packages/webview/src/styles/DesktopApp.css
+  c653e7d67b333342 1681-1682,1758-1900,1902-1908,1911,1913-2023,2035
+packages/webview/src/components/panels/previewViewport.ts
+  c653e7d67b333342 1-55
+packages/webview/tests/webview/previewPane.test.tsx
+  c653e7d67b333342 2,43,56,68,77,110,154-157,576-659
+packages/webview/tests/webview/previewLinks.test.ts
+  c653e7d67b333342 1-92
+packages/desktop/src/main/window.ts
+  c653e7d67b333342 1,22-38
+packages/webview/tests/webview/previewViewport.test.ts
+  c653e7d67b333342 1-30
+packages/desktop/tests/windowWebviewTag.test.ts
+  c653e7d67b333342 30-35,41,153-164
+packages/webview/src/components/panels/PreviewPane.tsx
+  c653e7d67b333342 5-30,57,222-236,271-302,342,383-385,502,552,559,561,573-576,578-580,582-673,744-756,799-874,884-940,942-967,1019-1069
+packages/webview/src/components/panels/previewLinks.ts
+  c653e7d67b333342 1-255
+packages/desktop/src/main/index.ts
+  c653e7d67b333342 14,241-248
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "defd2009f4c1e0f9c5ac49629500ce074ff20952",
+  "prompts": {
+    "c653e7d67b333342": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "36fc3e93-b86f-45c3-aa13-65748d9db108",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1509,
+      "total_deletions": 201,
+      "accepted_lines": 1322,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 292,
+          "deletions": 28,
+          "accepted_lines": 265
+        },
+        "packages/desktop/src/main/window.ts": {
+          "additions": 18,
+          "deletions": 1,
+          "accepted_lines": 18
+        },
+        "packages/webview/tests/webview/previewViewport.test.ts": {
+          "additions": 30,
+          "accepted_lines": 30
+        },
+        "packages/desktop/tests/windowWebviewTag.test.ts": {
+          "additions": 19,
+          "accepted_lines": 19
+        },
+        "packages/webview/tests/webview/previewLinks.test.ts": {
+          "additions": 92,
+          "accepted_lines": 92
+        },
+        "packages/webview/src/components/panels/previewViewport.ts": {
+          "additions": 55,
+          "accepted_lines": 55
+        },
+        "packages/webview/tests/components/desktopPanelDock.test.tsx": {
+          "additions": 36,
+          "accepted_lines": 36
+        },
+        "packages/webview/tests/components/botTabs.test.tsx": {
+          "additions": 34,
+          "accepted_lines": 34
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/muse/sidePanelTabs.ts": {
+          "additions": 8,
+          "deletions": 3,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/components/panels/previewLinks.ts": {
+          "additions": 259,
+          "deletions": 4,
+          "accepted_lines": 255
+        },
+        "packages/webview/src/components/panels/PreviewPane.tsx": {
+          "additions": 549,
+          "deletions": 148,
+          "accepted_lines": 406
+        },
+        "packages/webview/tests/webview/previewPane.test.tsx": {
+          "additions": 107,
+          "deletions": 15,
+          "accepted_lines": 94
+        }
+      }
+    }
+  }
+}
