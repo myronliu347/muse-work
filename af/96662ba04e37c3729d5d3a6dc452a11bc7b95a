@@ -1,0 +1,38 @@
+packages/webview/e2e/utils/desktopTestHarness.ts
+  0f9be30eaa9d8066 131-166
+README.md
+  0f9be30eaa9d8066 5,10-21,51,60,94-98
+packages/webview/e2e/demo/readme-home.demo.ts
+  0f9be30eaa9d8066 1-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "af96662ba04e37c3729d5d3a6dc452a11bc7b95a",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 112,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/e2e/utils/desktopTestHarness.ts": {
+          "accepted_lines": 36
+        },
+        "packages/webview/e2e/demo/readme-home.demo.ts": {
+          "accepted_lines": 56
+        },
+        "README.md": {
+          "accepted_lines": 20
+        }
+      }
+    }
+  }
+}
