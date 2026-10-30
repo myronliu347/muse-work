@@ -1,0 +1,48 @@
+packages/webview/src/styles/Tooltip.css
+  0f9be30eaa9d8066 63-72
+packages/webview/src/components/shared/ContextTag.tsx
+  0f9be30eaa9d8066 33
+packages/webview/tests/webview/tooltip.test.tsx
+  0f9be30eaa9d8066 11,305-323
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e7dc3c37467d943ef54a53aef223c00888918f22",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 100,
+      "total_deletions": 36,
+      "accepted_lines": 76,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 59,
+          "deletions": 25,
+          "accepted_lines": 45
+        },
+        "packages/webview/src/components/shared/ContextTag.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/tooltip.test.tsx": {
+          "additions": 30,
+          "deletions": 10,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/styles/Tooltip.css": {
+          "additions": 10,
+          "accepted_lines": 10
+        }
+      }
+    }
+  }
+}
