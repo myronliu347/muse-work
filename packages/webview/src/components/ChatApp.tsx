@@ -1746,7 +1746,12 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // Panel chords open or switch. On Muse Bot they also leave 详情. A second
   // press keeps the panel; the tab close button is what removes it.
   panelShortcutRef.current = (kind) => {
-    if (!assistantVisibleRef.current) return false;
+    if (!assistantVisibleRef.current) {
+      // 会话页的选中项和 Muse Bot 共用。快捷键只改目录里的 active 时，
+      // 开过浏览器之后界面仍停在原来的那种面板上。
+      if (onSessionsSurface) selectDockRef.current(kind);
+      return false;
+    }
     if (kind === "terminal" || kind === "preview") {
       const { tools, group } = readAssistantTools();
       const ofKind = tools.filter((tool) => tool.kind === kind);
@@ -2453,7 +2458,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     widths: shownWidths,
     dockMaxWidth,
     onSelect: (kind) => {
-      if (showIssueDetail) workspace.selectDock(kind);
+      if (showIssueDetail || onSessionsSurface) workspace.selectDock(kind);
       handleSelectPanel(kind);
     },
     onSelectDetail: showIssueDetail
@@ -2493,6 +2498,9 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         return;
       }
       handleAddPanel(kind);
+      if (!onSessionsSurface || !groupKey) return;
+      const opened = usePanelGroupStore.getState().groups[groupKey];
+      if (opened?.checked.includes(kind)) workspace.selectDock(kind);
     },
     tools: assistantVisible ? assistantTools : EMPTY_DOCK_TOOLS,
     activeToolId: assistantActiveToolId,
@@ -2574,7 +2582,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     fileTabs: shownFileTabs,
     activeFilePath: shownActiveFilePath,
     onSelectFileTab: (path) => {
-      if (showIssueDetail) workspace.selectDock("file");
+      if (showIssueDetail || onSessionsSurface) workspace.selectDock("file");
       selectShownFileTab(path);
     },
     onCloseFileTab: closeShownFileTab,

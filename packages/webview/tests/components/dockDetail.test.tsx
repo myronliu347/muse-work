@@ -1002,6 +1002,60 @@ describe("assistant dock detail", () => {
     expect(within(sessionDock).getByTestId("terminal-pane")).toBeVisible();
   });
 
+  it("switches session dock tabs after 浏览器 is the shared chrome", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      checked: ["file"],
+      mounted: ["file"],
+      active: "file",
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
+    });
+    usePanelGroupStore.getState().patchGroup("/mock/workdir", {
+      checked: ["preview", "diff", "file"],
+      mounted: ["preview", "diff", "file"],
+      active: "diff",
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
+    });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={createMockDesktopHost()} />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const assistantDock = await ensureAssistantDock(frame, user);
+    await user.click(within(assistantDock).getByTestId("desktop-panel-add-btn"));
+    await user.click(await screen.findByTestId("panel-add-item-preview"));
+
+    establishSession();
+    await user.click(screen.getByTestId("desktop-sessions-menu"));
+
+    const chat = await screen.findByTestId("chat-container");
+    const sessionDock = await within(chat).findByTestId("desktop-panel-dock");
+    expect(within(sessionDock).getByTestId("desktop-panel-tab-preview")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+
+    await user.click(within(sessionDock).getByRole("button", { name: "变更" }));
+    expect(within(sessionDock).getByTestId("desktop-panel-tab-diff")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(within(sessionDock).getByTestId("desktop-panel-tab-preview")).not.toHaveClass(
+      "desktop-panel-tab--active",
+    );
+
+    await user.click(within(sessionDock).getByRole("button", { name: "文件" }));
+    expect(within(sessionDock).getByTestId("desktop-panel-tab-file")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(within(sessionDock).getByTestId("desktop-panel-tab-diff")).not.toHaveClass(
+      "desktop-panel-tab--active",
+    );
+  });
+
   it("keeps 文件 when the session group has that kind but another kind is active", async () => {
     resetWebviewStores();
     stubAssistant([]);
