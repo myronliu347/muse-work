@@ -1,0 +1,36 @@
+packages/webview/src/components/panels/PreviewPane.tsx
+  0f9be30eaa9d8066 202-206,273-275,280-284,289-298,395
+packages/webview/tests/webview/previewPane.test.tsx
+  0f9be30eaa9d8066 111-112,117,210-227
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "046ea5f12233e8d728f5b36e1e3b67480db8fdb5",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 45,
+      "total_deletions": 3,
+      "accepted_lines": 45,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/previewPane.test.tsx": {
+          "additions": 21,
+          "accepted_lines": 21
+        },
+        "packages/webview/src/components/panels/PreviewPane.tsx": {
+          "additions": 24,
+          "deletions": 3,
+          "accepted_lines": 24
+        }
+      }
+    }
+  }
+}
