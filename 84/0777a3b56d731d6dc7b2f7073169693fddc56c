@@ -1,0 +1,33 @@
+packages/webview/src/styles/Message.css
+  9a1a7cc0386ad078 866-868
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "840777a3b56d731d6dc7b2f7073169693fddc56c",
+  "prompts": {
+    "9a1a7cc0386ad078": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b763b2b9-f26f-4669-b0a6-fa9318acd1ea",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 6,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/Message.css": {
+          "additions": 3,
+          "deletions": 6,
+          "accepted_lines": 3
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
