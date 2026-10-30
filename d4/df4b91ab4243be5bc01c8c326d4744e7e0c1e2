@@ -1,0 +1,135 @@
+packages/server/src/services/issuePlanning.ts
+  9a1a7cc0386ad078 98
+packages/server/src/services/assistant/prompt.ts
+  9a1a7cc0386ad078 26
+packages/webview/src/styles/DesktopApp.css
+  9a1a7cc0386ad078 2307,2581
+packages/webview/src/components/panels/FilePreview.tsx
+  9a1a7cc0386ad078 14,51-72,92-127,139-164,166-167,169,171-172,456,530,533-544
+packages/server/plugins/issue/skills/issue-management/SKILL.md
+  9a1a7cc0386ad078 31
+packages/server/tests/assistantSession.test.ts
+  9a1a7cc0386ad078 62-65
+packages/server/tests/issuePlanning.test.ts
+  9a1a7cc0386ad078 71
+packages/desktop/src/main/filePanel.ts
+  9a1a7cc0386ad078 36,38,40-41,43-44,143
+packages/webview/tests/components/filePane.test.tsx
+  9a1a7cc0386ad078 14-19,470-494,510-524
+packages/desktop/tests/filePanel.test.ts
+  9a1a7cc0386ad078 98-111
+packages/webview/src/styles/MessageList.css
+  9a1a7cc0386ad078 29
+packages/webview/src/styles/AssistantPage.css
+  9a1a7cc0386ad078 140
+packages/webview/src/styles/FilePane.css
+  9a1a7cc0386ad078 202-207
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d4df4b91ab4243be5bc01c8c326d4744e7e0c1e2",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 6,
+      "accepted_lines": 3,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/Message.css": {
+          "additions": 3,
+          "deletions": 6,
+          "accepted_lines": 3
+        }
+      }
+    },
+    "9a1a7cc0386ad078": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b763b2b9-f26f-4669-b0a6-fa9318acd1ea",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 206,
+      "total_deletions": 40,
+      "accepted_lines": 192,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/src/main/filePanel.ts": {
+          "additions": 7,
+          "deletions": 6,
+          "accepted_lines": 7
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/components/filePane.test.tsx": {
+          "additions": 57,
+          "deletions": 11,
+          "accepted_lines": 46
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/FilePane.css": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/server/tests/issuePlanning.test.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/panels/FilePreview.tsx": {
+          "additions": 106,
+          "deletions": 10,
+          "accepted_lines": 104
+        },
+        "packages/server/plugins/issue/skills/issue-management/SKILL.md": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/desktop/tests/filePanel.test.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/server/src/services/issuePlanning.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
