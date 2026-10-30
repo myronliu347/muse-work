@@ -33,14 +33,15 @@ const isMarkdownPath = (p: string) =>
   /\.(md|markdown|mdown|mkd)$/i.test(p);
 
 /**
- * Rewrite workdir-relative images in markdown to inline data URIs so they
+ * Rewrite images relative to the markdown file into inline data URIs so they
  * render inside the webview (which has no base URL for relative paths).
- * Remote URLs, absolute paths, and missing/oversized files are left alone.
+ * Web URLs, absolute paths, and missing/oversized files are left alone.
  */
-const embedMarkdownImages = (content: string, workdir: string): string => {
+const embedMarkdownImages = (content: string, filePath: string): string => {
+  const baseDir = path.dirname(filePath);
   const dataUriFor = (url: string): string | null => {
-    if (!url || /^(?:[a-z][a-z0-9+.-]*:|\/|\\)/i.test(url)) return null;
-    const abs = path.resolve(workdir, url);
+    if (!url || /^(?:[a-z][a-z0-9+.-]*:|\/\/|\/|\\)/i.test(url)) return null;
+    const abs = path.resolve(baseDir, url);
     const ext = path.extname(abs).toLowerCase().replace(/^\./, "");
     if (!IMAGE_EXTS.has(ext)) return null;
     try {
@@ -139,7 +140,7 @@ export async function readLocalFileForPanel(
       .toString("utf8");
     const content =
       opts?.workdir && isMarkdownPath(filePath)
-        ? embedMarkdownImages(rawContent, opts.workdir)
+        ? embedMarkdownImages(rawContent, filePath)
         : rawContent;
     const totalLines =
       rawContent.split("\n").length - (rawContent.endsWith("\n") ? 1 : 0);

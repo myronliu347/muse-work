@@ -199,6 +199,12 @@
   overflow: auto;
 }
 
+.file-pane-markdown img,
+.file-pane-markdown svg {
+  max-width: 100%;
+  height: auto;
+}
+
 /* Image files (remote previewImage) render inline, sized to the panel. */
 .file-pane-image {
   display: block;

@@ -95,6 +95,20 @@ describe("readLocalFileForPanel markdown images", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  it("embeds images next to a nested markdown file, including svg", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-md-"));
+    fs.mkdirSync(path.join(dir, "docs"));
+    fs.writeFileSync(path.join(dir, "docs", "shot.png"), Buffer.from([1, 2, 3]));
+    fs.writeFileSync(path.join(dir, "docs", "flow.svg"), "<svg></svg>", "utf8");
+    const file = path.join(dir, "docs", "plan.md");
+    fs.writeFileSync(file, "![shot](shot.png)\n![flow](flow.svg)\n", "utf8");
+    const view = await readLocalFileForPanel(file, { workdir: dir });
+    expect(view.content).toContain("![shot](data:image/png;base64,AQID)");
+    expect(view.content).toContain("![flow](data:image/svg+xml;base64,");
+    expect(view.content).not.toContain("(shot.png)");
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   it("leaves remote URLs, absolute paths, and missing files untouched", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-md-"));
     const file = path.join(dir, "README.md");

@@ -11,6 +11,7 @@ import {
   type LineMatch,
 } from "../../utils/fileSearch";
 import { MarkdownView } from "../message/MarkdownView";
+import { MermaidRenderer } from "../message/MermaidRenderer";
 import {
   encodeFileSelectionClipboard,
   FILE_SELECTION_CLIPBOARD_MIME,
@@ -47,6 +48,28 @@ const sanitizeFileMarkdown = (html: string): string => {
       "hr",
       "img",
       "span",
+      "svg",
+      "g",
+      "path",
+      "rect",
+      "circle",
+      "ellipse",
+      "line",
+      "polyline",
+      "polygon",
+      "text",
+      "tspan",
+      "defs",
+      "title",
+      "desc",
+      "use",
+      "symbol",
+      "marker",
+      "linearGradient",
+      "radialGradient",
+      "stop",
+      "clipPath",
+      "image",
       "table",
       "thead",
       "tbody",
@@ -66,6 +89,42 @@ const sanitizeFileMarkdown = (html: string): string => {
       "class",
       "src",
       "alt",
+      "viewBox",
+      "xmlns",
+      "width",
+      "height",
+      "fill",
+      "stroke",
+      "stroke-width",
+      "stroke-linecap",
+      "stroke-linejoin",
+      "d",
+      "cx",
+      "cy",
+      "r",
+      "rx",
+      "ry",
+      "x",
+      "y",
+      "x1",
+      "y1",
+      "x2",
+      "y2",
+      "points",
+      "transform",
+      "opacity",
+      "fill-opacity",
+      "stroke-opacity",
+      "font-size",
+      "font-family",
+      "text-anchor",
+      "preserveAspectRatio",
+      "id",
+      "offset",
+      "stop-color",
+      "marker-end",
+      "marker-start",
+      "href",
     ],
     ALLOW_DATA_ATTR: false,
   });
@@ -77,13 +136,40 @@ const renderFileMarkdown = (content: string): string => {
   return sanitizeFileMarkdown(typeof raw === "string" ? raw : content);
 };
 
+type MarkdownPart =
+  | { type: "html"; content: string }
+  | { type: "mermaid"; content: string; id: string };
+
+/** Pull fenced mermaid blocks out so the preview can draw them. */
+const splitMermaid = (content: string): MarkdownPart[] => {
+  const re = /```[ \t]*mermaid[ \t]*\r?\n([\s\S]*?)\r?\n```/g;
+  const parts: MarkdownPart[] = [];
+  let last = 0;
+  let index = 0;
+  for (const match of content.matchAll(re)) {
+    const at = match.index ?? 0;
+    const before = content.slice(last, at);
+    if (before.trim()) parts.push({ type: "html", content: before });
+    const body = (match[1] ?? "").trim();
+    if (body) {
+      parts.push({ type: "mermaid", content: body, id: `file-mermaid-${index++}` });
+    }
+    last = at + match[0].length;
+  }
+  const after = content.slice(last);
+  if (after.trim()) parts.push({ type: "html", content: after });
+  if (parts.length === 0 && content.trim()) parts.push({ type: "html", content });
+  return parts;
+};
+
 /**
- * Resolve a markdown-relative href (e.g. `docs/x.md`, `../y.png`) against the
- * workdir without Node's `path` module. Absolute paths pass through unchanged.
+ * Resolve a markdown-relative href against the file's own directory.
+ * Absolute paths pass through unchanged.
  */
-const resolveWorkdirHref = (workdir: string, href: string): string => {
+const resolveFileHref = (filePath: string, href: string): string => {
   if (/^[\\/]|^[a-zA-Z]:/.test(href)) return href;
-  const parts = workdir.replace(/\\/g, "/").split("/");
+  const parts = filePath.replace(/\\/g, "/").split("/");
+  parts.pop();
   for (const seg of href.replace(/\\/g, "/").split("/")) {
     if (!seg || seg === ".") continue;
     if (seg === "..") parts.pop();
@@ -367,7 +453,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
       return;
     }
     const raw = decodeFileHref(href.split("#")[0]);
-    if (raw && workdir) onOpenFile?.(resolveWorkdirHref(workdir, raw));
+    if (raw) onOpenFile?.(resolveFileHref(fileView.path, raw));
   };
 
   const stepMatch = (delta: 1 | -1) => {
@@ -441,11 +527,21 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
       )}
       <div className="file-pane-preview-body" ref={scrollRef}>
       {markdown && markdownMode === "preview" && (
-        <MarkdownView
+        <div
           className="message-content markdown-content file-pane-markdown"
           onClick={handleMarkdownClick}
-          html={renderFileMarkdown(fileView.content)}
-        />
+        >
+          {splitMermaid(fileView.content).map((part, index) =>
+            part.type === "mermaid" ? (
+              <MermaidRenderer key={part.id} content={part.content} />
+            ) : (
+              <MarkdownView
+                key={`html-${index}`}
+                html={renderFileMarkdown(part.content)}
+              />
+            ),
+          )}
+        </div>
       )}
       {showCode && lines && (
         <div className="file-pane-code">

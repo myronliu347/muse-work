@@ -11,6 +11,12 @@ import {
   parseFileSelectionClipboard,
 } from "../../src/utils/filePanelDnD";
 
+vi.mock("../../src/components/message/MermaidRenderer", () => ({
+  MermaidRenderer: ({ content }: { content: string }) => (
+    <div data-testid="mermaid-diagram">{content}</div>
+  ),
+}));
+
 vi.mock("../../src/utils/shikiHighlighter", () => ({
   highlightCode: async (code: string) =>
     code.replace(/\n$/, "").split("\n").map((line) =>
@@ -461,6 +467,31 @@ describe("FilePane", () => {
     });
   });
 
+  it("renders mermaid, inline svg, and web images in markdown preview", async () => {
+    const { container } = renderPane({
+      fileView: {
+        path: "/work/a/docs/plan.md",
+        host: "local",
+        content: [
+          "```mermaid",
+          "flowchart TD",
+          "A-->B",
+          "```",
+          "",
+          '<svg viewBox="0 0 10 10"><rect width="10" height="10" fill="red"></rect></svg>',
+          "",
+          "![web](https://example.com/a.png)",
+        ].join("\n"),
+      },
+    });
+    const md = container.querySelector(".file-pane-markdown");
+    expect(md?.querySelector("[data-testid='mermaid-diagram']")?.textContent).toContain(
+      "flowchart TD",
+    );
+    expect(md?.querySelector("svg rect")).not.toBeNull();
+    expect(md?.querySelector('img[src="https://example.com/a.png"]')).not.toBeNull();
+  });
+
   it("opens workdir-relative markdown links in the panel", () => {
     const { onOpenFile } = renderPane({
       workdir: "/work/a",
@@ -474,6 +505,21 @@ describe("FilePane", () => {
     expect(onOpenFile).toHaveBeenCalledWith("/work/docs/x.md");
     fireEvent.click(screen.getByText("plan"));
     expect(onOpenFile).toHaveBeenCalledWith("/work/a/plans/plan.md");
+  });
+
+  it("resolves relative file links against the markdown file directory", () => {
+    const { onOpenFile } = renderPane({
+      workdir: "/work/a",
+      fileView: {
+        path: "/work/a/docs/plan.md",
+        host: "local",
+        content: "[详情](detail.md) 和 [上一级](../README.md)",
+      },
+    });
+    fireEvent.click(screen.getByText("详情"));
+    expect(onOpenFile).toHaveBeenCalledWith("/work/a/docs/detail.md");
+    fireEvent.click(screen.getByText("上一级"));
+    expect(onOpenFile).toHaveBeenCalledWith("/work/a/README.md");
   });
 
   it("decodes percent-encoded CJK markdown hrefs", () => {

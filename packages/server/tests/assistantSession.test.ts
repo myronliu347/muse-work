@@ -59,8 +59,10 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("这轮不用告诉用户");
     expect(first.tools).not.toContain("Agent");
     expect(first.systemPrompt).toContain("数字写在这一两句里");
-    expect(first.systemPrompt).toContain("没有对比或流程，不做图");
-    expect(first.systemPrompt).toContain("用围栏 mermaid");
+    expect(first.systemPrompt).toContain("给人看的方案和报告要带流程图，不然看不懂");
+    expect(first.systemPrompt).toContain("用 mermaid 语法，不要用图片代替");
+    expect(first.systemPrompt).not.toContain("围栏");
+    expect(first.systemPrompt).not.toContain("没有对比或流程，不做图");
     expect(first.systemPrompt).toContain("`- [名称](页面 URL), 短注`");
     expect(first.systemPrompt).toContain("`SendMessage` 的 `files`");
     expect(first.systemPrompt).toContain("分成几次短的 `SendMessage`");
