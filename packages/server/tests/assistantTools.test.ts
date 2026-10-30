@@ -343,6 +343,96 @@ describe("assistant tools", () => {
     expect(issues.get(blocked.id)?.planningSessionId).toBeUndefined();
   });
 
+  it("moves an open analysis session onto the server worktree", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-move-"));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-move-wd-"));
+    const issues = createIssueStore({ home });
+    const sessions = createSessionStore({ home });
+    const automations = createAutomationStore({ home });
+    const log = createAssistantMessageLog({ home });
+    const broadcasts: unknown[] = [];
+    const asked: Array<{ workdir: string; baseBranch?: string }> = [];
+    const tools = createAssistantTools({
+      home,
+      issues,
+      sessions,
+      automations,
+      log,
+      hub: { broadcastAll: (event: unknown) => broadcasts.push(event) } as WsHub,
+      runner: {} as never,
+      createWorktree: async (args) => {
+        asked.push(args);
+        if (args.baseBranch === "missing") throw new Error("branch not found");
+        return {
+          path: "/trees/main",
+          name: "gentle-pike",
+          branch: "worktree-gentle-pike",
+          baseBranch: args.baseBranch ?? "origin/main",
+          repoRoot: args.workdir,
+        };
+      },
+    });
+    const planning = sessions.create({ workdir, model: "m" });
+    const execution = sessions.create({ workdir, model: "m", title: "执行" });
+    const issue = issues.create({ title: "先看看" });
+    issues.setPlanning(issue.id, {
+      planningSessionId: planning.id,
+      workdir,
+      worktreeEnabled: false,
+      agentMode: "single",
+    });
+    issues.setExecutionSessionId(issue.id, execution.id);
+    const context = { sessionId: "assistant", toolUseId: "tool-1" };
+
+    const moved = await tool(tools, "OpenIssue").execute(
+      { issueId: issue.id, workdir, worktree: true },
+      context,
+    );
+    expect(moved.success).toBe(true);
+    expect(JSON.parse(moved.content)).toEqual({
+      sessionId: planning.id,
+      workdir: "/trees/main",
+    });
+    expect(asked).toEqual([{ workdir }]);
+    expect(sessions.get(planning.id)).toMatchObject({
+      workdir: "/trees/main",
+      worktreeName: "gentle-pike",
+      worktreeBranch: "worktree-gentle-pike",
+      baseBranch: "origin/main",
+      worktreeRepoRoot: workdir,
+    });
+    expect(sessions.get(execution.id)?.workdir).toBe("/trees/main");
+    expect(issues.get(issue.id)).toMatchObject({
+      workdir: "/trees/main",
+      worktreeEnabled: true,
+      status: "planning",
+    });
+    expect(broadcasts).toContainEqual({ type: "issue:changed" });
+
+    const again = await tool(tools, "OpenIssue").execute(
+      { issueId: issue.id, workdir, worktree: true },
+      context,
+    );
+    expect(again.success).toBe(true);
+    expect(asked).toHaveLength(1);
+
+    const stuck = issues.create({ title: "还在主仓" });
+    const stuckSession = sessions.create({ workdir, model: "m" });
+    issues.setPlanning(stuck.id, {
+      planningSessionId: stuckSession.id,
+      workdir,
+      worktreeEnabled: false,
+      agentMode: "single",
+    });
+    const failed = await tool(tools, "OpenIssue").execute(
+      { issueId: stuck.id, workdir, worktree: true, baseBranch: "missing" },
+      context,
+    );
+    expect(failed.success).toBe(false);
+    expect(sessions.get(stuckSession.id)?.workdir).toBe(workdir);
+    expect(issues.get(stuck.id)?.worktreeEnabled).toBe(false);
+  });
+
   it("joins a running issue session without interrupting it", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-msg-"));
     const workdir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-msg-wd-"));

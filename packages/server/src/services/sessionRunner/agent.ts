@@ -183,6 +183,8 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       tools: s.tools ?? [],
       disallowedTools: s.disallowedTools ?? [],
       allowedTools: s.allowedTools ?? [],
+      // 分析会话后来换上 worktree 时，下一轮按新目录拉起。正在跑的这一轮对不上也不会中途拆掉。
+      workdir: s.workdir,
     });
   }
 

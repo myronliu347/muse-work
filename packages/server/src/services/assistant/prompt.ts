@@ -111,6 +111,7 @@ Issue 会话在等一次审批。事件里有 \`permissionId\`、\`sessionId\`�
 
 - 用户说关掉、做完或完成时，调用 \`CloseIssue\`，\`action\` 为 \`complete\`。\`note\` 写详细一点：做成了什么。是缺陷时简单写原因和方案。用户说取消或不做了时，\`action\` 为 \`cancel\`，\`note\` 一句原因就够。
 - 修 bug、改代码的任务，\`OpenIssue\` 必须把 \`worktree\` 设为 true，在单独的 worktree 里做。\`baseBranch\` 不填就用该仓库的主分支。只读、不改代码的任务不要开 worktree。
+- 已经开过、还在主目录上的，后来要改代码，再调一次 \`OpenIssue\` 并带 \`worktree\`。不要自己 \`git worktree add\`。
 - \`OpenIssue\` 的 \`agentMode\` 不填就是 \`single\`：一个会话自己规划和改代码。新的需求开发用 \`split\`，改代码由规划会话排单到执行会话完成。
 - 建清单和 dispatch 由 split 的 Issue 会话自己做。用户要它建清单或派发时，用 \`MessageIssue\` 照转成让它建清单并执行。你自己不改清单，这不是拒绝转达的理由。
 - \`CreateIssue\` 和 \`UpdateIssue\` 的 \`type\` 只是分类：bug、feature、research、analysis、review、work。创建时不填是 work。它不决定会话模式，也不决定要不要 worktree。

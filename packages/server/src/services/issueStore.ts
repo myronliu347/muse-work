@@ -89,6 +89,11 @@ export interface IssueStore {
       agentMode?: IssueAgentMode;
     },
   ): Issue | undefined;
+  /** 会话已经开在主仓上，后来要改代码时换到 worktree。不改状态和会话 id。 */
+  attachWorktree(
+    id: string,
+    fields: { workdir: string; baseBranch?: string },
+  ): Issue | undefined;
   /** 单会话声明事情做完，留在未完成列表里等用户关闭。 */
   markReady(id: string): Issue | undefined;
   /** 待关闭的 Issue 收到新消息后回到进行中。 */
@@ -412,6 +417,21 @@ export function createIssueStore(
         issue.agentMode = fields.agentMode;
       }
       issue.status = "planning";
+      issue.updatedAt = Date.now();
+      persist();
+      return cloneIssue(issue);
+    },
+
+    attachWorktree(id, fields): Issue | undefined {
+      const issue = issues.get(id);
+      if (!issue || isTerminal(issue.status)) {
+        return undefined;
+      }
+      issue.workdir = fields.workdir;
+      issue.worktreeEnabled = true;
+      if (fields.baseBranch !== undefined) {
+        issue.baseBranch = fields.baseBranch;
+      }
       issue.updatedAt = Date.now();
       persist();
       return cloneIssue(issue);

@@ -218,7 +218,7 @@ export function createIssueTools(deps: AssistantToolDeps) {
     ),
     tool(
       "OpenIssue",
-      "给尚未打开会话的 Issue 打开会话。agentMode 不填或为 single 时是单会话，这个会话自己规划和改代码。新的需求开发用 split：改代码由规划会话排单到执行会话完成。修 bug、改代码时 worktree 必须为 true，服务器会建出 worktree，会话工作目录换成那个路径。baseBranch 不填则用该仓库的主分支。建不出来就不会开会话。只读、不改代码不要开 worktree。",
+      "给尚未打开会话的 Issue 打开会话。agentMode 不填或为 single 时是单会话，这个会话自己规划和改代码。新的需求开发用 split：改代码由规划会话排单到执行会话完成。修 bug、改代码时 worktree 必须为 true，服务器会建出 worktree，会话工作目录换成那个路径。baseBranch 不填则用该仓库的主分支。建不出来就不会开会话。只读、不改代码不要开 worktree。已经打开、还没 worktree 的，再传 worktree true 会建出来并换成那个目录。不要自己 git worktree add。",
       {
         type: "object",
         properties: {
@@ -248,6 +248,48 @@ export function createIssueTools(deps: AssistantToolDeps) {
         const issue = deps.issues.get(issueId);
         if (!issue) return fail("not found");
         if (issue.planningSessionId) {
+          if (args.worktree === true && !issue.worktreeEnabled) {
+            const session = deps.sessions.get(issue.planningSessionId);
+            if (!session) return fail("session not found");
+            if (!session.worktreeName) {
+              if (issue.status === "completed" || issue.status === "cancelled") {
+                return fail("already closed");
+              }
+              const repo = session.workdir;
+              const baseBranch = text(args.baseBranch) || issue.baseBranch || "";
+              const create = deps.createWorktree ?? ((input) => createServerWorktree({ home: deps.home, ...input }));
+              let created: Awaited<ReturnType<typeof createServerWorktree>>;
+              try {
+                created = await create({
+                  workdir: repo,
+                  ...(baseBranch ? { baseBranch } : {}),
+                });
+              } catch (err: unknown) {
+                return fail(err instanceof Error ? err.message : String(err));
+              }
+              const patch = {
+                workdir: created.path,
+                worktreeName: created.name,
+                worktreeBranch: created.branch,
+                baseBranch: created.baseBranch,
+                worktreeRepoRoot: created.repoRoot,
+              };
+              deps.sessions.update(session.id, patch);
+              if (issue.executionSessionId) {
+                const execution = deps.sessions.get(issue.executionSessionId);
+                if (execution && !execution.worktreeName && execution.workdir === repo) {
+                  deps.sessions.update(execution.id, patch);
+                }
+              }
+              const moved = deps.issues.attachWorktree(issue.id, {
+                workdir: created.path,
+                baseBranch: created.baseBranch,
+              });
+              if (!moved) return fail("conflict");
+              deps.hub.broadcastAll({ type: "issue:changed" });
+              return ok({ sessionId: session.id, workdir: created.path });
+            }
+          }
           return ok({ sessionId: issue.planningSessionId, workdir: issue.workdir });
         }
         if (!fs.existsSync(workdir)) return fail("workdir not found");
