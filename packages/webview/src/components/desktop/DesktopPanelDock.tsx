@@ -38,7 +38,8 @@ export interface DockToolTab {
  * clicking one, or activating the left/right neighbor after a close). The
  * tab bar scrolls horizontally (overflow-x: auto), so a tab outside the
  * visible area is otherwise unreachable. Nearest alignment — no centering,
- * so the current reading position is preserved. */
+ * so the current reading position is preserved. The move itself eases in
+ * via scroll-behavior on the tab strip. */
 function scrollActiveTabIntoView(
   container: HTMLElement,
   activeFilePath: string,

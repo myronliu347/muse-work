@@ -98,6 +98,8 @@
   gap: var(--space-1);
   overflow-x: auto;
   overflow-y: hidden;
+  /* Clicking a tab outside the viewport assigns scrollLeft; this eases it in. */
+  scroll-behavior: smooth;
   /* Keep overflow scroll for trackpad/wheel; the 38px header cannot spare a
      visible scrollbar under the tabs. */
   scrollbar-width: none;

@@ -138,6 +138,7 @@ function scrollTabIntoView(container: HTMLElement, tab: HTMLElement) {
   const root = container.getBoundingClientRect();
   const box = tab.getBoundingClientRect();
   const gap = 4;
+  // scroll-behavior: smooth on .bot-tabs eases this assignment.
   if (box.left < root.left + gap) {
     container.scrollLeft -= root.left + gap - box.left;
   } else if (box.right > root.right - gap) {
