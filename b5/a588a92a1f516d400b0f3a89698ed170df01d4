@@ -1,0 +1,48 @@
+packages/webview/src/styles/DesktopPanelDock.css
+  0f9be30eaa9d8066 101-102
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  0f9be30eaa9d8066 41-42
+packages/webview/src/styles/DesktopApp.css
+  0f9be30eaa9d8066 2615-2616,2632-2638
+packages/webview/src/components/desktop/BotTabs.tsx
+  0f9be30eaa9d8066 141
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b5a588a92a1f516d400b0f3a89698ed170df01d4",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 14,
+      "total_deletions": 1,
+      "accepted_lines": 14,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/desktop/BotTabs.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 9,
+          "accepted_lines": 9
+        }
+      }
+    }
+  }
+}
