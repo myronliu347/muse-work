@@ -218,7 +218,7 @@ export function createIssueTools(deps: AssistantToolDeps) {
     ),
     tool(
       "OpenIssue",
-      "给尚未打开会话的 Issue 打开会话。agentMode 不填或为 single 时是单会话，这个会话自己规划和改代码。新的需求开发用 split：改代码由规划会话排单到执行会话完成。修 bug、改代码时 worktree 必须为 true，服务器会建出 worktree，会话工作目录换成那个路径。baseBranch 不填则用该仓库的主分支。建不出来就不会开会话。只读、不改代码不要开 worktree。已经打开、还没 worktree 的，再传 worktree true 会建出来并换成那个目录。不要自己 git worktree add。",
+      "给尚未打开会话的 Issue 打开会话。agentMode 不填或为 single 时是单会话，这个会话自己规划和改代码。小改和单点修复用 single。只有方向不清的大需求用 split：先确认做什么并落到文档，出实施计划，用户确认计划后建执行清单，再确认清单后才派发。修 bug、改代码时 worktree 必须为 true，服务器会建出 worktree，会话工作目录换成那个路径。baseBranch 不填则用该仓库的主分支。建不出来就不会开会话。只读、不改代码不要开 worktree。已经打开、还没 worktree 的，再传 worktree true 会建出来并换成那个目录。不要自己 git worktree add。",
       {
         type: "object",
         properties: {
@@ -230,7 +230,7 @@ export function createIssueTools(deps: AssistantToolDeps) {
             type: "string",
             enum: ["single", "split"],
             description:
-              "默认 single：一个会话自己规划和改代码。新的需求开发用 split：改代码由规划会话排单到执行会话完成。",
+              "默认 single：一个会话自己规划和改代码。小改和单点修复用 single。只有方向不清的大需求用 split：先确认做什么并落到文档，出实施计划，用户确认计划后建执行清单，再确认清单后才派发。",
           },
         },
         required: ["issueId", "workdir"],

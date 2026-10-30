@@ -29,7 +29,11 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("必须把 `worktree` 设为 true");
     expect(first.systemPrompt).toContain("不要自己 `git worktree add`");
     expect(first.systemPrompt).toContain("`agentMode` 不填就是 `single`");
-    expect(first.systemPrompt).toContain("新的需求开发用 `split`");
+    expect(first.systemPrompt).toContain("只有方向不清的大需求才用 `split`");
+    expect(first.systemPrompt).toContain("小改和单点修复一律 `single`");
+    expect(first.systemPrompt).toContain("先跟用户确认做什么，落到文档，再出实施计划文档");
+    expect(first.systemPrompt).toContain("用户确认计划后才创建执行清单");
+    expect(first.systemPrompt).toContain("用户确认清单后才开始派发执行");
     expect(first.systemPrompt).toContain("用 `MessageIssue` 照转");
     expect(first.systemPrompt).not.toContain("禁止创建清单");
     expect(first.systemPrompt).toContain("当前这一步结束后进入同一轮");
@@ -81,6 +85,10 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("不含待关闭的");
     expect(first.systemPrompt).toContain("[@issue:id 标题]");
     expect(first.systemPrompt).toContain("SendMessage` 带 `ats`");
+    expect(first.systemPrompt).toContain("`issueId` 只撕纸条，不会带上引用");
+    expect(first.systemPrompt).toContain("跟上一条是同一条时不加");
+    expect(first.systemPrompt).toContain("不用每条都加");
+    expect(first.systemPrompt).not.toContain("每条都 @");
     expect(first.systemPrompt).toContain("不要为下一步再 `CreateIssue`");
     expect(first.systemPrompt).toContain("用 `AskIssue`");
     expect(first.systemPrompt).toContain("不打断正在跑的步骤");

@@ -65,6 +65,11 @@ describe("issuePlanning", () => {
     expect(extra).toContain("items --done");
     expect(extra).toContain("同一");
     expect(extra).toContain("产物");
+    expect(extra).toContain("先跟用户确认做什么");
+    expect(extra).toContain("把确认的内容落到文档");
+    expect(extra).toContain("写出实施计划文档");
+    expect(extra).toContain("用户确认实施计划之后，才创建执行清单");
+    expect(extra).toContain("用户确认执行清单之后，才开始派发");
     expect(extra).toContain("用户确认条目后再 items --add-json");
     expect(extra).toContain("开始执行/派发后再首次 dispatch");
     expect(extra).toContain("不要擅自写清单或开工");

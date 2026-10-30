@@ -183,13 +183,13 @@ export function createMessageTools(deps: AssistantToolDeps) {
               required: ["type", "id"],
             },
             description:
-              "Muse 用 { type: issue, id }，换了才加引用，跟上一条同一条不加。POPO 群用 { type: user, id }，id 是邮箱。私聊不要传。",
+              "Muse 用 { type: issue, id }。换了才加引用，跟上一条是同一条时不加。连着发几条不用每条都传。POPO 群用 { type: user, id }，id 是邮箱。私聊不要传。",
           },
           files: { type: "array", items: { type: "string" } },
           links: { type: "array", items: { type: "string" } },
           issueId: {
             type: "string",
-            description: "这句是在交代这件事项的结果。传了就撕掉纸条，正文里不用提它。",
+            description: "只撕掉这件事项的纸条。不会自动 @ 或带引用。要引用这条 Issue，另外传 ats。",
           },
         },
         required: ["message", "app"],
