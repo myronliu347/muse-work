@@ -1,0 +1,223 @@
+packages/webview/src/components/ChatApp.tsx
+  2a22e5bfedebe780 2361
+packages/server/tests/providers.routes.test.ts
+  2a22e5bfedebe780 54
+packages/provider/src/codex/jwt.ts
+  2a22e5bfedebe780 1-31
+packages/provider/src/codex/login.ts
+  2a22e5bfedebe780 1-313
+packages/provider/src/codex/credentials.ts
+  2a22e5bfedebe780 1-105
+packages/webview/src/muse/messageRouter.ts
+  2a22e5bfedebe780 782-786
+packages/webview/tests/muse/hostBridge.test.ts
+  2a22e5bfedebe780 2797-2820
+packages/provider/src/index.ts
+  2a22e5bfedebe780 8,15,41-58
+packages/webview/src/reducers/chatReducer.ts
+  2a22e5bfedebe780 491-494
+packages/webview/src/components/dialogs/LoginDialog.tsx
+  2a22e5bfedebe780 9-11,17,19,24,53,61
+packages/provider/tests/codex.auth.test.ts
+  2a22e5bfedebe780 1-482
+packages/server/src/services/sessionRunner/agent.ts
+  2a22e5bfedebe780 890,896
+packages/webview/src/types/index.ts
+  2a22e5bfedebe780 775,777-778,938
+packages/webview/src/muse/hostBridge/index.ts
+  2a22e5bfedebe780 2,429-433
+packages/server/src/services/appContext.ts
+  2a22e5bfedebe780 3,121-127,138
+packages/provider/src/paths.ts
+  2a22e5bfedebe780 38-46
+packages/provider/tests/codex.models.test.ts
+  2a22e5bfedebe780 1-132
+packages/provider/src/types.ts
+  2a22e5bfedebe780 54-60,66
+packages/provider/tests/configStore.test.ts
+  2a22e5bfedebe780 28-31,34-45
+packages/provider/src/codex/provider.ts
+  2a22e5bfedebe780 1-163
+packages/provider/src/codex/refresh.ts
+  2a22e5bfedebe780 1-130
+packages/webview/src/components/settings/MuseProviderSettings.tsx
+  2a22e5bfedebe780 385-390
+packages/webview/src/muse/hostBridge/auth.ts
+  2a22e5bfedebe780 52,54-61
+packages/webview/src/components/dialogs/ChatDialogs.tsx
+  2a22e5bfedebe780 35,73,131
+packages/provider/src/codex/models.ts
+  2a22e5bfedebe780 1-192
+packages/provider/src/configStore.ts
+  2a22e5bfedebe780 40-47,61-71,82
+packages/provider/providers.json.example
+  2a22e5bfedebe780 29-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e45f6f83b9ca84d7602d2224aca9cea77f874965",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 112,
+      "total_deletions": 16,
+      "accepted_lines": 112,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "README.md": {
+          "additions": 20,
+          "deletions": 16,
+          "accepted_lines": 20
+        },
+        "packages/webview/e2e/demo/readme-home.demo.ts": {
+          "additions": 56,
+          "accepted_lines": 56
+        },
+        "packages/webview/e2e/utils/desktopTestHarness.ts": {
+          "additions": 36,
+          "accepted_lines": 36
+        }
+      }
+    },
+    "2a22e5bfedebe780": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "529cb198-6434-4f4a-86ae-6ee15b6ce381",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1728,
+      "total_deletions": 26,
+      "accepted_lines": 1716,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/dialogs/ChatDialogs.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/provider/src/codex/login.ts": {
+          "additions": 313,
+          "accepted_lines": 313
+        },
+        "packages/server/tests/providers.routes.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/provider/src/paths.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/provider/src/codex/models.ts": {
+          "additions": 193,
+          "deletions": 1,
+          "accepted_lines": 192
+        },
+        "packages/provider/tests/codex.auth.test.ts": {
+          "additions": 491,
+          "deletions": 9,
+          "accepted_lines": 482
+        },
+        "packages/webview/src/components/dialogs/LoginDialog.tsx": {
+          "additions": 8,
+          "deletions": 5,
+          "accepted_lines": 8
+        },
+        "packages/provider/src/codex/jwt.ts": {
+          "additions": 31,
+          "accepted_lines": 31
+        },
+        "packages/provider/src/codex/provider.ts": {
+          "additions": 165,
+          "deletions": 2,
+          "accepted_lines": 163
+        },
+        "packages/provider/src/index.ts": {
+          "additions": 20,
+          "accepted_lines": 20
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/provider/providers.json.example": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/muse/hostBridge/auth.ts": {
+          "additions": 9,
+          "deletions": 3,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/provider/src/configStore.ts": {
+          "additions": 24,
+          "deletions": 1,
+          "accepted_lines": 24
+        },
+        "packages/webview/src/components/settings/MuseProviderSettings.tsx": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/provider/src/codex/refresh.ts": {
+          "additions": 130,
+          "accepted_lines": 130
+        },
+        "packages/provider/src/codex/credentials.ts": {
+          "additions": 105,
+          "accepted_lines": 105
+        },
+        "packages/provider/tests/configStore.test.ts": {
+          "additions": 18,
+          "accepted_lines": 18
+        },
+        "packages/provider/tests/codex.models.test.ts": {
+          "additions": 132,
+          "accepted_lines": 132
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/provider/src/types.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        }
+      }
+    }
+  }
+}
