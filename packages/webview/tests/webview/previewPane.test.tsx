@@ -108,10 +108,13 @@ function renderPane(options?: {
     result.rerender(<Harness url={u} visible={visible} />);
   const rerenderVisible = (shown: boolean) =>
     result.rerender(<Harness url={url} visible={shown} />);
+  const rerenderPane = (u: string | null | undefined, shown: boolean) =>
+    result.rerender(<Harness url={u} visible={shown} />);
   return {
     ...result,
     rerenderWithUrl,
     rerenderVisible,
+    rerenderPane,
     vscode,
     wv,
     url,
@@ -202,6 +205,24 @@ describe("PreviewPane", () => {
     expect(container.querySelector("webview")?.getAttribute("src")).toBe(
       "http://localhost:5173/deep",
     );
+  });
+
+  it("opens the address chosen while the preview tab was hidden", () => {
+    const onLocationChange = vi.fn();
+    const { container, rerenderPane } = renderPane({
+      url: "http://localhost:5173/old.html",
+      onLocationChange,
+    });
+    rerenderPane("http://localhost:5173/old.html", false);
+    expect(container.querySelector("webview")).toBeNull();
+    rerenderPane("file:///tmp/proj/next.html", true);
+    const next = container.querySelector("webview");
+    expect(next?.getAttribute("src")).toBe("file:///tmp/proj/next.html");
+    expect(screen.getByTestId("preview-address")).toHaveValue(
+      "file:///tmp/proj/next.html",
+    );
+    fireDidNavigate(next as unknown as MockWebview, "file:///tmp/proj/next.html");
+    expect(onLocationChange).not.toHaveBeenCalled();
   });
 
   it("shows toolbar and empty hint when url is missing", () => {

@@ -199,6 +199,11 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   // Last address applied from props or from the guest. A parent echo of an
   // in-guest navigation must not loadURL again.
   const lastUrlRef = useRef(initialUrl);
+  // Prop address captured when the tab hides. A click that both shows the
+  // tab and picks a new page changes the prop before the guest mounts. The
+  // guest keeps the first src it is given, so that page has to win over the
+  // previous guest URL still held in currentUrlRef.
+  const urlWhenHiddenRef = useRef<string | null>(null);
   // webview.send() before dom-ready is silently dropped, so gate on it.
   const domReadyRef = useRef(false);
   // Guest preload announces { type: 'ready' }; if it never arrives the page
@@ -265,16 +270,32 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
 
   // Wire the guest while this tab is showing. `src` is set imperatively
   // (never from JSX) so React re-renders can't reload it. Hiding the tab
-  // unmounts the <webview>, which stops the page; showing it loads the
-  // address we kept.
+  // unmounts the <webview>, which stops the page. Showing it loads the
+  // address we kept, unless the prop moved on while the tab was hidden:
+  // the guest keeps the first src, so that new page has to be the one we set.
   useEffect(() => {
     if (!visible) {
       domReadyRef.current = false;
       setLoading(false);
+      // Keep the address from the hide itself. A later effect run while the
+      // tab is still hidden must not overwrite it with the newly chosen page.
+      if (urlWhenHiddenRef.current === null) {
+        urlWhenHiddenRef.current = urlPropRef.current;
+      }
       return;
     }
     const wv = webviewRef.current;
     if (!wv) return;
+    const hiddenUrl = urlWhenHiddenRef.current;
+    urlWhenHiddenRef.current = null;
+    const propUrl = urlPropRef.current;
+    const retargeted = hiddenUrl !== null && hiddenUrl !== propUrl;
+    if (retargeted) {
+      currentUrlRef.current = propUrl;
+      lastUrlRef.current = propUrl;
+      setDisplayUrl(propUrl);
+      setLoadError(null);
+    }
 
     const onDomReady = () => {
       domReadyRef.current = true;
@@ -371,7 +392,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     } catch {
       // No document yet. page-title-updated reports the title after it loads.
     }
-    const start = currentUrlRef.current || urlPropRef.current;
+    const start = retargeted ? propUrl : currentUrlRef.current || propUrl;
     if (start && !wv.getAttribute("src")) {
       wv.setAttribute("src", start);
     }
