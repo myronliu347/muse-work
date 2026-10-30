@@ -128,6 +128,42 @@ export const test = base.extend<DesktopTestContext>({
 </body>
 </html>`;
 
+    // Muse Bot loads its transcript on mount. Pass-through has no server, so
+    // an unstubbed request paints "Failed to fetch" on the home screen.
+    await page.route("**/assistant/messages**", async (route) => {
+      if (route.request().method() !== "GET") {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ messages: [], hasMore: false }),
+      });
+    });
+    await page.route("**/assistant/queue", async (route) => {
+      if (route.request().method() !== "GET") {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ items: [] }),
+      });
+    });
+    await page.route("**/assistant/session", async (route) => {
+      if (route.request().method() !== "GET") {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({}),
+      });
+    });
+
     await page.setContent(testHtml);
 
     // hostBridge answers `desktopReady` by immediately pushing
