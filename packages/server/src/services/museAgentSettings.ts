@@ -13,7 +13,6 @@ export function getMuseUserSettingsPath(home = os.homedir()): string {
 export const DEFAULT_MUSE_USER_SETTINGS = {
   env: {
     MUSE_MAX_INPUT_TOKENS: "800000",
-    MUSE_VISION_MODEL: "kimi-k3",
   },
   models: {
     "glm-5.2": {
@@ -28,9 +27,6 @@ export const DEFAULT_MUSE_USER_SETTINGS = {
       },
     },
     "deepseek-flash": {
-      capabilities: {
-        vision: false,
-      },
       disableThinkingOptions: {
         thinking: {
           type: "disabled",
