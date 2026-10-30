@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChatApp } from "../../src/components/ChatApp";
-import { DockDetail } from "../../src/components/desktop/DockDetail";
+import { DockDetail, dockDetailRailFits } from "../../src/components/desktop/DockDetail";
 import { DesktopPanelDock } from "../../src/components/desktop/DesktopPanelDock";
 import {
   BotWorkspaceProvider,
@@ -71,6 +71,21 @@ const RADII_ITEMS = [
 ];
 
 const A11Y_ITEMS = [{ id: "focus", content: "补上焦点环", status: "pending" }];
+
+function stubClientWidth(width: number): () => void {
+  const proto = HTMLElement.prototype;
+  const previous = Object.getOwnPropertyDescriptor(proto, "clientWidth");
+  Object.defineProperty(proto, "clientWidth", {
+    configurable: true,
+    get() {
+      return width;
+    },
+  });
+  return () => {
+    if (previous) Object.defineProperty(proto, "clientWidth", previous);
+    else delete (proto as { clientWidth?: number }).clientWidth;
+  };
+}
 
 function jsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -346,6 +361,76 @@ describe("dock detail tab", () => {
     );
     expect(screen.queryByRole("button", { name: "打开会话" })).toBeNull();
     expect(screen.queryByRole("button", { name: "切到会话" })).toBeNull();
+  });
+
+  it("keeps the title and actions in the toolbar and lists issues beside the sheet", async () => {
+    expect(dockDetailRailFits(0)).toBe(false);
+    expect(dockDetailRailFits(700)).toBe(false);
+    expect(dockDetailRailFits(1100)).toBe(true);
+
+    const user = userEvent.setup();
+    const onSelectIssue = vi.fn();
+    const radii = issue({
+      issueId: "radii",
+      title: RADII,
+      priority: "p1",
+      items: RADII_ITEMS,
+    });
+    const issues = [
+      { issueId: "radii", title: RADII, type: "bug", presence: "running" as const },
+      { issueId: "a11y", title: A11Y, type: "review", presence: null },
+    ];
+    const restore = stubClientWidth(1100);
+    try {
+      render(
+        <DockDetail
+          selection={{ kind: "issue", issue: radii }}
+          actionLabel="打开会话"
+          issues={issues}
+          onSelectIssue={onSelectIssue}
+          onOpenSession={vi.fn()}
+        />,
+      );
+    } finally {
+      restore();
+    }
+
+    const toolbar = screen.getByTestId("dock-detail-toolbar");
+    expect(within(toolbar).getByRole("heading", { name: RADII })).toBeInTheDocument();
+    expect(within(toolbar).getByText("空闲")).toBeInTheDocument();
+    expect(within(toolbar).getByText("P1")).toBeInTheDocument();
+    expect(within(toolbar).getByRole("button", { name: "打开会话" })).toBeInTheDocument();
+
+    const rail = screen.getByTestId("dock-detail-rail");
+    expect(rail).toHaveAttribute("data-mode", "column");
+    expect(within(rail).getByTestId("desktop-session-status-running")).toBeInTheDocument();
+    expect(within(rail).getByTestId("issue-type-review")).toBeInTheDocument();
+
+    await user.click(within(rail).getByRole("button", { name: new RegExp(A11Y) }));
+    expect(onSelectIssue).toHaveBeenCalledWith("a11y");
+
+    await user.click(screen.getByTestId("dock-detail-issues-toggle"));
+    expect(screen.queryByTestId("dock-detail-rail")).toBeNull();
+
+    cleanup();
+    const narrow = stubClientWidth(640);
+    try {
+      render(
+        <DockDetail
+          selection={{ kind: "issue", issue: radii }}
+          actionLabel="打开会话"
+          issues={issues}
+          onSelectIssue={onSelectIssue}
+          onOpenSession={vi.fn()}
+        />,
+      );
+    } finally {
+      narrow();
+    }
+    expect(screen.queryByTestId("dock-detail-rail")).toBeNull();
+
+    await user.click(screen.getByTestId("dock-detail-issues-toggle"));
+    expect(screen.getByTestId("dock-detail-rail")).toHaveAttribute("data-mode", "peek");
   });
 
   it("renders description markdown and checklist status", () => {

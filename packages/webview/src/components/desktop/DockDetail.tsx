@@ -1,11 +1,47 @@
-import type { ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import type { DesktopIssueGroup } from "../../types";
 import { issueSidebarStatusLabel } from "../../utils/issueStatusLabel";
+import { IssueTypeIcon } from "../issue/IssueTypeIcon";
+import { IssuePresenceMark, type IssuePresence } from "../session/SessionStatusGlyph";
 import { MarkdownView } from "../message/MarkdownView";
 import { Tooltip } from "../shared/Tooltip";
 import { issueTabSessionId } from "./botWorkspace";
+
+/** Floating issue column. It sits in the right margin and must not cover the sheet. */
+export const DOCK_DETAIL_RAIL_WIDTH = 232;
+export const DOCK_DETAIL_SHEET_MAX = 560;
+export const DOCK_DETAIL_RAIL_GAP = 20;
+
+/** True when the right margin can hold the issue column without covering the sheet. */
+export function dockDetailRailFits(width: number): boolean {
+  if (width <= 0) return false;
+  const sheet = Math.min(width, DOCK_DETAIL_SHEET_MAX);
+  const margin = (width - sheet) / 2;
+  return margin >= DOCK_DETAIL_RAIL_WIDTH + DOCK_DETAIL_RAIL_GAP;
+}
+
+export type DockDetailIssue = {
+  issueId: string;
+  title: string;
+  type?: string;
+  presence?: IssuePresence | null;
+};
+
+function useBoxWidth(ref: { current: HTMLElement | null }, watch: unknown): number {
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const read = () => setWidth(el.clientWidth);
+    read();
+    const observer = new ResizeObserver(read);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, watch]);
+  return width;
+}
 
 const CHECK_STATUS_ORDER = ["running", "pending", "done"] as const;
 
@@ -66,6 +102,9 @@ export interface DockDetailProps {
   onOpenSession: (issueId: string) => void;
   onOpenInEditor?: (workdir: string) => void;
   onRevealInFinder?: (workdir: string) => void;
+  /** Open issues. The detail page lists them in the right rail. */
+  issues?: DockDetailIssue[];
+  onSelectIssue?: (issueId: string) => void;
 }
 
 function priorityText(priority: string): string {
@@ -99,11 +138,15 @@ function issueEnvironment(issue: DesktopIssueGroup): {
 function DetailIconButton({
   label,
   disabled,
+  pressed,
+  testId,
   onClick,
   children,
 }: {
   label: string;
   disabled?: boolean;
+  pressed?: boolean;
+  testId?: string;
   onClick: () => void;
   children: ReactNode;
 }) {
@@ -111,8 +154,10 @@ function DetailIconButton({
     <Tooltip text={label} position="bottom">
       <button
         type="button"
-        className="dock-detail-action"
+        className="preview-pane-button"
         aria-label={label}
+        aria-pressed={pressed}
+        data-testid={testId}
         disabled={disabled}
         onClick={onClick}
       >
@@ -122,16 +167,96 @@ function DetailIconButton({
   );
 }
 
+function IssueRail({
+  issues,
+  currentId,
+  mode,
+  onSelect,
+}: {
+  issues: DockDetailIssue[];
+  currentId: string;
+  mode: "column" | "peek";
+  onSelect: (issueId: string) => void;
+}) {
+  return (
+    <aside
+      className={`dock-detail-rail${mode === "peek" ? " dock-detail-rail--peek" : ""}`}
+      data-testid="dock-detail-rail"
+      data-mode={mode}
+      aria-label="事项"
+    >
+      <h3 className="dock-detail-rail-title">
+        事项
+        <span>{issues.length}</span>
+      </h3>
+      <ul className="dock-detail-rail-rows">
+        {issues.map((issue) => {
+          const current = issue.issueId === currentId;
+          return (
+            <li key={issue.issueId}>
+              <button
+                type="button"
+                className="dock-detail-rail-row"
+                aria-current={current ? "true" : undefined}
+                onClick={() => onSelect(issue.issueId)}
+              >
+                <span className="issue-sidebar-icon-slot">
+                  <IssueTypeIcon type={issue.type} />
+                  {issue.presence ? (
+                    <span className="issue-sidebar-status-cover" aria-hidden="true">
+                      <IssuePresenceMark presence={issue.presence} />
+                    </span>
+                  ) : null}
+                </span>
+                <span className="dock-detail-rail-name">{issue.title}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </aside>
+  );
+}
+
 export function DockDetail({
   selection,
   actionLabel,
   onOpenSession,
   onOpenInEditor,
   onRevealInFinder,
+  issues = [],
+  onSelectIssue,
 }: DockDetailProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const railRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLDivElement>(null);
+  const width = useBoxWidth(rootRef, selection.kind);
+  const fits = dockDetailRailFits(width);
+  const [open, setOpen] = useState(true);
+  const [peek, setPeek] = useState(false);
+  const showColumn = open && fits && issues.length > 0 && selection.kind === "issue";
+  const showPeek = peek && !fits && issues.length > 0 && selection.kind === "issue";
+
+  useEffect(() => {
+    if (fits) setPeek(false);
+  }, [fits]);
+
+  useEffect(() => {
+    if (!showPeek) return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (railRef.current?.contains(target)) return;
+      if (toggleRef.current?.contains(target)) return;
+      setPeek(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [showPeek]);
+
   if (selection.kind === "none") {
     return (
-      <div className="dock-detail dock-detail--empty" data-testid="dock-detail">
+      <div className="dock-detail dock-detail--empty" data-testid="dock-detail" ref={rootRef}>
         <div className="dock-detail-empty" data-testid="dock-detail-empty">
           <i className="codicon codicon-note" aria-hidden />
           <p>选择一个事项查看详情</p>
@@ -142,7 +267,7 @@ export function DockDetail({
 
   if (selection.kind === "queue") {
     return (
-      <div className="dock-detail" data-testid="dock-detail">
+      <div className="dock-detail dock-detail--queue" data-testid="dock-detail" ref={rootRef}>
         <p className="dock-detail-kind">{selection.typeLabel}</p>
         <h2 className="dock-detail-title">{selection.title}</h2>
         {selection.body ? (
@@ -168,80 +293,123 @@ export function DockDetail({
   const priorityKey = priority.toLowerCase();
 
   return (
-    <div className="dock-detail" data-testid="dock-detail">
-      <div className="dock-detail-sheet">
-        <div className="dock-detail-head">
-          <div className="dock-detail-heading">
-            <h2 className="dock-detail-title">{issue.title}</h2>
-            <div className="dock-detail-tags">
-              <span className="dock-detail-tag">{status}</span>
-              <span className={`dock-detail-tag dock-detail-tag--${priorityKey}`}>
-                {priority}
-              </span>
-            </div>
-          </div>
-          <div className="dock-detail-actions">
-            {actionLabel ? (
-              <DetailIconButton
-                label={actionLabel}
-                onClick={() => onOpenSession(issue.issueId)}
-              >
-                <SessionActionIcon />
-              </DetailIconButton>
-            ) : null}
-            <DetailIconButton
-              label="在 IDE 中打开"
-              disabled={!workdir}
-              onClick={() => {
-                if (workdir) onOpenInEditor?.(workdir);
-              }}
-            >
-              <IdeActionIcon />
-            </DetailIconButton>
-            <DetailIconButton
-              label="在访达中打开"
-              disabled={!workdir}
-              onClick={() => {
-                if (workdir) onRevealInFinder?.(workdir);
-              }}
-            >
-              <FinderActionIcon />
-            </DetailIconButton>
+    <div className="dock-detail" data-testid="dock-detail" ref={rootRef}>
+      <div className="preview-pane-toolbar dock-detail-toolbar" data-testid="dock-detail-toolbar">
+        <div className="dock-detail-toolbar-main">
+          <h2 className="dock-detail-title">{issue.title}</h2>
+          <div className="dock-detail-tags">
+            <span className="dock-detail-tag">{status}</span>
+            <span className={`dock-detail-tag dock-detail-tag--${priorityKey}`}>
+              {priority}
+            </span>
           </div>
         </div>
-        {description ? (
-          <div className="dock-detail-description" data-testid="dock-detail-description">
-            <DetailMarkdown text={description} />
+        <div className="dock-detail-actions">
+          {actionLabel ? (
+            <DetailIconButton
+              label={actionLabel}
+              onClick={() => onOpenSession(issue.issueId)}
+            >
+              <i className="codicon codicon-comment" aria-hidden />
+            </DetailIconButton>
+          ) : null}
+          <DetailIconButton
+            label="在 IDE 中打开"
+            disabled={!workdir}
+            onClick={() => {
+              if (workdir) onOpenInEditor?.(workdir);
+            }}
+          >
+            <i className="codicon codicon-code" aria-hidden />
+          </DetailIconButton>
+          <DetailIconButton
+            label="在访达中打开"
+            disabled={!workdir}
+            onClick={() => {
+              if (workdir) onRevealInFinder?.(workdir);
+            }}
+          >
+            <i className="codicon codicon-folder" aria-hidden />
+          </DetailIconButton>
+          {issues.length > 0 ? (
+            <div ref={toggleRef}>
+              <DetailIconButton
+                label={showColumn || showPeek ? "收起事项列表" : "事项列表"}
+                pressed={showColumn || showPeek}
+                testId="dock-detail-issues-toggle"
+                onClick={() => {
+                  if (fits) {
+                    setOpen((value) => !value);
+                    return;
+                  }
+                  setPeek((value) => !value);
+                }}
+              >
+                <i className="codicon codicon-list-tree" aria-hidden />
+              </DetailIconButton>
+            </div>
+          ) : null}
+        </div>
+      </div>
+      <div className="dock-detail-stage">
+        <div className="dock-detail-scroll">
+          <div className="dock-detail-sheet">
+            {description ? (
+              <div className="dock-detail-description" data-testid="dock-detail-description">
+                <DetailMarkdown text={description} />
+              </div>
+            ) : null}
+            <dl className="dock-detail-fields">
+              <div>
+                <dt>工作目录</dt>
+                <dd>
+                  {workdir ? (
+                    <Tooltip text={workdir} position="bottom">
+                      <span className="dock-detail-workdir">{workdirLabel(workdir)}</span>
+                    </Tooltip>
+                  ) : (
+                    "—"
+                  )}
+                </dd>
+              </div>
+              {environment.worktree ? (
+                <div>
+                  <dt>Worktree</dt>
+                  <dd>{environment.worktree}</dd>
+                </div>
+              ) : null}
+              {environment.baseBranch ? (
+                <div>
+                  <dt>分支名称</dt>
+                  <dd>{environment.baseBranch}</dd>
+                </div>
+              ) : null}
+            </dl>
+            {issue.items.length > 0 ? (
+              <Checklist items={issue.items} />
+            ) : null}
           </div>
+        </div>
+        {showColumn ? (
+          <IssueRail
+            issues={issues}
+            currentId={issue.issueId}
+            mode="column"
+            onSelect={(issueId) => onSelectIssue?.(issueId)}
+          />
         ) : null}
-        <dl className="dock-detail-fields">
-          <div>
-            <dt>工作目录</dt>
-            <dd>
-              {workdir ? (
-                <Tooltip text={workdir} position="bottom">
-                  <span className="dock-detail-workdir">{workdirLabel(workdir)}</span>
-                </Tooltip>
-              ) : (
-                "—"
-              )}
-            </dd>
+        {showPeek ? (
+          <div ref={railRef}>
+            <IssueRail
+              issues={issues}
+              currentId={issue.issueId}
+              mode="peek"
+              onSelect={(issueId) => {
+                onSelectIssue?.(issueId);
+                setPeek(false);
+              }}
+            />
           </div>
-          {environment.worktree ? (
-            <div>
-              <dt>Worktree</dt>
-              <dd>{environment.worktree}</dd>
-            </div>
-          ) : null}
-          {environment.baseBranch ? (
-            <div>
-              <dt>分支名称</dt>
-              <dd>{environment.baseBranch}</dd>
-            </div>
-          ) : null}
-        </dl>
-        {issue.items.length > 0 ? (
-          <Checklist items={issue.items} />
         ) : null}
       </div>
     </div>
@@ -292,42 +460,3 @@ function Checklist({
   );
 }
 
-function SessionActionIcon() {
-  return (
-    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" aria-hidden="true">
-      <path
-        d="M3 4.2h10v6.2H6.2L3.4 12.6V4.2Z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IdeActionIcon() {
-  return (
-    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" aria-hidden="true">
-      <path
-        d="M6.2 4.2 2.8 8l3.4 3.8M9.8 4.2 13.2 8l-3.4 3.8"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function FinderActionIcon() {
-  return (
-    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" aria-hidden="true">
-      <path
-        d="M3.2 6.2h9.6v6.2H3.2V6.2Z M3.2 6.2 4.6 3.6h6.8l1.4 2.6"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}

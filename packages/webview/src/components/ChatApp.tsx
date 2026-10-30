@@ -2496,6 +2496,13 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         onRevealInFinder={(workdir) =>
           postToHost({ command: "revealInFinder", path: workdir })
         }
+        issues={botIssues.map((item) => ({
+          issueId: item.issueId,
+          title: item.title,
+          type: item.type,
+          presence: item.presence,
+        }))}
+        onSelectIssue={(issueId) => selectBotPanel({ kind: "issue", issueId })}
       />
     ) : undefined,
     onCloseTab: handleTogglePanel,
