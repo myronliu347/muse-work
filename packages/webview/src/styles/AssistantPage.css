@@ -269,8 +269,14 @@
 
 .assistant-user-images {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-flow: row wrap;
+  gap: 6px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.assistant-bubble-user .assistant-user-images {
+  justify-content: flex-end;
 }
 
 .assistant-user-text > :first-child {
@@ -342,14 +348,15 @@
 
 .assistant-user-shot {
   display: block;
-  width: 320px;
-  max-width: 100%;
+  width: 112px;
+  height: 84px;
+  flex: 0 0 auto;
   margin: 0;
   padding: 0;
   border: 1px solid var(--gray-6);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
-  background: var(--gray-2);
+  background: var(--gray-1);
   cursor: zoom-in;
   line-height: 0;
 }
@@ -357,14 +364,41 @@
 .assistant-user-shot img {
   display: block;
   width: 100%;
-  height: auto;
-  max-height: 180px;
-  object-fit: contain;
-  object-position: center top;
+  height: 100%;
+  object-fit: cover;
 }
 
 .assistant-page .markdown-content {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: flex-start;
   overflow-wrap: anywhere;
+}
+
+.assistant-page .markdown-content > * {
+  flex: 1 0 100%;
+  min-width: 0;
+}
+
+/* Standalone pictures leave the paragraph flow and sit in one row under the text. */
+.assistant-page .markdown-content > p:has(> img:only-child),
+.assistant-page .markdown-content > img {
+  flex: 0 0 auto;
+  order: 1;
+  width: auto;
+  margin: 6px 6px 0 0;
+}
+
+.assistant-page .markdown-content > p:has(> img:only-child) img,
+.assistant-page .markdown-content > img {
+  display: block;
+  width: 112px;
+  height: 84px;
+  object-fit: cover;
+  margin: 0;
+  border-radius: 8px;
+  border: 1px solid var(--gray-6);
+  background: var(--gray-1);
 }
 
 .assistant-page .markdown-content pre {
