@@ -661,5 +661,32 @@ describe("DesktopPanelDock", () => {
       );
       expect(container.scrollLeft).toBe(0);
     });
+
+    it("scrolls a kind tab into view when 变更 is clicked past the edge", () => {
+      render(
+        <MuseTheme>
+          <DesktopPanelDock
+            {...baseProps}
+            checked={["preview", "diff"]}
+            active="preview"
+          >
+            <div>body</div>
+          </DesktopPanelDock>
+        </MuseTheme>,
+      );
+      const container = document.querySelector(
+        ".desktop-panel-dock-tabs",
+      ) as HTMLElement;
+      Object.defineProperty(container, "clientWidth", {
+        configurable: true,
+        value: 200,
+      });
+      const diff = screen.getByTestId("desktop-panel-tab-diff");
+      Object.defineProperty(diff, "offsetLeft", { configurable: true, value: 400 });
+      Object.defineProperty(diff, "offsetWidth", { configurable: true, value: 126 });
+
+      fireEvent.click(diff.querySelector("button")!);
+      expect(container.scrollLeft).toBe(326);
+    });
   });
 });

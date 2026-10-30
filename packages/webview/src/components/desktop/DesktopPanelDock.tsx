@@ -34,23 +34,14 @@ export interface DockToolTab {
   title: string;
 }
 
-/** Bring the active file tab into view whenever it changes (opening a tab,
- * clicking one, or activating the left/right neighbor after a close). The
- * tab bar scrolls horizontally (overflow-x: auto), so a tab outside the
- * visible area is otherwise unreachable. Nearest alignment — no centering,
- * so the current reading position is preserved. The move itself eases in
- * via scroll-behavior on the tab strip. */
-function scrollActiveTabIntoView(
-  container: HTMLElement,
-  activeFilePath: string,
-) {
-  const activeEl = container.querySelector<HTMLElement>(
-    '[data-testid="file-tab"][data-active="true"]',
-  );
-  if (!activeEl) return;
+/** Bring a dock tab into view (详情, 变更, 浏览器, a tool, or a file). The
+ * strip scrolls horizontally, so a tab past the edge is otherwise only partly
+ * reachable. Nearest alignment — no centering. scroll-behavior on the strip
+ * eases the move. */
+function scrollDockTabIntoView(container: HTMLElement, tab: HTMLElement) {
   const { scrollLeft, clientWidth } = container;
-  const left = activeEl.offsetLeft;
-  const right = left + activeEl.offsetWidth;
+  const left = tab.offsetLeft;
+  const right = left + tab.offsetWidth;
   if (left < scrollLeft) {
     container.scrollLeft = left;
   } else if (right > scrollLeft + clientWidth) {
@@ -148,6 +139,15 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   // The tab bar starts scrolled to the left, so the initially active tab is
   // always visible; scrolling only makes sense on later activation changes.
   const mountedRef = React.useRef(false);
+  const revealTab = React.useCallback((target: EventTarget | null) => {
+    const container = tabsRef.current;
+    const tab =
+      target instanceof HTMLElement
+        ? target.closest<HTMLElement>(".desktop-panel-tab, .file-tab")
+        : null;
+    if (!container || !tab) return;
+    scrollDockTabIntoView(container, tab);
+  }, []);
 
   const selectTab = React.useCallback(
     (key: string) => {
@@ -255,9 +255,13 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
       mountedRef.current = true;
       return;
     }
-    if (!tabsRef.current || !activeFilePath) return;
-    scrollActiveTabIntoView(tabsRef.current, activeFilePath);
-  }, [activeFilePath, fileTabs]);
+    const container = tabsRef.current;
+    const tab = container?.querySelector<HTMLElement>(
+      ".desktop-panel-tab--active, .file-tab--active",
+    );
+    if (!container || !tab) return;
+    scrollDockTabIntoView(container, tab);
+  }, [active, activeFilePath, activeToolId, checked, detailActive, fileTabs, tabOrder, toolTabs]);
 
   const onDragStart = (e: React.MouseEvent) => {
     if (fullscreen) return;
@@ -428,7 +432,10 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                     <button
                       type="button"
                       className="desktop-panel-tab-label"
-                      onClick={() => onSelectDetail()}
+                      onClick={(event) => {
+                        onSelectDetail();
+                        revealTab(event.currentTarget);
+                      }}
                       {...dragSource(key)}
                     >
                       {detailPresence === "running" || detailPresence === "waiting" ? (
@@ -470,7 +477,10 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                     <button
                       type="button"
                       className="desktop-panel-tab-label"
-                      onClick={() => onSelectTool?.(tool.id)}
+                      onClick={(event) => {
+                        onSelectTool?.(tool.id);
+                        revealTab(event.currentTarget);
+                      }}
                       {...dragSource(key)}
                     >
                       <i
@@ -510,7 +520,10 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                   data-path={tab.path}
                   data-active={isActive ? "true" : "false"}
                   title={tab.path}
-                  onClick={() => onSelectFileTab?.(tab.path)}
+                  onClick={(event) => {
+                    onSelectFileTab?.(tab.path);
+                    revealTab(event.currentTarget);
+                  }}
                   onDoubleClick={() => onPinFileTab?.(tab.path)}
                   {...bindTab(key)}
                 >
@@ -547,7 +560,10 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                 <button
                   type="button"
                   className="desktop-panel-tab-label"
-                  onClick={() => onSelect(kind)}
+                  onClick={(event) => {
+                    onSelect(kind);
+                    revealTab(event.currentTarget);
+                  }}
                   {...dragSource(key)}
                 >
                   <i
