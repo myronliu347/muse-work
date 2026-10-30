@@ -1,0 +1,239 @@
+packages/agent/src/managers/aiManager.ts
+  1b26f2d862f4c6d2 130-133,136,154-159,178-179,202,612-615,832-836,895-897,900-903,905,982-986,994,1218-1219,1580-1584,1647,1652,1677,1682,1734,1741
+packages/agent/src/utils/markdownParser.ts
+  1b26f2d862f4c6d2 107-111,113,229-255,263,268-274
+packages/agent/src/managers/skillManager.ts
+  1b26f2d862f4c6d2 26-27,269-280,396-401
+packages/agent/src/managers/subagentManager.ts
+  1b26f2d862f4c6d2 34,275-278,282-308,315-325,533,546
+packages/agent/tests/managers/subagentManager.refreshConfigurations.test.ts
+  1b26f2d862f4c6d2 41-43,46-49,61,99-107
+packages/agent/tests/managers/skillManager.test.ts
+  1b26f2d862f4c6d2 957-958
+packages/agent/src/managers/toolManager.ts
+  1b26f2d862f4c6d2 50-55,74,81,180-188,192
+packages/agent/src/tools/bashTool.ts
+  1b26f2d862f4c6d2 529-532
+packages/agent/src/utils/convertMessagesForAPI.ts
+  1b26f2d862f4c6d2 422-426
+packages/agent/src/types/hooks.ts
+  1b26f2d862f4c6d2 53-57,166-169
+packages/agent/src/managers/hookManager.ts
+  1b26f2d862f4c6d2 32-33,220-226,228-238,270-313,332-336,375-436,445-446,448
+packages/agent/tests/managers/messageManager.streaming.test.ts
+  1b26f2d862f4c6d2 9,35-36,45,72,75,338
+packages/agent/src/utils/bashCommandGate.ts
+  1b26f2d862f4c6d2 1-52
+packages/agent/tests/managers/subagentManager.callbacks.test.ts
+  1b26f2d862f4c6d2 348-349
+packages/agent/src/types/messaging.ts
+  1b26f2d862f4c6d2 117-121
+packages/agent/src/types/agent.ts
+  1b26f2d862f4c6d2 144-146,148
+packages/agent/src/managers/permissionManager.ts
+  1b26f2d862f4c6d2 376-380
+packages/agent/src/builtin/skills/settings.ts
+  1b26f2d862f4c6d2 26
+packages/agent/src/services/aiService.ts
+  1b26f2d862f4c6d2 144-149,157-158,221,223,310,348,350,585,587,594,602,665,672
+packages/agent/src/builtin/subagents.ts
+  1b26f2d862f4c6d2 2,15-18,62,76,83,85
+packages/agent/src/tools/agentTool.ts
+  1b26f2d862f4c6d2 80-82,107-111
+packages/agent/tests/integration/streaming-race.integration.test.ts
+  1b26f2d862f4c6d2 79,114
+packages/agent/src/managers/messageManager.ts
+  1b26f2d862f4c6d2 84-90,101,786-787,906-909,911-912,926-932,935,941,954-955,957-958,972-976,979,981,986
+packages/agent/src/utils/notificationXml.ts
+  1b26f2d862f4c6d2 34
+packages/agent/src/utils/subagentParser.ts
+  1b26f2d862f4c6d2 19-23,25-30,43,45,90-101,196,198
+packages/agent/src/utils/messageOperations.ts
+  1b26f2d862f4c6d2 557
+packages/agent/tests/managers/messageManager.additional.test.ts
+  1b26f2d862f4c6d2 269
+packages/server/src/services/sessionRunner/agent.ts
+  1b26f2d862f4c6d2 579,584-592
+packages/agent/tests/services/aiService.streaming.test.ts
+  1b26f2d862f4c6d2 168,256
+packages/agent/src/managers/slashCommandManager.ts
+  1b26f2d862f4c6d2 21-22,581-587,590-595
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e327f7852b05d8b8a68f02007dc6e70fed7cfc6c",
+  "prompts": {
+    "1b26f2d862f4c6d2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5496c529-1166-489f-a21e-da3c6fa61033",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 580,
+      "total_deletions": 234,
+      "accepted_lines": 575,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/utils/messageOperations.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/tests/managers/subagentManager.refreshConfigurations.test.ts": {
+          "additions": 17,
+          "deletions": 1,
+          "accepted_lines": 17
+        },
+        "packages/agent/tests/managers/subagentManager.callbacks.test.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/utils/bashCommandGate.ts": {
+          "additions": 52,
+          "accepted_lines": 52
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 10,
+          "deletions": 9,
+          "accepted_lines": 10
+        },
+        "packages/agent/src/utils/notificationXml.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/managers/toolManager.ts": {
+          "additions": 18,
+          "deletions": 3,
+          "accepted_lines": 18
+        },
+        "packages/agent/src/builtin/skills/settings.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/builtin/subagents.ts": {
+          "additions": 9,
+          "deletions": 5,
+          "accepted_lines": 9
+        },
+        "packages/agent/src/types/agent.ts": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        "packages/agent/tests/managers/messageManager.streaming.test.ts": {
+          "additions": 7,
+          "deletions": 12,
+          "accepted_lines": 7
+        },
+        "packages/agent/src/types/messaging.ts": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/agent/src/utils/markdownParser.ts": {
+          "additions": 42,
+          "deletions": 1,
+          "accepted_lines": 42
+        },
+        "packages/agent/src/tools/bashTool.ts": {
+          "additions": 4,
+          "deletions": 30,
+          "accepted_lines": 4
+        },
+        "packages/agent/tests/managers/messageManager.additional.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/tools/agentTool.ts": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/agent/src/managers/skillManager.ts": {
+          "additions": 20,
+          "deletions": 1,
+          "accepted_lines": 20
+        },
+        "packages/agent/tests/managers/aiManager.compactParamsRunning.test.ts": {
+          "deletions": 1
+        },
+        "packages/agent/tests/integration/streaming-race.integration.test.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/managers/aiManager.ts": {
+          "additions": 50,
+          "deletions": 45,
+          "accepted_lines": 50
+        },
+        "packages/agent/src/services/aiService.ts": {
+          "additions": 19,
+          "deletions": 17,
+          "accepted_lines": 19
+        },
+        "packages/agent/src/utils/convertMessagesForAPI.ts": {
+          "additions": 10,
+          "deletions": 6,
+          "accepted_lines": 5
+        },
+        "packages/agent/tests/services/aiService.streaming.test.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/utils/subagentParser.ts": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "packages/agent/src/managers/permissionManager.ts": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/agent/tests/managers/aiManager.compactConversation.test.ts": {
+          "additions": 17,
+          "deletions": 17,
+          "accepted_lines": 17
+        },
+        "packages/agent/src/managers/hookManager.ts": {
+          "additions": 135,
+          "deletions": 13,
+          "accepted_lines": 135
+        },
+        "packages/agent/src/managers/slashCommandManager.ts": {
+          "additions": 15,
+          "deletions": 1,
+          "accepted_lines": 15
+        },
+        "packages/agent/tests/managers/skillManager.test.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/tools/types.ts": {
+          "deletions": 2
+        },
+        "packages/agent/src/types/hooks.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/agent/src/managers/messageManager.ts": {
+          "additions": 37,
+          "deletions": 54,
+          "accepted_lines": 37
+        },
+        "packages/agent/src/managers/subagentManager.ts": {
+          "additions": 48,
+          "deletions": 1,
+          "accepted_lines": 48
+        }
+      }
+    }
+  }
+}
