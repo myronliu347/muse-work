@@ -2358,6 +2358,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     onOpenFile: handleOpenFile,
     isAuthenticated: state.isAuthenticated,
     loginError: state.loginError,
+    loginServiceName: state.loginServiceName,
     onLogin: handleLogin,
     agentTranscript,
     subagentMessages: state.subagentMessages,

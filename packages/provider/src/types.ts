@@ -51,11 +51,19 @@ export interface OpenAiCompatibleProviderConfig {
   models: ModelInfo[];
 }
 
+export interface CodexProviderConfig {
+  enabled: boolean;
+  models: ModelInfo[];
+  /** When set, ChatGPT login must land in one of these account ids. */
+  forcedWorkspaceIds?: string[];
+}
+
 export interface ProvidersFile {
   activeProviderId: string;
   activeModelId?: string;
   providers: {
     codemaker: CodeMakerProviderConfig;
+    codex: CodexProviderConfig;
     "openai-compatible": OpenAiCompatibleProviderConfig;
   };
 }

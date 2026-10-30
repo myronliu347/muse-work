@@ -37,6 +37,14 @@ function defaultProvidersConfig(): ProvidersFile {
           { id: "qwen3.8-max", label: "Qwen 3.8 Max" },
         ],
       },
+      codex: {
+        enabled: true,
+        // Used only when the signed-in `/models` catalog cannot be loaded.
+        models: [
+          { id: "gpt-5.4", label: "GPT-5.4" },
+          { id: "gpt-5.3-codex", label: "GPT-5.3 Codex" },
+        ],
+      },
       "openai-compatible": {
         enabled: true,
         baseURL: "https://api.example.com/v1",
@@ -50,13 +58,28 @@ function defaultProvidersConfig(): ProvidersFile {
   };
 }
 
+function mergeProvidersConfig(raw: ProvidersFile): ProvidersFile {
+  const defaults = defaultProvidersConfig();
+  return {
+    activeProviderId: raw.activeProviderId || defaults.activeProviderId,
+    activeModelId: raw.activeModelId ?? defaults.activeModelId,
+    providers: {
+      codemaker: raw.providers?.codemaker ?? defaults.providers.codemaker,
+      codex: raw.providers?.codex ?? defaults.providers.codex,
+      "openai-compatible":
+        raw.providers?.["openai-compatible"] ??
+        defaults.providers["openai-compatible"],
+    },
+  };
+}
+
 export function loadProvidersConfig(home = os.homedir()): ProvidersFile {
   const configPath = getProvidersConfigPath(home);
   if (!fs.existsSync(configPath)) {
     return defaultProvidersConfig();
   }
   const raw = fs.readFileSync(configPath, "utf-8");
-  return JSON.parse(raw) as ProvidersFile;
+  return mergeProvidersConfig(JSON.parse(raw) as ProvidersFile);
 }
 
 export function saveProvidersConfig(

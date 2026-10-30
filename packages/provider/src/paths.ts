@@ -35,3 +35,12 @@ export function getCodeMakerAuthPath(home = os.homedir()): string {
 export function getSharedCodeMakerAuthPath(home = os.homedir()): string {
   return path.join(home, ".local", "share", "codemaker", "auth.json");
 }
+
+/**
+ * ChatGPT OAuth for the Codex provider. Same sharing rule as CodeMaker:
+ * credentials stay under `~/.muse-work/auth` and are not written into the
+ * Codex CLI auth file.
+ */
+export function getCodexAuthPath(home = os.homedir()): string {
+  return path.join(home, ".muse-work", "auth", "codex.json");
+}

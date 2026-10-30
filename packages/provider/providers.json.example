@@ -26,6 +26,13 @@
         { "id": "qwen3.8-max", "label": "Qwen 3.8 Max" }
       ]
     },
+    "codex": {
+      "enabled": true,
+      "models": [
+        { "id": "gpt-5.4", "label": "GPT-5.4" },
+        { "id": "gpt-5.3-codex", "label": "GPT-5.3 Codex" }
+      ]
+    },
     "openai-compatible": {
       "enabled": true,
       "baseURL": "https://api.example.com/v1",

@@ -25,6 +25,24 @@ describe("configStore", () => {
     expect(cfg.providers.codemaker.models[0]?.id).toBe("deepseek-flash");
     expect(cfg.providers.codemaker.models.length).toBeGreaterThan(0);
     expect(cfg.providers["openai-compatible"]).toBeDefined();
+    expect(cfg.providers.codex.models.map((m) => m.id)).toEqual([
+      "gpt-5.4",
+      "gpt-5.3-codex",
+    ]);
+  });
+
+  it("fills a default Codex provider when an older file omits it", () => {
+    const configPath = path.join(tmp, ".muse-work", "providers.json");
+    fs.mkdirSync(path.dirname(configPath), { recursive: true });
+    const current = loadProvidersConfig(tmp);
+    const { codex: _codex, ...providers } = current.providers;
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify({ ...current, providers }, null, 2),
+    );
+    const loaded = loadProvidersConfig(tmp);
+    expect(loaded.providers.codex.models.map((m) => m.id)).toContain("gpt-5.4");
+    expect(loaded.providers.codemaker.models[0]?.id).toBe("deepseek-flash");
   });
 
   it("round-trips active model selection", () => {

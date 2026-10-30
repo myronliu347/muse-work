@@ -49,10 +49,16 @@ export function createAuthModule(ctx: BridgeCtx): AuthModule {
     }
   }
 
-  /** Prompt the CodeMaker re-login dialog when a turn fails on auth grounds. */
+  /** Prompt re-login when a turn fails on auth grounds for an SSO provider. */
   function promptCodeMakerReauth(): void {
-    if (ctx.activeProviderId && ctx.activeProviderId !== "codemaker") return;
-    postToWebview({ command: "showAuthDialog" });
+    const providerId = ctx.activeProviderId;
+    if (providerId && providerId !== "codemaker" && providerId !== "codex") {
+      return;
+    }
+    postToWebview({
+      command: "showAuthDialog",
+      providerId: providerId ?? "codemaker",
+    });
   }
 
   function maybePromptAuthDialog(error: string): void {

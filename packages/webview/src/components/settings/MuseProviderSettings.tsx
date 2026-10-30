@@ -382,6 +382,12 @@ export const MuseProviderSettings = forwardRef<
         </div>
       )}
 
+      {draftProviderId === "codex" && (
+        <div className="config-model-hint" data-testid="muse-codex-login-hint">
+          使用 ChatGPT 账号登录。凭证保存在本机 Muse 目录，不会写入 Codex CLI 的登录文件。
+        </div>
+      )}
+
       {draftProviderId === "openai-compatible" && (
         <div className="muse-settings-stack" data-testid="muse-openai-form">
           <Field label="API URL" htmlFor="muse-openai-base-url">

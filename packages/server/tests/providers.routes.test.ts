@@ -51,6 +51,7 @@ describe("providers + auth routes", () => {
     expect(body.active.providerId).toBe("codemaker");
     expect(body.providers.map((p) => p.id).sort()).toEqual([
       "codemaker",
+      "codex",
       "openai-compatible",
     ]);
     const openai = body.providers.find((p) => p.id === "openai-compatible");

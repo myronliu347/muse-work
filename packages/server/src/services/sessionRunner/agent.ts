@@ -887,13 +887,13 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
 
     const active = registry.getActive();
     const provider = registry.get(active.providerId);
-    if (provider?.id === "codemaker") {
+    if (provider?.id === "codemaker" || provider?.id === "codex") {
       // Local expire may still look valid while the API already rejected the
       // token; drop creds so the next login does not reuse the dead token.
       await provider.logout();
       hub.broadcast(sessionId, {
         type: "auth:changed",
-        status: { state: "unauthenticated", providerId: "codemaker" },
+        status: { state: "unauthenticated", providerId: provider.id },
       });
     } else if (provider) {
       const status = await provider.getAuthStatus();

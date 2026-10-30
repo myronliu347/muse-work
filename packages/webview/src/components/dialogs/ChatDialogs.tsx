@@ -32,6 +32,7 @@ export interface ChatDialogsProps {
   onOpenFile: (path: string, startLine?: number, endLine?: number) => void;
   isAuthenticated: boolean;
   loginError?: string;
+  loginServiceName?: string;
   onLogin: () => void;
   agentTranscript: AgentTranscriptState | null;
   subagentMessages: Record<string, Message[]>;
@@ -69,6 +70,7 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
   onOpenFile,
   isAuthenticated,
   loginError,
+  loginServiceName,
   onLogin,
   agentTranscript,
   subagentMessages,
@@ -126,6 +128,7 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
         <LoginDialog
           isAuthenticated={isAuthenticated}
           loginError={loginError}
+          serviceName={loginServiceName}
           onLogin={onLogin}
           onCancel={onDialogClose}
         />

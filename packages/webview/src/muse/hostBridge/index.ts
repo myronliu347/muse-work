@@ -1,4 +1,5 @@
 import type { VsCodeApi } from "../../types";
+import { MUSE_PROVIDERS_CHANGED_EVENT } from "../providersEvents.js";
 import type { MuseWsEvent, MuseWsStatus } from "../wsClient.js";
 import { createAuthModule } from "./auth.js";
 import { createChatModule } from "./chat.js";
@@ -425,6 +426,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     queueMicrotask(() => {
       void ctx.refreshAuth();
     });
+    if (typeof window !== "undefined") {
+      window.addEventListener(MUSE_PROVIDERS_CHANGED_EVENT, () => {
+        void ctx.refreshAuth();
+      });
+    }
   }
 
   return bridge;

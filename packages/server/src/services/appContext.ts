@@ -1,5 +1,6 @@
 import {
   createCodeMakerProvider,
+  createCodexProvider,
   createOpenAiCompatibleProvider,
   createProviderRegistry,
   loadProvidersConfig,
@@ -117,6 +118,13 @@ export function createAppContext(
     fetch: globalThis.fetch.bind(globalThis),
   });
 
+  const codex = createCodexProvider({
+    home,
+    getConfig: () => getConfig().providers.codex,
+    openBrowser: () => {},
+    fetch: globalThis.fetch.bind(globalThis),
+  });
+
   const openai = createOpenAiCompatibleProvider({
     getConfig: () => getConfig().providers["openai-compatible"],
     getApiKey: () => {
@@ -127,7 +135,7 @@ export function createAppContext(
     },
   });
 
-  const registry = createProviderRegistry([codemaker, openai], home);
+  const registry = createProviderRegistry([codemaker, codex, openai], home);
   const issues = createIssueStore({ home });
   const automations = createAutomationStore({ home });
   let assistantTools: ReturnType<typeof createAssistantTools> | undefined;

@@ -6,19 +6,22 @@ export interface LoginDialogProps {
   isAuthenticated: boolean;
   /** Human-readable login failure (timeout / SSO error), shown for retry. */
   loginError?: string;
-  /** Starts the CodeMaker SSO flow (opens the system browser). */
+  /** Product name in the title. CodeMaker and ChatGPT share this dialog. */
+  serviceName?: string;
+  /** Starts the browser login flow. */
   onLogin: () => void;
   onCancel: () => void;
 }
 
 /**
- * Modal guiding a CodeMaker re-login after a turn fails on auth grounds
+ * Modal guiding a re-login after a turn fails on auth grounds
  * (missing/expired credentials or a revoked token). Clicking 去登录 starts the
- * SSO flow; the dialog auto-closes once authentication succeeds.
+ * browser flow; the dialog auto-closes once authentication succeeds.
  */
 export const LoginDialog: React.FC<LoginDialogProps> = ({
   isAuthenticated,
   loginError,
+  serviceName = "CodeMaker",
   onLogin,
   onCancel,
 }) => {
@@ -47,7 +50,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({
         className="confirm-dialog"
         role="alertdialog"
         aria-modal="true"
-        aria-label="CodeMaker 登录已失效"
+        aria-label={`${serviceName} 登录已失效`}
       >
         <div className="confirm-dialog-message-row">
           <i
@@ -55,7 +58,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({
             aria-hidden="true"
           ></i>
           <div className="confirm-dialog-message-content">
-            <div className="confirm-dialog-title">CodeMaker 登录已失效</div>
+            <div className="confirm-dialog-title">{serviceName} 登录已失效</div>
             <div className="confirm-dialog-description">
               发送消息时发现登录凭证缺失或已过期，请重新登录后重试。
             </div>

@@ -779,7 +779,11 @@ export function createMessageHandler({
       case "showAuthDialog":
         dispatch({
           type: "SHOW_DIALOG",
-          payload: { type: "login" },
+          payload: {
+            type: "login",
+            serviceName:
+              message.providerId === "codex" ? "ChatGPT" : "CodeMaker",
+          },
         });
         break;
       case "loginResponse":

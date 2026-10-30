@@ -5,12 +5,14 @@ export type {
   GatewayResolution,
   LoginStart,
   ModelInfo,
+  CodexProviderConfig,
   OpenAiCompatibleProviderConfig,
   ProvidersFile,
 } from "./types.js";
 
 export {
   getCodeMakerAuthPath,
+  getCodexAuthPath,
   getMuseHomeDir,
   getProvidersConfigPath,
   getSessionsConfigPath,
@@ -35,6 +37,24 @@ export {
 } from "./registry.js";
 
 export { createOpenAiCompatibleProvider } from "./openaiCompatible.js";
+
+export {
+  CODEX_API_BASE_URL,
+  createCodexProvider,
+} from "./codex/provider.js";
+export {
+  CODEX_CLIENT_ID,
+  CODEX_ISSUER,
+  beginCodexLogin,
+  type BeginCodexLoginOptions,
+  type CodexLoginStart,
+} from "./codex/login.js";
+export {
+  clearCodexCredentials,
+  loadCodexCredentials,
+  saveCodexCredentials,
+  type CodexCreds,
+} from "./codex/credentials.js";
 
 export type { CodeMakerCreds } from "./codemaker/types.js";
 

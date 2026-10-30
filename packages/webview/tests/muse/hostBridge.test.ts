@@ -2794,6 +2794,30 @@ describe("createHostBridge codemaker auth-failure dialog", () => {
     );
   });
 
+  it("posts showAuthDialog when the active provider is ChatGPT", async () => {
+    const api = stubApi({
+      getAuthStatus: vi.fn(async () => ({
+        state: "authenticated",
+        providerId: "codex",
+      })),
+      sendMessage: vi.fn(async () => {
+        throw new Error("Codex credentials missing or expired");
+      }),
+    });
+    const bridge = createHostBridge({ api, ws: stubWs(), workdir: "/tmp" });
+    await flush();
+
+    bridge.postMessage({ command: "sendMessage", text: "hello" });
+    await flush();
+
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "showAuthDialog",
+        providerId: "codex",
+      }),
+    );
+  });
+
   it("does not post showAuthDialog when the active provider is not codemaker", async () => {
     const api = stubApi({
       getAuthStatus: vi.fn(async () => ({

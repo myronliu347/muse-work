@@ -488,6 +488,10 @@ function reduceChat(state: ChatState, action: ChatAction): ChatState {
         configurationData: action.payload.data ?? state.configurationData,
         configurationLoading: false,
         configurationError: action.payload.error,
+        loginServiceName:
+          action.payload.type === "login"
+            ? action.payload.serviceName ?? "CodeMaker"
+            : state.loginServiceName,
       };
     case "HIDE_DIALOG":
       return {

@@ -772,8 +772,10 @@ export interface ChatState {
     | "agents"
     | "login"
     | null;
-  /** Login failure shown inside the auth dialog (CodeMaker SSO). */
+  /** Login failure shown inside the auth dialog (CodeMaker or ChatGPT SSO). */
   loginError?: string;
+  /** Name shown on the login dialog. Defaults to CodeMaker. */
+  loginServiceName?: string;
   configurationData?: ConfigurationData;
   configurationLoading: boolean;
   configurationError?: string;
@@ -933,6 +935,7 @@ export type ChatAction =
           | "login";
         data?: ConfigurationData;
         error?: string;
+        serviceName?: string;
       };
     }
   | { type: "HIDE_DIALOG" }
