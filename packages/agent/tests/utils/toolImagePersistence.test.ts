@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 
 // Mock fs
@@ -35,6 +36,7 @@ import { persistToolImages } from "../../src/utils/toolImagePersistence.js";
 describe("toolImagePersistence", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.mocked(os.tmpdir).mockReturnValue("/tmp");
   });
 
   it("should persist an image to /tmp/muse-mcp-images with .png extension", () => {

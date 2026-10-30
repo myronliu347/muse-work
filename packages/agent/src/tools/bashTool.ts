@@ -2,8 +2,14 @@ import { spawn, ChildProcess } from "child_process";
 import { Readable } from "stream";
 import * as fs from "fs";
 import * as path from "path";
-import * as os from "os";
 import { logger } from "../utils/globalLogger.js";
+import {
+  describeDiskPressure,
+  describeTempDirFailure,
+  probeTempDir,
+  readDiskPressure,
+  resolveTempDir,
+} from "../utils/tempDir.js";
 import { resolveShellPath } from "../utils/shellResolver.js";
 import { toPosixPath, toWindowsPath } from "../utils/path.js";
 import { stripAnsiColors } from "../utils/stringUtils.js";
@@ -288,22 +294,37 @@ The working directory persists between commands. Try to maintain your current wo
       };
     }
 
+    // A temp directory that cannot be written (quota used up, volume full,
+    // wrong owner) breaks CWD tracking and every "persist the long output"
+    // path at once. Probe it first, run the command untracked when it is
+    // unusable, and say why. This stays synchronous up to `spawn`: an await
+    // here would push process startup behind a microtask.
+    const tempDir = resolveTempDir();
+    const tempDirProbe = probeTempDir(tempDir);
+    const tempDirNotice = tempDirProbe.writable
+      ? ""
+      : describeTempDirFailure(tempDir, tempDirProbe.code) + "\n";
+    const cwdTrackingEnabled = tempDirProbe.writable;
+
     // Foreground execution (original behavior)
     return new Promise((resolve) => {
-      // Create a temporary file to store the CWD
       const tempCwdFile = path.join(
-        os.tmpdir(),
+        tempDir,
         `muse_cwd_${Date.now()}_${Math.random().toString(36).substring(2, 11)}.tmp`,
       );
       const tempCwdFileForBash = toPosixPath(tempCwdFile);
-      const wrappedCommand = wrapCommandForCwdTracking(
-        command,
-        tempCwdFileForBash,
-      );
+      const wrappedCommand = cwdTrackingEnabled
+        ? wrapCommandForCwdTracking(command, tempCwdFileForBash)
+        : command;
 
+      // fd0 is /dev/null, never a live pipe: nothing writes to the command's
+      // stdin, so a pipe would only ever deliver a hang. Commands that read
+      // stdin (a bare `cat`, `rg foo` with no path arg, an editor, a pager)
+      // would block until the tool timeout. With /dev/null they get EOF
+      // immediately. Heredocs are unaffected — the shell feeds those itself.
       const child: ChildProcess = spawn(wrappedCommand, {
         shell: shellPath,
-        stdio: "pipe",
+        stdio: ["ignore", "pipe", "pipe"],
         detached: true,
         cwd: context.workdir,
         env: {
@@ -661,11 +682,21 @@ The working directory persists between commands. Try to maintain your current wo
         const combinedOutput =
           outputBuffer + (errorBuffer ? "\n" + errorBuffer : "");
 
+        // A failure while the temp volume is nearly out of space or inodes is
+        // very likely caused by that; say so instead of leaving the model to
+        // read it as an unrelated shell error.
+        const pressureNote =
+          exitCode !== 0
+            ? describeDiskPressure(tempDir, readDiskPressure(tempDir))
+            : undefined;
+
         // Prepend CWD change message to output if present
         const finalOutput =
           recoveryNotice +
+          tempDirNotice +
           (cwdMessage ? cwdMessage + "\n" : "") +
-          (combinedOutput || `Command executed with exit code: ${exitCode}`);
+          (combinedOutput || `Command executed with exit code: ${exitCode}`) +
+          (pressureNote ? "\n\n" + pressureNote : "");
         const content = processToolResult(
           finalOutput,
           BASH_MAX_OUTPUT_CHARS,

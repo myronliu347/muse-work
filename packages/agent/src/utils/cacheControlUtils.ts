@@ -39,12 +39,24 @@ export interface ClaudeChatCompletionContentPartText
 }
 
 /**
- * Extended prompt_tokens_details with cache_creation_input_tokens
- * Some models (e.g. Gemini, DeepSeek) return this field inside prompt_tokens_details
+ * Extended prompt_tokens_details with the gateway-specific cache-write shapes.
+ * `cached_tokens` is on the OpenAI type. The shapes below are the ones only
+ * some gateways (or newer models) report, so they are declared here.
  */
 export interface ExtendedPromptTokensDetails
   extends CompletionUsage.PromptTokensDetails {
+  /** Flat total, as reported by providers such as Aliyun Qwen. */
   cache_creation_input_tokens?: number;
+  /**
+   * Write volume broken down by TTL, as reported by Anthropic when a request is
+   * translated into the chat-completions shape. Only the 5m bucket is declared:
+   * requests never send `cache_control.ttl`, so a 1h write cannot occur.
+   */
+  cache_creation?: {
+    ephemeral_5m_input_tokens?: number;
+  };
+  /** OpenAI's own write counter (GPT-5.6+). */
+  cache_write_tokens?: number;
 }
 
 // ============================================================================
@@ -296,11 +308,11 @@ export function transformMessagesForExplicitCache(
 }
 
 /**
- * Extends standard usage with cache metrics
- * Extracts cache tokens from OpenAI-standard prompt_tokens_details
- * (cached_tokens and the gateway-provided cache_creation_input_tokens)
- * @param usage - OpenAI usage response
- * @returns Extended usage with cache information
+ * Extends standard usage with cache metrics.
+ * Cache writes arrive in one of three mutually exclusive shapes: a flat total,
+ * a TTL breakdown (Anthropic behind a chat-completions gateway), or OpenAI's
+ * own `cache_write_tokens` (GPT-5.6+). Take whichever is present instead of
+ * summing: summing would double count the day one gateway reports more than one.
  */
 export function extendUsageWithCacheMetrics(usage: CompletionUsage): Usage {
   const baseUsage: Usage = {
@@ -316,8 +328,13 @@ export function extendUsageWithCacheMetrics(usage: CompletionUsage): Usage {
   if (details?.cached_tokens != null) {
     baseUsage.cache_read_input_tokens = details.cached_tokens;
   }
-  if (details?.cache_creation_input_tokens != null) {
-    baseUsage.cache_creation_input_tokens = details.cache_creation_input_tokens;
+
+  const cacheCreation =
+    details?.cache_creation_input_tokens ??
+    details?.cache_creation?.ephemeral_5m_input_tokens ??
+    details?.cache_write_tokens;
+  if (cacheCreation != null) {
+    baseUsage.cache_creation_input_tokens = cacheCreation;
   }
 
   return baseUsage;

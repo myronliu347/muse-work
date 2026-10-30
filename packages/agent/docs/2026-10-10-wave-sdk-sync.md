@@ -68,3 +68,5 @@
 ```
 
 写在 `~/.muse-work/settings.json` 或 `<workdir>/.muse-work/settings.json`。不写则开启。
+
+下一次记录见 [2026-10-30-wave-sdk-sync.md](./2026-10-30-wave-sdk-sync.md)。

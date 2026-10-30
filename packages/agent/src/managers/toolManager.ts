@@ -35,6 +35,7 @@ import * as aiService from "../services/aiService.js";
 
 import { Container } from "../utils/container.js";
 import { appendMemoryCapNotice } from "../utils/memoryCapNotices.js";
+import { validateToolInput } from "../tools/inputValidation.js";
 import { isLeanPromptEnabled } from "../services/leanPrompt.js";
 
 import { logger } from "../utils/globalLogger.js";
@@ -58,6 +59,11 @@ export interface ToolManagerOptions {
  */
 class ToolManager {
   private toolsRegistry = new Map<string, ToolPlugin>();
+  /**
+   * Built-in tools, by object identity rather than by name: a custom tool that
+   * shadows a built-in name must not inherit its schema check.
+   */
+  private builtInTools = new WeakSet<ToolPlugin>();
   private tools?: string[];
   private customTools?: ToolPlugin[];
   private container: Container;
@@ -73,10 +79,17 @@ class ToolManager {
   }
 
   /**
-   * Register a new tool
+   * Register a new tool.
+   *
+   * `options.builtIn` marks a tool whose parameter schema is this runtime's
+   * own contract, and whose calls are therefore checked against it. Custom
+   * tools are not checked: their schema is theirs to enforce.
    */
-  public register(tool: ToolPlugin): void {
+  public register(tool: ToolPlugin, options?: { builtIn?: boolean }): void {
     this.toolsRegistry.set(tool.name, tool);
+    if (options?.builtIn === true) {
+      this.builtInTools.add(tool);
+    }
   }
 
   /**
@@ -125,7 +138,7 @@ class ToolManager {
 
     for (const tool of builtInTools) {
       if (this.shouldEnableTool(tool.name)) {
-        this.toolsRegistry.set(tool.name, tool);
+        this.register(tool, { builtIn: true });
       }
     }
 
@@ -301,6 +314,21 @@ class ToolManager {
     // Check built-in tools
     const plugin = this.toolsRegistry.get(name);
     if (plugin) {
+      if (this.builtInTools.has(plugin)) {
+        const invalid = validateToolInput(
+          name,
+          plugin.config?.function?.parameters,
+          args,
+        );
+        if (invalid !== null) {
+          logger?.debug(
+            "Tool call rejected: arguments do not match the schema",
+            { toolName: name },
+          );
+          return { success: false, content: invalid, error: invalid };
+        }
+      }
+
       let result: ToolResult;
       try {
         result = await plugin.execute(args, enhancedContext);

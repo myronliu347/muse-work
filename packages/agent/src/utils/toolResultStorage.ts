@@ -8,22 +8,22 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import * as os from "os";
+import { resolveTempDir } from "./tempDir.js";
 import {
   DEFAULT_MAX_RESULT_SIZE_CHARS,
   PREVIEW_SIZE_BYTES,
 } from "../constants/toolLimits.js";
 import { logger } from "./globalLogger.js";
 
-const TOOL_RESULTS_DIR = path.join(os.tmpdir(), "muse-tool-results");
-
 /**
  * Get (and create if needed) the tool-results directory.
- * Uses /tmp/muse-tool-results/ for simplicity and automatic OS cleanup.
+ * Resolved at call time so MUSE_TMPDIR / a mocked tmpdir are honored, and so
+ * a full volume can be redirected without restarting the module graph.
  */
 export function getToolResultsDir(): string {
-  fs.mkdirSync(TOOL_RESULTS_DIR, { recursive: true });
-  return TOOL_RESULTS_DIR;
+  const dir = path.join(resolveTempDir(), "muse-tool-results");
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
 }
 
 /**

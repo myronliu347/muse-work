@@ -1,5 +1,4 @@
 import { randomUUID } from "crypto";
-import * as os from "os";
 import * as fs from "fs";
 import * as path from "path";
 import type { SubagentConfiguration } from "../utils/subagentParser.js";
@@ -21,6 +20,7 @@ import {
 import { BackgroundTaskManager } from "./backgroundTaskManager.js";
 import { MessageQueue } from "./messageQueue.js";
 import { logger } from "../utils/globalLogger.js";
+import { resolveTempDir } from "../utils/tempDir.js";
 import {
   UserMessageParams,
   type ToolBlockUpdateCallbackParams,
@@ -568,7 +568,7 @@ export class SubagentManager {
         const startTime = Date.now();
 
         // Create log file
-        const logPath = path.join(os.tmpdir(), `muse-subagent-${taskId}.log`);
+        const logPath = path.join(resolveTempDir(), `muse-subagent-${taskId}.log`);
         const logStream = fs.createWriteStream(logPath, { flags: "a" });
         instance.logStream = logStream;
 
@@ -673,7 +673,7 @@ export class SubagentManager {
     const startTime = Date.now();
 
     // Create log file
-    const logPath = path.join(os.tmpdir(), `muse-subagent-${taskId}.log`);
+    const logPath = path.join(resolveTempDir(), `muse-subagent-${taskId}.log`);
     const logStream = fs.createWriteStream(logPath, { flags: "a" });
     instance.logStream = logStream;
 

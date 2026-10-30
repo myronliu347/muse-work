@@ -23,7 +23,7 @@ import {
   replaceBashCommandsWithOutput,
   executeBashCommands,
 } from "../utils/markdownParser.js";
-import { substitutePluginRoot, substituteSkillDir } from "../utils/museEnv.js";
+import { substituteSkillPlaceholders } from "../utils/skillPlaceholders.js";
 
 import { Container } from "../utils/container.js";
 import { logger } from "../utils/globalLogger.js";
@@ -351,12 +351,24 @@ export class SkillManager extends EventEmitter {
     // 1. Substitute parameters ($1, $ARGUMENTS, etc.)
     mainContent = substituteCommandParameters(mainContent, argsString);
 
-    mainContent = substituteSkillDir(mainContent, skill.skillPath);
-    if (skill.pluginRoot) {
-      mainContent = substitutePluginRoot(mainContent, skill.pluginRoot);
-    }
+    // The same resolver the skill's allowed-tools rules went through at parse
+    // time, so the body and the rules agree about what the placeholders mean.
+    mainContent = substituteSkillPlaceholders(mainContent, {
+      skillPath: skill.skillPath,
+      pluginRoot: skill.pluginRoot,
+    });
 
-    return skillPath + mainContent;
+    return skillPath + this.skillWarningNotice(skill) + mainContent;
+  }
+
+  /**
+   * A mis-authored skill must say so where its author will see it: a rule left
+   * holding an unresolvable placeholder was dropped, so the command it meant to
+   * pre-authorize will ask for confirmation.
+   */
+  private skillWarningNotice(skill: Skill): string {
+    if (!skill.warnings?.length) return "";
+    return `> **Skill warning**: ${skill.warnings.join("; ")}\n\n`;
   }
 
   /**

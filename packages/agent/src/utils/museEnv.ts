@@ -27,6 +27,7 @@ export const MUSE_ENV = {
   SKILL_DIR: "MUSE_SKILL_DIR",
   PROJECT_DIR: "MUSE_PROJECT_DIR",
   SESSION_ID: "MUSE_SESSION_ID",
+  TMPDIR: "MUSE_TMPDIR",
 } as const;
 
 export type MuseEnvKey = (typeof MUSE_ENV)[keyof typeof MUSE_ENV];

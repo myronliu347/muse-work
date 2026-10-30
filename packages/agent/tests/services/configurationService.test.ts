@@ -1346,6 +1346,29 @@ describe("ConfigurationService", () => {
       }
     });
 
+    it("should prioritize settings.json fastModel over MUSE_FAST_MODEL", async () => {
+      const config = { fastModel: "settings-fast" };
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(JSON.stringify(config));
+
+      const origModel = process.env.MUSE_MODEL;
+      const origFastModel = process.env.MUSE_FAST_MODEL;
+      process.env.MUSE_MODEL = "env-model";
+      process.env.MUSE_FAST_MODEL = "env-fast";
+      try {
+        await configService.loadMergedConfiguration(tempDir);
+        configService.setOptions({ model: "options-model" });
+        const resolved = configService.resolveModelConfig();
+        expect(resolved.fastModel).toBe("settings-fast");
+      } finally {
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
+        if (origFastModel !== undefined)
+          process.env.MUSE_FAST_MODEL = origFastModel;
+        else delete process.env.MUSE_FAST_MODEL;
+      }
+    });
+
     it("should prioritize model param over options.model, env var, and currentConfiguration.model", async () => {
       const config = { model: "config-model" };
       mockExistsSync.mockReturnValue(true);
@@ -1423,6 +1446,29 @@ describe("ConfigurationService", () => {
 
       const result = loadMergedMuseConfig(tempDir);
       expect(result?.model).toBe("user-model");
+    });
+
+    it("keeps a top-level fastModel and lets the project file win", () => {
+      const userSettingsPath = path.join(userHome, ".muse-work", "settings.json");
+      const projectSettingsPath = path.join(tempDir, ".muse-work", "settings.json");
+      mockExistsSync.mockImplementation((p) => {
+        const pathStr = p.toString();
+        return [userSettingsPath, projectSettingsPath].some((expected) =>
+          pathStr.includes(expected),
+        );
+      });
+      mockReadFileSync.mockImplementation((p) => {
+        const pathStr = p.toString();
+        if (pathStr.includes(userSettingsPath)) {
+          return JSON.stringify({ fastModel: "user-fast" });
+        }
+        if (pathStr.includes(projectSettingsPath)) {
+          return JSON.stringify({ fastModel: "project-fast" });
+        }
+        return "";
+      });
+
+      expect(loadMergedMuseConfig(tempDir)?.fastModel).toBe("project-fast");
     });
   });
 

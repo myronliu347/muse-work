@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 
 // Mock fs
@@ -45,6 +46,9 @@ import {
 describe("toolResultStorage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    // resetAllMocks clears the factory's mockReturnValue; resolveTempDir reads
+    // os.tmpdir() at call time, so each example has to put it back.
+    vi.mocked(os.tmpdir).mockReturnValue("/tmp");
   });
 
   describe("generatePreview", () => {

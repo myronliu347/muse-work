@@ -35,6 +35,12 @@ export interface Skill extends SkillMetadata {
   frontmatter: SkillFrontmatter;
   isValid: boolean;
   errors: string[];
+  /**
+   * Non-fatal problems worth telling the author about — a declared
+   * `allowed-tools` rule whose placeholder could not be resolved, say. The
+   * skill still runs; the warning is surfaced when it is invoked.
+   */
+  warnings?: string[];
 }
 
 export interface SkillFrontmatter {
@@ -97,12 +103,19 @@ export interface ParsedSkillFile {
   content: string;
   skillMetadata: SkillMetadata;
   validationErrors: string[];
+  warnings: string[];
   isValid: boolean;
 }
 
 export interface SkillParseOptions {
   validateMetadata?: boolean;
   basePath?: string;
+  /**
+   * Plugin root, when parsing a skill that came from a plugin. Substituted for
+   * `${MUSE_PLUGIN_ROOT}` / `${WAVE_PLUGIN_ROOT}` / `${CLAUDE_PLUGIN_ROOT}`
+   * in `allowed-tools`.
+   */
+  pluginRoot?: string;
 }
 
 /**

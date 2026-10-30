@@ -517,6 +517,50 @@ export class PermissionManager {
   }
 
   /**
+   * Hand one request to the host's permission callback. The single exit for
+   * every path that has to reach a person — an automatic allow here would
+   * strand the caller with an answer nobody gave.
+   */
+  private async askUserForPermission(
+    context: ToolPermissionContext,
+  ): Promise<PermissionDecision> {
+    if (!context.canUseToolCallback) {
+      logger?.warn(
+        "No permission callback provided for restricted tool in default mode",
+        {
+          toolName: context.toolName,
+        },
+      );
+      return {
+        behavior: "deny",
+        message: `Tool '${context.toolName}' requires permission approval. No permission callback configured.`,
+      };
+    }
+
+    try {
+      const decision = await context.canUseToolCallback(context);
+      if (decision.behavior !== "allow") {
+        logger?.debug("Custom callback returned decision", {
+          toolName: context.toolName,
+          decision,
+        });
+      }
+      return decision;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      logger?.error("Error in permission callback", {
+        toolName: context.toolName,
+        error: errorMessage,
+      });
+      return {
+        behavior: "deny",
+        message: "Error in permission callback",
+      };
+    }
+  }
+
+  /**
    * Check if a tool execution requires permission and handle the authorization flow
    * Called by individual tools after validation/diff, before real operation
    */
@@ -549,6 +593,18 @@ export class PermissionManager {
           message: `Access to tool '${context.toolName}' is explicitly denied by rule: ${rule}`,
         };
       }
+    }
+
+    // Tools whose whole point is the user's answer go straight to the person,
+    // before every automatic allow below. A skill's allowed-tools almost always
+    // lists AskUserQuestion; letting that rule approve it returned {} — an
+    // empty answer nobody gave. Deny rules above still win.
+    if (
+      (USER_INTERACTION_REQUIRED_TOOLS as readonly string[]).includes(
+        context.toolName,
+      )
+    ) {
+      return this.askUserForPermission(context);
     }
 
     // Check worktree safety for Write and Edit tools — unconditional safety
@@ -592,17 +648,10 @@ export class PermissionManager {
       }
     }
 
-    // If bypassPermissions mode, always allow except tools that require
-    // user interaction (AskUserQuestion).
-    const bypassesPermissionChecks =
-      context.permissionMode === "bypassPermissions";
-    if (bypassesPermissionChecks) {
-      const requiresUserInteraction = (
-        USER_INTERACTION_REQUIRED_TOOLS as readonly string[]
-      ).includes(context.toolName);
-      if (!requiresUserInteraction) {
-        return { behavior: "allow" };
-      }
+    // bypassPermissions skips confirmation. Interactive tools already returned
+    // above, so this branch can allow unconditionally.
+    if (context.permissionMode === "bypassPermissions") {
+      return { behavior: "allow" };
     }
 
     // If acceptEdits mode, allow Edit, Write, and mkdir in safe zone
@@ -690,43 +739,8 @@ export class PermissionManager {
       };
     }
 
-    // 3. If custom callback provided, call it and return result
-    if (context.canUseToolCallback) {
-      try {
-        const decision = await context.canUseToolCallback(context);
-        if (decision.behavior !== "allow") {
-          logger?.debug("Custom callback returned decision", {
-            toolName: context.toolName,
-            decision,
-          });
-        }
-        return decision;
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        logger?.error("Error in permission callback", {
-          toolName: context.toolName,
-          error: errorMessage,
-        });
-        return {
-          behavior: "deny",
-          message: "Error in permission callback",
-        };
-      }
-    }
-
-    // 4. For default mode on restricted tools without callback, integrate with CLI confirmation
-    // Note: CLI confirmation integration will be implemented in Phase 2
-    logger?.warn(
-      "No permission callback provided for restricted tool in default mode",
-      {
-        toolName: context.toolName,
-      },
-    );
-    return {
-      behavior: "deny",
-      message: `Tool '${context.toolName}' requires permission approval. No permission callback configured.`,
-    };
+    // 3. Ask the person. With no callback this denies.
+    return this.askUserForPermission(context);
   }
 
   /**

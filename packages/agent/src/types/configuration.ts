@@ -42,6 +42,11 @@ export interface MuseConfiguration {
   autoMemoryFrequency?: number;
   /** Persisted model selection (from /model command) */
   model?: string;
+  /**
+   * Fast model used by WebFetch and `model: fastModel` subagents.
+   * Same resolution shape as `model`: this field wins over `env.MUSE_FAST_MODEL`.
+   */
+  fastModel?: string;
   /** Model-specific configuration overrides */
   models?: Record<string, Partial<ModelConfig>>;
   /**

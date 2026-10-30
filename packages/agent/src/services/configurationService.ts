@@ -567,10 +567,12 @@ export class ConfigurationService {
       this.liveConfiguration?.model ||
       envGet(MUSE_ENV.MODEL, this.liveEnvSnapshot, process.env);
 
-    // Resolve fast model: override > options > process.env (includes settings.json env)
+    // Resolve fast model: override > options > settings.json fastModel > env.
+    // The explicit settings field wins over env, same as `model`.
     const resolvedFastModel =
       fastModel ||
       this.options.fastModel ||
+      this.liveConfiguration?.fastModel ||
       envGet(MUSE_ENV.FAST_MODEL, this.liveEnvSnapshot, process.env);
 
     // Resolve vision model: override > options > process.env (includes settings.json env)
@@ -1235,6 +1237,7 @@ export function loadMuseConfigFromFile(
       permissions: config.permissions || undefined,
       language: config.language || undefined,
       model: config.model || undefined,
+      fastModel: config.fastModel || undefined,
       autoMemoryEnabled:
         config.autoMemoryEnabled !== undefined
           ? config.autoMemoryEnabled
@@ -1384,6 +1387,11 @@ export function loadMergedMuseConfig(
       mergedConfig.model = config.model;
     }
 
+    // Merge fastModel (last one wins), same shape as model
+    if (config.fastModel !== undefined) {
+      mergedConfig.fastModel = config.fastModel;
+    }
+
     // Merge autoMemoryEnabled (last one wins)
     if (config.autoMemoryEnabled !== undefined) {
       mergedConfig.autoMemoryEnabled = config.autoMemoryEnabled;
@@ -1433,6 +1441,7 @@ export function loadMergedMuseConfig(
         : undefined,
     language: mergedConfig.language,
     model: mergedConfig.model,
+    fastModel: mergedConfig.fastModel,
     autoMemoryEnabled: mergedConfig.autoMemoryEnabled,
     autoMemoryFrequency: mergedConfig.autoMemoryFrequency,
     cleanupPeriodDays: mergedConfig.cleanupPeriodDays,

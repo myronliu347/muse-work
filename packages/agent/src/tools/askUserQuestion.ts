@@ -2,6 +2,34 @@ import { ToolPlugin } from "./types.js";
 import { AskUserQuestionInput } from "../types/tools.js";
 import { ASK_USER_QUESTION_TOOL_NAME } from "../constants/tools.js";
 
+/**
+ * Collects every option that lacks a usable `label`.
+ *
+ * The schema walker rejects a missing or non-string `label`. What it cannot
+ * express is "non-empty after trim" — `label: ""` is a valid string. The
+ * confirmation card renders `option.label` verbatim, so a blank label shows
+ * up as an empty row. Reporting each path in one message lets the model fix
+ * all of them in a single retry.
+ */
+function collectOptionLabelErrors(
+  questions: AskUserQuestionInput["questions"],
+): string[] {
+  const errors: string[] = [];
+  questions.forEach((question, questionIndex) => {
+    const options: unknown = question?.options;
+    if (!Array.isArray(options)) return;
+    options.forEach((option: unknown, optionIndex) => {
+      const label = (option as { label?: unknown } | undefined)?.label;
+      if (typeof label === "string" && label.trim() !== "") return;
+      const got = label === undefined ? "undefined" : JSON.stringify(label);
+      errors.push(
+        `questions[${questionIndex}].options[${optionIndex}] is missing a non-empty "label" (got ${got})`,
+      );
+    });
+  });
+  return errors;
+}
+
 export const askUserQuestionTool: ToolPlugin = {
   name: ASK_USER_QUESTION_TOOL_NAME,
   config: {
@@ -115,6 +143,15 @@ Usage notes:
         content: "",
         error:
           "The 'questions' parameter is missing or empty. Please use the correct schema: { questions: [{ question, header, options, multiSelect? }] }",
+      };
+    }
+
+    const labelErrors = collectOptionLabelErrors(questions);
+    if (labelErrors.length > 0) {
+      return {
+        success: false,
+        content: "",
+        error: `AskUserQuestion input error: ${labelErrors.join("; ")}`,
       };
     }
 

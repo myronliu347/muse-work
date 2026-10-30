@@ -548,29 +548,37 @@ describe("webFetchTool - content truncation", () => {
     };
   });
 
-  it("should truncate markdown content exceeding MAX_MARKDOWN_LENGTH", async () => {
+  it("reads a long page in a 100000-character interval instead of silently truncating", async () => {
     const longHtml = "<html><body>" + "a".repeat(110000) + "</body></html>";
     const mockResponse = {
       ok: true,
       status: 200,
       statusText: "OK",
       text: vi.fn().mockResolvedValue(longHtml),
-      headers: new Headers(),
+      headers: new Headers({ "content-type": "text/html" }),
     };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
 
-    await webFetchTool.execute(
+    const processWebContent = vi.fn().mockImplementation(
+      async ({ content }: { content: string }) => ({
+        content: content.slice(0, 20),
+      }),
+    );
+    context.aiService = {
+      processWebContent,
+    } as unknown as ToolContext["aiService"];
+
+    const result = await webFetchTool.execute(
       { url: "https://truncation-test.example.com", prompt: "Summarize" },
       context,
     );
 
-    expect(context.aiService!.processWebContent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        content: expect.stringContaining(
-          "[Content truncated at 100000 characters",
-        ),
-      }),
+    const first = processWebContent.mock.calls[0][0] as { content: string };
+    expect(first.content.length).toBeLessThanOrEqual(100_000);
+    expect(first.content).not.toContain(
+      "[Content truncated at 100000 characters",
     );
+    expect(result.content).toContain("offset:");
   });
 });
 

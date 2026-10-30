@@ -174,6 +174,7 @@ async function processSkillDirs(
           frontmatter: parsed.frontmatter,
           isValid: parsed.isValid,
           errors: parsed.validationErrors,
+          warnings: parsed.warnings,
         };
         collection.skills.set(skillMetadata.name, skillMetadata);
         contentSink.set(skillMetadata.name, skill);

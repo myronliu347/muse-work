@@ -131,7 +131,7 @@ describe("bashTool", () => {
       expect(spawnCallArgs[0]).toContain("pwd -P");
       expect(spawnCallArgs[1]).toMatchObject({
         shell: resolveShellPath() || true,
-        stdio: "pipe",
+        stdio: ["ignore", "pipe", "pipe"],
         cwd: "/test/workdir",
       });
     });

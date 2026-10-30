@@ -53,7 +53,8 @@ Muse 走进程内 `Agent.create()`，不跑 `wave --stdio` / Wave 企业托管�
 
 ## 后续同步
 
-见 [2026-10-10-wave-sdk-sync.md](./2026-10-10-wave-sdk-sync.md)。
+- [2026-10-10](./2026-10-10-wave-sdk-sync.md)：`MEMORY.md` 容量、Edit / Write 守卫、`leanPrompt`
+- [2026-10-30](./2026-10-30-wave-sdk-sync.md)：1 QPS、stdin、WebFetch、技能占位符、交互工具问人、schema 校验、缓存写入量、`fastModel`、Error 序列化、临时目录、任务完成即标记、去掉 Bash 子代理
 
 ## 刻意未动
 
