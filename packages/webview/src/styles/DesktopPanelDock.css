@@ -58,10 +58,6 @@
   }
 }
 
-body.is-panel-resizing .desktop-panel-dock {
-  animation: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .desktop-panel-dock--enter:not(.desktop-panel-dock--fullscreen),
   .desktop-panel-dock--enter.desktop-panel-dock--fullscreen {

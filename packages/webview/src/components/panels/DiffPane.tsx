@@ -28,6 +28,42 @@ import { useExitHold } from "../../hooks/useExitHold";
 
 type PendingRevert = { scope: "all" } | { scope: "file"; path: string };
 
+function DiffTreeNav({
+  closing,
+  width,
+  onDragStart,
+  children,
+}: {
+  closing: boolean;
+  width: number;
+  onDragStart: (event: React.MouseEvent) => void;
+  children: React.ReactNode;
+}) {
+  const [opening, setOpening] = useState(true);
+  return (
+    <nav
+      className={`diff-pane-tree-nav${closing ? " is-closing" : opening ? " is-opening" : ""}`}
+      data-testid="diff-tree-nav"
+      style={{ width }}
+      onAnimationEnd={(event) => {
+        if (event.target !== event.currentTarget) return;
+        setOpening(false);
+      }}
+    >
+      <div
+        className="diff-pane-tree-drag-handle"
+        data-testid="diff-tree-resize"
+        onMouseDown={(event) => {
+          event.currentTarget.parentElement?.classList.remove("is-opening");
+          setOpening(false);
+          onDragStart(event);
+        }}
+      />
+      {children}
+    </nav>
+  );
+}
+
 export type WorkspaceFileStatus =
   | "added"
   | "modified"
@@ -1117,16 +1153,11 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       <div className="diff-pane-tree-content">
         {activeFile ? renderFileDetail(activeFile) : null}
       </div>
-      <nav
-        className={`diff-pane-tree-nav${closing ? " is-closing" : ""}`}
-        data-testid="diff-tree-nav"
-        style={{ width: treeNavWidth }}
+      <DiffTreeNav
+        closing={closing}
+        width={treeNavWidth}
+        onDragStart={onTreeNavDragStart}
       >
-        <div
-          className="diff-pane-tree-drag-handle"
-          data-testid="diff-tree-resize"
-          onMouseDown={onTreeNavDragStart}
-        />
         <div className="diff-pane-tree-header" data-testid="diff-tree-header">
           {treeFiles.length} 个文件变更
         </div>
@@ -1179,7 +1210,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
             }}
           />
         </div>
-      </nav>
+      </DiffTreeNav>
     </div>
   );
 

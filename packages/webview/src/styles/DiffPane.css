@@ -446,7 +446,11 @@
   min-height: 0;
   border-left: var(--hairline) solid var(--gray-6);
   background: var(--color-background);
-  /* 280ms matches PANEL_MOTION_MS. Width animates against the inline width. */
+}
+
+/* 280ms matches PANEL_MOTION_MS. Only the view-toggle button opens or closes
+   the column; dragging the edge changes the inline width with no animation. */
+.diff-pane-tree-nav.is-opening {
   animation: side-column-in 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -470,12 +474,8 @@
   }
 }
 
-body.is-panel-resizing .diff-pane-tree-nav {
-  animation: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .diff-pane-tree-nav,
+  .diff-pane-tree-nav.is-opening,
   .diff-pane-tree-nav.is-closing {
     animation: none;
   }

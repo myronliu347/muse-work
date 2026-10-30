@@ -175,8 +175,12 @@ export const FileTree: React.FC<FileTreeProps> = ({
     initialRect: { width: 280, height: 400 },
   });
 
+  const [opening, setOpening] = useState(true);
+
   const onWidthDragStart = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.currentTarget.parentElement?.classList.remove("is-opening");
+    setOpening(false);
     const handle = e.currentTarget as HTMLElement;
     handle.style.background = "var(--accent-9)";
     document.body.classList.add("is-panel-resizing");
@@ -210,11 +214,19 @@ export const FileTree: React.FC<FileTreeProps> = ({
     return null;
   }
 
-  const shellClass = `file-tree${closing ? " is-closing" : ""}`;
+  const shellClass = `file-tree${closing ? " is-closing" : opening ? " is-opening" : ""}`;
+  const finishOpening = (event: React.AnimationEvent) => {
+    if (event.target !== event.currentTarget) return;
+    setOpening(false);
+  };
 
   if (!workdir) {
     return (
-      <div className={`${shellClass} file-tree--empty`} style={{ width }}>
+      <div
+        className={`${shellClass} file-tree--empty`}
+        style={{ width }}
+        onAnimationEnd={finishOpening}
+      >
         <div className="file-tree-drag-handle" onMouseDown={onWidthDragStart} />
         <div className="file-tree-header">
           <span className="file-tree-workdir" title="">
@@ -240,7 +252,12 @@ export const FileTree: React.FC<FileTreeProps> = ({
     workdir;
 
   return (
-    <div className={shellClass} style={{ width }} data-testid="file-tree">
+    <div
+      className={shellClass}
+      style={{ width }}
+      data-testid="file-tree"
+      onAnimationEnd={finishOpening}
+    >
       <div
         className="file-tree-drag-handle"
         onMouseDown={onWidthDragStart}

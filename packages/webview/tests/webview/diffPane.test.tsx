@@ -1221,9 +1221,11 @@ describe("DiffPane", () => {
       sendDiffResult([makeFile()]);
       fireEvent.click(screen.getByTestId("diff-view-toggle"));
       const nav = screen.getByTestId("diff-tree-nav");
+      expect(nav).toHaveClass("is-opening");
       expect(nav).toHaveStyle({ width: "240px" });
       const handle = screen.getByTestId("diff-tree-resize");
       fireEvent.mouseDown(handle, { clientX: 500 });
+      expect(nav).not.toHaveClass("is-opening");
       fireEvent.mouseMove(window, { clientX: 460 });
       fireEvent.mouseUp(window);
       // Dragging left 40px widens a right-side column to 280.

@@ -259,6 +259,8 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   const onDragStart = (e: React.MouseEvent) => {
     if (fullscreen) return;
     e.preventDefault();
+    dockRef.current?.classList.remove("desktop-panel-dock--enter");
+    setEntering(false);
     const handle = e.currentTarget as HTMLElement;
     handle.style.background = "var(--accent-9)";
     document.body.classList.add("is-panel-resizing");

@@ -281,7 +281,11 @@
   border-left: var(--hairline) solid var(--gray-6);
   background: var(--color-background);
   min-height: 0;
-  /* 280ms matches PANEL_MOTION_MS. Width animates against the inline width. */
+}
+
+/* 280ms matches PANEL_MOTION_MS. Only the collapse button opens or closes
+   the column; dragging the edge changes the inline width with no animation. */
+.file-tree.is-opening {
   animation: side-column-in 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -305,12 +309,8 @@
   }
 }
 
-body.is-panel-resizing .file-tree {
-  animation: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .file-tree,
+  .file-tree.is-opening,
   .file-tree.is-closing {
     animation: none;
   }
