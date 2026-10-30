@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DesktopPanelDock } from "../../src/components/desktop/DesktopPanelDock";
+import { registerUnfocusedClose } from "../../src/muse/sidePanelTabs";
 import { MuseTheme } from "../../src/ui/theme";
 import type { FileViewState } from "../../src/types";
 
@@ -193,6 +194,41 @@ describe("DesktopPanelDock", () => {
     expect(onCloseTab).not.toHaveBeenCalled();
     expect(onCloseTool).not.toHaveBeenCalled();
     now.mockRestore();
+  });
+
+  it("keeps the window open when Cmd+W cannot close the focused dock tab", () => {
+    const closeWindow = vi.fn();
+    const unregister = registerUnfocusedClose(closeWindow);
+    const mac = /mac|iphone|ipad|ipod/i.test(navigator.platform);
+    const chord = mac ? { metaKey: true } : { ctrlKey: true };
+    const now = vi.spyOn(Date, "now");
+    now.mockReturnValue(30_000);
+    try {
+      render(
+        <MuseTheme>
+          <DesktopPanelDock
+            {...baseProps}
+            checked={["terminal"]}
+            active="terminal"
+            detailActive
+            onSelectDetail={() => {}}
+          >
+            <div data-testid="dock-body">body</div>
+          </DesktopPanelDock>
+        </MuseTheme>,
+      );
+      fireEvent.pointerDown(screen.getByTestId("dock-body"));
+      fireEvent.keyDown(document.body, { key: "w", code: "KeyW", ...chord });
+      expect(closeWindow).not.toHaveBeenCalled();
+
+      now.mockReturnValue(30_400);
+      fireEvent.pointerDown(document.body);
+      fireEvent.keyDown(document.body, { key: "w", code: "KeyW", ...chord });
+      expect(closeWindow).toHaveBeenCalledTimes(1);
+    } finally {
+      now.mockRestore();
+      unregister();
+    }
   });
 
   it("steps the highlighted tab when a browser tab is only remembered", () => {

@@ -11,7 +11,7 @@ let lastStep: { at: number; direction: -1 | 1; source: "keydown" | "message" } |
 let lastCloseAt = 0;
 let closeWindow: (() => void) | null = null;
 
-/** When ⌘W finds no focused side panel, the shell closes the window. */
+/** When ⌘W is not aimed at a side panel, the shell closes the window. */
 export function registerUnfocusedClose(close: () => void): () => void {
   closeWindow = close;
   return () => {
@@ -94,8 +94,13 @@ function onCloseChord(): void {
   // the app. The page may also see the key. One press must close one tab.
   if (now - lastCloseAt < 300) return;
   lastCloseAt = now;
-  // Muse Bot 和右侧「详情」没有关闭按钮，⌘W 仍关掉窗口。
-  if (!closeFocusedPanel()) closeWindow?.();
+  // A focused side panel only closes its current tab. 详情 and Muse Bot have
+  // no close button, so the chord stops there instead of closing the window.
+  if (sidePanelForKeyboard()) {
+    closeFocusedPanel();
+    return;
+  }
+  closeWindow?.();
 }
 
 function ensureInstalled(): void {

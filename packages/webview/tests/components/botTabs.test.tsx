@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChatApp } from "../../src/components/ChatApp";
+import { registerUnfocusedClose } from "../../src/muse/sidePanelTabs";
 import { BotTabs, useBotWorkspaceController } from "../../src/components/desktop/BotTabs";
 import { DesktopShell } from "../../src/components/desktop/DesktopShell";
 import {
@@ -222,6 +223,39 @@ describe("BotTabs", () => {
     fireEvent.keyDown(document.body, { key: "w", code: "KeyW", ...chord });
     expect(onClose).not.toHaveBeenCalled();
     now.mockRestore();
+  });
+
+  it("keeps the window open when Cmd+W is on Muse Bot", () => {
+    const closeWindow = vi.fn();
+    const unregister = registerUnfocusedClose(closeWindow);
+    const mac = /mac|iphone|ipad|ipod/i.test(navigator.platform);
+    const chord = mac ? { metaKey: true } : { ctrlKey: true };
+    const now = vi.spyOn(Date, "now");
+    now.mockReturnValue(40_000);
+    try {
+      render(
+        <div className="assistant-frame">
+          <BotTabs
+            state={focusTab(initialBotWorkspace(null), "bot")}
+            titles={{}}
+            onFocus={vi.fn()}
+            onClose={vi.fn()}
+          />
+          <div data-testid="issue-body">body</div>
+        </div>,
+      );
+      fireEvent.pointerDown(screen.getByTestId("issue-body"));
+      fireEvent.keyDown(document.body, { key: "w", code: "KeyW", ...chord });
+      expect(closeWindow).not.toHaveBeenCalled();
+
+      now.mockReturnValue(40_400);
+      fireEvent.pointerDown(document.body);
+      fireEvent.keyDown(document.body, { key: "w", code: "KeyW", ...chord });
+      expect(closeWindow).toHaveBeenCalledTimes(1);
+    } finally {
+      now.mockRestore();
+      unregister();
+    }
   });
 });
 

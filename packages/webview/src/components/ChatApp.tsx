@@ -1152,7 +1152,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     paneIdRef,
   });
   const { postToHost, patchPane, updatePanelGroup } = core;
-  // 没有聚焦的 Issue 会话或右侧面板时，⌘W 仍关闭窗口。
+  // 焦点不在左侧事项或右侧面板时，⌘W 关闭窗口。侧栏里关不掉的页（Muse Bot、详情）不再连带关窗口。
   useEffect(() => {
     if (paneId !== undefined) return;
     return registerUnfocusedClose(() => {
