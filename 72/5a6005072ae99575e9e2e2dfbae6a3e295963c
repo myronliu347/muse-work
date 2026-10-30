@@ -1,0 +1,292 @@
+packages/agent/src/tools/taskManagementTools.ts
+  1b26f2d862f4c6d2 283
+packages/agent/docs/2026-10-30-wave-sdk-sync.md
+  1b26f2d862f4c6d2 1-114
+packages/agent/src/utils/tempDir.ts
+  1b26f2d862f4c6d2 1-179
+packages/agent/tests/services/configurationService.test.ts
+  1b26f2d862f4c6d2 1349-1371,1450-1472
+packages/agent/docs/2026-10-10-wave-sdk-sync.md
+  1b26f2d862f4c6d2 71-72
+packages/agent/src/shared/diskSkillDiscovery.ts
+  1b26f2d862f4c6d2 177
+packages/agent/tests/utils/cacheWriteMetrics.test.ts
+  1b26f2d862f4c6d2 1-45
+packages/agent/tests/utils/skillPlaceholders.test.ts
+  1b26f2d862f4c6d2 1-35
+packages/agent/src/services/configurationService.ts
+  1b26f2d862f4c6d2 570-571,575,1240,1390-1394,1444
+packages/agent/src/types/core.ts
+  1b26f2d862f4c6d2 28-30
+packages/agent/src/managers/subagentManager.ts
+  1b26f2d862f4c6d2 23,571,676
+packages/agent/src/prompts/index.ts
+  1b26f2d862f4c6d2 270
+packages/agent/src/services/pluginLoader.ts
+  1b26f2d862f4c6d2 109,112-114,123
+packages/agent/src/managers/permissionManager.ts
+  1b26f2d862f4c6d2 520-562,598-609,651-654,742-743
+packages/agent/src/managers/toolManager.ts
+  1b26f2d862f4c6d2 38,62-66,82-86,88,90-92,141,317-331
+packages/agent/docs/slimdown.md
+  1b26f2d862f4c6d2 56-57
+packages/agent/src/services/aiService.ts
+  1b26f2d862f4c6d2 819-835,883
+packages/agent/src/utils/skillParser.ts
+  1b26f2d862f4c6d2 4-7,23,35,84-108
+packages/agent/src/utils/toolResultStorage.ts
+  1b26f2d862f4c6d2 11,20-21,24-26
+packages/agent/tests/tools/webFetchTool.test.ts
+  1b26f2d862f4c6d2 551,558,562-571,576-579,581
+packages/agent/src/utils/errorUtils.ts
+  1b26f2d862f4c6d2 1-90
+packages/agent/src/utils/cacheControlUtils.ts
+  1b26f2d862f4c6d2 42-44,48,50-59,311-315,331-337
+packages/agent/src/services/contentSummarizer.ts
+  1b26f2d862f4c6d2 11,13-34,38-56
+packages/agent/src/types/skills.ts
+  1b26f2d862f4c6d2 38-43,106,113-118
+packages/agent/tests/tools/bashTool.test.ts
+  1b26f2d862f4c6d2 134
+packages/agent/src/utils/skillPlaceholders.ts
+  1b26f2d862f4c6d2 1-69
+packages/agent/src/tools/bashTool.ts
+  1b26f2d862f4c6d2 6-12,297-308,312,316-318,320-324,327,685-692,696,698-699
+packages/agent/src/tools/askUserQuestion.ts
+  1b26f2d862f4c6d2 5-32,149-157
+packages/agent/tests/tools/inputValidation.test.ts
+  1b26f2d862f4c6d2 1-63
+packages/agent/tests/utils/toolImagePersistence.test.ts
+  1b26f2d862f4c6d2 3,39
+packages/agent/src/types/configuration.ts
+  1b26f2d862f4c6d2 45-49
+packages/agent/src/tools/webFetchTool.ts
+  1b26f2d862f4c6d2 10,16-27,38,41-43,48,114-308,313,317-318,329,338,356-360,373,401-413,416-419,421,464-475,477-487,489-497,500-508,511-512,515-516,518-521,523
+packages/agent/tests/utils/toolResultStorage.test.ts
+  1b26f2d862f4c6d2 3,49-51
+packages/agent/src/managers/backgroundTaskManager.ts
+  1b26f2d862f4c6d2 12,85-86,89,99,306
+packages/agent/src/utils/museEnv.ts
+  1b26f2d862f4c6d2 30
+packages/agent/src/tools/inputValidation.ts
+  1b26f2d862f4c6d2 1-236
+packages/agent/src/utils/openaiClient.ts
+  1b26f2d862f4c6d2 9,141,177-179
+packages/agent/tests/utils/errorUtils.test.ts
+  1b26f2d862f4c6d2 1-42
+packages/agent/src/utils/toolImagePersistence.ts
+  1b26f2d862f4c6d2 15,17-19,51-52,62
+packages/agent/src/managers/skillManager.ts
+  1b26f2d862f4c6d2 26,354-362,364-371
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "725a6005072ae99575e9e2e2dfbae6a3e295963c",
+  "prompts": {
+    "1b26f2d862f4c6d2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5496c529-1166-489f-a21e-da3c6fa61033",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1617,
+      "total_deletions": 230,
+      "accepted_lines": 1616,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/utils/toolImagePersistence.ts": {
+          "additions": 7,
+          "deletions": 4,
+          "accepted_lines": 7
+        },
+        "packages/agent/src/managers/skillManager.ts": {
+          "additions": 19,
+          "deletions": 7,
+          "accepted_lines": 19
+        },
+        "packages/agent/src/types/skills.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/agent/src/types/configuration.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/agent/src/services/pluginLoader.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/agent/src/managers/subagentManager.ts": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/agent/src/utils/errorUtils.ts": {
+          "additions": 90,
+          "accepted_lines": 90
+        },
+        "packages/agent/src/utils/skillPlaceholders.ts": {
+          "additions": 69,
+          "accepted_lines": 69
+        },
+        "packages/agent/tests/utils/skillPlaceholders.test.ts": {
+          "additions": 35,
+          "accepted_lines": 35
+        },
+        "packages/agent/src/services/aiService.ts": {
+          "additions": 18,
+          "deletions": 61,
+          "accepted_lines": 18
+        },
+        "packages/agent/src/builtin/subagents.ts": {
+          "additions": 1,
+          "deletions": 21,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/prompts/index.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/utils/openaiClient.ts": {
+          "additions": 5,
+          "deletions": 2,
+          "accepted_lines": 5
+        },
+        "packages/agent/src/utils/skillParser.ts": {
+          "additions": 31,
+          "deletions": 1,
+          "accepted_lines": 31
+        },
+        "packages/agent/src/services/configurationService.ts": {
+          "additions": 10,
+          "deletions": 1,
+          "accepted_lines": 10
+        },
+        "packages/agent/src/utils/cacheControlUtils.ts": {
+          "additions": 26,
+          "deletions": 9,
+          "accepted_lines": 26
+        },
+        "packages/agent/docs/2026-10-30-wave-sdk-sync.md": {
+          "additions": 114,
+          "accepted_lines": 114
+        },
+        "packages/agent/tests/utils/errorUtils.test.ts": {
+          "additions": 42,
+          "accepted_lines": 42
+        },
+        "packages/agent/docs/2026-10-10-wave-sdk-sync.md": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/agent/docs/slimdown.md": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/shared/diskSkillDiscovery.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/managers/permissionManager.ts": {
+          "additions": 62,
+          "deletions": 48,
+          "accepted_lines": 62
+        },
+        "packages/agent/src/managers/backgroundTaskManager.ts": {
+          "additions": 6,
+          "deletions": 4,
+          "accepted_lines": 6
+        },
+        "packages/agent/src/tools/taskManagementTools.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/utils/tempDir.ts": {
+          "additions": 179,
+          "accepted_lines": 179
+        },
+        "packages/agent/src/tools/bashTool.ts": {
+          "additions": 40,
+          "deletions": 9,
+          "accepted_lines": 40
+        },
+        "packages/agent/tests/services/configurationService.test.ts": {
+          "additions": 46,
+          "accepted_lines": 46
+        },
+        "packages/agent/tests/utils/toolResultStorage.test.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/agent/src/tools/inputValidation.ts": {
+          "additions": 236,
+          "accepted_lines": 236
+        },
+        "packages/agent/src/tools/webFetchTool.ts": {
+          "additions": 294,
+          "deletions": 33,
+          "accepted_lines": 294
+        },
+        "packages/agent/tests/tools/bashTool.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/tests/tools/webFetchTool.test.ts": {
+          "additions": 17,
+          "deletions": 9,
+          "accepted_lines": 17
+        },
+        "packages/agent/tests/utils/toolImagePersistence.test.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/agent/tests/tools/inputValidation.test.ts": {
+          "additions": 63,
+          "accepted_lines": 63
+        },
+        "packages/agent/src/services/contentSummarizer.ts": {
+          "additions": 44,
+          "deletions": 2,
+          "accepted_lines": 43
+        },
+        "packages/agent/src/tools/askUserQuestion.ts": {
+          "additions": 37,
+          "accepted_lines": 37
+        },
+        "packages/agent/src/constants/subagents.ts": {
+          "deletions": 1
+        },
+        "packages/agent/src/utils/toolResultStorage.ts": {
+          "additions": 6,
+          "deletions": 6,
+          "accepted_lines": 6
+        },
+        "packages/agent/tests/utils/cacheWriteMetrics.test.ts": {
+          "additions": 45,
+          "accepted_lines": 45
+        },
+        "packages/agent/src/utils/museEnv.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/managers/toolManager.ts": {
+          "additions": 31,
+          "deletions": 3,
+          "accepted_lines": 31
+        },
+        "packages/agent/src/types/core.ts": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
