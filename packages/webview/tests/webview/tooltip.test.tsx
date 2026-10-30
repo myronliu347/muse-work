@@ -8,6 +8,7 @@ import {
   act,
   sendCommand,
 } from "./test-utils";
+import { ContextTag } from "../../src/components/shared/ContextTag";
 import { Tooltip } from "../../src/components/shared/Tooltip";
 
 describe("Tooltip Component", () => {
@@ -299,6 +300,25 @@ describe("Tooltip Component", () => {
     fireEvent.mouseLeave(trigger);
     fireEvent.mouseEnter(box);
     expect(box).toHaveClass("visible");
+  });
+
+  it("shows the full context-tag name without an ellipsis clamp", async () => {
+    const name = "sandbox-data-file_sandbox_4_very_long_name.html";
+    render(
+      <ContextTag
+        name={name}
+        path={`/tmp/${name}`}
+        onClick={() => {}}
+      />,
+    );
+    fireEvent.mouseEnter(document.querySelector(".context-tag")!);
+    const box = await waitFor(() => {
+      const el = document.querySelector(".tooltip-box.visible");
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
+    expect(box).toHaveClass("context-tag-tip");
+    expect(box).toHaveTextContent(`点击查看 ${name}`);
   });
 
   it("hides a plain tooltip when its trigger is detached", async () => {

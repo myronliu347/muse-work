@@ -60,6 +60,16 @@
   white-space: normal;
 }
 
+/* The chip ellipsizes. This tip is the full "点击查看 {name}", so it wraps
+   instead of ending in an ellipsis. */
+.tooltip-box.context-tag-tip {
+  max-width: min(480px, calc(100vw - 16px));
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  overflow-wrap: anywhere;
+}
+
 .tooltip-box::after {
   content: "";
   position: absolute;

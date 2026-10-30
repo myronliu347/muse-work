@@ -30,7 +30,7 @@ export const ContextTag: React.FC<ContextTagProps> = ({
   };
 
   return (
-    <Tooltip text={tip} position="top">
+    <Tooltip text={tip} position="top" wrap={false} className="context-tag-tip">
       <span
         className={`context-tag ${isClickable ? "clickable" : ""} ${isImage ? "is-image" : ""}`}
         onClick={handlePreview}
