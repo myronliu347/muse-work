@@ -9,7 +9,7 @@ import type {
   ToolBlockUpdateCallbackParams,
   EnrichedFileSnapshot,
 } from "../types";
-import { pinSessionTitle } from "../utils/session";
+import { DRAFT_SESSION_ID, pinSessionTitle } from "../utils/session";
 import { transcriptScore } from "../utils/subagentTranscript";
 import { normalizeUserTextForDedupe } from "../utils/messageUtils";
 import { AGENT_TOOL_NAME } from "@muse-work/agent/constants";
@@ -422,13 +422,20 @@ function reduceChat(state: ChatState, action: ChatAction): ChatState {
       }
       const switched = state.currentSession?.id !== currentSession.id;
       const realId =
-        currentSession.id && currentSession.id !== "__draft__"
+        currentSession.id && currentSession.id !== DRAFT_SESSION_ID
           ? currentSession.id
           : null;
       const cached =
         switched && realId
           ? state.transcriptsBySession?.[realId]
           : undefined;
+      // 第一条消息先在草稿上乐观插入，随后宿主才换成真实 id。这条会话还没有
+      // 历史记录，屏幕上的气泡就是正文，不能当成切会话清掉。
+      const promotingDraft =
+        switched &&
+        state.currentSession?.id === DRAFT_SESSION_ID &&
+        realId != null &&
+        cached === undefined;
       return {
         ...state,
         currentSession,
@@ -453,12 +460,18 @@ function reduceChat(state: ChatState, action: ChatAction): ChatState {
               unboundSubagentIds: [],
               // 标题先到、消息后到时，空列表会被欢迎页占住。有记录就同一帧放回去；
               // 还没有记录就先留空，等这次加载完成再决定是欢迎页还是正文。
+              // 草稿刚发出去的那一条不在此列，留在屏幕上。
               ...(realId
-                ? {
-                    messages: cached ?? [],
-                    transcriptPending: cached === undefined,
-                    hasOlderMessages: false,
-                  }
+                ? promotingDraft
+                  ? {
+                      transcriptPending: false,
+                      hasOlderMessages: false,
+                    }
+                  : {
+                      messages: cached ?? [],
+                      transcriptPending: cached === undefined,
+                      hasOlderMessages: false,
+                    }
                 : { transcriptPending: false }),
             }
           : {}),

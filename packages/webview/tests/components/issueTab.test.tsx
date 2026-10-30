@@ -384,6 +384,76 @@ describe("issue tab", () => {
     expect(screen.queryByTestId("new-session-page")).toBeNull();
   });
 
+  it("keeps the first message when a new session is created", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const vscode = createMockVscode();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={vscode}
+          host={createMockDesktopHost({
+            sessionTree: [
+              {
+                host: "local",
+                workdir: "recent",
+                sessions: [session("sess-notes", "/work/notes", "会议记录")],
+              },
+            ],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    sendExtensionMessage({
+      command: "setInitialState",
+      messages: [textMessage("notes-1", NOTES_MESSAGE)],
+      session: { id: "sess-notes", title: "会议记录" },
+      workdir: "/work/notes",
+      isAuthenticated: true,
+    });
+    await user.click(screen.getByTestId("desktop-sessions-menu"));
+    await user.click(screen.getByTestId("desktop-new-session"));
+    expect(await screen.findByTestId("new-session-page")).toBeInTheDocument();
+
+    sendExtensionMessage({ command: "updateMessages", messages: [] });
+    sendExtensionMessage({
+      command: "updateCurrentSession",
+      session: {
+        id: "__draft__",
+        sessionType: "main",
+        workdir: "",
+        createdAt: new Date(),
+        lastActiveAt: new Date(),
+        latestTotalTokens: 0,
+      },
+    });
+    vscode.postMessage.mockClear();
+
+    const sent = "帮我看一下这个项目";
+    sendExtensionMessage({
+      command: "appendMessage",
+      message: textMessage("user_1", sent),
+    });
+    sendExtensionMessage({
+      command: "updateCurrentSession",
+      session: {
+        id: "sess-created",
+        sessionType: "main",
+        workdir: "/tmp/muse-project",
+        createdAt: new Date(),
+        lastActiveAt: new Date(),
+        latestTotalTokens: 0,
+      },
+    });
+
+    expect(screen.getAllByText(sent).length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("new-session-page")).toBeNull();
+    expect(vscode.postMessage).not.toHaveBeenCalledWith({ command: "newSession" });
+  });
+
   it("switches the sidebar to 会话 when Cmd+N starts a draft from Muse Bot", async () => {
     resetWebviewStores();
     stubAssistant([]);

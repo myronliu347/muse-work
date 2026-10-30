@@ -1164,6 +1164,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // 切回来时先在这一帧放上记下的会话，不等宿主往返，中间栏才不会空一拍。
   // 新对话也是会话页自己的选择：草稿不在列表里，不能被上一条会话盖回去。
   const sessionsPageSessionRef = useRef<string | null>(null);
+  const sessionsPageActiveRef = useRef(false);
   useLayoutEffect(() => {
     const listedSessionId = (id: string | undefined): string | null => {
       if (!id || id === DRAFT_SESSION_ID) return null;
@@ -1179,6 +1180,9 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     const ownsSessionsPage =
       onSessionsSurface &&
       (paneId === undefined || (hostRef.current?.focusedPaneId ?? paneId) === paneId);
+    const stayedOnSessionsPage =
+      ownsSessionsPage && sessionsPageActiveRef.current;
+    sessionsPageActiveRef.current = ownsSessionsPage;
     if (ownsSessionsPage) {
       if (currentId === DRAFT_SESSION_ID) {
         sessionsPageSessionRef.current = DRAFT_SESSION_ID;
@@ -1186,6 +1190,12 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       }
       let owned = sessionsPageSessionRef.current;
       if (owned === DRAFT_SESSION_ID) {
+        // 第一条消息会把草稿换成还没进侧栏的真实会话。人还在这一页上，
+        // 就接着看这条，不要再开一个空白草稿把发送清掉。
+        if (stayedOnSessionsPage && currentId) {
+          sessionsPageSessionRef.current = currentId;
+          return;
+        }
         dispatch({
           type: "SET_CURRENT_SESSION",
           payload: draftSessionMetadata(),
