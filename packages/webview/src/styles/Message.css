@@ -863,9 +863,9 @@
 
 .activity-hit:hover .activity-chev,
 .activity-hit.open .activity-chev,
-.tool-line.can:hover .activity-chev,
-.tool-line.can.open .activity-chev,
-.tool-line.thought .activity-chev {
+.tool-line.can:not(.thought):hover .activity-chev,
+.tool-line.can.open:not(.thought) .activity-chev,
+.tool-line.thought:hover .activity-chev {
   opacity: 1;
 }
 
@@ -898,9 +898,6 @@
 }
 
 .thought-detail {
-  margin-left: var(--space-1);
-  padding-left: var(--space-2);
-  border-left: var(--hairline) solid var(--gray-7);
   max-height: 200px;
   overflow-y: auto;
   color: var(--gray-11);
