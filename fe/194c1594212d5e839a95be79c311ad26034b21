@@ -1,0 +1,141 @@
+packages/webview/src/components/chat/MessageList.tsx
+  9a1a7cc0386ad078 37-38,341-342,344-345,451,455-457,462,464-469,585,633-639,642-643,669-682,867-878,982,1064
+packages/webview/src/components/chat/followScroll.ts
+  9a1a7cc0386ad078 17-32
+packages/webview/src/styles/MessageList.css
+  9a1a7cc0386ad078 29,122
+packages/webview/src/components/message/AssistantWorkSummary.tsx
+  9a1a7cc0386ad078 3,104,124-127
+packages/webview/src/components/message/ReasoningBlockView.tsx
+  9a1a7cc0386ad078 3,19,56-62
+packages/webview/src/components/message/CompactBlockView.tsx
+  9a1a7cc0386ad078 3,17,21-27
+packages/webview/src/styles/Message.css
+  9a1a7cc0386ad078 102,364
+packages/webview/tests/components/assistantWorkSummaryScroll.test.tsx
+  9a1a7cc0386ad078 1-23
+packages/webview/src/styles/AssistantPage.css
+  9a1a7cc0386ad078 140
+packages/webview/src/components/chat/holdTranscriptScroll.tsx
+  9a1a7cc0386ad078 1-10
+packages/webview/tests/components/messageListPin.test.tsx
+  9a1a7cc0386ad078 1-47
+packages/webview/src/styles/DesktopApp.css
+  9a1a7cc0386ad078 2307,2581
+packages/webview/tests/webview/messageSystemInject.test.tsx
+  9a1a7cc0386ad078 55
+packages/webview/tests/webview/followScroll.test.ts
+  9a1a7cc0386ad078 2-5,19-22
+packages/webview/src/components/message/ToolActivityGroup.tsx
+  9a1a7cc0386ad078 3,22,31-34,66,75,113,138-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "fe194c1594212d5e839a95be79c311ad26034b21",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 0,
+      "overriden_lines": 0
+    },
+    "9a1a7cc0386ad078": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b763b2b9-f26f-4669-b0a6-fa9318acd1ea",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 214,
+      "total_deletions": 30,
+      "accepted_lines": 212,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/message/AssistantWorkSummary.tsx": {
+          "additions": 6,
+          "deletions": 1,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/message/ToolActivityGroup.tsx": {
+          "additions": 12,
+          "deletions": 2,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 8,
+          "deletions": 5,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/components/chat/followScroll.ts": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        "packages/webview/tests/webview/followScroll.test.ts": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/components/assistantWorkSummaryScroll.test.tsx": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "packages/webview/tests/components/messageListPin.test.tsx": {
+          "additions": 49,
+          "deletions": 2,
+          "accepted_lines": 47
+        },
+        "packages/webview/src/components/message/ReasoningBlockView.tsx": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/chat/holdTranscriptScroll.tsx": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/message/CompactBlockView.tsx": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/webview/messageSystemInject.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 58,
+          "deletions": 11,
+          "accepted_lines": 55
+        }
+      }
+    }
+  }
+}
