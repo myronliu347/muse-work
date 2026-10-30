@@ -27,11 +27,18 @@ vi.mock("electron", () => {
       createFromPath: () => ({ isEmpty: () => true }),
     },
     shell: { openExternal: vi.fn() },
+    session: {
+      fromPartition: () => ({
+        clearCache: vi.fn(),
+        clearStorageData: vi.fn(),
+      }),
+    },
   };
 });
 
 import {
   attachPreviewGuestOpener,
+  clearPreviewGuestData,
   createMainWindow,
   lockPreviewWebviewAttach,
   PREVIEW_PARTITION,
@@ -142,5 +149,17 @@ describe("createMainWindow", () => {
     expect(ctorOpts[0].show).toBe(false);
     expect(ctorOpts[0].backgroundColor).toBe("#111111");
     expect(win.once).toHaveBeenCalledWith("ready-to-show", expect.any(Function));
+  });
+
+  it("clears the preview cache and cookies separately", async () => {
+    const ses = {
+      clearCache: vi.fn(async () => {}),
+      clearStorageData: vi.fn(async () => {}),
+    };
+    await clearPreviewGuestData("cache", ses);
+    expect(ses.clearCache).toHaveBeenCalledOnce();
+    expect(ses.clearStorageData).not.toHaveBeenCalled();
+    await clearPreviewGuestData("cookies", ses);
+    expect(ses.clearStorageData).toHaveBeenCalledWith({ storages: ["cookies"] });
   });
 });

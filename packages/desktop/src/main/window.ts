@@ -1,4 +1,4 @@
-import { app, BrowserWindow, nativeImage, shell } from "electron";
+import { app, BrowserWindow, nativeImage, session, shell } from "electron";
 import * as path from "path";
 import {
   attachCloseFocusedShortcut,
@@ -18,6 +18,23 @@ export type CreateMainWindowOpts = {
 
 /** Guest pages stay out of the Muse window session. */
 export const PREVIEW_PARTITION = "persist:muse-preview";
+
+type PreviewSession = {
+  clearCache: () => Promise<void>;
+  clearStorageData: (options: { storages: Array<"cookies"> }) => Promise<void>;
+};
+
+/** Drop the preview guest's HTTP cache, or only its cookies. */
+export async function clearPreviewGuestData(
+  kind: "cache" | "cookies",
+  ses: PreviewSession = session.fromPartition(PREVIEW_PARTITION),
+): Promise<void> {
+  if (kind === "cache") {
+    await ses.clearCache();
+    return;
+  }
+  await ses.clearStorageData({ storages: ["cookies"] });
+}
 
 export function lockPreviewWebviewAttach(
   webPreferences: {

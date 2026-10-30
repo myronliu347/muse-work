@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, fireEvent, screen } from "@testing-library/react";
 import React from "react";
 import {
@@ -40,6 +40,7 @@ type MockWebview = Omit<
   canGoBack: ReturnType<typeof vi.fn>;
   canGoForward: ReturnType<typeof vi.fn>;
   stop: ReturnType<typeof vi.fn>;
+  openDevTools: ReturnType<typeof vi.fn>;
 };
 
 function renderPane(options?: {
@@ -52,6 +53,7 @@ function renderPane(options?: {
   onLocationChange?: (url: string) => void;
   onTitleChange?: (title: string) => void;
   visible?: boolean;
+  width?: number;
 }) {
   const vscode = createMockVscode();
   const url = options?.url === undefined ? "http://localhost:5173/app" : options.url;
@@ -63,6 +65,7 @@ function renderPane(options?: {
   const originalUrl = options?.originalUrl;
   const onRetry = options?.onRetry;
   const visible = options?.visible ?? true;
+  const initialWidth = options?.width ?? 420;
   // Controlled-width harness: PreviewPane no longer owns its width state.
   const Harness = ({
     url: u,
@@ -71,7 +74,7 @@ function renderPane(options?: {
     url: string | null | undefined;
     visible: boolean;
   }) => {
-    const [width, setWidth] = React.useState(420);
+    const [width, setWidth] = React.useState(initialWidth);
     return (
       <PreviewPane
         url={u}
@@ -104,6 +107,7 @@ function renderPane(options?: {
   wv.canGoBack = vi.fn(() => false);
   wv.canGoForward = vi.fn(() => false);
   wv.stop = vi.fn();
+  wv.openDevTools = vi.fn();
   const rerenderWithUrl = (u: string | null | undefined) =>
     result.rerender(<Harness url={u} visible={visible} />);
   const rerenderVisible = (shown: boolean) =>
@@ -147,6 +151,10 @@ const firePickerSubmit = (wv: MockWebview, payload: Record<string, unknown>) =>
   );
 
 describe("PreviewPane", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it("loads the URL into the guest and shows it in the address bar", () => {
     const { wv, url } = renderPane();
     expect(wv.getAttribute("src")).toBe(url);
@@ -564,6 +572,90 @@ describe("PreviewPane", () => {
     fireEvent.click(screen.getByTestId("preview-retry"));
     expect(onRetry).toHaveBeenCalled();
     expect(screen.queryByTestId("preview-error")).not.toBeInTheDocument();
+  });
+
+  it("shows the link sidebar by default and widens it from the left edge", () => {
+    renderPane({ url: "https://example.com/report.html" });
+    const sidebar = screen.getByTestId("preview-links");
+    expect(sidebar).toHaveStyle({ width: "240px" });
+    fireEvent.mouseDown(screen.getByTestId("preview-links-resize"), { clientX: 200 });
+    fireEvent.mouseMove(window, { clientX: 120 });
+    fireEvent.mouseUp(window);
+    expect(sidebar).toHaveStyle({ width: "320px" });
+    expect(document.body.classList.contains("is-panel-resizing")).toBe(false);
+  });
+
+  it("stars the current page and lists recent links in the sidebar", () => {
+    const onNavigate = vi.fn();
+    const { wv } = renderPane({
+      onNavigate,
+      url: "https://example.com/report.html",
+    });
+    expect(screen.getByTestId("preview-links")).toBeInTheDocument();
+    expect(screen.getByText("今天")).toBeInTheDocument();
+    expect(screen.getByTestId("preview-recent-link")).toHaveTextContent("example.com");
+
+    fireEvent(
+      wv,
+      Object.assign(new Event("page-title-updated"), { title: "澄清预览" }),
+    );
+    expect(screen.getByTestId("preview-recent-link")).toHaveTextContent("澄清预览");
+
+    fireEvent.click(screen.getByTestId("preview-bookmark"));
+    expect(screen.getByTestId("preview-bookmark")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("preview-bookmark-link")).toHaveTextContent("澄清预览");
+
+    fireEvent.click(screen.getByTestId("preview-bookmark-delete"));
+    expect(screen.queryByTestId("preview-bookmark-link")).not.toBeInTheDocument();
+    expect(screen.getByTestId("preview-recent-link")).toBeInTheDocument();
+
+    const address = screen.getByTestId("preview-address");
+    fireEvent.change(address, { target: { value: "docs.example.com" } });
+    fireEvent.keyDown(address, { key: "Enter" });
+    expect(onNavigate).toHaveBeenCalledWith("http://docs.example.com/");
+    expect(screen.getByTitle("http://docs.example.com/")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId("preview-links-search"), {
+      target: { value: "docs" },
+    });
+    expect(screen.getByTitle("http://docs.example.com/")).toBeInTheDocument();
+    expect(screen.queryByTitle("https://example.com/report.html")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTitle("http://docs.example.com/"));
+    expect(onNavigate).toHaveBeenCalledTimes(2);
+
+    fireEvent.click(screen.getByTestId("preview-links-toggle"));
+    expect(screen.queryByTestId("preview-links")).not.toBeInTheDocument();
+  });
+
+  it("frames the page at a device size and rotates it", () => {
+    renderPane();
+    fireEvent.click(screen.getByTestId("preview-device"));
+    fireEvent.change(screen.getByTestId("preview-device-preset"), {
+      target: { value: "iphone-16e" },
+    });
+    const viewport = screen.getByTestId("preview-viewport");
+    expect(viewport).toHaveAttribute("data-framed", "true");
+    expect(viewport).toHaveStyle({ width: "390px", height: "844px" });
+    fireEvent.click(screen.getByTestId("preview-device-rotate"));
+    expect(viewport).toHaveStyle({ width: "844px", height: "390px" });
+  });
+
+  it("clears the guest cache and cookies and opens devtools", () => {
+    const { vscode, wv } = renderPane();
+    fireEvent.click(screen.getByTestId("preview-more"));
+    fireEvent.click(screen.getByTestId("preview-clear-cache"));
+    expect(vscode.postMessage).toHaveBeenCalledWith({ command: "previewClearCache" });
+    expect(wv.reloadIgnoringCache).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByTestId("preview-more"));
+    fireEvent.click(screen.getByTestId("preview-clear-cookies"));
+    expect(vscode.postMessage).toHaveBeenCalledWith({ command: "previewClearCookies" });
+    expect(wv.reloadIgnoringCache).toHaveBeenCalledTimes(2);
+
+    fireEvent.click(screen.getByTestId("preview-more"));
+    fireEvent.click(screen.getByTestId("preview-devtools"));
+    expect(wv.openDevTools).toHaveBeenCalledWith({ mode: "detach" });
   });
 });
 

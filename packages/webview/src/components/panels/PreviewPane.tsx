@@ -2,6 +2,32 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { VsCodeApi } from "../../types";
 import { pathToFileUrl } from "../../utils/pathToFileUrl";
 import { normalizePageTitle } from "../../muse/dockTools";
+import {
+  clampPreviewLinksWidth,
+  filterPreviewLinks,
+  isPreviewBookmarked,
+  previewRecentGroups,
+  readPreviewLibrary,
+  readPreviewLinksOpen,
+  readPreviewLinksWidth,
+  recordPreviewVisit,
+  removePreviewBookmark,
+  removePreviewRecent,
+  subscribePreviewLibrary,
+  subscribePreviewLinksWidth,
+  togglePreviewBookmark,
+  updatePreviewLinkTitle,
+  writePreviewLinksOpen,
+  writePreviewLinksWidth,
+  type PreviewLibrary,
+  type PreviewLink,
+} from "./previewLinks";
+import {
+  matchPreviewDevice,
+  parsePreviewDimension,
+  PREVIEW_DEVICES,
+  previewViewportScale,
+} from "./previewViewport";
 
 /**
  * Desktop-only preview pane: renders a localhost dev server in a
@@ -28,6 +54,7 @@ export interface WebviewTagElement extends HTMLElement {
   canGoForward(): boolean;
   stop(): void;
   getTitle?(): string;
+  openDevTools?(options?: { mode?: string }): void;
 }
 
 export interface PreviewComment {
@@ -192,6 +219,21 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   const [loading, setLoading] = useState(false);
   const [pickerActive, setPickerActive] = useState(false);
   const [pickerUnsupported, setPickerUnsupported] = useState(false);
+  const [library, setLibrary] = useState<PreviewLibrary>(readPreviewLibrary);
+  const [linksChoice, setLinksChoice] = useState<boolean | null>(readPreviewLinksOpen);
+  const [linksWidth, setLinksWidth] = useState(readPreviewLinksWidth);
+  const linksOpen = linksChoice !== false;
+  const [deviceMode, setDeviceMode] = useState(false);
+  const [viewport, setViewport] = useState<
+    { kind: "fill" } | { kind: "fixed"; width: number; height: number }
+  >({ kind: "fill" });
+  const [widthDraft, setWidthDraft] = useState("");
+  const [heightDraft, setHeightDraft] = useState("");
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [stageBox, setStageBox] = useState({ width: 0, height: 0 });
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const moreRef = useRef<HTMLDivElement | null>(null);
+  const [linkQuery, setLinkQuery] = useState("");
   const webviewRef = useRef<WebviewTagElement | null>(null);
   const asideRef = useRef<HTMLElement | null>(null);
   // URL the guest is currently showing — follows in-guest navigation.
@@ -226,6 +268,38 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   onTitleChangeRef.current = onTitleChange;
 
   const hasPage = Boolean(displayUrl);
+  const bookmarked = isPreviewBookmarked(library, displayUrl);
+
+  useEffect(() => subscribePreviewLibrary(() => setLibrary(readPreviewLibrary())), []);
+  useEffect(
+    () => subscribePreviewLinksWidth(() => setLinksWidth(readPreviewLinksWidth())),
+    [],
+  );
+
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver((entries) => {
+      const box = entries[0]?.contentRect;
+      if (!box) return;
+      setStageBox({ width: box.width, height: box.height });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onDown = (event: MouseEvent) => {
+      if (!moreRef.current?.contains(event.target as Node)) setMoreOpen(false);
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [moreOpen]);
+
+  useEffect(() => {
+    if (initialUrl) recordPreviewVisit(initialUrl);
+  }, [initialUrl]);
 
   const syncHistoryButtons = useCallback(() => {
     const wv = webviewRef.current;
@@ -265,6 +339,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     currentUrlRef.current = navUrl;
     lastUrlRef.current = navUrl;
     setDisplayUrl(navUrl);
+    recordPreviewVisit(navUrl);
     if (navUrl !== urlPropRef.current) onLocationChangeRef.current?.(navUrl);
   }, []);
 
@@ -305,7 +380,9 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       if (pickerActiveRef.current) sendPicker("activate");
     };
     const publishTitle = (raw: string) => {
-      onTitleChangeRef.current?.(normalizePageTitle(raw));
+      const title = normalizePageTitle(raw);
+      onTitleChangeRef.current?.(title);
+      if (title) updatePreviewLinkTitle(currentUrlRef.current, title);
     };
     const onDidNavigate = (e: Event) => {
       const navUrl = (e as { url?: string }).url;
@@ -422,6 +499,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     currentUrlRef.current = next;
     setDisplayUrl(next);
     setLoadError(null);
+    if (next) recordPreviewVisit(next);
     if (!next) {
       syncHistoryButtons();
       return;
@@ -471,17 +549,16 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     vscode.postMessage({ command: "openExternal", url: target });
   };
 
-  const handleAddressSubmit = () => {
-    const normalized = normalizePreviewAddress(addressDraft);
-    if (!normalized) return;
-    setAddressDraft(normalized);
+  const openPreviewUrl = (normalized: string) => {
     // Always navigate in-pane first so the guest loads even if parent state
     // is delayed / missing (e.g. draft without a workdir group key). Parent
     // onNavigate only syncs previewUrl / triggers remote localhost forward.
     currentUrlRef.current = normalized;
     lastUrlRef.current = normalized;
     setDisplayUrl(normalized);
+    setAddressDraft(normalized);
     setLoadError(null);
+    recordPreviewVisit(normalized);
     const wv = webviewRef.current;
     if (wv) {
       if (domReadyRef.current || wv.getAttribute("src")) {
@@ -491,6 +568,107 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       }
     }
     onNavigate?.(normalized);
+  };
+
+  const handleAddressSubmit = () => {
+    const normalized = normalizePreviewAddress(addressDraft);
+    if (!normalized) return;
+    openPreviewUrl(normalized);
+  };
+
+  const bookmarks = filterPreviewLinks(library.bookmarks, linkQuery);
+  const recentGroups = previewRecentGroups(filterPreviewLinks(library.recents, linkQuery));
+
+  const onLinksResizeStart = (event: React.MouseEvent) => {
+    event.preventDefault();
+    const handle = event.currentTarget as HTMLElement;
+    handle.style.background = "var(--accent-9)";
+    document.body.classList.add("is-panel-resizing");
+    const startX = event.clientX;
+    const startW = linksWidth;
+    const onMove = (ev: MouseEvent) => {
+      // Sidebar sits on the right; dragging left increases its width.
+      writePreviewLinksWidth(clampPreviewLinksWidth(startW + (startX - ev.clientX)));
+    };
+    const onUp = () => {
+      handle.style.background = "";
+      document.body.classList.remove("is-panel-resizing");
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  const renderPreviewLink = (link: PreviewLink, kind: "bookmark" | "recent") => (
+    <div key={link.url} className="preview-pane-link">
+      <button
+        type="button"
+        className="preview-pane-link-open"
+        title={link.url}
+        data-testid={tid(kind === "bookmark" ? "preview-bookmark-link" : "preview-recent-link")}
+        onClick={() => openPreviewUrl(link.url)}
+      >
+        <i className={`codicon ${kind === "bookmark" ? "codicon-star-full" : "codicon-globe"}`} />
+        <span>{link.title}</span>
+      </button>
+      <button
+        type="button"
+        className="preview-pane-link-delete"
+        aria-label="删除"
+        title="删除"
+        data-testid={tid(kind === "bookmark" ? "preview-bookmark-delete" : "preview-recent-delete")}
+        onClick={() =>
+          kind === "bookmark" ? removePreviewBookmark(link.url) : removePreviewRecent(link.url)
+        }
+      >
+        <i className="codicon codicon-close" />
+      </button>
+    </div>
+  );
+
+  const frame = viewport.kind === "fixed" ? viewport : null;
+  const framed = deviceMode && frame !== null;
+  const frameScale = frame ? previewViewportScale(frame, stageBox) : 1;
+  const presetValue =
+    frame === null
+      ? "fill"
+      : (matchPreviewDevice(frame.width, frame.height)?.id ?? "custom");
+
+  const applyDevice = (id: string) => {
+    if (id === "fill") {
+      setViewport({ kind: "fill" });
+      setWidthDraft("");
+      setHeightDraft("");
+      return;
+    }
+    const device = PREVIEW_DEVICES.find((item) => item.id === id);
+    if (!device) return;
+    setViewport({ kind: "fixed", width: device.width, height: device.height });
+    setWidthDraft(String(device.width));
+    setHeightDraft(String(device.height));
+  };
+
+  const commitDimensions = () => {
+    const width = parsePreviewDimension(widthDraft);
+    const height = parsePreviewDimension(heightDraft);
+    if (!width || !height) return;
+    setViewport({ kind: "fixed", width, height });
+    setWidthDraft(String(width));
+    setHeightDraft(String(height));
+  };
+
+  const rotateViewport = () => {
+    if (viewport.kind !== "fixed") return;
+    setViewport({ kind: "fixed", width: viewport.height, height: viewport.width });
+    setWidthDraft(String(viewport.height));
+    setHeightDraft(String(viewport.width));
+  };
+
+  const clearGuest = (command: "previewClearCache" | "previewClearCookies") => {
+    vscode.postMessage({ command });
+    setMoreOpen(false);
+    if (hasPage) webviewRef.current?.reloadIgnoringCache();
   };
 
   // Dragging the left edge resizes this panel: the panels to the right keep
@@ -563,6 +741,19 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
               className={`codicon ${loading ? "codicon-debug-stop" : "codicon-refresh"}`}
             />
           </button>
+          <button
+            type="button"
+            className={`preview-pane-button${bookmarked ? " active" : ""}`}
+            title={bookmarked ? "取消收藏" : "收藏"}
+            aria-pressed={bookmarked}
+            data-testid={tid("preview-bookmark")}
+            disabled={!hasPage}
+            onClick={() => {
+              if (displayUrl) togglePreviewBookmark(displayUrl);
+            }}
+          >
+            <i className={`codicon ${bookmarked ? "codicon-star-full" : "codicon-star-empty"}`} />
+          </button>
           <input
             type="text"
             className="preview-pane-address"
@@ -605,6 +796,82 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           >
             <i className="codicon codicon-inspect" />
           </button>
+          <button
+            type="button"
+            className={`preview-pane-button${deviceMode ? " active" : ""}`}
+            title={deviceMode ? "关闭设备尺寸" : "设备尺寸"}
+            aria-pressed={deviceMode}
+            data-testid={tid("preview-device")}
+            onClick={() => setDeviceMode((open) => !open)}
+          >
+            <i className="codicon codicon-device-mobile" />
+          </button>
+          <div className="preview-pane-more" ref={moreRef}>
+            <button
+              type="button"
+              className={`preview-pane-button${moreOpen ? " active" : ""}`}
+              title="更多"
+              aria-label="更多"
+              aria-expanded={moreOpen}
+              aria-haspopup="menu"
+              data-testid={tid("preview-more")}
+              onClick={() => setMoreOpen((open) => !open)}
+            >
+              <i className="codicon codicon-ellipsis" />
+            </button>
+            {moreOpen && (
+              <div className="preview-pane-more-menu" role="menu" data-testid={tid("preview-more-menu")}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="preview-pane-more-item"
+                  data-testid={tid("preview-clear-cache")}
+                  onClick={() => clearGuest("previewClearCache")}
+                >
+                  <i className="codicon codicon-clear-all" />
+                  清理缓存
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="preview-pane-more-item"
+                  data-testid={tid("preview-clear-cookies")}
+                  onClick={() => clearGuest("previewClearCookies")}
+                >
+                  <i className="codicon codicon-trash" />
+                  清理 Cookie
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="preview-pane-more-item"
+                  data-testid={tid("preview-devtools")}
+                  disabled={!hasPage}
+                  onClick={() => {
+                    setMoreOpen(false);
+                    webviewRef.current?.openDevTools?.({ mode: "detach" });
+                  }}
+                >
+                  <i className="codicon codicon-debug-console" />
+                  打开开发者工具
+                </button>
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            className={`preview-pane-button${linksOpen ? " active" : ""}`}
+            title={linksOpen ? "收起浏览记录" : "浏览记录"}
+            aria-pressed={linksOpen}
+            data-testid={tid("preview-links-toggle")}
+            onClick={() => {
+              const next = !linksOpen;
+              writePreviewLinksOpen(next);
+              setLinksChoice(next);
+            }}
+          >
+            <i className="codicon codicon-history" />
+          </button>
         </div>
         {pickerUnsupported && (
           <div
@@ -614,7 +881,90 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             该页面暂不支持元素拾取
           </div>
         )}
+        {deviceMode && (
+          <div className="preview-pane-devicebar" data-testid={tid("preview-devicebar")}>
+            <select
+              className="preview-pane-device-preset"
+              data-testid={tid("preview-device-preset")}
+              aria-label="设备"
+              value={presetValue}
+              onChange={(event) => applyDevice(event.target.value)}
+            >
+              <option value="fill">自适应</option>
+              {PREVIEW_DEVICES.map((device) => (
+                <option key={device.id} value={device.id}>
+                  {device.label}
+                </option>
+              ))}
+              {presetValue === "custom" ? <option value="custom">自定义</option> : null}
+            </select>
+            <input
+              className="preview-pane-device-size"
+              data-testid={tid("preview-device-width")}
+              aria-label="宽度"
+              inputMode="numeric"
+              value={widthDraft}
+              placeholder="宽"
+              onChange={(event) => setWidthDraft(event.target.value)}
+              onBlur={commitDimensions}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") commitDimensions();
+              }}
+            />
+            <span className="preview-pane-device-times">×</span>
+            <input
+              className="preview-pane-device-size"
+              data-testid={tid("preview-device-height")}
+              aria-label="高度"
+              inputMode="numeric"
+              value={heightDraft}
+              placeholder="高"
+              onChange={(event) => setHeightDraft(event.target.value)}
+              onBlur={commitDimensions}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") commitDimensions();
+              }}
+            />
+            <button
+              type="button"
+              className="preview-pane-button"
+              title="旋转"
+              aria-label="旋转"
+              data-testid={tid("preview-device-rotate")}
+              disabled={viewport.kind !== "fixed"}
+              onClick={rotateViewport}
+            >
+              <i className="codicon codicon-arrow-swap" />
+            </button>
+          </div>
+        )}
         <div className="preview-pane-body">
+          <div className="preview-pane-stage" ref={stageRef}>
+          <div
+            className="preview-pane-viewport"
+            data-testid={tid("preview-viewport")}
+            data-framed={framed ? "true" : "false"}
+            style={
+              framed && frame
+                ? {
+                    width: Math.round(frame.width * frameScale),
+                    height: Math.round(frame.height * frameScale),
+                  }
+                : undefined
+            }
+          >
+          <div
+            className="preview-pane-viewport-inner"
+            style={
+              framed && frame
+                ? {
+                    width: frame.width,
+                    height: frame.height,
+                    transform: `scale(${frameScale})`,
+                  }
+                : undefined
+            }
+          >
           {visible ? (
             <webview
               ref={webviewRef}
@@ -665,6 +1015,57 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
                 重试
               </button>
             </div>
+          )}
+          </div>
+          </div>
+          </div>
+          {linksOpen && (
+            <aside
+              className="preview-pane-links"
+              style={{ width: linksWidth }}
+              data-testid={tid("preview-links")}
+              aria-label="收藏和最近打开"
+            >
+              <div
+                className="preview-pane-links-resize"
+                data-testid={tid("preview-links-resize")}
+                onMouseDown={onLinksResizeStart}
+              />
+              <label className="preview-pane-links-search">
+                <i className="codicon codicon-search" />
+                <input
+                  type="text"
+                  value={linkQuery}
+                  placeholder="搜索"
+                  spellCheck={false}
+                  data-testid={tid("preview-links-search")}
+                  onChange={(event) => setLinkQuery(event.target.value)}
+                />
+              </label>
+              <div className="preview-pane-links-scroll">
+                <section className="preview-pane-links-group">
+                  <h3>收藏</h3>
+                  {bookmarks.length > 0 ? (
+                    bookmarks.map((link) => renderPreviewLink(link, "bookmark"))
+                  ) : (
+                    <p>{linkQuery.trim() ? "没有匹配的收藏" : "还没有收藏"}</p>
+                  )}
+                </section>
+                <section className="preview-pane-links-group">
+                  <h3>最近打开</h3>
+                  {recentGroups.length > 0 ? (
+                    recentGroups.map((group) => (
+                      <div key={group.label}>
+                        <h4>{group.label}</h4>
+                        {group.items.map((link) => renderPreviewLink(link, "recent"))}
+                      </div>
+                    ))
+                  ) : (
+                    <p>{linkQuery.trim() ? "没有匹配的链接" : "还没有最近打开的链接"}</p>
+                  )}
+                </section>
+              </div>
+            </aside>
           )}
         </div>
       </div>

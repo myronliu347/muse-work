@@ -11,7 +11,7 @@ import * as path from "path";
 import { museServerBaseUrl, startMuseServer } from "./serverProcess";
 import { installThemeHost } from "./themeHost";
 import { windowBackgroundFor } from "./uiPrefs";
-import { createMainWindow, desktopPaths } from "./window";
+import { clearPreviewGuestData, createMainWindow, desktopPaths } from "./window";
 import { createQuitGate } from "./quitGate";
 import {
   FROM_WEBVIEW,
@@ -238,6 +238,14 @@ if (!gotLock) {
     installAppMenu(() => mainWindow);
     ipcMain.on(FROM_WEBVIEW, (_event, raw: unknown) => {
       const msg = raw as { command?: string } | null;
+      if (msg?.command === "previewClearCache") {
+        void clearPreviewGuestData("cache");
+        return;
+      }
+      if (msg?.command === "previewClearCookies") {
+        void clearPreviewGuestData("cookies");
+        return;
+      }
       if (msg?.command !== "desktopCloseWindow") return;
       const win = mainWindow;
       if (!win || win.isDestroyed()) return;
