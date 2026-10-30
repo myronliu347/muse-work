@@ -1,0 +1,84 @@
+packages/webview/src/styles/FilePane.css
+  0f9be30eaa9d8066 284-288,313
+packages/webview/tests/webview/diffPane.test.tsx
+  0f9be30eaa9d8066 1224,1228
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  0f9be30eaa9d8066 262-263
+packages/webview/src/components/panels/FileTree.tsx
+  0f9be30eaa9d8066 178-179,182-183,217-221,225-229,255-260
+packages/webview/src/styles/DiffPane.css
+  0f9be30eaa9d8066 449-453,478
+packages/webview/src/components/panels/DiffPane.tsx
+  0f9be30eaa9d8066 31-66,1156-1159,1213
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "27e4c0c46e4c4799e960cdbba1a42d7ebbc50945",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 65,
+      "total_deletions": 5,
+      "accepted_lines": 142,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/ConfigurationDialog.css": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/dialogs/ConfigDialog.tsx": {
+          "additions": 38,
+          "deletions": 5,
+          "accepted_lines": 38
+        },
+        "packages/webview/src/components/panels/FileTree.tsx": {
+          "accepted_lines": 20
+        },
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/configDialog.test.tsx": {
+          "additions": 22,
+          "accepted_lines": 22
+        },
+        "packages/webview/src/styles/FilePane.css": {
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "accepted_lines": 41
+        }
+      }
+    },
+    "50db5e4d2a2c4f16": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "652294f2-53e0-412f-88ad-06285817db3e",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 110,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/share/personal-agent.md": {
+          "accepted_lines": 110
+        }
+      }
+    }
+  }
+}
