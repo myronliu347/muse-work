@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { QueueChevronIcon } from "../shared/HeaderIcons";
+import { useHoldTranscriptScroll } from "../chat/holdTranscriptScroll";
 import type { CompactBlock } from "../../types";
 
 interface CompactBlockViewProps {
@@ -13,10 +14,17 @@ export const CompactBlockView: React.FC<CompactBlockViewProps> = ({
 }) => {
   // Compact summaries are always collapsed by default — show a hint line, expand on click.
   const [collapsed, setCollapsed] = useState(true);
+  const holdScroll = useHoldTranscriptScroll();
 
   return (
     <div className="reasoning-block compact-block">
-      <div className="reasoning-header" onClick={() => setCollapsed((c) => !c)}>
+      <div
+        className="reasoning-header"
+        onClick={() => {
+          holdScroll();
+          setCollapsed((c) => !c);
+        }}
+      >
         <span className="reasoning-dot compact-dot" />
         <span className="reasoning-title">对话已压缩</span>
         <QueueChevronIcon

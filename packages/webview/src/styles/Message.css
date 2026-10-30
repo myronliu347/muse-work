@@ -99,7 +99,7 @@
 
 .system-inject-bubble {
   width: 100%;
-  max-height: 300px;
+  max-height: 150px;
   overflow-y: auto;
   background: var(--gray-2);
   border: 1px solid var(--gray-5);
@@ -361,7 +361,7 @@
   overflow-wrap: anywhere;
   display: block;
   width: 100%;
-  max-height: 200px;
+  max-height: 100px;
   overflow-y: auto;
 }
 

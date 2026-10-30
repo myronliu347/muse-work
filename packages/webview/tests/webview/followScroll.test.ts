@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resolveFollowScrollTop } from "../../src/components/chat/followScroll";
+import {
+  resolveFollowScrollTop,
+  scrollTopAfterSizeChange,
+} from "../../src/components/chat/followScroll";
 
 describe("resolveFollowScrollTop", () => {
   it("lands a follow adjustment on the visual bottom, not the spacer offset", () => {
@@ -12,5 +15,9 @@ describe("resolveFollowScrollTop", () => {
 
   it("keeps an explicit scroll target while following", () => {
     expect(resolveFollowScrollTop(800, 1900, true, 0)).toBe(800);
+  });
+
+  it("keeps the current offset when a disclosure toggle resizes a row", () => {
+    expect(scrollTopAfterSizeChange(640, 2100, 2400, true, 480, true)).toBe(640);
   });
 });

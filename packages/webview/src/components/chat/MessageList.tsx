@@ -34,7 +34,8 @@ import {
   navEntriesFromMessages,
   pickActiveUserMessageId,
 } from "../message/UserMessageNav";
-import { resolveFollowScrollTop } from "./followScroll";
+import { scrollTopAfterSizeChange } from "./followScroll";
+import { HoldTranscriptScrollProvider } from "./holdTranscriptScroll";
 import "../../styles/MessageList.css";
 
 /** Matches --space-4 / --space-3 so virtual offsets line up with the column. */
@@ -337,7 +338,11 @@ export const MessageList = forwardRef<
   // Session-swap pin happens before paint. The follow effect must not scroll
   // again afterwards, or the list jumps a second time once the frame is visible.
   const skipFollowRef = useRef(false);
+  const pinTokenRef = useRef(0);
+  const aliveRef = useRef(true);
   const userScrolledUpRef = useRef(false);
+  // True while a disclosure toggle is resizing a row the user is reading.
+  const holdScrollRef = useRef(false);
   const pendingProgrammaticScrollsRef = useRef(0);
   const programmaticClearTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
@@ -443,15 +448,25 @@ export const MessageList = forwardRef<
       const adjustment = opts.adjustments ?? 0;
       const container = containerRef.current;
       const requestedTop = offset + adjustment;
+      const currentTop = container?.scrollTop ?? requestedTop;
       const visualMax = container
         ? Math.max(0, container.scrollHeight - container.clientHeight)
         : requestedTop;
-      const top = resolveFollowScrollTop(
+      const disclosure = holdScrollRef.current;
+      const top = scrollTopAfterSizeChange(
+        currentTop,
         requestedTop,
         visualMax,
         !userScrolledUpRef.current,
         adjustment,
+        disclosure,
       );
+      if (disclosure) {
+        // applyScrollAdjustment adds this after scrollToFn returns. Zero it so
+        // the virtualizer keeps the offset the user was reading.
+        instance.scrollAdjustments = 0;
+        return;
+      }
       markProgrammaticScroll();
       if (top !== requestedTop) {
         container?.scrollTo?.({ top, behavior: opts.behavior });
@@ -567,6 +582,7 @@ export const MessageList = forwardRef<
 
   const doScrollToBottom = useCallback(
     (behavior: ScrollBehavior) => {
+      if (holdScrollRef.current) return;
       const container = containerRef.current;
       // scrollToEnd keeps a per-frame reconcile alive. During streaming that
       // reconcile and the virtualizer's end anchor take turns, so the pinned
@@ -614,8 +630,17 @@ export const MessageList = forwardRef<
     },
   }));
 
+  useLayoutEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
+
   // Pin before paint. The previous session's scroll offset otherwise stays
   // on the new transcript for a frame, then the follow effect jumps to the end.
+  // flushSync cannot run inside this layout effect: React warns and drops the
+  // flush. The microtask still runs before paint, after this commit's effects.
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container || messages.length === 0) return;
@@ -641,13 +666,21 @@ export const MessageList = forwardRef<
     prevListHeadRef.current = head;
     userScrolledUpRef.current = false;
     skipFollowRef.current = true;
-    flushSync(() => {
-      virtualizer.scrollToEnd({ behavior: "auto" });
+    const token = ++pinTokenRef.current;
+    queueMicrotask(() => {
+      if (!aliveRef.current || token !== pinTokenRef.current) return;
+      const el = containerRef.current;
+      if (!el) return;
+      flushSync(() => {
+        virtualizer.scrollToEnd({ behavior: "auto" });
+      });
+      el.scrollTop = el.scrollHeight;
+      // Decide the pinned user row before paint. Setting it from the passive
+      // effect mounts the bar a frame late and the tail jumps.
+      flushSync(() => {
+        computeSticky();
+      });
     });
-    container.scrollTop = container.scrollHeight;
-    // Decide the pinned user row before paint. Setting it from the passive
-    // effect mounts the bar a frame late and the tail jumps.
-    computeSticky();
   }, [messages, virtualizer, computeSticky]);
 
   // Same-head reload (the open tab's snapshot replaced by the live transcript)
@@ -831,6 +864,18 @@ export const MessageList = forwardRef<
 
   stickyRef.current = stickyMessage;
 
+  const holdTranscriptScroll = useCallback(() => {
+    userScrolledUpRef.current = true;
+    holdScrollRef.current = true;
+    // The row is measured in a resize observer before the next frame.
+    // Release after that so later streaming can follow the tail again.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        holdScrollRef.current = false;
+      });
+    });
+  }, []);
+
   const renderMessage = (
     message: MessageType,
     extras?: {
@@ -934,6 +979,7 @@ export const MessageList = forwardRef<
   };
 
   return (
+    <HoldTranscriptScrollProvider value={holdTranscriptScroll}>
     <div className="messages-shell">
       {stickyMessage && (
         <div className="sticky-user-wrapper">
@@ -1015,5 +1061,6 @@ export const MessageList = forwardRef<
       </div>
       <UserMessageNav entries={navEntries} activeId={activeNavId} onSelect={scrollToMessage} />
     </div>
+    </HoldTranscriptScrollProvider>
   );
 });

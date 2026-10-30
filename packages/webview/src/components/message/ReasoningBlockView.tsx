@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { QueueChevronIcon } from "../shared/HeaderIcons";
+import { useHoldTranscriptScroll } from "../chat/holdTranscriptScroll";
 import { reasoningLineLabel } from "./toolActivity";
 import type { ReasoningBlock } from "../../types";
 
@@ -15,6 +16,7 @@ export const ReasoningBlockView: React.FC<ReasoningBlockViewProps> = ({
   // Reasoning that is already finished on mount (e.g. loaded from history) starts
   // collapsed; an in-progress block starts expanded and auto-collapses on finish.
   const [collapsed, setCollapsed] = useState(block.stage === "end");
+  const holdScroll = useHoldTranscriptScroll();
   const prevStageRef = useRef(block.stage);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -51,7 +53,13 @@ export const ReasoningBlockView: React.FC<ReasoningBlockViewProps> = ({
 
   return (
     <div className="reasoning-block">
-      <div className="reasoning-header" onClick={() => setCollapsed((c) => !c)}>
+      <div
+        className="reasoning-header"
+        onClick={() => {
+          holdScroll();
+          setCollapsed((c) => !c);
+        }}
+      >
         <span className="reasoning-dot" />
         <span className="reasoning-title">{title}</span>
         <QueueChevronIcon

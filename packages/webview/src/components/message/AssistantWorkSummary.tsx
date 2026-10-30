@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { QueueChevronIcon } from "../shared/HeaderIcons";
+import { useHoldTranscriptScroll } from "../chat/holdTranscriptScroll";
 import type { Message as MessageType } from "@muse-work/agent";
 
 export function formatWorkedDuration(ms: number): string {
@@ -100,6 +101,7 @@ export const AssistantWorkSummary: React.FC<AssistantWorkSummaryProps> = ({
   children,
 }) => {
   const [collapsed, setCollapsed] = useState(true);
+  const holdScroll = useHoldTranscriptScroll();
   // Freeze duration on first paint so the label does not keep ticking.
   const [ms] = useState(() => {
     const estimated = estimateAssistantWorkMs(messages);
@@ -119,7 +121,10 @@ export const AssistantWorkSummary: React.FC<AssistantWorkSummaryProps> = ({
     <div className="assistant-work-summary" data-testid="assistant-work-summary">
       <div
         className="assistant-work-summary-header"
-        onClick={() => setCollapsed((c) => !c)}
+        onClick={() => {
+          holdScroll();
+          setCollapsed((c) => !c);
+        }}
         role="button"
         aria-expanded={!collapsed}
       >

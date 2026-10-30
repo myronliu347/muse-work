@@ -14,3 +14,19 @@ export function resolveFollowScrollTop(
   if (following && adjustment !== 0) return Math.max(0, visualMax);
   return requestedTop;
 }
+
+/**
+ * A disclosure toggle grows a row the user is reading. That is not tail
+ * growth: keep the viewport where it is instead of pinning the end.
+ */
+export function scrollTopAfterSizeChange(
+  currentTop: number,
+  requestedTop: number,
+  visualMax: number,
+  following: boolean,
+  adjustment: number,
+  disclosure: boolean,
+): number {
+  if (disclosure) return currentTop;
+  return resolveFollowScrollTop(requestedTop, visualMax, following, adjustment);
+}

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { QueueChevronIcon } from "../shared/HeaderIcons";
+import { useHoldTranscriptScroll } from "../chat/holdTranscriptScroll";
 import { ToolError } from "./ToolError";
 import { reasoningLineLabel } from "./toolActivity";
 import type { ReasoningBlock } from "../../types";
@@ -18,6 +19,7 @@ export function ToolActivityGroup({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const holdScroll = useHoldTranscriptScroll();
 
   return (
     <div className="activity-group" data-testid="activity-group">
@@ -26,7 +28,10 @@ export function ToolActivityGroup({
         className={`activity-hit${open ? " open" : ""}`}
         data-testid="activity-summary"
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          holdScroll();
+          setOpen((value) => !value);
+        }}
       >
         <span className="txt">{label}</span>
         {additions > 0 && <span className="activity-add">+{additions}</span>}
@@ -58,6 +63,7 @@ export function ToolLine({
   onActivate?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const holdScroll = useHoldTranscriptScroll();
   const hasDetail = detail != null && detail !== false;
   const button = (
     <button
@@ -66,6 +72,7 @@ export function ToolLine({
       data-testid={testId}
       onClick={() => {
         if (hasDetail) {
+          holdScroll();
           setOpen((value) => !value);
           return;
         }
@@ -103,6 +110,7 @@ export function ThoughtLine({
     block.stage !== "end" && typeof block.startTime === "number";
   const hasBody = Boolean((block.content || "").trim());
   const [open, setOpen] = useState(block.stage !== "end");
+  const holdScroll = useHoldTranscriptScroll();
   const [now, setNow] = useState(() => Date.now());
   const prevStageRef = useRef(block.stage);
 
@@ -127,7 +135,9 @@ export function ThoughtLine({
         data-testid="thought-line"
         aria-expanded={hasBody ? open : undefined}
         onClick={() => {
-          if (hasBody) setOpen((value) => !value);
+          if (!hasBody) return;
+          holdScroll();
+          setOpen((value) => !value);
         }}
       >
         <span className={`txt${inProgress ? " text-shimmer" : ""}`}>
