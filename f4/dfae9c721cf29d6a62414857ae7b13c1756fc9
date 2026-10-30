@@ -1,0 +1,36 @@
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  0f9be30eaa9d8066 37-41,43-44,142-150,258-264,435-438,480-483,523-526,563-566
+packages/webview/tests/components/desktopPanelDock.test.tsx
+  0f9be30eaa9d8066 664-690
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f4dfae9c721cf29d6a62414857ae7b13c1756fc9",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 66,
+      "total_deletions": 23,
+      "accepted_lines": 66,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 39,
+          "deletions": 23,
+          "accepted_lines": 39
+        },
+        "packages/webview/tests/components/desktopPanelDock.test.tsx": {
+          "additions": 27,
+          "accepted_lines": 27
+        }
+      }
+    }
+  }
+}
