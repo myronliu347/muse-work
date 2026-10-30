@@ -1,0 +1,36 @@
+packages/webview/tests/components/dockDetail.test.tsx
+  0f9be30eaa9d8066 1005-1058
+packages/webview/src/components/ChatApp.tsx
+  0f9be30eaa9d8066 1749-1754,2461,2501-2503,2585
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b2f6f28a5bff7aede7802aaec397a972d12b19fd",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 66,
+      "total_deletions": 4,
+      "accepted_lines": 65,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 12,
+          "deletions": 4,
+          "accepted_lines": 11
+        },
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 54,
+          "accepted_lines": 54
+        }
+      }
+    }
+  }
+}
