@@ -1,0 +1,56 @@
+packages/webview/tests/webview/configDialog.test.tsx
+  0f9be30eaa9d8066 100-121
+packages/webview/src/components/dialogs/ConfigDialog.tsx
+  0f9be30eaa9d8066 76-77,99-113,131-134,207-212,216,222,299-307
+packages/webview/src/styles/ConfigurationDialog.css
+  0f9be30eaa9d8066 197-201
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b8e8b5c5298247eca8d7f7ba982d7740b55f2c0a",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 65,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/dialogs/ConfigDialog.tsx": {
+          "accepted_lines": 38
+        },
+        "packages/webview/tests/webview/configDialog.test.tsx": {
+          "accepted_lines": 22
+        },
+        "packages/webview/src/styles/ConfigurationDialog.css": {
+          "accepted_lines": 5
+        }
+      }
+    },
+    "50db5e4d2a2c4f16": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "652294f2-53e0-412f-88ad-06285817db3e",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 110,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/share/personal-agent.md": {
+          "accepted_lines": 110
+        }
+      }
+    }
+  }
+}
