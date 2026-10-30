@@ -97,6 +97,28 @@ describe("ConfigDialog", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
+  it("shows 已保存 on the settings page and keeps the page open", async () => {
+    const onCancel = vi.fn();
+    render(
+      <Theme>
+        <ConfigDialog
+          layout="page"
+          configurationData={{ language: "Chinese" }}
+          isLoading={false}
+          onSave={vi.fn()}
+          onCancel={onCancel}
+          vscode={mockVscode}
+        />
+      </Theme>,
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "供应商" }));
+    fireEvent.click(screen.getByTestId("config-dialog-save"));
+    expect(await screen.findByTestId("config-dialog-saved")).toHaveTextContent(
+      "已保存",
+    );
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
   it("hides save on appearance and closes after save on the provider tab", async () => {
     const { onCancel } = renderDialog();
     expect(screen.queryByTestId("config-dialog-save")).toBeNull();

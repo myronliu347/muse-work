@@ -194,6 +194,11 @@
   border-top: var(--hairline) solid var(--gray-6);
 }
 
+.config-dialog-saved {
+  font-size: var(--font-size-1);
+  color: var(--green-11);
+}
+
 .empty-state {
   text-align: center;
   color: var(--gray-11);

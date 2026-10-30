@@ -73,6 +73,8 @@ const ConfigDialog = forwardRef<
   const settingsRef = useRef<MuseProviderSettingsHandle>(null);
   const agentSettingsRef = useRef<AgentSettingsHandle>(null);
   const [saving, setSaving] = useState(false);
+  const [savedNotice, setSavedNotice] = useState(false);
+  const savedTimerRef = useRef<number | null>(null);
   const [activeTab, setActiveTab] = useState<
     "appearance" | "agent" | "provider" | "popo"
   >("appearance");
@@ -94,6 +96,21 @@ const ConfigDialog = forwardRef<
   };
   savingRef.current = saving;
   const persistTab = activeTab === "agent" || activeTab === "provider";
+
+  const showSaved = useCallback(() => {
+    setSavedNotice(true);
+    if (savedTimerRef.current !== null) window.clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = window.setTimeout(() => {
+      savedTimerRef.current = null;
+      setSavedNotice(false);
+    }, 2500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current !== null) window.clearTimeout(savedTimerRef.current);
+    };
+  }, []);
   const settingsTabs = (
     <div className="config-tabs" role="tablist" aria-label="设置">
       {(
@@ -111,7 +128,10 @@ const ConfigDialog = forwardRef<
           aria-selected={activeTab === id}
           aria-controls={controls}
           className={`config-tab${activeTab === id ? " active" : ""}`}
-          onClick={() => setActiveTab(id)}
+          onClick={() => {
+            setSavedNotice(false);
+            setActiveTab(id);
+          }}
           style={{ position: "relative" }}
         >
           {label}
@@ -184,18 +204,22 @@ const ConfigDialog = forwardRef<
 
   const handleSave = async () => {
     if (!persistTab) return;
+    setSavedNotice(false);
+    const finish = (ok: boolean | undefined) => {
+      if (!ok) return;
+      if (page) showSaved();
+      else onCancel();
+    };
     if (activeTab === "agent") {
       setSaving(true);
       try {
-        const ok = await agentSettingsRef.current?.save();
-        if (ok) onCancel();
+        finish(await agentSettingsRef.current?.save());
       } finally {
         setSaving(false);
       }
       return;
     }
-    const ok = await settingsRef.current?.save();
-    if (ok) onCancel();
+    finish(await settingsRef.current?.save());
   };
 
   const panel = (
@@ -272,6 +296,15 @@ const ConfigDialog = forwardRef<
                 关闭
               </Button>
             )}
+            {savedNotice ? (
+              <span
+                className="config-dialog-saved"
+                role="status"
+                data-testid="config-dialog-saved"
+              >
+                已保存
+              </span>
+            ) : null}
             {persistTab && (
               <Button
                 onClick={() => void handleSave()}
