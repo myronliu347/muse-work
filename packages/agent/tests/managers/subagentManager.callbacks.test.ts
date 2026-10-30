@@ -306,7 +306,7 @@ describe("SubagentManager - Callback Integration", () => {
 
       // Update content to simulate streaming
       const newContent = "Starting to stream content...";
-      instance.messageManager.updateCurrentMessageContent(newContent);
+      instance.messageManager.appendCurrentMessageContent(newContent);
 
       // Verify that the subagent callback was called with the object parameter
       expect(callbacks.onSubagentAssistantContentUpdated).toHaveBeenCalledWith({
@@ -345,8 +345,8 @@ describe("SubagentManager - Callback Integration", () => {
       vi.clearAllMocks();
 
       // Multiple content updates
-      instance.messageManager.updateCurrentMessageContent("Hello world");
-      instance.messageManager.updateCurrentMessageContent("Hello world!");
+      instance.messageManager.appendCurrentMessageContent(" world");
+      instance.messageManager.appendCurrentMessageContent("!");
 
       // Should have been called twice
       expect(callbacks.onSubagentAssistantContentUpdated).toHaveBeenCalledTimes(

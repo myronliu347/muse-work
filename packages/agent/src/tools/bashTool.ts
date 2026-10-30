@@ -357,34 +357,6 @@ The working directory persists between commands. Try to maintain your current wo
         }
       };
 
-      const updateRealtimeResults = () => {
-        if (isAborted || isBackgrounded || isFinished) return;
-
-        const combinedOutput =
-          outputBuffer + (errorBuffer ? "\n" + errorBuffer : "");
-
-        // Update shortResult: last 3 lines
-        if (context.onShortResultUpdate) {
-          const tail = combinedOutput.slice(-5000);
-          const lines = tail.trim().split("\n");
-          const shortResult =
-            lines.length <= 3
-              ? lines.join("\n")
-              : `... +${lines.length - 3} lines\n` + lines.slice(-3).join("\n");
-          context.onShortResultUpdate(shortResult);
-        }
-
-        // Update full result (simple truncation for streaming — persistence happens at final result)
-        if (context.onResultUpdate) {
-          const content =
-            combinedOutput.length <= BASH_MAX_OUTPUT_CHARS
-              ? combinedOutput
-              : combinedOutput.substring(0, BASH_MAX_OUTPUT_CHARS) +
-                "\n\n... (output truncated)";
-          context.onResultUpdate(content);
-        }
-      };
-
       const foregroundTaskId = `bash_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       // Register as foreground task
@@ -554,13 +526,16 @@ The working directory persists between commands. Try to maintain your current wo
         });
       }
 
+      // Output is buffered and handed back once, when the command ends. Nothing
+      // is pushed while it runs: real commands almost always finish with a pipe
+      // that buffers until EOF (`tail -n`, `| head`, redirection), so live
+      // output would rarely show anything.
       child.stdout?.on("data", (data) => {
         if (!isAborted && !isBackgrounded && !runInBackground) {
           const chunk = stripAnsiColors(
             stdoutDecoder ? stdoutDecoder.push(data) : data.toString(),
           );
           outputBuffer += chunk;
-          updateRealtimeResults();
         }
       });
 
@@ -570,7 +545,6 @@ The working directory persists between commands. Try to maintain your current wo
             stderrDecoder ? stderrDecoder.push(data) : data.toString(),
           );
           errorBuffer += chunk;
-          updateRealtimeResults();
         }
       });
 

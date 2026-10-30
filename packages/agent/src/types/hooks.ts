@@ -50,6 +50,11 @@ export interface HookCommand {
   type: "command";
   command: string;
   async?: boolean;
+  /**
+   * Run in the background and wake the model when the command exits with code
+   * 2, delivering its output as a system reminder. Implies `async`.
+   */
+  asyncRewake?: boolean;
   timeout?: number; // seconds
   pluginRoot?: string; // Plugin directory path for plugin-originated hooks
 }
@@ -155,6 +160,10 @@ export function isValidHookCommand(cmd: unknown): cmd is HookCommand {
   const hookCmd = cmd as Record<string, unknown>;
 
   if ("async" in hookCmd && typeof hookCmd.async !== "boolean") {
+    return false;
+  }
+
+  if ("asyncRewake" in hookCmd && typeof hookCmd.asyncRewake !== "boolean") {
     return false;
   }
 

@@ -133,7 +133,6 @@ describe("aiManager: running-stage tool block updates carry compactParams", () =
       async (_name, _args, context) => {
         // Emit running-stage progress updates like a real subagent does.
         context.onShortResultUpdate?.("step 1: searching");
-        context.onResultUpdate?.("progress output");
         return {
           success: true,
           content: "found foo",

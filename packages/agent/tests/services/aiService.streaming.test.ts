@@ -66,7 +66,7 @@ describe("AI Service - Streaming", () => {
       callAgent = aiService.callAgent;
     });
 
-    it("should enable streaming mode when onContentUpdate callback is provided", async () => {
+    it("should enable streaming mode when onContentDelta callback is provided", async () => {
       // Mock streaming response
       const mockStream = (async function* () {
         yield {
@@ -101,7 +101,7 @@ describe("AI Service - Streaming", () => {
         modelConfig: TEST_MODEL_CONFIG,
         messages: [{ role: "user", content: "Test message" }],
         workdir: "/test/workdir",
-        onContentUpdate: (content) => {
+        onContentDelta: (content) => {
           contentUpdates.push(content);
         },
       });
@@ -117,7 +117,7 @@ describe("AI Service - Streaming", () => {
       expect(result.finish_reason).toBe("stop");
     });
 
-    it("should accumulate content from multiple chunks with onContentUpdate", async () => {
+    it("should accumulate content from multiple chunks with onContentDelta", async () => {
       // Mock streaming response with multiple content chunks
       const mockStream = (async function* () {
         yield {
@@ -159,13 +159,13 @@ describe("AI Service - Streaming", () => {
         modelConfig: TEST_MODEL_CONFIG,
         messages: [{ role: "user", content: "Test message" }],
         workdir: "/test/workdir",
-        onContentUpdate: (content) => {
+        onContentDelta: (content) => {
           contentUpdates.push(content);
         },
       });
 
       // Should receive accumulated content in each update
-      expect(contentUpdates).toEqual(["Hello", "Hello ", "Hello world!"]);
+      expect(contentUpdates).toEqual(["Hello", " ", "world!"]);
 
       // Final result should contain complete content
       expect(result.content).toBe("Hello world!");
@@ -242,7 +242,7 @@ describe("AI Service - Streaming", () => {
             },
           },
         ],
-        onContentUpdate: (content) => {
+        onContentDelta: (content) => {
           contentUpdates.push(content);
         },
         onToolUpdate: (toolCall) => {
@@ -253,7 +253,7 @@ describe("AI Service - Streaming", () => {
       // Should receive both content and tool updates
       expect(contentUpdates).toEqual([
         "I'll help you with that. ",
-        "I'll help you with that. Let me read that file for you.",
+        "Let me read that file for you.",
       ]);
 
       // Final result should contain both content and tool calls
@@ -310,7 +310,7 @@ describe("AI Service - Streaming", () => {
           modelConfig: TEST_MODEL_CONFIG,
           messages: [{ role: "user", content: "Test message" }],
           workdir: "/test/workdir",
-          onContentUpdate: (content) => {
+          onContentDelta: (content) => {
             contentUpdates.push(content);
           },
         }),
@@ -365,7 +365,7 @@ describe("AI Service - Streaming", () => {
         messages: [{ role: "user", content: "Test message" }],
         workdir: "/test/workdir",
         abortSignal: abortController.signal,
-        onContentUpdate: (content) => {
+        onContentDelta: (content) => {
           contentUpdates.push(content);
         },
       });
@@ -418,12 +418,12 @@ describe("AI Service - Streaming", () => {
         modelConfig: TEST_MODEL_CONFIG,
         messages: [{ role: "user", content: "Test message" }],
         workdir: "/test/workdir",
-        onContentUpdate: (content) => {
+        onContentDelta: (content) => {
           contentUpdates.push(content);
         },
       });
 
-      // Should not call onContentUpdate for empty deltas
+      // Should not call onContentDelta for empty deltas
       expect(contentUpdates).toEqual([]);
 
       // Final result should have no content
@@ -468,7 +468,7 @@ describe("AI Service - Streaming", () => {
         modelConfig: TEST_MODEL_CONFIG,
         messages: [{ role: "user", content: "Test message" }],
         workdir: "/test/workdir",
-        onContentUpdate: () => {},
+        onContentDelta: () => {},
       });
 
       // Should include usage information in the final result
@@ -592,8 +592,8 @@ describe("AI Service - Streaming", () => {
         modelConfig: TEST_MODEL_CONFIG,
         messages: [{ role: "user", content: "Test message" }],
         workdir: "/test/workdir",
-        onContentUpdate: () => {},
-        onReasoningUpdate: () => {},
+        onContentDelta: () => {},
+        onReasoningDelta: () => {},
       });
 
       expect(result.content).toBe("Test response");
@@ -627,7 +627,7 @@ describe("AI Service - Streaming", () => {
         modelConfig: TEST_MODEL_CONFIG,
         messages: [{ role: "user", content: "Test message" }],
         workdir: "/test/workdir",
-        onContentUpdate: () => {},
+        onContentDelta: () => {},
       });
 
       expect(result.content).toBe("Test response");

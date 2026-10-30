@@ -114,7 +114,11 @@ export interface FileHistoryBlock {
 export interface TaskNotificationBlock {
   type: "task_notification";
   taskId: string;
-  taskType: "shell" | "agent" | "workflow";
+  /**
+   * `"hook"` is an async hook with `asyncRewake` that exited with code 2,
+   * delivered through this channel once the turn that launched it is over.
+   */
+  taskType: "shell" | "agent" | "workflow" | "hook";
   status: "completed" | "failed" | "killed" | "aborted";
   summary: string;
   outputFile?: string;

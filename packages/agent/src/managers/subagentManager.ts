@@ -31,6 +31,7 @@ import { AsyncWorkRegistry } from "../utils/asyncWorkRegistry.js";
 import type { PermissionManager } from "./permissionManager.js";
 import type { PermissionMode } from "../types/permissions.js";
 import { ConfigurationService } from "../services/configurationService.js";
+import { supportsVision } from "../utils/modelCapabilities.js";
 import { substitutePluginRoot } from "../utils/museEnv.js";
 
 export interface SubagentManagerCallbacks {
@@ -271,13 +272,57 @@ export class SubagentManager {
         "SubagentManager not initialized. Call loadConfigurations() first.",
       );
     }
-    return this.cachedConfigurations;
+    const mainModelReadsImages = this.mainModelSupportsVision();
+    return this.cachedConfigurations.filter(
+      (config) => !this.isRedundantVisionFallback(config, mainModelReadsImages),
+    );
+  }
+
+  /**
+   * Whether the session's main model reads images itself. Declarative and
+   * opt-out — undeclared means it sees images directly. Resolved live so a
+   * mid-session model switch follows the model actually in use.
+   */
+  private mainModelSupportsVision(): boolean {
+    const configurationService = this.container.get<ConfigurationService>(
+      "ConfigurationService",
+    );
+    return supportsVision(
+      configurationService?.resolveModelConfig?.()?.capabilities,
+    );
+  }
+
+  /**
+   * The builtin vision subagent exists only as a fallback for a main model
+   * that cannot read images. A user-written subagent that names a vision
+   * model is an explicit choice and is never dropped.
+   */
+  private isRedundantVisionFallback(
+    config: SubagentConfiguration,
+    mainModelReadsImages: boolean,
+  ): boolean {
+    return (
+      config.scope === "builtin" &&
+      config.model === "visionModel" &&
+      mainModelReadsImages
+    );
   }
 
   /**
    * Find subagent by exact name match
    */
   async findSubagent(name: string) {
+    const configuration = await this.resolveSubagent(name);
+    if (!configuration) return configuration;
+    return this.isRedundantVisionFallback(
+      configuration,
+      this.mainModelSupportsVision(),
+    )
+      ? null
+      : configuration;
+  }
+
+  private async resolveSubagent(name: string) {
     // Check cached configurations first (includes plugin agents)
     if (this.cachedConfigurations !== null) {
       const cached = this.cachedConfigurations.find(
@@ -485,6 +530,7 @@ export class SubagentManager {
     const toolManager = new ToolManager({
       container: subagentContainer,
       tools: configuration.tools,
+      disallowedTools: configuration.disallowedTools,
     });
     toolManager.initializeBuiltInTools();
     subagentContainer.register("ToolManager", toolManager);
@@ -497,6 +543,7 @@ export class SubagentManager {
       modelOverride: parameters.model || configuration.model, // Pass model override
       stream: parameters.stream ?? this.stream, // Pass streaming mode flag
       maxTurns: parameters.maxTurns, // Pass maxTurns limit
+      omitAgentsMd: configuration.omitAgentsMd,
       callbacks: {
         onUsageAdded: this.onUsageAdded,
       },

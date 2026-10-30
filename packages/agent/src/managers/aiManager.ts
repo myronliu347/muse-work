@@ -127,13 +127,13 @@ function mapBackgroundTask(
 export interface AIManagerCallbacks {
   onCompactionStateChange?: (isCompacting: boolean) => void;
   /**
-   * Streaming content from the compaction fork (accumulated, same semantics
-   * as `onContentUpdate` in CallAgentOptions). Reasoning chunks fall back to
-   * this channel when no reasoning callback is provided. Consumed by the CLI
-   * to show the compaction loading tail.
+   * Streaming content from the compaction fork, as a delta of newly produced
+   * text (same family as `chunk` on `onAssistantContentUpdated`). Consumers
+   * append it. Reasoning deltas fall back to this channel when no reasoning
+   * callback is provided. Consumed by the host to show the compaction tail.
    */
   onCompactionContentUpdate?: (content: string) => void;
-  /** Streaming reasoning from the compaction fork (accumulated). */
+  /** Streaming reasoning from the compaction fork, as a delta. */
   onCompactionReasoningUpdate?: (content: string) => void;
   onUsageAdded?: (usage: Usage) => void;
   onCwdChange?: (newCwd: string) => void;
@@ -151,6 +151,12 @@ export interface AIManagerOptions {
   modelOverride?: string;
   /**Optional max turns limit to prevent runaway recursion (e.g. for auto-memory extraction) */
   maxTurns?: number;
+  /**
+   * Skip project AGENTS.md (and its CLAUDE.md fallback), user memory and
+   * unconditional rules for this manager's turns. Used by subagent definitions
+   * declaring `omitAgentsMd`.
+   */
+  omitAgentsMd?: boolean;
 }
 
 export class AIManager {
@@ -169,6 +175,8 @@ export class AIManager {
   private pendingCwdRecovery: { from: string; to: string } | null = null;
   private consecutiveCompactionFailures: number = 0;
   private readonly maxTurns?: number;
+  /** Start turns without project/user memory injection (`omitAgentsMd` subagents) */
+  private readonly omitAgentsMd: boolean;
   /** Tracks file mtime/hash at read time for staleness detection on Edit/Write */
   private readFileState: ReadFileState = new Map();
   /** Override tool_choice for this AI manager (e.g. for structured output) */
@@ -191,6 +199,7 @@ export class AIManager {
     this._onCwdChange = options.callbacks?.onCwdChange; // Initialize onCwdChange
     this.originalWorkdir = options.workdir;
     this.maxTurns = options.maxTurns;
+    this.omitAgentsMd = options.omitAgentsMd ?? false;
   }
 
   private get toolManager(): ToolManager {
@@ -600,8 +609,10 @@ export class AIManager {
         recentChatMessages,
         compactPrompt,
         options.abortSignal,
-        this.callbacks?.onCompactionContentUpdate,
-        this.callbacks?.onCompactionReasoningUpdate,
+        {
+          onContentDelta: this.callbacks?.onCompactionContentUpdate,
+          onReasoningDelta: this.callbacks?.onCompactionReasoningUpdate,
+        },
       );
       const summaryContent = forkResult.content;
       const compactTokens = forkResult.usage;
@@ -818,10 +829,11 @@ export class AIManager {
       /** Message fed back to the model when a tool call is denied. */
       deniedToolMessage?: string;
       /** Surface partial output to the caller (e.g. the compaction loading
-       * tail) as it streams in. Reasoning chunks go to the reasoning channel
-       * when provided, otherwise they fall back to the content channel. */
-      onContentUpdate?: (content: string) => void;
-      onReasoningUpdate?: (content: string) => void;
+       * tail) as it streams in. The fragments are pure deltas. Reasoning chunks
+       * go to the reasoning channel when the caller supplies one, otherwise
+       * they fall back to the content channel. */
+      onContentDelta?: (delta: string) => void;
+      onReasoningDelta?: (delta: string) => void;
     },
     abortSignal?: AbortSignal,
   ): Promise<ForkLoopResult> {
@@ -880,17 +892,17 @@ export class AIManager {
         // tail) as it arrives. Reasoning chunks from thinking models go to
         // the reasoning channel when the caller supplies one; otherwise they
         // fall back to the content channel (CLI mixes both).
-        onContentUpdate: (content: string) => {
-          if (content.trim()) {
-            options.onContentUpdate?.(content);
+        onContentDelta: (delta: string) => {
+          if (delta.trim()) {
+            options.onContentDelta?.(delta);
           }
         },
-        onReasoningUpdate: (reasoning: string) => {
-          if (reasoning.trim()) {
-            if (options.onReasoningUpdate) {
-              options.onReasoningUpdate(reasoning);
+        onReasoningDelta: (delta: string) => {
+          if (delta.trim()) {
+            if (options.onReasoningDelta) {
+              options.onReasoningDelta(delta);
             } else {
-              options.onContentUpdate?.(reasoning);
+              options.onContentDelta?.(delta);
             }
           }
         },
@@ -967,9 +979,11 @@ export class AIManager {
   private async runCompactFork(
     historyMessages: ChatCompletionMessageParam[],
     compactPrompt: string,
-    abortSignal?: AbortSignal,
-    onContentUpdate?: (content: string) => void,
-    onReasoningUpdate?: (content: string) => void,
+    abortSignal: AbortSignal | undefined,
+    stream: {
+      onContentDelta?: (delta: string) => void;
+      onReasoningDelta?: (delta: string) => void;
+    },
   ): Promise<ForkLoopResult> {
     return this.runForkLoop(
       historyMessages,
@@ -977,8 +991,7 @@ export class AIManager {
       {
         maxTurns: MAX_FORK_TURNS,
         deniedToolMessage: "Tool use is not allowed during compaction",
-        onContentUpdate,
-        onReasoningUpdate,
+        ...stream,
       },
       abortSignal,
     );
@@ -1080,7 +1093,6 @@ export class AIManager {
       taskManager: this.taskManager,
       readFileState,
       onShortResultUpdate: () => {},
-      onResultUpdate: () => {},
       onCwdChange: () => {},
     };
     try {
@@ -1203,8 +1215,8 @@ ${question}`;
         // Stream so a slow reasoning model emits first bytes before the
         // gateway's idle timeout fires (same rationale as runCompactFork).
         stream: true,
-        onContentUpdate: streamToOverlay,
-        onReasoningUpdate: streamReasoning,
+        onContentDelta: streamToOverlay,
+        onReasoningDelta: streamReasoning,
       });
 
       if (result.content?.trim()) {
@@ -1565,9 +1577,11 @@ ${question}`;
           const { toolsConfig, toolNames, filteredToolPlugins } =
             this.resolveFilteredTools();
 
-          // Get memory for message-array injection (not system prompt)
-          const { prependContent } =
-            await this.messageManager.getMemoryForInjection();
+          // Get memory for message-array injection (not system prompt).
+          // `omitAgentsMd` subagents start without it.
+          const { prependContent } = this.omitAgentsMd
+            ? { prependContent: "" }
+            : await this.messageManager.getMemoryForInjection();
 
           const mainSystemPrompt =
             await this.buildMainSystemPrompt(filteredToolPlugins);
@@ -1630,12 +1644,12 @@ ${question}`;
 
           // Add streaming callbacks only if streaming is enabled
           if (this.stream) {
-            callAgentOptions.onContentUpdate = (content: string) => {
+            callAgentOptions.onContentDelta = (delta: string) => {
               // Agent may have been destroyed mid-stream; ignore in-flight updates.
               if (!this.messageManager) return;
               // Create assistant message on first chunk if not already created
               ensureAssistantMessage();
-              this.messageManager.updateCurrentMessageContent(content);
+              this.messageManager.appendCurrentMessageContent(delta);
             };
             callAgentOptions.onToolUpdate = (toolCall) => {
               // Agent may have been destroyed mid-stream; ignore in-flight updates.
@@ -1660,12 +1674,12 @@ ${question}`;
                 stage: toolCall.stage || "streaming", // Default to streaming if stage not provided
               });
             };
-            callAgentOptions.onReasoningUpdate = (reasoning: string) => {
+            callAgentOptions.onReasoningDelta = (delta: string) => {
               // Agent may have been destroyed mid-stream; ignore in-flight updates.
               if (!this.messageManager) return;
               // Create assistant message on first reasoning update if not already created
               ensureAssistantMessage();
-              this.messageManager.updateCurrentMessageReasoning(reasoning);
+              this.messageManager.appendCurrentMessageReasoning(delta);
             };
           }
 
@@ -1717,14 +1731,14 @@ ${question}`;
 
           // Handle result reasoning content from non-streaming mode
           if (result.reasoning_content && !createdByStreaming) {
-            this.messageManager.updateCurrentMessageReasoning(
+            this.messageManager.appendCurrentMessageReasoning(
               result.reasoning_content,
             );
           }
 
           // Handle result content from non-streaming mode
           if (result.content && !createdByStreaming) {
-            this.messageManager.updateCurrentMessageContent(result.content);
+            this.messageManager.appendCurrentMessageContent(result.content);
           }
 
           // Handle usage tracking for agent operations
@@ -2433,15 +2447,6 @@ ${question}`;
           this.messageManager.updateToolBlock({
             id: toolId,
             shortResult,
-            stage: "running",
-            compactParams,
-            name: toolName,
-          });
-        },
-        onResultUpdate: (result: string) => {
-          this.messageManager.updateToolBlock({
-            id: toolId,
-            result,
             stage: "running",
             compactParams,
             name: toolName,

@@ -954,6 +954,8 @@ describe("SkillManager", () => {
       expect(executeBashCommands).toHaveBeenCalledWith(
         ["echo hello"],
         "/new/worktree/path",
+        undefined,
+        undefined,
       );
     });
   });

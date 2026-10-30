@@ -331,8 +331,8 @@ describe("AIManager - compactConversation", () => {
   describe("fork streaming", () => {
     it("should forward partial content from the compaction fork to onCompactionContentUpdate", async () => {
       callAgentMock.mockImplementationOnce(
-        async (options: { onContentUpdate?: (content: string) => void }) => {
-          options.onContentUpdate?.("Partial summary");
+        async (options: { onContentDelta?: (content: string) => void }) => {
+          options.onContentDelta?.("Partial summary");
           return {
             content: "Full summary",
             usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
@@ -348,8 +348,8 @@ describe("AIManager - compactConversation", () => {
 
     it("should forward reasoning chunks to onCompactionReasoningUpdate when provided", async () => {
       callAgentMock.mockImplementationOnce(
-        async (options: { onReasoningUpdate?: (content: string) => void }) => {
-          options.onReasoningUpdate?.("Let me summarize");
+        async (options: { onReasoningDelta?: (content: string) => void }) => {
+          options.onReasoningDelta?.("Let me summarize");
           return {
             content: "Full summary",
             usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
@@ -380,11 +380,11 @@ describe("AIManager - compactConversation", () => {
       });
       callAgentMock.mockImplementationOnce(
         async (options: {
-          onReasoningUpdate?: (content: string) => void;
-          onContentUpdate?: (content: string) => void;
+          onReasoningDelta?: (content: string) => void;
+          onContentDelta?: (content: string) => void;
         }) => {
-          options.onReasoningUpdate?.("Thinking step");
-          options.onContentUpdate?.("Summary text");
+          options.onReasoningDelta?.("Thinking step");
+          options.onContentDelta?.("Summary text");
           return {
             content: "Summary text",
             usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
@@ -401,9 +401,9 @@ describe("AIManager - compactConversation", () => {
 
     it("should skip whitespace-only stream chunks", async () => {
       callAgentMock.mockImplementationOnce(
-        async (options: { onContentUpdate?: (content: string) => void }) => {
-          options.onContentUpdate?.("   ");
-          options.onContentUpdate?.("Real text");
+        async (options: { onContentDelta?: (content: string) => void }) => {
+          options.onContentDelta?.("   ");
+          options.onContentDelta?.("Real text");
           return {
             content: "Real text",
             usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },

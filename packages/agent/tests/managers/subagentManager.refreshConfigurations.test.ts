@@ -38,9 +38,15 @@ vi.mock("../../src/utils/subagentParser.js", () => ({
 }));
 
 const mockGetMergedEnv = vi.fn();
+const mockResolveModelConfig = vi.fn(() => ({
+  capabilities: { vision: false as boolean },
+}));
 vi.mock("../../src/services/configurationService.js", () => ({
   ConfigurationService: vi.fn().mockImplementation(function () {
-    return { getMergedEnv: mockGetMergedEnv };
+    return {
+      getMergedEnv: mockGetMergedEnv,
+      resolveModelConfig: mockResolveModelConfig,
+    };
   }),
 }));
 
@@ -52,6 +58,7 @@ describe("SubagentManager.refreshConfigurations", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockResolveModelConfig.mockReturnValue({ capabilities: { vision: false } });
     container = new Container();
     container.register(
       "ConfigurationService",
@@ -87,6 +94,15 @@ describe("SubagentManager.refreshConfigurations", () => {
     expect(names).toContain("vision");
     // Plugin agent survives the rebuild, exactly once
     expect(names.filter((n) => n === "my-plugin:helper")).toHaveLength(1);
+  });
+
+  it("hides the builtin vision subagent when the main model can read images", async () => {
+    mockGetMergedEnv.mockReturnValue({ MUSE_VISION_MODEL: "qwen-vl-max" });
+    mockResolveModelConfig.mockReturnValue({ capabilities: { vision: true } });
+    await subagentManager.loadConfigurations();
+    expect(
+      subagentManager.getConfigurations().map((c) => c.name),
+    ).not.toContain("vision");
   });
 
   it("keeps vision filtered out when env still lacks MUSE_VISION_MODEL", async () => {

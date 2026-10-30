@@ -419,7 +419,11 @@ export async function convertMessagesForAPI(
         if (block.type === "task_notification") {
           contentParts.push({
             type: "text",
-            text: `A background agent completed a task:\n${taskNotificationToXml(block)}`,
+            text: `${
+              block.taskType === "hook"
+                ? "A hook reported a blocking error:"
+                : "A background agent completed a task:"
+            }\n${taskNotificationToXml(block)}`,
           });
         }
       }

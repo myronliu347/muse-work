@@ -576,19 +576,20 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
           if (disposed.has(sessionId)) return;
           hub.broadcast(sessionId, { type: "updateQueue", messages });
         },
-        onCompactBlockAdded: () => {
+        onCompactBlockAdded: (_content, message) => {
           if (disposed.has(sessionId)) return;
           // The client already has the pre-compact transcript from streaming.
           // Append only the summary so that history stays on screen, and the
           // agent does not have to resend it.
-          const live = agents.get(sessionId)?.getMessages?.() ?? [];
-          const compact = live.find(
-            (message) =>
-              Array.isArray((message as { blocks?: unknown[] }).blocks) &&
-              (message as { blocks: Array<{ type?: string }> }).blocks.some(
-                (block) => block.type === "compact",
-              ),
-          );
+          const compact =
+            message ??
+            (agents.get(sessionId)?.getMessages?.() ?? []).find(
+              (item) =>
+                Array.isArray((item as { blocks?: unknown[] }).blocks) &&
+                (item as { blocks: Array<{ type?: string }> }).blocks.some(
+                  (block) => block.type === "compact",
+                ),
+            );
           if (compact) {
             hub.broadcast(sessionId, {
               type: "messages:append",

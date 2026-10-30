@@ -300,8 +300,8 @@ describe("AIManager - runBtwFork", () => {
     it("should forward partial content from callAgent to the caller's onContent", async () => {
       const onContent = vi.fn();
       callAgentMock.mockImplementationOnce(
-        async (options: { onContentUpdate?: (content: string) => void }) => {
-          options.onContentUpdate?.("Partial side answer");
+        async (options: { onContentDelta?: (content: string) => void }) => {
+          options.onContentDelta?.("Partial side answer");
           return {
             content: "Full side answer",
             usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
@@ -324,14 +324,14 @@ describe("AIManager - runBtwFork", () => {
       const onContent = vi.fn();
       callAgentMock.mockImplementationOnce(
         async (options: {
-          onReasoningUpdate?: (content: string) => void;
-          onContentUpdate?: (content: string) => void;
+          onReasoningDelta?: (content: string) => void;
+          onContentDelta?: (content: string) => void;
         }) => {
           // Thinking phase: reasoning chunks stream, no answer content yet.
-          options.onReasoningUpdate?.("Let me think about this");
-          options.onReasoningUpdate?.("Let me think about this carefully");
+          options.onReasoningDelta?.("Let me think about this");
+          options.onReasoningDelta?.("Let me think about this carefully");
           // Answer phase: content takes over the display.
-          options.onContentUpdate?.("The plan is:");
+          options.onContentDelta?.("The plan is:");
           return {
             content: "The plan is: step 1, step 2",
             usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },

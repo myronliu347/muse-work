@@ -29,7 +29,7 @@ vi.mock("../../src/utils/gitUtils.js", () => ({
 // Mock the aiService module
 vi.mock("../../src/services/aiService.js", () => ({
   callAgent: vi.fn().mockImplementation(async (options) => {
-    if (options.onContentUpdate) options.onContentUpdate("Test response");
+    if (options.onContentDelta) options.onContentDelta("Test response");
     return {
       content: "Test response",
       usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
@@ -82,7 +82,7 @@ function createAIManager(modelConfig: ModelConfig) {
     getMessages: vi.fn().mockReturnValue([]),
     addAssistantMessage: vi.fn(),
     addUserMessage: vi.fn(),
-    updateCurrentMessageContent: vi.fn(),
+    appendCurrentMessageContent: vi.fn(),
     updateToolBlock: vi.fn(),
     mergeAssistantAdditionalFields: vi.fn(),
     setMessages: vi.fn(),

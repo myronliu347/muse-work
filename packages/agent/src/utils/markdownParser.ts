@@ -104,8 +104,13 @@ const BLOCK_BASH_REGEX = /```!\s*\n?([\s\S]*?)\n?```/g;
 
 /**
  * Inline syntax pattern: !`command`
+ *
+ * The lookbehind requires start-of-line or whitespace before the `!`. Without
+ * it a document that merely mentions an error code in a code span — `` `#REF!`: `` —
+ * parses as an injected command, and a denied injected command aborts the
+ * whole skill.
  */
-const INLINE_BASH_REGEX = /!`([^`]+)`/g;
+const INLINE_BASH_REGEX = /(?<=^|\s)!`([^`]+)`/gm;
 
 export function parseBashCommands(content: string): {
   commands: string[];
@@ -221,16 +226,52 @@ export function replaceBashCommandsWithOutput(
 }
 
 /**
+ * Gate consulted before an injected command runs.
+ */
+export interface BashCommandGate {
+  check(
+    command: string,
+    workdir: string,
+  ): Promise<{ behavior: "allow" } | { behavior: "deny"; message?: string }>;
+}
+
+/**
+ * Thrown when an injected command is denied. Aborts the whole skill / command
+ * invocation so the body never reaches the model.
+ */
+export class BashCommandPermissionError extends Error {
+  constructor(
+    public readonly command: string,
+    public readonly reason?: string,
+  ) {
+    super(
+      `Shell command permission check failed for pattern "${command}": ${
+        reason || "Permission denied"
+      }`,
+    );
+    this.name = "BashCommandPermissionError";
+  }
+}
+
+/**
  * Execute bash commands and return results
  */
 export async function executeBashCommands(
   commands: string[],
   workdir: string,
   timeout: number = 30000,
+  gate?: BashCommandGate,
 ): Promise<BashCommandResult[]> {
   const results: BashCommandResult[] = [];
 
   for (const originalCommand of commands) {
+    if (gate) {
+      const decision = await gate.check(originalCommand, workdir);
+      if (decision.behavior === "deny") {
+        throw new BashCommandPermissionError(originalCommand, decision.message);
+      }
+    }
+
     let command = originalCommand;
     const execOptions: { cwd: string; timeout: number; shell?: string } = {
       cwd: workdir,

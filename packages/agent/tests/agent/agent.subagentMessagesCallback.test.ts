@@ -209,10 +209,10 @@ describe("Agent - onSubagentMessagesChange Callback Tests", () => {
       vi.clearAllMocks();
 
       // Update content to simulate streaming
-      subagentInstance.messageManager.updateCurrentMessageContent(
+      subagentInstance.messageManager.appendCurrentMessageContent(
         "Initial content",
       );
-      subagentInstance.messageManager.updateCurrentMessageContent(
+      subagentInstance.messageManager.appendCurrentMessageContent(
         "Initial content updated",
       );
 

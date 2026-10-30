@@ -23,7 +23,7 @@ Put string key-value pairs in \`settings.json\` \`env\`. \`WAVE_*\` aliases are 
 | \`MUSE_CUSTOM_HEADERS\` | Newline-separated \`Key: Value\` headers |
 | \`MUSE_MODEL\` | Primary model |
 | \`MUSE_FAST_MODEL\` | Fast model |
-| \`MUSE_VISION_MODEL\` | Vision model for the builtin vision subagent |
+| \`MUSE_VISION_MODEL\` | Vision model for the builtin vision subagent. That subagent is offered only when this is set and the main model has \`capabilities.vision\` set to false |
 | \`MUSE_MAX_INPUT_TOKENS\` | Input token budget |
 | \`MUSE_MAX_OUTPUT_TOKENS\` | Output token budget |
 | \`MUSE_DISABLE_AUTO_MEMORY\` | \`1\` / \`true\` disables auto-memory |

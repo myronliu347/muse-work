@@ -79,7 +79,7 @@ function buildHarness(queueChanges: unknown[]) {
     addAssistantMessage: vi.fn(),
     addUserMessage: vi.fn().mockReturnValue("msg-id"),
     addNotificationMessage: vi.fn(),
-    updateCurrentMessageContent: vi.fn(),
+    appendCurrentMessageContent: vi.fn(),
     updateToolBlock: vi.fn(),
     mergeAssistantAdditionalFields: vi.fn(),
     setMessages: vi.fn(),

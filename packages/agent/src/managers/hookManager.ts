@@ -29,6 +29,8 @@ import type { MessageManager } from "./messageManager.js";
 import { Container } from "../utils/container.js";
 import type { ConfigurationService } from "../services/configurationService.js";
 import { pluginRootEnv, substitutePluginRoot } from "../utils/museEnv.js";
+import type { MessageQueue } from "./messageQueue.js";
+import { taskNotificationToXml } from "../utils/notificationXml.js";
 
 import { logger } from "../utils/globalLogger.js";
 
@@ -215,17 +217,25 @@ export class HookManager {
             command = substitutePluginRoot(command, hookCommand.pluginRoot);
           }
 
-          if (hookCommand.async) {
-            // Execute async command without awaiting
-            executeCommand(command, execContext, options).catch((error) => {
-              const errorMessage =
-                error instanceof Error
-                  ? error.message
-                  : "Unknown execution error";
-              logger?.error(
-                `[HookManager] Async hook command ${commandIndex + 1} failed: ${errorMessage}`,
+          if (hookCommand.async || hookCommand.asyncRewake) {
+            // `asyncRewake` implies async: the result is only read on exit code 2.
+            const execution = executeCommand(command, execContext, options);
+            if (hookCommand.asyncRewake) {
+              void this.rewakeOnBlockingError(
+                `${event}:${configIndex}:${commandIndex}`,
+                execution,
               );
-            });
+            } else {
+              execution.catch((error) => {
+                const errorMessage =
+                  error instanceof Error
+                    ? error.message
+                    : "Unknown execution error";
+                logger?.error(
+                  `[HookManager] Async hook command ${commandIndex + 1} failed: ${errorMessage}`,
+                );
+              });
+            }
             // Async hooks are not included in results to prevent blocking
             continue;
           }
@@ -257,6 +267,51 @@ export class HookManager {
   }
 
   /**
+   * Deliver an async hook's blocking-error output to the model.
+   *
+   * Nobody awaits the hook, and by the time it finishes the turn that launched
+   * it is usually over, so the only channel left is a queued notification.
+   * Exit code 2 is the wake condition. Any other exit, a timeout, or a spawn
+   * failure stays silent.
+   */
+  private async rewakeOnBlockingError(
+    hookId: string,
+    execution: Promise<HookExecutionResult>,
+  ): Promise<void> {
+    let result: HookExecutionResult;
+    try {
+      result = await execution;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown execution error";
+      logger?.error(
+        `[HookManager] Rewaking hook ${hookId} failed: ${errorMessage}`,
+      );
+      return;
+    }
+
+    if (result.timedOut || result.exitCode !== 2) return;
+
+    const text = result.stderr?.trim() || result.stdout?.trim();
+    if (!text) return;
+
+    const messageQueue = this.container.has("MessageQueue")
+      ? this.container.get<MessageQueue>("MessageQueue")
+      : undefined;
+    if (!messageQueue) return;
+
+    messageQueue.enqueueNotification(
+      taskNotificationToXml({
+        type: "task_notification",
+        taskId: `hook-${hookId}`,
+        taskType: "hook",
+        status: "failed",
+        summary: `<system-reminder>\n${text}\n</system-reminder>`,
+      }),
+    );
+  }
+
+  /**
    * Process hook execution results and determine appropriate actions
    * based on exit codes and hook event type
    */
@@ -272,6 +327,11 @@ export class HookManager {
   } {
     if (!messageManager || results.length === 0) {
       return { shouldBlock: false };
+    }
+
+    // Structured additionalContext is orthogonal to the exit code.
+    for (const result of results) {
+      this.injectAdditionalContext(event, result, messageManager);
     }
 
     // First pass: Check for any blocking errors (exit code 2)
@@ -312,6 +372,68 @@ export class HookManager {
     return { shouldBlock: false };
   }
 
+  private static readonly ADDITIONAL_CONTEXT_EVENTS: readonly HookEvent[] = [
+    "UserPromptSubmit",
+    "PreToolUse",
+    "PostToolUse",
+  ];
+
+  /**
+   * Inject hookSpecificOutput.additionalContext from a hook's stdout.
+   * The channel is orthogonal to the exit code: a hook can add context
+   * without manufacturing an error. SessionStart keeps its own parsing.
+   */
+  private injectAdditionalContext(
+    event: HookEvent,
+    result: HookExecutionResult,
+    messageManager: MessageManager,
+  ): void {
+    if (!HookManager.ADDITIONAL_CONTEXT_EVENTS.includes(event)) return;
+
+    const stdout = result.stdout?.trim();
+    if (!stdout || !stdout.startsWith("{")) return;
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(stdout);
+    } catch {
+      return;
+    }
+    if (typeof parsed !== "object" || parsed === null) return;
+
+    const hookSpecificOutput = (parsed as Record<string, unknown>)
+      .hookSpecificOutput;
+    if (typeof hookSpecificOutput !== "object" || hookSpecificOutput === null) {
+      return;
+    }
+
+    const output = hookSpecificOutput as Record<string, unknown>;
+
+    if (output.hookEventName !== event) {
+      this.handleNonBlockingError(
+        {
+          ...result,
+          stderr: `Hook returned incorrect event name: expected '${event}' but got '${String(
+            output.hookEventName,
+          )}'`,
+        },
+        messageManager,
+      );
+      return;
+    }
+
+    const additionalContext = output.additionalContext;
+    if (typeof additionalContext !== "string" || !additionalContext.trim()) {
+      return;
+    }
+
+    messageManager.addUserMessage({
+      content: `<system-reminder>\n${additionalContext.trim()}\n</system-reminder>`,
+      isMeta: true,
+      source: MessageSource.HOOK,
+    });
+  }
+
   /**
    * Handle successful hook execution (exit code 0)
    */
@@ -320,10 +442,10 @@ export class HookManager {
     result: HookExecutionResult,
     messageManager: MessageManager,
   ): void {
-    if (event === "UserPromptSubmit" && result.stdout?.trim()) {
-      // Inject stdout as user message context for UserPromptSubmit
+    const stdout = result.stdout?.trim();
+    if (event === "UserPromptSubmit" && stdout && !stdout.startsWith("{")) {
       messageManager.addUserMessage({
-        content: result.stdout.trim(),
+        content: stdout,
         source: MessageSource.HOOK,
       });
     }

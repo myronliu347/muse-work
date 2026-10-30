@@ -33,7 +33,7 @@ vi.mock("../../src/utils/gitUtils.js", () => ({
 // Mock the aiService module
 vi.mock("../../src/services/aiService.js", () => ({
   callAgent: vi.fn().mockImplementation(async (options) => {
-    if (options.onContentUpdate) options.onContentUpdate("Test response");
+    if (options.onContentDelta) options.onContentDelta("Test response");
     return {
       content: "Test response",
       usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
@@ -97,7 +97,7 @@ describe("AIManager", () => {
       addAssistantMessage: vi.fn(),
       discardAssistantMessage: vi.fn(),
       addUserMessage: vi.fn(),
-      updateCurrentMessageContent: vi.fn(),
+      appendCurrentMessageContent: vi.fn(),
       updateToolBlock: vi.fn(),
       mergeAssistantAdditionalFields: vi.fn(),
       setMessages: vi.fn(),
@@ -1693,7 +1693,7 @@ describe("AIManager", () => {
         .mockReturnValueOnce("msg-final");
       vi.mocked(aiService.callAgent).mockImplementationOnce(async (options) => {
         // The streamed attempt reaches the UI before its connection dies…
-        options.onContentUpdate?.("half an ans");
+        options.onContentDelta?.("half an ans");
         // …and the re-issued non-streaming request returns the whole answer.
         return { content: "the full answer", stream_fallback: true };
       });
@@ -1716,7 +1716,7 @@ describe("AIManager", () => {
       // The fallback result lands in a fresh message as a non-streamed response.
       expect(mockMessageManager.addAssistantMessage).toHaveBeenCalledTimes(2);
       expect(
-        mockMessageManager.updateCurrentMessageContent,
+        mockMessageManager.appendCurrentMessageContent,
       ).toHaveBeenCalledWith("the full answer");
 
       // Nothing re-issues on top of the fallback: one callAgent, two messages.
@@ -1728,7 +1728,7 @@ describe("AIManager", () => {
         "msg-streamed",
       );
       vi.mocked(aiService.callAgent).mockImplementationOnce(async (options) => {
-        options.onContentUpdate?.("streamed answer");
+        options.onContentDelta?.("streamed answer");
         return { content: "streamed answer" };
       });
 

@@ -141,9 +141,10 @@ export interface AgentCallbacks
   onLoadingChange?: (loading: boolean) => void;
   onWorkdirChange?: (newCwd: string) => void;
   onQueuedMessagesChange?: (messages: QueuedMessage[]) => void;
-  /** Streaming content from the compaction fork (accumulated). Reasoning
-   * chunks fall back to this channel when no reasoning callback is provided. */
+  /** Streaming content from the compaction fork, as a delta of newly produced
+   * text. Consumers append it. Reasoning deltas fall back to this channel when
+   * no reasoning callback is provided. */
   onCompactionContentUpdate?: (content: string) => void;
-  /** Streaming reasoning from the compaction fork (accumulated). */
+  /** Streaming reasoning from the compaction fork, as a delta. */
   onCompactionReasoningUpdate?: (content: string) => void;
 }
