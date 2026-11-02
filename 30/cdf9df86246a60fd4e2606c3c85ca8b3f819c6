@@ -1,0 +1,49 @@
+packages/webview/src/components/ChatApp.tsx
+  c653e7d67b333342 148,1932-1943,2138-2145,2543-2545,2819,2918
+packages/webview/src/hooks/useFilePanel.ts
+  c653e7d67b333342 44,380-381,388
+packages/webview/tests/components/issueTab.test.tsx
+  c653e7d67b333342 949-1006
+packages/webview/src/utils/fileHistorySnapshots.ts
+  c653e7d67b333342 31-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "30cdf9df86246a60fd4e2606c3c85ca8b3f819c6",
+  "prompts": {
+    "c653e7d67b333342": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "36fc3e93-b86f-45c3-aa13-65748d9db108",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 145,
+      "total_deletions": 78,
+      "accepted_lines": 145,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/hooks/useFilePanel.ts": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 26,
+          "deletions": 75,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/utils/fileHistorySnapshots.ts": {
+          "additions": 57,
+          "accepted_lines": 57
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 58,
+          "accepted_lines": 58
+        }
+      }
+    }
+  }
+}
