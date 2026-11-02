@@ -41,7 +41,7 @@ export interface FilePanelHandlers {
   handleCloseFileTab: (path: string) => void;
   handlePinFileTab: (path: string) => void;
   handleRevealInFinder: (path: string) => void;
-  handleOpenFileHistoryDiff: (path: string) => void;
+  handleOpenFileHistoryDiff: (path: string) => boolean;
   handleRevertFileHistory: (messageIds: string[]) => void;
   revertingFileHistory: boolean;
   handleFileTreeChange: (next: FileTreeState) => void;
@@ -377,14 +377,15 @@ export function useFilePanel({
   // targeting the file whose snapshot diff came from the last assistant message.
   const handleOpenFileHistoryDiff = useCallback(
     (path: string) => {
-      if (!path) return;
-      if (!tryOpenPanel("diff")) return;
+      if (!path) return false;
+      if (!tryOpenPanel("diff")) return false;
       updatePanelGroup({
         diffView: {
           mode: "recent",
           file: { path },
         },
       });
+      return true;
     },
     [tryOpenPanel, updatePanelGroup],
   );

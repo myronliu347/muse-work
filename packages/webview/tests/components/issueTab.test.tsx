@@ -946,6 +946,64 @@ describe("issue tab", () => {
     });
   });
 
+  it("opens the clicked issue file change in the diff pane", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    vi.spyOn(MuseApiClient.prototype, "getMessages").mockImplementation(async (id) => {
+      if (id !== "plan-radii") return { messages: [], hasMore: false };
+      return {
+        messages: [
+          textMessage("u1", "改一下圆角"),
+          {
+            id: "a1",
+            role: "assistant",
+            timestamp: "2026-10-22T00:00:01.000Z",
+            blocks: [
+              { type: "text", content: "改好了" },
+              {
+                type: "file_history",
+                snapshots: [
+                  {
+                    filePath: "/work/radii/app.tsx",
+                    operation: "modify",
+                    additions: 2,
+                    deletions: 1,
+                    hunks: "@@ -1 +1 @@\n-old\n+new\n",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        hasMore: false,
+      };
+    });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({ issueGroups: [RADII_ISSUE] })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    await user.click(within(dock).getByRole("button", { name: "打开会话", hidden: true }));
+    const card = await within(frame).findByTestId("file-history-card");
+    await user.click(within(card).getByTestId("file-history-card-row"));
+
+    expect(within(frame).getByTestId("desktop-panel-tab-diff")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(await within(frame).findByTestId("diff-mode-select")).toHaveTextContent(
+      "最近一次修改",
+    );
+    expect(within(frame).getByTestId("diff-file-path")).toHaveTextContent("app.tsx");
+  });
+
   it("requests the selected issue directory when 变更 opens on Muse Bot", async () => {
     resetWebviewStores();
     stubAssistant([]);

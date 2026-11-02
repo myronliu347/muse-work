@@ -88,7 +88,6 @@ import { useScenarioModelsStore } from "../stores/scenarioModelsStore";
 import { MuseApiClient } from "../muse/apiClient";
 import { resolveDraftModel } from "../muse/defaultModel";
 import { resolveMuseServerUrl } from "../muse/hostBridge";
-import type { WorkspaceDiffFile } from "./panels/DiffPane";
 import { prefetchTerminalLib } from "./panels/TerminalPane";
 import {
   DESKTOP_SIDEBAR_WIDTH,
@@ -146,7 +145,7 @@ import {
   type PanelGroupState,
 } from "../stores";
 import { applyCloseFileTab } from "../stores/panelGroupStore";
-import { dedupeSnapshotsByFile } from "../utils/fileHistorySnapshots";
+import { recentTurnDiffFiles } from "../utils/fileHistorySnapshots";
 import { createMessageHandler } from "../muse/messageRouter";
 
 const EMPTY_LISTING_CACHE: PanelGroupState["fileTree"]["childrenCache"] = {};
@@ -181,8 +180,6 @@ import { usePreview } from "../hooks/usePreview";
 import { useRewind } from "../hooks/useRewind";
 import { useDialogs } from "../hooks/useDialogs";
 import "../styles/ChatApp.css";
-
-const EMPTY_RECENT_DIFF_FILES: WorkspaceDiffFile[] = [];
 
 export { prunePanelGroupCache } from "../stores";
 
@@ -1932,6 +1929,18 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     },
     [effectiveHost, openMessageFile, postToHost, setAssistantDockOpen, tryOpenPanel],
   );
+  // The card click has to bring 变更 forward. On an issue the dock otherwise
+  // stays on 详情, and the directory's active kind never becomes the visible tab.
+  const openFileHistoryDiff = useCallback(
+    (path: string) => {
+      if (!handleOpenFileHistoryDiff(path)) return;
+      if (assistantVisibleRef.current) setAssistantDockOpen(true);
+      if (assistantVisibleRef.current || onSessionsSurface) {
+        selectDockRef.current("diff");
+      }
+    },
+    [handleOpenFileHistoryDiff, onSessionsSurface, setAssistantDockOpen],
+  );
   const issueOwnsFileTab = useCallback((path: string) => {
     if (!assistantVisibleRef.current) return false;
     const store = usePanelGroupStore.getState();
@@ -2126,73 +2135,14 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // question with no file changes shows nothing (no fallback to earlier
   // turns). Derived from the live message list so it survives session
   // switches — the reloaded transcript carries the same file_history blocks.
-  const recentDiffFiles = useMemo<WorkspaceDiffFile[]>(() => {
-    const msgs = state.messages;
-    // Walk from the tail and collect every assistant message of the newest
-    // turn; meta-injected user messages do not break the turn. We stop at the
-    // first real user message — earlier turns are ignored even when the newest
-    // turn has no file_history.
-    const snapshots: Array<{
-      filePath: string;
-      additions?: number;
-      deletions?: number;
-      hunks?: string;
-    }> = [];
-    let inTurn = false;
-    let foundFh = false;
-    for (let i = msgs.length - 1; i >= 0; i--) {
-      const m = msgs[i];
-      if (m.role === "user" && !m.isMeta) {
-        // The newest turn ends here; do not look further back.
-        break;
-      }
-      if (m.role !== "assistant") continue;
-      inTurn = true;
-      const block = (m.blocks ?? []).find(
-        (b) => b.type === "file_history",
-      ) as
-        | {
-            type: "file_history";
-            snapshots: Array<{
-              filePath: string;
-              snapshotPath?: string;
-              additions?: number;
-              deletions?: number;
-              hunks?: string;
-            }>;
-          }
-        | undefined;
-      if (block && Array.isArray(block.snapshots)) {
-        snapshots.push(...block.snapshots);
-        foundFh = true;
-      }
-    }
-    if (!inTurn || !foundFh) return [];
-    const wd = effectiveWorkdir;
-    // A turn often edits the same file repeatedly; keep the OLDEST snapshot per
-    // file so the diff covers the whole turn (enrich diffs against current disk
-    // content — newer snapshots would only show the delta since that edit).
-    const deduped = dedupeSnapshotsByFile(snapshots);
-    return deduped
-      .filter(
-        (s) =>
-          s.filePath &&
-          // Internal bookkeeping files (task state, etc.) outside the workdir
-          // are not user-facing changes.
-          (!wd || s.filePath.startsWith(wd)) &&
-          ((s.additions ?? 0) > 0 || (s.deletions ?? 0) > 0),
-      )
-      .map((s) => ({
-        path: s.filePath,
-        status: "modified" as const,
-        additions: s.additions ?? 0,
-        deletions: s.deletions ?? 0,
-        hunks: s.hunks ?? "",
-        truncated: false,
-        binary: false,
-        ...(s.snapshotPath ? { snapshotPath: s.snapshotPath } : {}),
-      }));
-  }, [state.messages, effectiveWorkdir]);
+  const recentDiffFiles = useMemo(
+    () => recentTurnDiffFiles(state.messages, effectiveWorkdir),
+    [state.messages, effectiveWorkdir],
+  );
+  const issueRecentDiffFiles = useMemo(
+    () => recentTurnDiffFiles(shownIssueMessages, dockWorkdir),
+    [shownIssueMessages, dockWorkdir],
+  );
 
   const activeIssueGroup = useMemo(() => {
     if (host?.type !== "desktop") return undefined;
@@ -2590,8 +2540,9 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     onRemotePreviewRetry: handleRemotePreviewRetry,
     onPreviewNavigate: handlePreviewNavigate,
     onAddComment: handleAddComment,
-    diffView: issueDiffView ?? diffView,
-    recentFiles: dockIssueId ? EMPTY_RECENT_DIFF_FILES : recentDiffFiles,
+    diffView:
+      dockIssueId && diffView?.mode !== "recent" ? issueDiffView : diffView,
+    recentFiles: dockIssueId ? issueRecentDiffFiles : recentDiffFiles,
     onOpenFile: handleOpenFile,
     onOpenFilePinned: handleOpenFilePin,
     onRefreshOpenFile: handleRefreshOpenFile,
@@ -2865,7 +2816,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                   onLoadOlder={loadOlderIssueMessages}
                   onRevertFileHistory={issueShowsLive ? handleRevertFileHistory : () => undefined}
                   revertingFileHistory={issueShowsLive && revertingFileHistory}
-                  onOpenFileHistoryFile={handleOpenFileHistoryDiff}
+                  onOpenFileHistoryFile={openFileHistoryDiff}
                   backgroundTasks={issueShowsLive ? state.backgroundTasks : []}
                   isBackgroundTasksCollapsed={state.isBackgroundTasksCollapsed}
                   onToggleBackgroundTasks={() =>
@@ -2964,7 +2915,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       onOpenAgentTranscript={handleOpenAgentTranscript}
       onRevertFileHistory={handleRevertFileHistory}
       revertingFileHistory={revertingFileHistory}
-      onOpenFileHistoryFile={handleOpenFileHistoryDiff}
+      onOpenFileHistoryFile={openFileHistoryDiff}
       backgroundTasks={state.backgroundTasks}
       isBackgroundTasksCollapsed={state.isBackgroundTasksCollapsed}
       onToggleBackgroundTasks={() =>

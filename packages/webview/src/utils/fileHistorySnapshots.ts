@@ -28,3 +28,60 @@ export function dedupeSnapshotsByFile<T extends FileSnapshotLike>(
   }
   return [...oldest.values()];
 }
+
+type TurnMessage = {
+  role?: string;
+  isMeta?: boolean;
+  blocks?: ReadonlyArray<{
+    type?: string;
+    snapshots?: ReadonlyArray<FileSnapshotLike & {
+      snapshotPath?: string;
+      additions?: number;
+      deletions?: number;
+      hunks?: string;
+    }>;
+  }>;
+};
+
+/** Files changed in the newest turn, in the shape the diff pane renders. */
+export function recentTurnDiffFiles(messages: readonly TurnMessage[], workdir: string | undefined) {
+  const snapshots: Array<
+    FileSnapshotLike & {
+      snapshotPath?: string;
+      additions?: number;
+      deletions?: number;
+      hunks?: string;
+    }
+  > = [];
+  let inTurn = false;
+  let foundHistory = false;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+    if (message.role === "user" && !message.isMeta) break;
+    if (message.role !== "assistant") continue;
+    inTurn = true;
+    const block = message.blocks?.find((item) => item.type === "file_history");
+    if (block?.snapshots) {
+      snapshots.push(...block.snapshots);
+      foundHistory = true;
+    }
+  }
+  if (!inTurn || !foundHistory) return [];
+  return dedupeSnapshotsByFile(snapshots)
+    .filter(
+      (snapshot) =>
+        snapshot.filePath &&
+        (!workdir || snapshot.filePath.startsWith(workdir)) &&
+        ((snapshot.additions ?? 0) > 0 || (snapshot.deletions ?? 0) > 0),
+    )
+    .map((snapshot) => ({
+      path: snapshot.filePath!,
+      status: "modified" as const,
+      additions: snapshot.additions ?? 0,
+      deletions: snapshot.deletions ?? 0,
+      hunks: snapshot.hunks ?? "",
+      truncated: false,
+      binary: false,
+      ...(snapshot.snapshotPath ? { snapshotPath: snapshot.snapshotPath } : {}),
+    }));
+}
