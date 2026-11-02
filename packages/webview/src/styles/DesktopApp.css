@@ -3187,11 +3187,6 @@ body.is-panel-resizing .assistant-split-handle::before {
   padding: 0 var(--space-4) 28px;
 }
 
-.desktop-layout > .chat-container .assistant-welcome,
-.desktop-pane-row > .desktop-pane:first-child .assistant-welcome {
-  padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
-}
-
 .desktop-layout .assistant-page .assistant-header-title {
   -webkit-app-region: drag;
   /* The title is only as wide as "Muse Bot" otherwise, so the empty
