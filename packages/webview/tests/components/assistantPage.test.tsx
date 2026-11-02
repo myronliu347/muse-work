@@ -48,7 +48,7 @@ describe("AssistantPage", () => {
     expect(await screen.findByText("你好")).toBeTruthy();
     expect(screen.getByText("你好").closest(".assistant-bubble-user")).toBeTruthy();
     expect(screen.getByText("在").closest(".assistant-bubble-assistant")).toBeTruthy();
-    expect(screen.getAllByText("Muse Bot")).toHaveLength(1);
+    expect(screen.getAllByText("灵光")).toHaveLength(1);
     expect(document.querySelectorAll(".assistant-bubble-time").length).toBe(2);
     const input = screen.getByTestId("message-input");
     input.textContent = "继续";
@@ -157,7 +157,7 @@ describe("AssistantPage", () => {
       }),
     };
     render(<AssistantPage api={api} />);
-    expect(await screen.findByText("Muse Bot")).toBeTruthy();
+    expect(await screen.findByText("灵光")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "轨迹" }));
     expect(await screen.findByText("工具调用了")).toBeTruthy();
     expect(api.getMessages).toHaveBeenCalledWith("asst");
@@ -409,7 +409,7 @@ describe("AssistantPage", () => {
       sendAssistantMessage: vi.fn(),
       getAssistantSession: vi.fn().mockResolvedValue({
         sessionId: "asst",
-        title: "Muse Bot",
+        title: "灵光",
         workdir: "/tmp/assistant-chat",
       }),
       getMessages: vi.fn().mockResolvedValue({ messages: [] }),

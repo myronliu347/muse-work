@@ -62,7 +62,7 @@ describe("assistant sidebar selection", () => {
     establishSession();
 
     const assistant = screen.getByTestId("desktop-assistant-menu");
-    expect(assistant).toHaveAttribute("aria-label", "Muse Bot");
+    expect(assistant).toHaveAttribute("aria-label", "灵光");
     expect(assistant.className).toContain("active");
     expect(screen.queryByTestId("desktop-session-item-sess-mock")).toBeNull();
     expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();

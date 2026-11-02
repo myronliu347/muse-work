@@ -101,7 +101,7 @@ function stubFetch(automations = [SAMPLE]) {
     if (url.includes("/assistant/session")) {
       return jsonResponse({
         sessionId: "assistant",
-        title: "Muse Bot",
+        title: "灵光",
         workdir: "/tmp/proj",
         working: false,
       });

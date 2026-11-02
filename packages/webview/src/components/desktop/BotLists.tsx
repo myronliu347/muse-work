@@ -384,23 +384,33 @@ export function BotLists({
     return () => document.removeEventListener("mousedown", onMouseDown);
   }, [wide, openMenu, onDismissMenu]);
   if (wide) {
+    const showQueueCard = showQueue && queue.length > 0;
+    const showTodoCard = issues.length > 0;
+    if (!showQueueCard && !showTodoCard) return null;
     return (
       <aside className="bot-lists" style={columnStyle} data-testid="bot-lists">
-        <QueueCard queue={queue} selected={selected} onSelect={onSelect} />
-        <TodoCard
-          issues={issues}
-          selected={selected}
-          onSelect={onSelect}
-          onOpenIssue={onOpenIssue}
-          onOpenDock={onOpenDock}
-        />
+        {showQueueCard ? (
+          <QueueCard queue={queue} selected={selected} onSelect={onSelect} />
+        ) : null}
+        {showTodoCard ? (
+          <TodoCard
+            issues={issues}
+            selected={selected}
+            onSelect={onSelect}
+            onOpenIssue={onOpenIssue}
+            onOpenDock={onOpenDock}
+          />
+        ) : null}
       </aside>
     );
   }
+  const showQueueTool = showQueue && queue.length > 0;
+  const showTodoTool = issues.length > 0;
+  if (!showQueueTool && !showTodoTool) return null;
 
   return (
     <div className="bot-lists-tools" ref={toolsRef}>
-      {showQueue ? (
+      {showQueueTool ? (
         <button
           type="button"
           className="bot-lists-tool"
@@ -414,18 +424,20 @@ export function BotLists({
           <span className="bot-lists-tip">待处理</span>
         </button>
       ) : null}
-      <button
-        type="button"
-        className="bot-lists-tool"
-        style={toolStyle}
-        aria-label="事项"
-        aria-expanded={openMenu === "todo"}
-        onClick={() => onToggleMenu("todo")}
-      >
-        <TodoIcon />
-        <span className="bot-lists-badge">{issues.length}</span>
-        <span className="bot-lists-tip">事项</span>
-      </button>
+      {showTodoTool ? (
+        <button
+          type="button"
+          className="bot-lists-tool"
+          style={toolStyle}
+          aria-label="事项"
+          aria-expanded={openMenu === "todo"}
+          onClick={() => onToggleMenu("todo")}
+        >
+          <TodoIcon />
+          <span className="bot-lists-badge">{issues.length}</span>
+          <span className="bot-lists-tip">事项</span>
+        </button>
+      ) : null}
       {openMenu ? (
         <div className="bot-lists-pop" data-testid="bot-lists-menu">
           {openMenu === "queue" ? (

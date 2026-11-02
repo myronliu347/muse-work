@@ -61,7 +61,7 @@ describe("Tooltip Component", () => {
     renderChatApp(undefined, { surface: "assistant" });
 
     const labels: Array<[string, string]> = [
-      ["desktop-assistant-menu", "Muse Bot"],
+      ["desktop-assistant-menu", "灵光"],
       ["desktop-sessions-menu", "会话"],
       ["desktop-automations-menu", "自动化"],
       ["desktop-skills-menu", "技能"],

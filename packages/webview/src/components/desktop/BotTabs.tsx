@@ -211,7 +211,7 @@ export function BotTabs({
   return (
     <div
       className={`bot-tabs${overflow.start ? " is-overflow-start" : ""}${overflow.end ? " is-overflow-end" : ""}`}
-      aria-label="Muse Bot"
+      aria-label="灵光"
       ref={scrollerRef}
     >
       {tabs.map((tab) => {
@@ -233,7 +233,7 @@ export function BotTabs({
                   <IssuePresenceMark presence="unread" />
                 </span>
               ) : null}
-              Muse Bot
+              灵光
             </button>
           );
         }

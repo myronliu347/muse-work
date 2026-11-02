@@ -38,15 +38,27 @@ test("capture Muse Bot home", async ({ webviewPage }) => {
     /active/,
   );
   await expect(webviewPage.getByTestId("welcome-headline")).toContainText(
-    "今天想让我帮你做些什么？",
+    "灵光一现 迎刃而解",
   );
   await expect(webviewPage.getByTestId("new-session-page")).toHaveCount(0);
   await expect(webviewPage.locator(".assistant-error")).toHaveCount(0);
 
   await webviewPage.evaluate(() => {
-    document.documentElement.setAttribute("data-theme", "dark");
     document.body.classList.add("vscode-dark");
     document.body.classList.remove("vscode-light");
+    window.postMessage(
+      { command: "desktopThemeChange", effective: "dark" },
+      "*",
+    );
+  });
+  await expect(webviewPage.locator("html")).toHaveAttribute("data-theme", "dark");
+  await webviewPage.waitForFunction(() => {
+    const layout = document.querySelector(".desktop-layout");
+    if (!layout) return false;
+    const bg = getComputedStyle(layout).backgroundColor;
+    const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (!match) return false;
+    return Number(match[1]) < 80 && Number(match[2]) < 80 && Number(match[3]) < 80;
   });
 
   await screenshotWebp(

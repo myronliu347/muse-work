@@ -30,7 +30,7 @@ export const ASSISTANT_TOOLS = [
   "WebSearch",
 ] as const;
 
-export const ASSISTANT_TITLE = "Muse Bot";
+export const ASSISTANT_TITLE = "灵光";
 
 export function ensureAssistantSession(
   store: SessionStore,

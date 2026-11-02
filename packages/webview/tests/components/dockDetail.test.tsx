@@ -111,7 +111,7 @@ function stubAssistant(fetched: string[]) {
       if (url.includes("/assistant/session")) {
         return jsonResponse({
           sessionId: "assistant",
-          title: "Muse Bot",
+          title: "灵光",
           workdir: "/tmp/proj",
           working: false,
         });
@@ -617,7 +617,7 @@ describe("assistant dock detail", () => {
     expect(within(detail).getByText("改 token")).toBeInTheDocument();
     expect(within(detail).getByRole("button", { name: "打开会话" })).toBeInTheDocument();
     expect(within(dock).getByTestId("file-tree")).not.toBeVisible();
-    expect(within(frame).getByRole("button", { name: "Muse Bot" })).toHaveClass(/active/);
+    expect(within(frame).getByRole("button", { name: "灵光" })).toHaveClass(/active/);
     expect(onSelectSession).not.toHaveBeenCalled();
 
     const lists = await within(frame).findByTestId("bot-lists");
@@ -665,7 +665,7 @@ describe("assistant dock detail", () => {
       "aria-current",
       "true",
     );
-    expect(within(frame).getByRole("button", { name: "Muse Bot" })).toHaveClass(/active/);
+    expect(within(frame).getByRole("button", { name: "灵光" })).toHaveClass(/active/);
     expect(frame.querySelectorAll(".bot-tab")).toHaveLength(1);
     expect(onSelectSession).not.toHaveBeenCalled();
 
@@ -684,7 +684,7 @@ describe("assistant dock detail", () => {
     ).toBeInTheDocument();
     expect(fetched.some((url) => url.includes("/sessions/plan-a11y/messages"))).toBe(true);
 
-    await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
+    await user.click(within(frame).getByRole("button", { name: "灵光" }));
     expect(within(dock).getByRole("button", { name: "切到会话" })).toBeInTheDocument();
     await user.click(within(dock).getByRole("button", { name: "切到会话" }));
     expect(within(dock).queryByRole("button", { name: "切到会话" })).toBeNull();
@@ -697,7 +697,7 @@ describe("assistant dock detail", () => {
     expect(fetched.some((url) => url.includes("/sessions/plan-a11y/messages"))).toBe(true);
     expect(screen.getByTestId("desktop-sessions-menu").className).not.toContain("active");
 
-    await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
+    await user.click(within(frame).getByRole("button", { name: "灵光" }));
     const homeLists = within(frame).getByTestId("bot-lists");
     await user.click(within(homeLists).getByRole("button", { name: new RegExp(QUEUE_TITLE) }));
     const queueDetail = within(dock).getByTestId("dock-detail");

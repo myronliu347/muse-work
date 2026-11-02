@@ -121,7 +121,7 @@ function stubAssistant(fetched: string[]) {
       if (url.includes("/assistant/session")) {
         return jsonResponse({
           sessionId: "assistant",
-          title: "Muse Bot",
+          title: "灵光",
           workdir: "/tmp/proj",
           working: false,
         });
@@ -289,7 +289,7 @@ describe("issue tab", () => {
     sendExtensionMessage({
       command: "setInitialState",
       messages: [],
-      session: { id: "assistant", title: "Muse Bot" },
+      session: { id: "assistant", title: "灵光" },
       workdir: "/tmp/proj",
     });
 
@@ -553,7 +553,7 @@ describe("issue tab", () => {
     expect(within(frame).queryByRole("button", { name: "待处理" })).toBeNull();
     expect(within(frame).getByRole("button", { name: "事项" })).toBeInTheDocument();
 
-    await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
+    await user.click(within(frame).getByRole("button", { name: "灵光" }));
     const lists = within(frame).getByTestId("bot-lists");
     await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
     expect(onSelectSession).not.toHaveBeenCalled();
@@ -590,7 +590,7 @@ describe("issue tab", () => {
     expect(within(dock).queryByRole("button", { name: "切到会话" })).toBeNull();
     expect(screen.getByTestId("desktop-sessions-menu").className).not.toContain("active");
 
-    await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
+    await user.click(within(frame).getByRole("button", { name: "灵光" }));
     await user.click(within(frame).getByRole("button", { name: new RegExp(QUEUE_TITLE) }));
     expect(within(dock).getByRole("heading", { name: QUEUE_TITLE })).toBeInTheDocument();
     expect(within(dock).queryByRole("button", { name: "打开会话" })).toBeNull();
@@ -1509,7 +1509,7 @@ describe("issue tab", () => {
     expect(getMessages).toHaveBeenCalledTimes(2);
     expect(getMessages.mock.calls.filter((call) => call[0] === "plan-radii")).toHaveLength(2);
 
-    await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
+    await user.click(within(frame).getByRole("button", { name: "灵光" }));
     const lists = within(frame).getByTestId("bot-lists");
     await user.click(within(lists).getByRole("button", { name: new RegExp(EMPTY) }));
     await user.click(within(dock).getByRole("button", { name: "打开会话" }));
@@ -2015,7 +2015,7 @@ describe("issue tab", () => {
       sessionId: "plan-radii",
     });
 
-    await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
+    await user.click(within(frame).getByRole("button", { name: "灵光" }));
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 30));
     });
@@ -2283,7 +2283,7 @@ describe("issue tab", () => {
       command: "desktopClearUnread",
       sessionIds: ["plan-radii"],
     });
-    expect(within(frame).getAllByRole("button", { name: "Muse Bot" })).toHaveLength(1);
+    expect(within(frame).getAllByRole("button", { name: "灵光" })).toHaveLength(1);
 
     const dock = await ensureAssistantDock(frame, user);
     await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
@@ -2344,7 +2344,7 @@ describe("issue tab", () => {
     expect(screen.getByTestId("assistant-notice")).toHaveTextContent("事项那边有回复");
     expect(within(frame).getByTestId("bot-tab-unread-dot")).toBeTruthy();
 
-    await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
+    await user.click(within(frame).getByRole("button", { name: "灵光" }));
     expect(screen.queryByTestId("assistant-notice")).toBeNull();
     expect(within(frame).queryByTestId("bot-tab-unread-dot")).toBeNull();
   });
@@ -2388,10 +2388,10 @@ describe("issue tab", () => {
     const issueColumn = frame.querySelector(".assistant-split-issue") as HTMLElement;
     expect(botColumn.querySelector(".assistant-split-bar")).toBeTruthy();
     expect(issueColumn.querySelector(".assistant-split-bar")).toBeTruthy();
-    expect(within(botColumn).getByRole("button", { name: "Muse Bot" })).toBeDisabled();
+    expect(within(botColumn).getByRole("button", { name: "灵光" })).toBeDisabled();
     expect(within(issueColumn).getByRole("button", { name: A11Y })).toBeTruthy();
     expect(issueColumn.style.minWidth).toBe("520px");
-    const botTab = within(botColumn).getByRole("button", { name: "Muse Bot" });
+    const botTab = within(botColumn).getByRole("button", { name: "灵光" });
 
     await user.click(botTab);
     expect(frame.querySelector(".assistant-page")).toBeTruthy();
@@ -2402,7 +2402,7 @@ describe("issue tab", () => {
       "aria-pressed",
       "false",
     );
-    const botTabAgain = within(frame).getByRole("button", { name: "Muse Bot" });
+    const botTabAgain = within(frame).getByRole("button", { name: "灵光" });
     expect(botTabAgain).toBeEnabled();
     expect(frame.querySelector(":scope > .bot-frame-bar")).toBeTruthy();
     expect(within(frame).getByTestId("issue-tab-transcript")).toBeTruthy();

@@ -86,7 +86,7 @@ export const PopoSettings: React.FC<{ api?: MuseApiClient }> = ({ api }) => {
     return (
       <Flex direction="column" gap="2" data-testid="popo-settings">
         <Text size="2" color="gray">
-          未找到 ~/.popo-config.json。配好之后，主人的私聊和群里 @ 机器人都会进 Muse Bot。
+          未找到 ~/.popo-config.json。配好之后，主人的私聊和群里 @ 机器人都会进灵光。
         </Text>
       </Flex>
     );

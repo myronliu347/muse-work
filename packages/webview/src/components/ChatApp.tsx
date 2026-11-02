@@ -99,8 +99,6 @@ import {
 import { useDesktopSidebarCollapsed } from "../hooks/useDesktopSidebarCollapsed";
 import { useDesktopSessionListWidth } from "../hooks/useDesktopSidebarWidth";
 import { DesktopSidebarToggle } from "./desktop/DesktopSidebarToggle";
-import { useMuseTheme } from "../ui/theme";
-import museM from "../assets/muse-m.png";
 import "../styles/WelcomeView.css";
 import type {
   ChatAppProps,
@@ -184,22 +182,10 @@ import "../styles/ChatApp.css";
 export { prunePanelGroupCache } from "../stores";
 
 function AssistantWelcome() {
-  const { effective } = useMuseTheme();
-  const showLogo = effective !== "light";
   return (
     <div className="assistant-welcome">
       <h1 className="welcome-headline" data-testid="welcome-headline">
-        {showLogo ? (
-          <img
-            src={museM}
-            alt=""
-            className="welcome-headline-logo"
-            width={64}
-            height={64}
-            draggable={false}
-          />
-        ) : null}
-        今天想让我帮你做些什么？
+        灵光一现 迎刃而解
       </h1>
     </div>
   );

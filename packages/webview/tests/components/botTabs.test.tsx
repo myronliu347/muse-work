@@ -46,7 +46,7 @@ function stubEmptyAssistant() {
       if (url.includes("/assistant/session")) {
         return jsonResponse({
           sessionId: "assistant",
-          title: "Muse Bot",
+          title: "灵光",
           workdir: "/tmp/proj",
           working: false,
         });
@@ -150,7 +150,7 @@ describe("BotTabs", () => {
       <BotTabs state={state} titles={titles} onFocus={onFocus} onClose={onClose} />,
     );
 
-    const bot = screen.getByRole("button", { name: "Muse Bot" });
+    const bot = screen.getByRole("button", { name: "灵光" });
     expect(bot.className.split(/\s+/)).toContain("active");
     expect(screen.queryByRole("button", { name: "关闭" })).toBeNull();
 
@@ -165,7 +165,7 @@ describe("BotTabs", () => {
 
     const issue = screen.getByRole("button", { name: ISSUE_TITLE });
     expect(issue.className.split(/\s+/)).toContain("active");
-    expect(screen.getByRole("button", { name: "Muse Bot" }).className.split(/\s+/)).not.toContain(
+    expect(screen.getByRole("button", { name: "灵光" }).className.split(/\s+/)).not.toContain(
       "active",
     );
     expect(screen.getByRole("button", { name: "关闭" }).className.split(/\s+/)).not.toContain(
@@ -302,10 +302,10 @@ describe("assistant frame", () => {
       </MuseTheme>,
     );
 
-    expect(await screen.findByText("今天想让我帮你做些什么？")).toBeInTheDocument();
+    expect(await screen.findByText("灵光一现 迎刃而解")).toBeInTheDocument();
     const frame = screen.getByTestId("assistant-frame");
-    expect(within(frame).getByRole("button", { name: "Muse Bot" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "今天想让我帮你做些什么？" }).className).toContain(
+    expect(within(frame).getByRole("button", { name: "灵光" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "灵光一现 迎刃而解" }).className).toContain(
       "welcome-headline",
     );
 
@@ -313,10 +313,10 @@ describe("assistant frame", () => {
     establishSession({ sessionId: "sess-b" });
 
     expect(screen.getByTestId("assistant-frame")).toBeInTheDocument();
-    expect(screen.getByText("今天想让我帮你做些什么？")).toBeInTheDocument();
+    expect(screen.getByText("灵光一现 迎刃而解")).toBeInTheDocument();
     expect(screen.queryByTestId("chat-container")).toBeNull();
     expect(
-      within(screen.getByTestId("assistant-frame")).getByRole("button", { name: "Muse Bot" }),
+      within(screen.getByTestId("assistant-frame")).getByRole("button", { name: "灵光" }),
     ).toBeInTheDocument();
   });
 
@@ -455,8 +455,12 @@ describe("assistant frame", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    expect(within(frame).getByRole("button", { name: "Muse Bot" })).toBeInTheDocument();
+    expect(within(frame).getByRole("button", { name: "灵光" })).toBeInTheDocument();
     expect(within(frame).queryByRole("button", { name: "关闭" })).toBeNull();
-    expect(within(frame).getByText("今天想让我帮你做些什么？")).toBeInTheDocument();
+    expect(within(frame).getByText("灵光一现 迎刃而解")).toBeInTheDocument();
+    expect(within(frame).getByTestId("message-input")).toHaveAttribute(
+      "data-placeholder",
+      "想让我做的事，写在这里",
+    );
   });
 });

@@ -114,37 +114,43 @@ function RailIcon({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** 星芒：大星加右上、左下两处小十字。 */
+/** 灵光：按产品 logo 描的坐姿猫，面前一台电脑。黑耳朵、尾巴尖和眼睛留空。 */
 function MuseBotIcon() {
+  const cat =
+    "M 17.71 1.57 Q 18.20 2.17 18.20 4.48 Q 18.20 6.79 18.88 8.20 Q 19.57 9.62 19.26 9.91 Q 18.95 10.21 19.19 10.58 Q 19.44 10.96 18.76 11.78 Q 18.08 12.60 19.26 14.61 Q 20.43 16.62 20.68 18.18 Q 20.93 19.75 21.30 19.08 Q 21.67 18.41 21.30 15.58 Q 20.93 12.74 21.43 12.07 Q 21.92 11.40 22.48 11.63 Q 23.04 11.85 22.60 13.04 Q 22.17 14.23 22.48 16.84 Q 22.79 19.45 22.23 20.34 Q 21.67 21.24 20.56 21.91 Q 19.44 22.58 17.64 22.88 Q 15.84 23.17 14.60 22.43 Q 13.36 21.68 14.17 21.46 Q 14.98 21.24 15.10 20.72 Q 15.22 20.19 13.43 20.12 Q 11.63 20.05 11.75 19.00 Q 11.88 17.96 10.88 18.63 Q 9.89 19.30 10.08 20.79 Q 10.26 22.28 9.15 17.81 Q 8.03 13.34 4.62 12.74 Q 1.21 12.15 4.74 12.67 Q 8.28 13.19 8.96 15.05 Q 9.64 16.92 10.33 15.58 Q 11.01 14.23 10.02 13.64 Q 9.02 13.04 8.34 12.07 Q 7.66 11.11 7.54 10.51 Q 7.41 9.91 7.91 8.50 Q 8.40 7.08 8.16 4.40 Q 7.91 1.72 8.59 1.64 Q 9.27 1.57 10.39 2.54 Q 11.50 3.51 13.12 3.43 Q 14.73 3.36 15.91 2.24 Q 17.08 1.12 17.15 1.05 Q 17.21 0.97 17.71 1.57 Z";
+  const ear =
+    "M 17.71 1.57 Q 18.20 2.17 18.33 4.85 Q 18.45 7.53 17.08 6.86 Q 15.72 6.19 15.10 5.22 Q 14.48 4.25 15.78 2.69 Q 17.08 1.12 17.15 1.05 Q 17.21 0.97 17.71 1.57 Z";
+  const tail =
+    "M 22.29 11.40 Q 22.67 11.40 22.91 11.78 Q 23.16 12.15 22.67 13.12 Q 22.17 14.09 21.55 13.86 Q 20.93 13.64 21.36 12.60 Q 21.80 11.55 21.86 11.48 Q 21.92 11.40 22.29 11.40 Z";
+  const laptop =
+    "M 4.56 12.89 Q 8.03 13.49 9.15 17.96 Q 10.26 22.43 10.14 20.87 Q 10.02 19.30 10.70 19.30 Q 11.38 19.30 11.88 19.90 Q 12.37 20.49 13.55 20.34 Q 14.73 20.19 14.98 20.49 Q 15.22 20.79 12.81 21.76 Q 10.39 22.73 6.85 21.76 Q 3.32 20.79 2.95 20.27 Q 2.57 19.75 1.77 16.10 Q 0.96 12.45 1.02 12.37 Q 1.09 12.30 4.56 12.89 Z";
+  const eyes =
+    "M 9.64 10.14 Q 10.39 10.21 10.08 10.66 Q 9.77 11.11 9.33 10.58 Q 8.90 10.06 9.64 10.06 Q 10.39 10.06 10.08 10.58 Q 9.77 11.11 9.40 10.58 Q 9.02 10.06 8.96 10.06 Q 8.90 10.06 9.64 10.14 Z M 13.92 10.21 Q 14.85 10.21 14.36 10.81 Q 13.86 11.40 13.43 10.88 Q 12.99 10.36 12.99 10.29 Q 12.99 10.21 13.92 10.21 Z";
   return (
     <RailIcon>
-      <path
-        d="M9.94 15.5a2 2 0 0 0-1.44-1.44L2.36 12.48a.5.5 0 0 1 0-.96l6.14-1.58A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M20 3v4M22 5h-4M4 17v2M5 18H3"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path fill="currentColor" fillRule="evenodd" d={`${cat} ${ear} ${tail} ${eyes}`} />
+      <path d={ear} stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d={tail} stroke="currentColor" strokeWidth="1.15" />
+      <path d={laptop} stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
     </RailIcon>
   );
 }
 
-/** 会话：对话气泡。 */
+/** 会话：圆气泡，里面两行字。 */
 function SessionsIcon() {
   return (
     <RailIcon>
       <path
-        d="M5 6.4h14a1.6 1.6 0 0 1 1.6 1.6v6.6a1.6 1.6 0 0 1-1.6 1.6h-8.2L6.4 19.2v-3H5A1.6 1.6 0 0 1 3.4 14.6V8A1.6 1.6 0 0 1 5 6.4Z"
+        d="M12 4.8c-3.9 0-7 2.5-7 5.7 0 1.8 1 3.4 2.6 4.4l-.7 2.9 3-1.5c.7.2 1.4.3 2.1.3 3.9 0 7-2.5 7-5.7s-3.1-5.7-7-5.7Z"
         stroke="currentColor"
         strokeWidth="1.6"
         strokeLinejoin="round"
+      />
+      <path
+        d="M8.7 9.6h6.6M8.7 12.4h4.2"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
       />
     </RailIcon>
   );
@@ -238,12 +244,12 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
     >
       <div className="desktop-sidebar-titlebar-drag" aria-hidden="true" />
       <nav className="desktop-rail" aria-label="主导航">
-        <Tooltip text="Muse Bot" position="right" wrap={false}>
+        <Tooltip text="灵光" position="right" wrap={false}>
           <button
             type="button"
             className={`desktop-rail-btn${activeMenu === "assistant" ? " active" : ""}`}
             onClick={() => onOpenAssistant?.()}
-            aria-label="Muse Bot"
+            aria-label="灵光"
             data-testid="desktop-assistant-menu"
           >
             <MuseBotIcon />

@@ -105,7 +105,7 @@ export function AssistantNotice({ onOpen }: { onOpen: () => void }) {
   return (
     <div className="assistant-notice" data-testid="assistant-notice" role="status">
       <button type="button" className="assistant-notice-open" onClick={onOpen}>
-        <span className="assistant-notice-title">Muse Bot</span>
+        <span className="assistant-notice-title">灵光</span>
         <span className="assistant-notice-body">{notice.text}</span>
       </button>
       <button

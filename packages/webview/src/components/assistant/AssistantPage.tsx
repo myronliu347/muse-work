@@ -281,6 +281,7 @@ function AssistantComposer({
       disabled={sending}
       workdir={workdir}
       mentionIssues={mentionIssues}
+      placeholder="想让我做的事，写在这里"
       inputContent={initialDraft.text || undefined}
       initialAttachedImages={
         initialDraft.images.length > 0 ? initialDraft.images : undefined
@@ -1055,7 +1056,7 @@ export const AssistantPage: React.FC<{
         viewSwitchHost ? createPortal(viewSwitch, viewSwitchHost) : null
       ) : (
         <header className="assistant-header">
-          <div className="assistant-header-title">Muse Bot</div>
+          <div className="assistant-header-title">灵光</div>
           {viewSwitch}
         </header>
       )}

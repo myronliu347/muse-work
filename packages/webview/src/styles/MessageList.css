@@ -26,7 +26,7 @@
      on every growth, which reads as the bubble shaking. */
   overflow-anchor: none;
   /* Top inset lives on .messages-column so sticky-user can sit flush at top: 0. */
-  padding: 0 28px 320px var(--space-4);
+  padding: 0 28px 213px var(--space-4);
   background-color: var(--color-background);
   position: relative;
 }
