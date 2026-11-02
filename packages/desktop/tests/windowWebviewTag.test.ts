@@ -37,6 +37,7 @@ vi.mock("electron", () => {
 });
 
 import {
+  applyPreviewViewport,
   attachPreviewGuestOpener,
   clearPreviewGuestData,
   createMainWindow,
@@ -161,5 +162,43 @@ describe("createMainWindow", () => {
     expect(ses.clearStorageData).not.toHaveBeenCalled();
     await clearPreviewGuestData("cookies", ses);
     expect(ses.clearStorageData).toHaveBeenCalledWith({ storages: ["cookies"] });
+  });
+
+  it("sets the guest layout viewport instead of only resizing the element", () => {
+    const sendCommand = vi.fn(async () => {});
+    const contents = {
+      isDestroyed: () => false,
+      enableDeviceEmulation: vi.fn(),
+      disableDeviceEmulation: vi.fn(),
+      debugger: {
+        isAttached: () => false,
+        attach: vi.fn(),
+        sendCommand,
+      },
+    };
+    const fromId = (id: number) => (id === 7 ? contents : undefined);
+    applyPreviewViewport(
+      { command: "previewSetViewport", webContentsId: 7, width: 384, height: 832, scale: 0.5, mobile: true },
+      fromId,
+    );
+    expect(contents.enableDeviceEmulation).toHaveBeenCalledWith({
+      screenPosition: "mobile",
+      screenSize: { width: 384, height: 832 },
+      viewPosition: { x: 0, y: 0 },
+      deviceScaleFactor: 1,
+      viewSize: { width: 384, height: 832 },
+      scale: 0.5,
+    });
+    expect(sendCommand).toHaveBeenCalledWith("Emulation.setDeviceMetricsOverride", {
+      width: 384,
+      height: 832,
+      deviceScaleFactor: 1,
+      mobile: true,
+      scale: 0.5,
+      screenWidth: 384,
+      screenHeight: 832,
+    });
+    applyPreviewViewport({ command: "previewClearViewport", webContentsId: 7 }, fromId);
+    expect(contents.disableDeviceEmulation).toHaveBeenCalledOnce();
   });
 });

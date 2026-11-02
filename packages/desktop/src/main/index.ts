@@ -5,13 +5,13 @@
  * server base URL injected via preload (`window.museServerBaseUrl`).
  */
 
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, powerMonitor } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, powerMonitor, webContents } from "electron";
 import { execFileSync } from "child_process";
 import * as path from "path";
 import { museServerBaseUrl, startMuseServer } from "./serverProcess";
 import { installThemeHost } from "./themeHost";
 import { windowBackgroundFor } from "./uiPrefs";
-import { clearPreviewGuestData, createMainWindow, desktopPaths } from "./window";
+import { applyPreviewViewport, clearPreviewGuestData, createMainWindow, desktopPaths } from "./window";
 import { createQuitGate } from "./quitGate";
 import {
   FROM_WEBVIEW,
@@ -244,6 +244,10 @@ if (!gotLock) {
       }
       if (msg?.command === "previewClearCookies") {
         void clearPreviewGuestData("cookies");
+        return;
+      }
+      if (msg?.command === "previewSetViewport" || msg?.command === "previewClearViewport") {
+        applyPreviewViewport(msg, (id) => webContents.fromId(id) ?? undefined);
         return;
       }
       if (msg?.command !== "desktopCloseWindow") return;

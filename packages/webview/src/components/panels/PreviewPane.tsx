@@ -22,12 +22,7 @@ import {
   type PreviewLibrary,
   type PreviewLink,
 } from "./previewLinks";
-import {
-  matchPreviewDevice,
-  parsePreviewDimension,
-  PREVIEW_DEVICES,
-  previewViewportScale,
-} from "./previewViewport";
+import { PREVIEW_DEVICES, previewViewportScale } from "./previewViewport";
 
 /**
  * Desktop-only preview pane: renders a localhost dev server in a
@@ -55,6 +50,7 @@ export interface WebviewTagElement extends HTMLElement {
   stop(): void;
   getTitle?(): string;
   openDevTools?(options?: { mode?: string }): void;
+  getWebContentsId?(): number;
 }
 
 export interface PreviewComment {
@@ -223,16 +219,13 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   const [linksChoice, setLinksChoice] = useState<boolean | null>(readPreviewLinksOpen);
   const [linksWidth, setLinksWidth] = useState(readPreviewLinksWidth);
   const linksOpen = linksChoice !== false;
-  const [deviceMode, setDeviceMode] = useState(false);
-  const [viewport, setViewport] = useState<
-    { kind: "fill" } | { kind: "fixed"; width: number; height: number }
-  >({ kind: "fill" });
-  const [widthDraft, setWidthDraft] = useState("");
-  const [heightDraft, setHeightDraft] = useState("");
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [deviceRotated, setDeviceRotated] = useState(false);
   const [stageBox, setStageBox] = useState({ width: 0, height: 0 });
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement | null>(null);
+  const syncGuestViewportRef = useRef<() => void>(() => {});
   const [linkQuery, setLinkQuery] = useState("");
   const webviewRef = useRef<WebviewTagElement | null>(null);
   const asideRef = useRef<HTMLElement | null>(null);
@@ -378,6 +371,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       // Manual refresh keeps the picker on: the fresh guest preload starts
       // inactive, so re-send. (Real navigations already reset the toggle.)
       if (pickerActiveRef.current) sendPicker("activate");
+      syncGuestViewportRef.current();
     };
     const publishTitle = (raw: string) => {
       const title = normalizePageTitle(raw);
@@ -627,43 +621,55 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     </div>
   );
 
-  const frame = viewport.kind === "fixed" ? viewport : null;
-  const framed = deviceMode && frame !== null;
-  const frameScale = frame ? previewViewportScale(frame, stageBox) : 1;
-  const presetValue =
-    frame === null
-      ? "fill"
-      : (matchPreviewDevice(frame.width, frame.height)?.id ?? "custom");
+  const device = PREVIEW_DEVICES.find((item) => item.id === deviceId) ?? null;
+  const frame = device
+    ? {
+        width: deviceRotated ? device.height : device.width,
+        height: deviceRotated ? device.width : device.height,
+        mobile: device.mobile,
+      }
+    : null;
+  // Mobile frames keep their CSS viewport and scale down so the whole device fits.
+  // The webview element is that fitted size and sits in the center, so the panel
+  // background shows around it. Emulation scale maps the device CSS size onto it.
+  const frameScale = frame?.mobile ? previewViewportScale(frame, stageBox) : 1;
+  const fittedFrame = frame?.mobile
+    ? {
+        width: Math.max(1, Math.round(frame.width * frameScale)),
+        height: Math.max(1, Math.round(frame.height * frameScale)),
+      }
+    : null;
 
-  const applyDevice = (id: string) => {
-    if (id === "fill") {
-      setViewport({ kind: "fill" });
-      setWidthDraft("");
-      setHeightDraft("");
+  const frameWidth = frame?.width;
+  const frameHeight = frame?.height;
+  const frameMobile = frame?.mobile ?? false;
+  const syncGuestViewport = useCallback(() => {
+    const wv = webviewRef.current;
+    if (!wv?.getWebContentsId) return;
+    let webContentsId = 0;
+    try {
+      webContentsId = wv.getWebContentsId();
+    } catch {
       return;
     }
-    const device = PREVIEW_DEVICES.find((item) => item.id === id);
-    if (!device) return;
-    setViewport({ kind: "fixed", width: device.width, height: device.height });
-    setWidthDraft(String(device.width));
-    setHeightDraft(String(device.height));
-  };
-
-  const commitDimensions = () => {
-    const width = parsePreviewDimension(widthDraft);
-    const height = parsePreviewDimension(heightDraft);
-    if (!width || !height) return;
-    setViewport({ kind: "fixed", width, height });
-    setWidthDraft(String(width));
-    setHeightDraft(String(height));
-  };
-
-  const rotateViewport = () => {
-    if (viewport.kind !== "fixed") return;
-    setViewport({ kind: "fixed", width: viewport.height, height: viewport.width });
-    setWidthDraft(String(viewport.height));
-    setHeightDraft(String(viewport.width));
-  };
+    if (!webContentsId) return;
+    if (frameWidth == null || frameHeight == null) {
+      vscode.postMessage({ command: "previewClearViewport", webContentsId });
+      return;
+    }
+    vscode.postMessage({
+      command: "previewSetViewport",
+      webContentsId,
+      width: frameWidth,
+      height: frameHeight,
+      scale: frameScale,
+      mobile: frameMobile,
+    });
+  }, [frameHeight, frameMobile, frameScale, frameWidth, vscode]);
+  syncGuestViewportRef.current = syncGuestViewport;
+  useEffect(() => {
+    syncGuestViewport();
+  }, [syncGuestViewport]);
 
   const clearGuest = (command: "previewClearCache" | "previewClearCookies") => {
     vscode.postMessage({ command });
@@ -798,11 +804,14 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           </button>
           <button
             type="button"
-            className={`preview-pane-button${deviceMode ? " active" : ""}`}
-            title={deviceMode ? "关闭设备尺寸" : "设备尺寸"}
-            aria-pressed={deviceMode}
+            className={`preview-pane-button${device ? " active" : ""}`}
+            title={device ? "跟随面板大小" : "设备尺寸"}
+            aria-pressed={Boolean(device)}
             data-testid={tid("preview-device")}
-            onClick={() => setDeviceMode((open) => !open)}
+            onClick={() => {
+              setDeviceRotated(false);
+              setDeviceId((current) => (current ? null : PREVIEW_DEVICES[0]?.id ?? null));
+            }}
           >
             <i className="codicon codicon-device-mobile" />
           </button>
@@ -881,58 +890,31 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             该页面暂不支持元素拾取
           </div>
         )}
-        {deviceMode && (
+        {device && (
           <div className="preview-pane-devicebar" data-testid={tid("preview-devicebar")}>
             <select
               className="preview-pane-device-preset"
               data-testid={tid("preview-device-preset")}
               aria-label="设备"
-              value={presetValue}
-              onChange={(event) => applyDevice(event.target.value)}
+              value={device.id}
+              onChange={(event) => {
+                setDeviceRotated(false);
+                setDeviceId(event.target.value);
+              }}
             >
-              <option value="fill">自适应</option>
-              {PREVIEW_DEVICES.map((device) => (
-                <option key={device.id} value={device.id}>
-                  {device.label}
+              {PREVIEW_DEVICES.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
                 </option>
               ))}
-              {presetValue === "custom" ? <option value="custom">自定义</option> : null}
             </select>
-            <input
-              className="preview-pane-device-size"
-              data-testid={tid("preview-device-width")}
-              aria-label="宽度"
-              inputMode="numeric"
-              value={widthDraft}
-              placeholder="宽"
-              onChange={(event) => setWidthDraft(event.target.value)}
-              onBlur={commitDimensions}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") commitDimensions();
-              }}
-            />
-            <span className="preview-pane-device-times">×</span>
-            <input
-              className="preview-pane-device-size"
-              data-testid={tid("preview-device-height")}
-              aria-label="高度"
-              inputMode="numeric"
-              value={heightDraft}
-              placeholder="高"
-              onChange={(event) => setHeightDraft(event.target.value)}
-              onBlur={commitDimensions}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") commitDimensions();
-              }}
-            />
             <button
               type="button"
               className="preview-pane-button"
               title="旋转"
               aria-label="旋转"
               data-testid={tid("preview-device-rotate")}
-              disabled={viewport.kind !== "fixed"}
-              onClick={rotateViewport}
+              onClick={() => setDeviceRotated((rotated) => !rotated)}
             >
               <i className="codicon codicon-arrow-swap" />
             </button>
@@ -943,28 +925,14 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           <div
             className="preview-pane-viewport"
             data-testid={tid("preview-viewport")}
-            data-framed={framed ? "true" : "false"}
+            data-framed={fittedFrame ? "true" : "false"}
             style={
-              framed && frame
-                ? {
-                    width: Math.round(frame.width * frameScale),
-                    height: Math.round(frame.height * frameScale),
-                  }
+              fittedFrame
+                ? { width: fittedFrame.width, height: fittedFrame.height }
                 : undefined
             }
           >
-          <div
-            className="preview-pane-viewport-inner"
-            style={
-              framed && frame
-                ? {
-                    width: frame.width,
-                    height: frame.height,
-                    transform: `scale(${frameScale})`,
-                  }
-                : undefined
-            }
-          >
+          <div className="preview-pane-viewport-inner">
           {visible ? (
             <webview
               ref={webviewRef}

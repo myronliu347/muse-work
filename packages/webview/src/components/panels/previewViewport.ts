@@ -5,19 +5,21 @@ export type PreviewDevice = {
   label: string;
   width: number;
   height: number;
+  /** Phones and tablets use a mobile layout viewport. */
+  mobile: boolean;
 };
 
 export const PREVIEW_DEVICES: readonly PreviewDevice[] = [
-  { id: "iphone-16e", label: "iPhone 16e", width: 390, height: 844 },
-  { id: "iphone-17", label: "iPhone 17", width: 402, height: 874 },
-  { id: "iphone-17-pro-max", label: "iPhone 17 Pro Max", width: 440, height: 956 },
-  { id: "pixel-10", label: "Pixel 10", width: 412, height: 923 },
-  { id: "galaxy-s25-ultra", label: "Galaxy S25 Ultra", width: 384, height: 832 },
-  { id: "ipad-mini", label: "iPad mini", width: 744, height: 1133 },
-  { id: "ipad-air-11", label: 'iPad Air 11"', width: 820, height: 1180 },
-  { id: "ipad-pro-13", label: 'iPad Pro 13"', width: 1032, height: 1376 },
-  { id: "laptop", label: "Laptop", width: 1366, height: 768 },
-  { id: "desktop", label: "Desktop", width: 1920, height: 1080 },
+  { id: "iphone-16e", label: "iPhone 16e", width: 390, height: 844, mobile: true },
+  { id: "iphone-17", label: "iPhone 17", width: 402, height: 874, mobile: true },
+  { id: "iphone-17-pro-max", label: "iPhone 17 Pro Max", width: 440, height: 956, mobile: true },
+  { id: "pixel-10", label: "Pixel 10", width: 412, height: 923, mobile: true },
+  { id: "galaxy-s25-ultra", label: "Galaxy S25 Ultra", width: 384, height: 832, mobile: true },
+  { id: "ipad-mini", label: "iPad mini", width: 744, height: 1133, mobile: true },
+  { id: "ipad-air-11", label: 'iPad Air 11"', width: 820, height: 1180, mobile: true },
+  { id: "ipad-pro-13", label: 'iPad Pro 13"', width: 1032, height: 1376, mobile: true },
+  { id: "laptop", label: "Laptop", width: 1366, height: 768, mobile: false },
+  { id: "desktop", label: "Desktop", width: 1920, height: 1080, mobile: false },
 ];
 
 const MIN_DIMENSION = 200;
@@ -32,6 +34,13 @@ export function matchPreviewDevice(width: number, height: number): PreviewDevice
         (device.width === height && device.height === width),
     ) ?? null
   );
+}
+
+/** Whether this frame should use a mobile layout viewport. */
+export function previewViewportMobile(width: number, height: number): boolean {
+  const device = matchPreviewDevice(width, height);
+  if (device) return device.mobile;
+  return Math.min(width, height) < 1000;
 }
 
 export function parsePreviewDimension(raw: string): number | null {

@@ -36,6 +36,87 @@ export async function clearPreviewGuestData(
   await ses.clearStorageData({ storages: ["cookies"] });
 }
 
+type PreviewViewportTarget = {
+  isDestroyed: () => boolean;
+  enableDeviceEmulation: (parameters: {
+    screenPosition: "desktop" | "mobile";
+    screenSize: { width: number; height: number };
+    viewPosition: { x: number; y: number };
+    deviceScaleFactor: number;
+    viewSize: { width: number; height: number };
+    scale: number;
+  }) => void;
+  disableDeviceEmulation: () => void;
+  debugger: {
+    isAttached: () => boolean;
+    attach: (protocolVersion: string) => void;
+    sendCommand: (method: string, params?: object) => Promise<unknown>;
+  };
+};
+
+export type PreviewViewportRequest = {
+  command?: string;
+  webContentsId?: number;
+  width?: number;
+  height?: number;
+  scale?: number;
+  mobile?: boolean;
+};
+
+function guestDebugger(contents: PreviewViewportTarget): PreviewViewportTarget["debugger"] | null {
+  try {
+    if (!contents.debugger.isAttached()) contents.debugger.attach("1.3");
+    return contents.debugger;
+  } catch {
+    // DevTools may already own the only debugger attachment.
+    return contents.debugger.isAttached() ? contents.debugger : null;
+  }
+}
+
+/** Set or clear the guest layout viewport (CSS pixels), not just the painted scale. */
+export function applyPreviewViewport(
+  msg: PreviewViewportRequest,
+  fromId: (id: number) => PreviewViewportTarget | undefined,
+): void {
+  if (typeof msg.webContentsId !== "number") return;
+  const contents = fromId(msg.webContentsId);
+  if (!contents || contents.isDestroyed()) return;
+  const dbg = guestDebugger(contents);
+  if (msg.command === "previewClearViewport") {
+    contents.disableDeviceEmulation();
+    void dbg?.sendCommand("Emulation.clearDeviceMetricsOverride").catch(() => {});
+    return;
+  }
+  if (msg.command !== "previewSetViewport") return;
+  const { width, height } = msg;
+  if (typeof width !== "number" || typeof height !== "number") return;
+  if (width < 200 || height < 200 || width > 3840 || height > 3840) return;
+  const mobile = msg.mobile === true;
+  const scale =
+    typeof msg.scale === "number" && msg.scale > 0 && msg.scale <= 1 ? msg.scale : 1;
+  // deviceScaleFactor 1 keeps the layout viewport in CSS pixels.
+  // scale fits that viewport into the panel without changing its CSS size.
+  contents.enableDeviceEmulation({
+    screenPosition: mobile ? "mobile" : "desktop",
+    screenSize: { width, height },
+    viewPosition: { x: 0, y: 0 },
+    deviceScaleFactor: 1,
+    viewSize: { width, height },
+    scale,
+  });
+  void dbg
+    ?.sendCommand("Emulation.setDeviceMetricsOverride", {
+      width,
+      height,
+      deviceScaleFactor: 1,
+      mobile,
+      scale,
+      screenWidth: width,
+      screenHeight: height,
+    })
+    .catch(() => {});
+}
+
 export function lockPreviewWebviewAttach(
   webPreferences: {
     nodeIntegration?: boolean;

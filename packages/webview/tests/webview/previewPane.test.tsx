@@ -12,6 +12,7 @@ import {
 import type { WebviewTagElement } from "../../src/components/panels/PreviewPane";
 import { DesktopApp } from "../../src/components/DesktopApp";
 import { convertToMarkdown } from "../../src/utils/messageUtils";
+import { previewViewportScale } from "../../src/components/panels/previewViewport";
 import { createMockVscode, sendCommand } from "./test-utils";
 import { MockDataGenerator } from "../fixtures/mockData";
 
@@ -628,17 +629,81 @@ describe("PreviewPane", () => {
     expect(screen.queryByTestId("preview-links")).not.toBeInTheDocument();
   });
 
-  it("frames the page at a device size and rotates it", () => {
-    renderPane();
+  it("follows the panel until a device viewport is chosen, then fits that device", () => {
+    const { vscode, wv } = renderPane();
+    wv.getWebContentsId = vi.fn(() => 7);
+    expect(screen.queryByTestId("preview-device-width")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("preview-devicebar")).not.toBeInTheDocument();
+
     fireEvent.click(screen.getByTestId("preview-device"));
-    fireEvent.change(screen.getByTestId("preview-device-preset"), {
-      target: { value: "iphone-16e" },
+    expect(screen.getByTestId("preview-device-preset")).toHaveValue("iphone-16e");
+    expect(screen.queryByTestId("preview-device-width")).not.toBeInTheDocument();
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      command: "previewSetViewport",
+      webContentsId: 7,
+      width: 390,
+      height: 844,
+      scale: 1,
+      mobile: true,
     });
-    const viewport = screen.getByTestId("preview-viewport");
-    expect(viewport).toHaveAttribute("data-framed", "true");
-    expect(viewport).toHaveStyle({ width: "390px", height: "844px" });
+    expect(screen.getByTestId("preview-viewport")).toHaveAttribute("data-framed", "true");
+    expect(screen.getByTestId("preview-viewport")).toHaveStyle({
+      width: "390px",
+      height: "844px",
+    });
+
     fireEvent.click(screen.getByTestId("preview-device-rotate"));
-    expect(viewport).toHaveStyle({ width: "844px", height: "390px" });
+    expect(vscode.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "previewSetViewport",
+        width: 844,
+        height: 390,
+        mobile: true,
+      }),
+    );
+
+    fireEvent.click(screen.getByTestId("preview-device"));
+    expect(screen.queryByTestId("preview-devicebar")).not.toBeInTheDocument();
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      command: "previewClearViewport",
+      webContentsId: 7,
+    });
+  });
+
+  it("fits a mobile viewport inside the panel", () => {
+    const stage = { width: 320, height: 480 };
+    const previous = globalThis.ResizeObserver;
+    globalThis.ResizeObserver = class {
+      constructor(private readonly callback: ResizeObserverCallback) {}
+      observe() {
+        this.callback(
+          [{ contentRect: stage } as ResizeObserverEntry],
+          this as unknown as ResizeObserver,
+        );
+      }
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+    try {
+      const { vscode, wv } = renderPane();
+      wv.getWebContentsId = vi.fn(() => 7);
+      fireEvent.click(screen.getByTestId("preview-device"));
+      const scale = previewViewportScale({ width: 390, height: 844 }, stage);
+      expect(vscode.postMessage).toHaveBeenCalledWith({
+        command: "previewSetViewport",
+        webContentsId: 7,
+        width: 390,
+        height: 844,
+        scale,
+        mobile: true,
+      });
+      expect(screen.getByTestId("preview-viewport")).toHaveStyle({
+        width: `${Math.round(390 * scale)}px`,
+        height: `${Math.round(844 * scale)}px`,
+      });
+    } finally {
+      globalThis.ResizeObserver = previous;
+    }
   });
 
   it("clears the guest cache and cookies and opens devtools", () => {

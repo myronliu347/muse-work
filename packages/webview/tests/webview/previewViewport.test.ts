@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   matchPreviewDevice,
   parsePreviewDimension,
+  previewViewportMobile,
   previewViewportScale,
 } from "../../src/components/panels/previewViewport";
 
@@ -11,6 +12,8 @@ describe("previewViewport", () => {
     expect(matchPreviewDevice(390, 844)?.id).toBe("iphone-16e");
     expect(matchPreviewDevice(844, 390)?.id).toBe("iphone-16e");
     expect(matchPreviewDevice(500, 800)).toBeNull();
+    expect(previewViewportMobile(390, 844)).toBe(true);
+    expect(previewViewportMobile(1920, 1080)).toBe(false);
   });
 
   it("rejects dimensions outside the usable range", () => {
