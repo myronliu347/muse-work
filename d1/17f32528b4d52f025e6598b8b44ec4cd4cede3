@@ -1,0 +1,37 @@
+packages/webview/src/components/panels/TerminalPane.tsx
+  c26d1b1664bab700 59-126,141,146-147
+packages/webview/tests/webview/terminalPane.test.tsx
+  c26d1b1664bab700 5-8,163-176
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d117f32528b4d52f025e6598b8b44ec4cd4cede3",
+  "prompts": {
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 89,
+      "total_deletions": 2,
+      "accepted_lines": 89,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/TerminalPane.tsx": {
+          "additions": 71,
+          "deletions": 1,
+          "accepted_lines": 71
+        },
+        "packages/webview/tests/webview/terminalPane.test.tsx": {
+          "additions": 18,
+          "deletions": 1,
+          "accepted_lines": 18
+        }
+      }
+    }
+  }
+}
