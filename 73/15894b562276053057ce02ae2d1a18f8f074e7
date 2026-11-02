@@ -1,0 +1,191 @@
+packages/webview/tests/components/botLists.test.tsx
+  c26d1b1664bab700 56,355,357,661
+packages/webview/src/styles/AssistantPage.css
+  c26d1b1664bab700 140
+packages/webview/src/components/ChatApp.tsx
+  c26d1b1664bab700 188
+packages/webview/tests/components/iconRail.test.tsx
+  c26d1b1664bab700 97
+packages/webview/src/components/assistant/museBotNotice.tsx
+  c26d1b1664bab700 108
+packages/webview/tests/components/dockDetail.test.tsx
+  c26d1b1664bab700 114,620,668,687,700
+packages/webview/tests/components/automationsPage.test.tsx
+  c26d1b1664bab700 104
+packages/webview/tests/components/botTabs.test.tsx
+  c26d1b1664bab700 49,153,168,305,307-308,316,319,458,460-464
+packages/webview/tests/webview/tooltip.test.tsx
+  c26d1b1664bab700 64
+packages/webview/src/styles/MessageList.css
+  c26d1b1664bab700 29
+packages/webview/src/components/desktop/BotTabs.tsx
+  c26d1b1664bab700 214,236
+packages/webview/src/components/assistant/AssistantPage.tsx
+  c26d1b1664bab700 284,1059
+packages/server/src/services/assistant/session.ts
+  c26d1b1664bab700 33
+README.md
+  c26d1b1664bab700 5,11-13,18,24,51,64,85
+packages/webview/tests/components/assistantSidebarSelection.test.tsx
+  c26d1b1664bab700 65
+packages/webview/src/components/desktop/BotLists.tsx
+  c26d1b1664bab700 387-389,392-403,407-409,413,427-440
+packages/webview/src/styles/DesktopApp.css
+  c26d1b1664bab700 2570,2844,3165-3168,3171,3173-3174,3178,3182,3187
+packages/webview/tests/components/assistantPage.test.tsx
+  c26d1b1664bab700 51,160,412
+packages/webview/tests/components/issueTab.test.tsx
+  c26d1b1664bab700 124,292,556,593,1512,2018,2286,2347,2391,2394,2405
+packages/webview/src/components/settings/PopoSettings.tsx
+  c26d1b1664bab700 89
+docs/popo-robot-integration.md
+  c26d1b1664bab700 3,16,72-74,101
+packages/webview/src/components/settings/MuseProviderSettings.tsx
+  c26d1b1664bab700 438
+packages/webview/e2e/demo/readme-home.demo.ts
+  c26d1b1664bab700 41,49-61
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  c26d1b1664bab700 117,119-128,131-134,139,144,149-153,247,252
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "7315894b562276053057ce02ae2d1a18f8f074e7",
+  "prompts": {
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 206,
+      "total_deletions": 179,
+      "accepted_lines": 151,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "README.md": {
+          "additions": 17,
+          "deletions": 17,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/automationsPage.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/e2e/demo/readme-home.demo.ts": {
+          "additions": 14,
+          "deletions": 2,
+          "accepted_lines": 14
+        },
+        "packages/webview/tests/components/botTabs.test.tsx": {
+          "additions": 17,
+          "deletions": 13,
+          "accepted_lines": 14
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 6,
+          "deletions": 5,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/iconRail.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/settings/PopoSettings.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/desktop/BotLists.tsx": {
+          "additions": 33,
+          "deletions": 21,
+          "accepted_lines": 33
+        },
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "docs/popo-robot-integration.md": {
+          "additions": 12,
+          "deletions": 12,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 59,
+          "deletions": 53,
+          "accepted_lines": 25
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 1,
+          "deletions": 15,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 11,
+          "deletions": 11,
+          "accepted_lines": 11
+        },
+        "packages/webview/tests/webview/tooltip.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/assistant/museBotNotice.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 12,
+          "deletions": 6,
+          "accepted_lines": 12
+        },
+        "packages/webview/tests/components/assistantSidebarSelection.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/botLists.test.tsx": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/settings/MuseProviderSettings.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/desktop/BotTabs.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/assistant/session.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
