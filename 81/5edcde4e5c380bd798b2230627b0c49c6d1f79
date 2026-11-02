@@ -1,0 +1,78 @@
+packages/desktop/src/main/window.ts
+  c653e7d67b333342 39-119
+packages/desktop/tests/windowWebviewTag.test.ts
+  c653e7d67b333342 40,166-203
+packages/webview/src/components/panels/PreviewPane.tsx
+  c653e7d67b333342 25,53,222-223,228,374,624-641,643-652,655-672,807-809,811-814,893,899-903,905-907,917,928,930-931,935
+packages/webview/tests/webview/previewPane.test.tsx
+  c653e7d67b333342 15,632-637,639-647,649-654,656-706
+packages/webview/src/components/panels/previewViewport.ts
+  c653e7d67b333342 8-9,13-22,39-45
+packages/webview/src/styles/DesktopApp.css
+  c653e7d67b333342 1914-1916,2010-2011,2016
+packages/webview/tests/webview/previewViewport.test.ts
+  c653e7d67b333342 6,15-16
+packages/desktop/src/main/index.ts
+  c653e7d67b333342 8,14,249-252
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "815edcde4e5c380bd798b2230627b0c49c6d1f79",
+  "prompts": {
+    "c653e7d67b333342": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "36fc3e93-b86f-45c3-aa13-65748d9db108",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 387,
+      "total_deletions": 219,
+      "accepted_lines": 328,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/src/main/index.ts": {
+          "additions": 6,
+          "deletions": 2,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/panels/PreviewPane.tsx": {
+          "additions": 123,
+          "deletions": 155,
+          "accepted_lines": 98
+        },
+        "packages/webview/src/components/panels/previewViewport.ts": {
+          "additions": 19,
+          "deletions": 10,
+          "accepted_lines": 19
+        },
+        "packages/desktop/src/main/window.ts": {
+          "additions": 91,
+          "deletions": 10,
+          "accepted_lines": 81
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 7,
+          "deletions": 8,
+          "accepted_lines": 7
+        },
+        "packages/desktop/tests/windowWebviewTag.test.ts": {
+          "additions": 47,
+          "deletions": 8,
+          "accepted_lines": 39
+        },
+        "packages/webview/tests/webview/previewViewport.test.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/webview/previewPane.test.tsx": {
+          "additions": 91,
+          "deletions": 26,
+          "accepted_lines": 75
+        }
+      }
+    }
+  }
+}
