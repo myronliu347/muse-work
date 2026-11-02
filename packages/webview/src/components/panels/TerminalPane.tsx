@@ -56,6 +56,74 @@ export function prefetchTerminalLib(): void {
  * Radix keeps light `--gray-*` on `:root` and dark tokens on `.radix-themes.dark`,
  * so `getComputedStyle(document.documentElement)` always returns the light palette.
  */
+type Rgb = { r: number; g: number; b: number };
+
+/** xterm only accepts #hex and rgb()/rgba(). color-mix is rejected and the
+ *  fallback is white at 30%, which disappears on a light panel. */
+function cssColorToRgb(color: string): Rgb | null {
+  const value = color.trim();
+  const hex = value.match(/^#([\da-f]{6})$/i);
+  if (hex) {
+    const n = parseInt(hex[1], 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+  const short = value.match(/^#([\da-f]{3})$/i);
+  if (short) {
+    const [r, g, b] = short[1].split("");
+    return {
+      r: parseInt(r + r, 16),
+      g: parseInt(g + g, 16),
+      b: parseInt(b + b, 16),
+    };
+  }
+  const rgb = value.match(
+    /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i,
+  );
+  if (rgb) {
+    return { r: Number(rgb[1]), g: Number(rgb[2]), b: Number(rgb[3]) };
+  }
+  if (typeof document === "undefined") return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.fillStyle = "#010101";
+  ctx.fillStyle = value;
+  if (ctx.fillStyle === "#010101") return null;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+  if (a === 0) return null;
+  return { r, g, b };
+}
+
+function isLightRgb(color: Rgb): boolean {
+  const lin = (channel: number) => {
+    const s = channel / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance =
+    0.2126 * lin(color.r) + 0.7152 * lin(color.g) + 0.0722 * lin(color.b);
+  return luminance > 0.6;
+}
+
+/** Opaque-enough rgba() so xterm can blend the accent onto the panel. */
+export function terminalSelectionBackground(
+  accent: string,
+  background: string,
+): string {
+  const panel = cssColorToRgb(background);
+  const light = panel ? isLightRgb(panel) : false;
+  const alpha = light ? 0.38 : 0.32;
+  const ink = cssColorToRgb(accent);
+  if (!ink) {
+    return light
+      ? `rgba(0, 0, 0, ${alpha})`
+      : `rgba(255, 255, 255, ${alpha})`;
+  }
+  return `rgba(${ink.r}, ${ink.g}, ${ink.b}, ${alpha})`;
+}
+
 const readTerminalTheme = (el?: Element | null) => {
   const sample =
     el ??
@@ -70,11 +138,13 @@ const readTerminalTheme = (el?: Element | null) => {
     pick("--gray-1", "#1e1e1e");
   const foreground = pick("--gray-12", "#cccccc");
   const accent = pick("--accent-9", "#c1292e");
+  const selectionBackground = terminalSelectionBackground(accent, background);
   return {
     background,
     foreground,
     cursor: foreground,
-    selectionBackground: `color-mix(in srgb, ${accent} 30%, transparent)`,
+    selectionBackground,
+    selectionInactiveBackground: selectionBackground,
   };
 };
 

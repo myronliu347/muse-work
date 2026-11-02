@@ -2,7 +2,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, screen, act } from "@testing-library/react";
 import React from "react";
-import { TerminalPane } from "../../src/components/panels/TerminalPane";
+import {
+  TerminalPane,
+  terminalSelectionBackground,
+} from "../../src/components/panels/TerminalPane";
 import { workdirTermId } from "../../src/stores/panelGroupStore";
 import { createMockVscode, sendCommand } from "./test-utils";
 
@@ -155,6 +158,20 @@ beforeEach(() => {
 
 afterEach(() => {
   delete window.MuseTerminal;
+});
+
+describe("terminalSelectionBackground", () => {
+  it("uses a visible accent wash on a light panel", () => {
+    expect(terminalSelectionBackground("#e5484d", "#fcfcfc")).toBe(
+      "rgba(229, 72, 77, 0.38)",
+    );
+  });
+
+  it("keeps a lighter wash on a dark panel", () => {
+    expect(terminalSelectionBackground("#e5484d", "#1e1e1e")).toBe(
+      "rgba(229, 72, 77, 0.32)",
+    );
+  });
 });
 
 describe("TerminalPane", () => {
