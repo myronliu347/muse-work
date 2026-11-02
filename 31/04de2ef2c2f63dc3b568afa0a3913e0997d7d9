@@ -1,0 +1,27 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3104de2ef2c2f63dc3b568afa0a3913e0997d7d9",
+  "prompts": {
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 7,
+      "accepted_lines": 0,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 2,
+          "deletions": 7
+        }
+      }
+    }
+  }
+}
