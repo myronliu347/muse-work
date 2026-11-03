@@ -16,12 +16,14 @@ import {
   toolIdFromTabKey,
 } from "../../muse/dockTabOrder";
 import { dockFullscreenShortcutLabel, stepTab } from "../../muse/panelShortcuts";
+import { dockTabsToClose, type DockTabCloseMode } from "../../muse/dockTabMenu";
 import { registerSidePanel } from "../../muse/sidePanelTabs";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { PanelAddMenu } from "../panels/PanelAddMenu";
 import { FileIcon } from "../panels/FileIcon";
 import { IssuePresenceMark, type IssuePresence } from "../session/SessionStatusGlyph";
 import { Tooltip } from "../shared/Tooltip";
+import { bodyPortal } from "../../utils/bodyPortal";
 import "../../styles/DesktopPanelDock.css";
 import { clampDockWidth } from "../../muse/layout";
 import { PANEL_MOTION_MS } from "../../hooks/useExitHold";
@@ -57,6 +59,8 @@ export interface DesktopPanelDockProps {
   onAddPanel: (kind: DesktopPanelKind) => void;
   disabledPanels?: DesktopPanelKind[];
   panelToggle: PanelToggleProps;
+  /** 关闭所有之后收起整个右侧面板。 */
+  onCloseDock?: () => void;
   fullscreen: boolean;
   onToggleFullscreen: () => void;
   width: number;
@@ -69,6 +73,10 @@ export interface DesktopPanelDockProps {
   onSelectFileTab?: (path: string) => void;
   onCloseFileTab?: (path: string) => void;
   onPinFileTab?: (path: string) => void;
+  /** Insert this file into the current chat composer. */
+  onAddFileToChat?: (path: string) => void;
+  /** Reveal a file tab's path in Finder. */
+  onRevealFile?: (path: string) => void;
   /** 详情 is the first tab and is not a DesktopPanelKind. */
   detailActive?: boolean;
   onSelectDetail?: () => void;
@@ -100,6 +108,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   onAddPanel,
   disabledPanels = [],
   panelToggle,
+  onCloseDock,
   fullscreen,
   onToggleFullscreen,
   width,
@@ -110,6 +119,8 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   onSelectFileTab,
   onCloseFileTab,
   onPinFileTab,
+  onAddFileToChat,
+  onRevealFile,
   detailActive = false,
   onSelectDetail,
   detailTitle,
@@ -133,6 +144,12 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
     return () => window.clearTimeout(id);
   }, []);
   const suppressDrag = React.useRef(false);
+  const [tabMenu, setTabMenu] = React.useState<{
+    key: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const tabMenuRef = React.useRef<HTMLDivElement | null>(null);
   const [dropHint, setDropHint] = React.useState<{ key: string; after: boolean } | null>(
     null,
   );
@@ -251,6 +268,31 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   ]);
 
   React.useEffect(() => {
+    if (!tabMenu) return;
+    const close = () => setTabMenu(null);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [tabMenu]);
+
+  React.useLayoutEffect(() => {
+    const el = tabMenuRef.current;
+    if (!el || !tabMenu) return;
+    const rect = el.getBoundingClientRect();
+    const pad = 8;
+    const left = Math.max(pad, Math.min(tabMenu.x, window.innerWidth - rect.width - pad));
+    const top = Math.max(pad, Math.min(tabMenu.y, window.innerHeight - rect.height - pad));
+    el.style.left = `${left}px`;
+    el.style.top = `${top}px`;
+  }, [tabMenu]);
+
+  React.useEffect(() => {
     if (!mountedRef.current) {
       mountedRef.current = true;
       return;
@@ -295,6 +337,68 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
     tools: toolTabs,
   });
   const orderedKeys = reconcileTabOrder(tabOrder, presentKeys);
+  const openTabMenu = (event: React.MouseEvent, key: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    selectTab(key);
+    setTabMenu({ key, x: event.clientX, y: event.clientY });
+  };
+  const closeDockKey = (key: string) => {
+    const toolId = toolIdFromTabKey(key);
+    if (toolId) {
+      onCloseTool?.(toolId);
+      return;
+    }
+    const path = filePathFromTabKey(key);
+    if (path) {
+      onCloseFileTab?.(path);
+      return;
+    }
+    if (key.startsWith("kind:")) {
+      onCloseTab(key.slice("kind:".length) as DesktopPanelKind);
+    }
+  };
+  const runClose = (mode: DockTabCloseMode) => {
+    if (!tabMenu) return;
+    const clicked = tabMenu.key;
+    setTabMenu(null);
+    if (mode === "others" || mode === "right") selectTab(clicked);
+    const keys = dockTabsToClose(orderedKeys, clicked, mode);
+    const ranked = [...keys].sort(
+      (a, b) => orderedKeys.indexOf(b) - orderedKeys.indexOf(a),
+    );
+    for (const key of ranked) closeDockKey(key);
+    if (mode === "all") onCloseDock?.();
+  };
+  const menuFilePath = tabMenu ? filePathFromTabKey(tabMenu.key) : null;
+  const copyFilePath = async (path: string) => {
+    setTabMenu(null);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(path);
+      } else {
+        const area = document.createElement("textarea");
+        area.value = path;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.left = "-9999px";
+        document.body.appendChild(area);
+        area.select();
+        const copied = document.execCommand("copy");
+        area.remove();
+        if (!copied) return;
+      }
+      window.postMessage(
+        {
+          command: "showToast",
+          toast: { id: "dock-copy-path", message: "已复制路径" },
+        },
+        "*",
+      );
+    } catch {
+      // 没复制成功就不提示。
+    }
+  };
   const dropAfter = (event: React.DragEvent) => {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     return event.clientX > rect.left + rect.width / 2;
@@ -379,7 +483,14 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
     </button>
   );
 
+  const menuClicked = tabMenu?.key ?? "";
+  const closeOneDisabled = dockTabsToClose(orderedKeys, menuClicked, "one").length === 0;
+  const closeOthersDisabled = dockTabsToClose(orderedKeys, menuClicked, "others").length === 0;
+  const closeRightDisabled = dockTabsToClose(orderedKeys, menuClicked, "right").length === 0;
+  const closeAllDisabled = dockTabsToClose(orderedKeys, menuClicked, "all").length === 0;
+
   return (
+    <>
     <aside
       ref={dockRef}
       className={`desktop-panel-dock${fullscreen ? " desktop-panel-dock--fullscreen" : ""}${entering ? " desktop-panel-dock--enter" : ""}`}
@@ -420,6 +531,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                   key={key}
                   className={`desktop-panel-tab${detailActive ? " desktop-panel-tab--active" : ""}${dropClass(key)}`}
                   data-testid={`desktop-panel-tab-${DOCK_DETAIL_TAB}`}
+                  onContextMenu={(event) => openTabMenu(event, key)}
                   {...bindTab(key)}
                 >
                   <Tooltip
@@ -466,6 +578,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                   className={`desktop-panel-tab${selected ? " desktop-panel-tab--active" : ""}${dropClass(key)}`}
                   data-testid={`desktop-panel-tool-${tool.id}`}
                   title={tool.title}
+                  onContextMenu={(event) => openTabMenu(event, key)}
                   {...bindTab(key)}
                 >
                   <Tooltip
@@ -520,6 +633,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                   data-path={tab.path}
                   data-active={isActive ? "true" : "false"}
                   title={tab.path}
+                  onContextMenu={(event) => openTabMenu(event, key)}
                   onClick={(event) => {
                     onSelectFileTab?.(tab.path);
                     revealTab(event.currentTarget);
@@ -555,6 +669,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                 key={key}
                 className={`desktop-panel-tab${selected ? " desktop-panel-tab--active" : ""}${dropClass(key)}`}
                 data-testid={`desktop-panel-tab-${kind}`}
+                onContextMenu={(event) => openTabMenu(event, key)}
                 {...bindTab(key)}
               >
                 <button
@@ -627,5 +742,96 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
         </div>
       </div>
     </aside>
+    {tabMenu
+      ? bodyPortal(
+          <div
+            ref={tabMenuRef}
+            className="desktop-context-menu"
+            style={{ left: tabMenu.x, top: tabMenu.y }}
+            data-testid="dock-tab-menu"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="desktop-context-menu-item"
+              data-testid="dock-tab-menu-close"
+              disabled={closeOneDisabled}
+              onClick={() => runClose("one")}
+            >
+              关闭
+            </button>
+            <button
+              type="button"
+              className="desktop-context-menu-item"
+              data-testid="dock-tab-menu-close-others"
+              disabled={closeOthersDisabled}
+              onClick={() => runClose("others")}
+            >
+              关闭其他
+            </button>
+            <button
+              type="button"
+              className="desktop-context-menu-item"
+              data-testid="dock-tab-menu-close-right"
+              disabled={closeRightDisabled}
+              onClick={() => runClose("right")}
+            >
+              关闭右侧
+            </button>
+            <button
+              type="button"
+              className="desktop-context-menu-item"
+              data-testid="dock-tab-menu-close-all"
+              disabled={closeAllDisabled}
+              onClick={() => runClose("all")}
+            >
+              关闭所有
+            </button>
+            {menuFilePath ? (
+              <>
+                <div className="desktop-context-menu-sep" />
+                <button
+                  type="button"
+                  className="desktop-context-menu-item"
+                  data-testid="dock-tab-menu-add-chat"
+                  onClick={() => {
+                    if (!menuFilePath) return;
+                    const path = menuFilePath;
+                    setTabMenu(null);
+                    onAddFileToChat?.(path);
+                  }}
+                >
+                  添加到聊天
+                </button>
+                <button
+                  type="button"
+                  className="desktop-context-menu-item"
+                  data-testid="dock-tab-menu-reveal"
+                  onClick={() => {
+                    if (!menuFilePath) return;
+                    const path = menuFilePath;
+                    setTabMenu(null);
+                    onRevealFile?.(path);
+                  }}
+                >
+                  访达中打开
+                </button>
+                <button
+                  type="button"
+                  className="desktop-context-menu-item"
+                  data-testid="dock-tab-menu-copy"
+                  onClick={() => {
+                    if (!menuFilePath) return;
+                    void copyFilePath(menuFilePath);
+                  }}
+                >
+                  复制路径
+                </button>
+              </>
+            ) : null}
+          </div>,
+        )
+      : null}
+    </>
   );
 };

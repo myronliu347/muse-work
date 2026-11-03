@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DesktopPanelDock } from "../../src/components/desktop/DesktopPanelDock";
 import { registerUnfocusedClose } from "../../src/muse/sidePanelTabs";
@@ -724,5 +724,117 @@ describe("DesktopPanelDock", () => {
       fireEvent.click(diff.querySelector("button")!);
       expect(container.scrollLeft).toBe(326);
     });
+  });
+
+  it("closes the tab under the pointer, the others, those to the right, or all of them", () => {
+    const onCloseTab = vi.fn();
+    const onSelect = vi.fn();
+    const onCloseDock = vi.fn();
+    render(
+      <MuseTheme>
+        <DesktopPanelDock
+          {...baseProps}
+          checked={["terminal", "preview", "diff"]}
+          active="diff"
+          onCloseTab={onCloseTab}
+          onSelect={onSelect}
+          onCloseDock={onCloseDock}
+        >
+          <div>body</div>
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+
+    fireEvent.contextMenu(screen.getByTestId("desktop-panel-tab-terminal"));
+    expect(screen.getByTestId("dock-tab-menu")).toHaveTextContent("关闭");
+    expect(screen.queryByTestId("dock-tab-menu-add-chat")).toBeNull();
+    fireEvent.click(screen.getByTestId("dock-tab-menu-close"));
+    expect(onCloseTab).toHaveBeenCalledWith("terminal");
+    expect(onSelect).toHaveBeenCalledWith("terminal");
+
+    onCloseTab.mockClear();
+    fireEvent.contextMenu(screen.getByTestId("desktop-panel-tab-preview"));
+    fireEvent.click(screen.getByTestId("dock-tab-menu-close-right"));
+    expect(onCloseTab).toHaveBeenCalledTimes(1);
+    expect(onCloseTab).toHaveBeenCalledWith("diff");
+
+    onCloseTab.mockClear();
+    fireEvent.contextMenu(screen.getByTestId("desktop-panel-tab-terminal"));
+    fireEvent.click(screen.getByTestId("dock-tab-menu-close-others"));
+    expect(onCloseTab.mock.calls.map((call) => call[0]).sort()).toEqual([
+      "diff",
+      "preview",
+    ]);
+
+    expect(onCloseDock).not.toHaveBeenCalled();
+    onCloseTab.mockClear();
+    fireEvent.contextMenu(screen.getByTestId("desktop-panel-tab-diff"));
+    fireEvent.click(screen.getByTestId("dock-tab-menu-close-all"));
+    expect(onCloseTab.mock.calls.map((call) => call[0]).sort()).toEqual([
+      "diff",
+      "preview",
+      "terminal",
+    ]);
+    expect(onCloseDock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps 详情 and offers file actions on a file tab", async () => {
+    const onCloseTab = vi.fn();
+    const onCloseFileTab = vi.fn();
+    const onAddFileToChat = vi.fn();
+    const onRevealFile = vi.fn();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const messages: unknown[] = [];
+    const onMessage = (event: MessageEvent) => messages.push(event.data);
+    window.addEventListener("message", onMessage);
+
+    render(
+      <MuseTheme>
+        <DesktopPanelDock
+          {...baseProps}
+          checked={["diff"]}
+          active="file"
+          onCloseTab={onCloseTab}
+          onSelectDetail={() => {}}
+          fileTabs={[fileTab("/repo/a.ts")]}
+          activeFilePath="/repo/a.ts"
+          onCloseFileTab={onCloseFileTab}
+          onAddFileToChat={onAddFileToChat}
+          onRevealFile={onRevealFile}
+        >
+          <div>body</div>
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+
+    fireEvent.contextMenu(screen.getByTestId("desktop-panel-tab-detail"));
+    expect(screen.getByTestId("dock-tab-menu-close")).toBeDisabled();
+    fireEvent.click(screen.getByTestId("dock-tab-menu-close-all"));
+    expect(onCloseFileTab).toHaveBeenCalledWith("/repo/a.ts");
+    expect(onCloseTab).toHaveBeenCalledWith("diff");
+
+    onCloseFileTab.mockClear();
+    fireEvent.contextMenu(screen.getByTestId("file-tab"));
+    fireEvent.click(screen.getByTestId("dock-tab-menu-add-chat"));
+    expect(onAddFileToChat).toHaveBeenCalledWith("/repo/a.ts");
+
+    fireEvent.contextMenu(screen.getByTestId("file-tab"));
+    fireEvent.click(screen.getByTestId("dock-tab-menu-reveal"));
+    expect(onRevealFile).toHaveBeenCalledWith("/repo/a.ts");
+
+    fireEvent.contextMenu(screen.getByTestId("file-tab"));
+    fireEvent.click(screen.getByTestId("dock-tab-menu-copy"));
+    await waitFor(() => {
+      expect(messages).toContainEqual({
+        command: "showToast",
+        toast: { id: "dock-copy-path", message: "已复制路径" },
+      });
+    });
+    expect(writeText).toHaveBeenCalledWith("/repo/a.ts");
+    window.removeEventListener("message", onMessage);
   });
 });

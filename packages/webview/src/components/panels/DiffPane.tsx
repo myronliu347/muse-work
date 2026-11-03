@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DropdownMenu, Select } from "@radix-ui/themes";
+import { Select } from "@radix-ui/themes";
 import { PatchDiff } from "@pierre/diffs/react";
 import type { DiffLineAnnotation, FileDiffLoadedFiles, FileDiffMetadata } from "@pierre/diffs";
 import type { VsCodeApi, DiffViewState } from "../../types";
@@ -272,35 +272,32 @@ function DiffIssueSelect({
   if (!current) return null;
   const workdirLabel = (workdir: string) => displayHomePath(workdir, homeDir);
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger>
-        <button
-          type="button"
-          className="diff-issue-select"
-          data-testid="diff-issue-select"
-          aria-label="切换事项"
-          title={current.title}
-        >
-          <span className="diff-issue-select-title">{current.title}</span>
-          <i className="codicon codicon-chevron-down" aria-hidden />
-        </button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Content
-        size="1"
-        variant="soft"
+    <Select.Root value={current.id} onValueChange={(id) => onSelectIssue?.(id)}>
+      <Select.Trigger
+        variant="ghost"
         color="gray"
-        highContrast
+        size="1"
+        className="diff-issue-select"
+        data-testid="diff-issue-select"
+        aria-label="切换事项"
+        title={current.title}
+      >
+        <span className="diff-issue-select-title">{current.title}</span>
+      </Select.Trigger>
+      <Select.Content
+        position="popper"
+        side="bottom"
         align="start"
         sideOffset={4}
         container={getOverlayHost()}
-        className="diff-issue-menu"
+        className="diff-issue-menu diff-pane-select-content"
         data-testid="diff-issue-menu"
       >
         {issues.map((issue) => (
-          <DropdownMenu.Item
+          <Select.Item
             key={issue.id}
+            value={issue.id}
             data-testid={`diff-issue-option-${issue.id}`}
-            onSelect={() => onSelectIssue?.(issue.id)}
           >
             <span className="diff-issue-option">
               <span className="diff-issue-option-title">{issue.title}</span>
@@ -311,10 +308,10 @@ function DiffIssueSelect({
                 <span>{workdirLabel(issue.workdir) || "没有工作目录"}</span>
               </span>
             </span>
-          </DropdownMenu.Item>
+          </Select.Item>
         ))}
-      </DropdownMenu.Content>
-    </DropdownMenu.Root>
+      </Select.Content>
+    </Select.Root>
   );
 }
 

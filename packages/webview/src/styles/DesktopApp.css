@@ -953,6 +953,21 @@
   background: var(--gray-4, var(--gray-4));
 }
 
+.desktop-context-menu-item:disabled {
+  color: var(--gray-9, var(--gray-9));
+  cursor: default;
+}
+
+.desktop-context-menu-item:disabled:hover {
+  background: transparent;
+}
+
+.desktop-context-menu-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--gray-6, var(--gray-6));
+}
+
 .desktop-session-items {
   list-style: none;
   margin: 0;

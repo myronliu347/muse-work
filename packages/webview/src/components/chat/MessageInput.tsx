@@ -121,6 +121,8 @@ export interface MessageInputHandle {
   appendText: (text: string) => void;
   /** Replace the current draft and focus, used by welcome prompt cards. */
   setText: (text: string) => void;
+  /** Insert an @file chip for an absolute path. */
+  insertFile: (absolutePath: string) => void;
   loadQueuedEditContent: (text: string) => void;
 }
 
@@ -238,6 +240,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
 
     const textareaRef = useRef<HTMLDivElement>(null);
     const requestIdRef = useRef<string>("");
+    const insertFileRef = useRef<(absolutePath: string) => void>(() => {});
     const inputContentTimerRef = useRef<NodeJS.Timeout | null>(null);
     const selectionChangeTimerRef = useRef<NodeJS.Timeout | null>(null);
     const lastSelectionChangePosRef = useRef<number>(0);
@@ -326,6 +329,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           sel.addRange(range);
         }
       },
+      insertFile: (absolutePath: string) => insertFileRef.current(absolutePath),
       // Loads a queued message's content into the input for editing (chip + body).
       // Called via ref from ChatApp so it only affects this pane's input, not every
       // pane in a split-view layout (window.postMessage would be received by all panes).
@@ -843,6 +847,11 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       },
       [vscode],
     );
+
+    insertFileRef.current = (absolutePath: string) => {
+      if (!absolutePath) return;
+      insertFileMentionAtCursor(fileItemFromAbsolutePath(absolutePath, workdir));
+    };
 
     useEffect(() => {
       const handleMessage = (event: MessageEvent) => {

@@ -1039,6 +1039,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const toggleFullscreenRef = useRef<() => void>(() => {});
   const openQuickOpenRef = useRef<(query: string) => void>(() => {});
   const messageInputRef = useRef<MessageInputHandle>(null);
+  const assistantInputRef = useRef<MessageInputHandle>(null);
   const messageListRef = useRef<{
     scrollToBottom: (behavior?: ScrollBehavior) => void;
   }>(null);
@@ -2537,6 +2538,17 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       acquireForward(tool.forward.host, tool.forward.originalUrl);
     },
     onToggleDock: assistantVisible ? toggleAssistantDock : handleToggleDock,
+    onCloseDock: () => {
+      if (assistantVisible) {
+        restoreAssistantToolsRef.current = false;
+        setAssistantDockOpen(false);
+        return;
+      }
+      const group = groupKey
+        ? usePanelGroupStore.getState().groups[groupKey]
+        : undefined;
+      if ((group?.checked.length ?? 0) > 0) handleToggleDock();
+    },
     onToggleFullscreen: handleToggleFullscreen,
     onWidthChange: handleDockWidthChange,
     vscode,
@@ -2613,6 +2625,12 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     },
     onCloseFileTab: closeShownFileTab,
     onPinFileTab: pinShownFileTab,
+    onAddFileToChat: (path) => {
+      const input = botComposerFocused
+        ? assistantInputRef.current ?? messageInputRef.current
+        : messageInputRef.current ?? assistantInputRef.current;
+      input?.insertFile(path);
+    },
     fileTree: shownFileTree,
     onFileTreeChange: handleFileTreeChange,
     fileSidebarMode,
@@ -2759,6 +2777,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                 api={museApi}
                 vscode={vscode}
                 showPanelToggle={false}
+                inputRef={assistantInputRef}
                 onToggleDock={toggleAssistantDock}
                 onViewModeChange={onAssistantViewMode}
                 onOpenFile={openMessageFile}

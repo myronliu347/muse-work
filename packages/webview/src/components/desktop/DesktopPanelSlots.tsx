@@ -37,6 +37,8 @@ export interface DesktopPanelSlotsProps {
   onCloseTab: (kind: DesktopPanelKind) => void;
   onAddPanel: (kind: DesktopPanelKind) => void;
   onToggleDock: () => void;
+  /** Tab menu 关闭所有：收起整个右侧面板。 */
+  onCloseDock?: () => void;
   onToggleFullscreen: () => void;
   onWidthChange: (width: number) => void;
   // Panel slot payloads
@@ -77,6 +79,8 @@ export interface DesktopPanelSlotsProps {
   onSelectFileTab: (path: string) => void;
   onCloseFileTab: (path: string) => void;
   onPinFileTab: (path: string) => void;
+  /** File-tab menu: insert the path into the current composer. */
+  onAddFileToChat?: (path: string) => void;
   fileTree: FileTreeState;
   onFileTreeChange: (next: FileTreeState) => void;
   fileSidebarMode: FileSidebarMode;
@@ -126,6 +130,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   onCloseTab,
   onAddPanel,
   onToggleDock,
+  onCloseDock,
   onToggleFullscreen,
   onWidthChange,
   vscode,
@@ -159,6 +164,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   onSelectFileTab,
   onCloseFileTab,
   onPinFileTab,
+  onAddFileToChat,
   fileTree,
   onFileTreeChange,
   fileSidebarMode,
@@ -284,6 +290,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
       panelToggle={{
         onToggleDock,
       }}
+      onCloseDock={onCloseDock}
       fullscreen={fullscreen}
       onToggleFullscreen={onToggleFullscreen}
       width={clampDockWidth(
@@ -297,6 +304,8 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
       onSelectFileTab={onSelectFileTab}
       onCloseFileTab={onCloseFileTab}
       onPinFileTab={onPinFileTab}
+      onAddFileToChat={onAddFileToChat}
+      onRevealFile={onRevealInFinder}
       detailActive={detailActive}
       onSelectDetail={onSelectDetail}
       detailTitle={detailTitle}

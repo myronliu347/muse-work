@@ -772,6 +772,28 @@ describe("AssistantPage", () => {
     expect(screen.getByTestId("message-input").textContent).toBe("先记着");
   });
 
+  it("keeps the composer focused after send", () => {
+    let release: (value: unknown) => void = () => {};
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({ messages: [], hasMore: false }),
+      sendAssistantMessage: vi.fn().mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            release = resolve;
+          }),
+      ),
+    };
+    render(<AssistantPage api={api} />);
+    const input = screen.getByTestId("message-input");
+    typeComposer("接着说");
+    const button = screen.getByTestId("send-btn");
+    button.focus();
+    fireEvent.click(button);
+    expect(document.activeElement).toBe(input);
+    expect(input).toHaveAttribute("contenteditable", "true");
+    release({ line: { id: "1", at: 1, role: "user", message: "接着说" } });
+  });
+
   it("does not bring back text that was already sent", () => {
     const api = {
       listAssistantMessages: vi.fn().mockResolvedValue({ messages: [], hasMore: false }),

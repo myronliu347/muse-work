@@ -251,16 +251,26 @@ function formatBubbleTime(at: number): string {
   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
+function assignInputRef(
+  ref: Ref<MessageInputHandle> | undefined,
+  value: MessageInputHandle | null,
+) {
+  if (!ref) return;
+  if (typeof ref === "function") {
+    ref(value);
+    return;
+  }
+  ref.current = value;
+}
+
 function AssistantComposer({
   vscode,
-  sending,
   workdir,
   mentionIssues,
   inputRef,
   onSend,
 }: {
   vscode: VsCodeApi;
-  sending: boolean;
   workdir?: string;
   mentionIssues?: Array<{ id: string; title: string }>;
   inputRef?: Ref<MessageInputHandle>;
@@ -269,6 +279,7 @@ function AssistantComposer({
     images?: Array<{ data: string; mediaType: string }>,
   ) => void;
 }) {
+  const focusRef = useRef<MessageInputHandle>(null);
   // 挂载时拍一份草稿。输入过程中不把草稿再传回 inputContent，避免光标被重置。
   const [initialDraft] = useState(() => readAssistantComposerDraft());
   const persistDraft = useCallback((draft: AssistantComposerDraft) => {
@@ -276,10 +287,12 @@ function AssistantComposer({
   }, []);
   return (
     <MessageInput
-      ref={inputRef}
+      ref={(handle) => {
+        focusRef.current = handle;
+        assignInputRef(inputRef, handle);
+      }}
       vscode={vscode}
       isStreaming={false}
-      disabled={sending}
       workdir={workdir}
       mentionIssues={mentionIssues}
       placeholder="想让我做的事，写在这里"
@@ -289,7 +302,10 @@ function AssistantComposer({
       }
       onPersistDraft={persistDraft}
       onAbortMessage={() => {}}
-      onSendMessage={onSend}
+      onSendMessage={(text, images) => {
+        onSend(text, images);
+        focusRef.current?.focus();
+      }}
     />
   );
 }
@@ -622,7 +638,6 @@ export const AssistantPage: React.FC<{
 }) => {
   const [lines, setLines] = useState<AssistantLine[]>([]);
   const [hasMore, setHasMore] = useState(false);
-  const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"chat" | "transcript">("chat");
   useEffect(() => {
@@ -1019,10 +1034,9 @@ export const AssistantPage: React.FC<{
   ) {
     const message = text.replace(/\u00A0/g, " ").trim();
     const attached = (images ?? []).filter((img) => img.data);
-    if ((!message && attached.length === 0) || sending) return;
+    if (!message && attached.length === 0) return;
     if (/^\/clear(?:\s|$)/.test(message)) {
       if (working || !api.clearAssistantMessages) return;
-      setSending(true);
       setError(null);
       try {
         await api.clearAssistantMessages();
@@ -1030,12 +1044,9 @@ export const AssistantPage: React.FC<{
       } catch (err) {
         const detail = err instanceof Error ? err.message : String(err);
         if (!detail.includes("409")) setError(detail);
-      } finally {
-        setSending(false);
       }
       return;
     }
-    setSending(true);
     setWorking(true);
     atTail.current = true;
     setError(null);
@@ -1051,8 +1062,6 @@ export const AssistantPage: React.FC<{
     } catch (err) {
       setWorking(false);
       setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSending(false);
     }
   }
 
@@ -1235,7 +1244,6 @@ export const AssistantPage: React.FC<{
       >
         <AssistantComposer
           vscode={vscode}
-          sending={sending}
           workdir={agentWorkdir}
           mentionIssues={mentionIssues}
           inputRef={inputRef}
