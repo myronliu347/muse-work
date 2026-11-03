@@ -1,0 +1,109 @@
+packages/webview/src/components/ChatApp.tsx
+  c26d1b1664bab700 96,98,414-416,1443-1445,1527-1557,1791-1799,2600,2776,2785-2791,2816-2826,2828,2878
+packages/webview/src/components/assistant/AssistantPage.tsx
+  c26d1b1664bab700 1070-1075
+packages/webview/tests/reducers/chatReducer.test.ts
+  c26d1b1664bab700 401-451
+packages/webview/src/styles/AssistantPage.css
+  c26d1b1664bab700 39-41,48-64,66-67,77,84-88,168-169
+packages/webview/src/muse/layout.ts
+  c26d1b1664bab700 70-82
+packages/webview/src/reducers/chatReducer.ts
+  c26d1b1664bab700 377-398,402,404
+packages/webview/tests/components/issueTab.test.tsx
+  c26d1b1664bab700 2393-2395
+packages/webview/tests/muse/layout.test.ts
+  c26d1b1664bab700 12,81-91
+packages/webview/tests/muse/hostBridge.test.ts
+  c26d1b1664bab700 968-1022
+packages/webview/src/muse/hostBridge/chat.ts
+  c26d1b1664bab700 134-142
+packages/webview/src/styles/DesktopApp.css
+  c26d1b1664bab700 2810,2831,2850-2857,3286
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "9dc02f44fd71911df89a234427a7292d91b23efb",
+  "prompts": {
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 313,
+      "total_deletions": 56,
+      "accepted_lines": 298,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 88,
+          "deletions": 37,
+          "accepted_lines": 71
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 6,
+          "deletions": 1,
+          "accepted_lines": 6
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 11,
+          "deletions": 3,
+          "accepted_lines": 11
+        },
+        "packages/agent/src/utils/commandArgumentParser.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 7,
+          "deletions": 5,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/muse/layout.test.ts": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 55,
+          "accepted_lines": 55
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 24,
+          "deletions": 1,
+          "accepted_lines": 24
+        },
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 32,
+          "deletions": 2,
+          "accepted_lines": 32
+        },
+        "packages/webview/src/muse/hostBridge/chat.ts": {
+          "additions": 9,
+          "deletions": 5,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "additions": 52,
+          "accepted_lines": 52
+        },
+        "packages/webview/src/muse/layout.ts": {
+          "additions": 17,
+          "deletions": 2,
+          "accepted_lines": 16
+        }
+      }
+    }
+  }
+}
