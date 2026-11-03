@@ -1,0 +1,150 @@
+packages/webview/src/styles/DesktopPanelDock.css
+  ad38f788148e5e5b 902-1326
+packages/webview/tests/components/botLists.test.tsx
+  ad38f788148e5e5b 733-734,758-762
+packages/webview/src/components/assistant/AssistantPage.tsx
+  ad38f788148e5e5b 22,603-614,634-638,644,1064-1070,1123-1146
+packages/server/src/services/reviewStore.ts
+  ad38f788148e5e5b 18,30-35,196,211
+packages/webview/src/components/desktop/BotLists.tsx
+  ad38f788148e5e5b 363,365,368-369,372-373,394-395,402,404-429,463-465,471-473,485-488,506,512,516,528-535
+packages/webview/src/styles/AssistantPage.css
+  ad38f788148e5e5b 63-79
+packages/webview/e2e/utils/reviewChainServer.ts
+  ad38f788148e5e5b 1-103
+packages/server/src/routes/reviews.ts
+  ad38f788148e5e5b 1-2,7-65,96,108-109
+packages/webview/src/muse/apiClient.ts
+  ad38f788148e5e5b 155,905,910
+packages/server/src/services/assistant/session.ts
+  ad38f788148e5e5b 18
+packages/webview/src/components/desktop/ReviewBody.tsx
+  ad38f788148e5e5b 1,5-7,9-11,17,36-43,51-57,66,70-74,77,79,81,84-133,136-178,180-181,184,187,189,191-287
+packages/webview/e2e/demo/review-record.demo.ts
+  ad38f788148e5e5b 1-218
+packages/webview/src/components/ChatApp.tsx
+  ad38f788148e5e5b 449-455,1524-1525,2429,2456-2460,2468-2473,2485-2506,2723,2847-2851,2999-3003
+packages/webview/tests/components/assistantPage.test.tsx
+  ad38f788148e5e5b 136-165
+packages/webview/src/styles/DesktopApp.css
+  ad38f788148e5e5b 2814
+packages/webview/tests/components/reviewBody.test.tsx
+  ad38f788148e5e5b 35-36,42-55
+packages/server/tests/assistantSession.test.ts
+  ad38f788148e5e5b 60
+packages/webview/src/components/desktop/DockDetail.tsx
+  ad38f788148e5e5b 112-116
+packages/webview/src/components/desktop/BotLists.css
+  ad38f788148e5e5b 39-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "653734dee7f1b3dfab8ea1deb89fbf384bf6ded3",
+  "prompts": {
+    "ad38f788148e5e5b": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2978e166-642c-4a78-acc3-8db1dededa40",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1592,
+      "total_deletions": 434,
+      "accepted_lines": 1303,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/routes/reviews.ts": {
+          "additions": 65,
+          "deletions": 2,
+          "accepted_lines": 65
+        },
+        "packages/webview/src/components/desktop/ReviewBody.tsx": {
+          "additions": 303,
+          "deletions": 102,
+          "accepted_lines": 236
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/server/src/services/assistant/session.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/desktop/BotLists.tsx": {
+          "additions": 81,
+          "deletions": 104,
+          "accepted_lines": 56
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/desktop/DockDetail.tsx": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/e2e/utils/reviewChainServer.ts": {
+          "additions": 103,
+          "accepted_lines": 103
+        },
+        "packages/server/src/services/reviewStore.ts": {
+          "additions": 9,
+          "deletions": 2,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 66,
+          "deletions": 19,
+          "accepted_lines": 50
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 462,
+          "deletions": 37,
+          "accepted_lines": 425
+        },
+        "packages/webview/tests/components/botLists.test.tsx": {
+          "additions": 7,
+          "deletions": 2,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/desktop/BotLists.css": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 56,
+          "deletions": 18,
+          "accepted_lines": 54
+        },
+        "packages/webview/e2e/demo/review-record.demo.ts": {
+          "additions": 340,
+          "deletions": 122,
+          "accepted_lines": 218
+        },
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 36,
+          "deletions": 19,
+          "accepted_lines": 17
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 30,
+          "accepted_lines": 30
+        },
+        "packages/webview/tests/components/reviewBody.test.tsx": {
+          "additions": 17,
+          "deletions": 5,
+          "accepted_lines": 16
+        }
+      }
+    }
+  }
+}
