@@ -1,0 +1,41 @@
+packages/webview/src/styles/UserMessageNav.css
+  c26d1b1664bab700 18-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "279f9f05faefc4b320d34dca935684fcee4b8e05",
+  "prompts": {
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 9,
+      "total_deletions": 0,
+      "accepted_lines": 16,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/UserMessageNav.css": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "accepted_lines": 3
+        },
+        "packages/agent/src/utils/commandArgumentParser.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
