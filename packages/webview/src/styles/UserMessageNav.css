@@ -15,6 +15,15 @@
   max-height: min(70%, calc(100% - var(--space-4)));
   overflow-y: auto;
   overflow-x: hidden;
+  /* Wheel still scrolls; the rail is too narrow for a visible scrollbar. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.user-message-nav::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .user-message-nav:hover {
