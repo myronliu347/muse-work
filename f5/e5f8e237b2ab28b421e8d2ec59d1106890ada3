@@ -1,0 +1,72 @@
+packages/server/tests/assistantSession.test.ts
+  c26d1b1664bab700 53
+packages/webview/src/styles/DesktopApp.css
+  c26d1b1664bab700 3455-3458,3460-3461,3469,3474-3480,3488-3493,3495-3501
+packages/server/src/services/assistant/prompt.ts
+  c26d1b1664bab700 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f5e5f8e237b2ab28b421e8d2ec59d1106890ada3",
+  "prompts": {
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 144,
+      "total_deletions": 27,
+      "accepted_lines": 36,
+      "overriden_lines": 6,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 10,
+          "deletions": 10,
+          "accepted_lines": 5
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "additions": 32,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "additions": 3,
+          "deletions": 4,
+          "overriden_lines": 3
+        },
+        "packages/server/src/services/assistant/events.ts": {
+          "additions": 22
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 28,
+          "deletions": 7,
+          "accepted_lines": 28
+        },
+        "packages/agent/tests/utils/commandArgumentParser.test.ts": {
+          "additions": 19
+        },
+        "packages/server/src/services/sessionRunner/ctx.ts": {
+          "additions": 16
+        },
+        "packages/agent/src/utils/commandArgumentParser.ts": {
+          "additions": 6,
+          "deletions": 1,
+          "overriden_lines": 1
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 4,
+          "deletions": 2,
+          "overriden_lines": 2
+        }
+      }
+    }
+  }
+}
