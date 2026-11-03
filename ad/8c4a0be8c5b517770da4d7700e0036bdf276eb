@@ -1,0 +1,94 @@
+packages/webview/tests/components/filePane.test.tsx
+  c26d1b1664bab700 892-1014
+packages/webview/src/components/panels/FilePane.tsx
+  c26d1b1664bab700 14,49-50,76,321
+packages/webview/src/components/ChatApp.tsx
+  c26d1b1664bab700 2634-2640
+packages/webview/src/components/panels/FilePreview.tsx
+  c26d1b1664bab700 1,15,24-68,241-242,256,262-266,444-569,782-796
+packages/webview/src/components/desktop/DesktopPanelSlots.tsx
+  c26d1b1664bab700 9,85-86,171,266
+packages/webview/src/components/chat/MessageInput.tsx
+  c26d1b1664bab700 126-132,251-258,348,709-710,713-725,881
+packages/server/src/services/issueStore.ts
+  c26d1b1664bab700 154-164,252,259,318-320
+packages/server/tests/issueStore.test.ts
+  c26d1b1664bab700 326,350,352-357,363-383
+packages/webview/src/styles/FilePane.css
+  c26d1b1664bab700 178-204
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "ad8c4a0be8c5b517770da4d7700e0036bdf276eb",
+  "prompts": {
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 476,
+      "total_deletions": 46,
+      "accepted_lines": 448,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/issueStore.ts": {
+          "additions": 16,
+          "deletions": 1,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/components/panels/FilePane.tsx": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 32,
+          "deletions": 5,
+          "accepted_lines": 32
+        },
+        "packages/webview/src/components/panels/FilePreview.tsx": {
+          "additions": 231,
+          "deletions": 36,
+          "accepted_lines": 196
+        },
+        "packages/webview/src/styles/FilePane.css": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/filePane.test.tsx": {
+          "additions": 123,
+          "accepted_lines": 123
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/tests/issueStore.test.ts": {
+          "additions": 30,
+          "deletions": 3,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/components/desktop/DesktopPanelSlots.tsx": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/agent/src/utils/commandArgumentParser.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 7,
+          "accepted_lines": 7
+        }
+      }
+    }
+  }
+}
