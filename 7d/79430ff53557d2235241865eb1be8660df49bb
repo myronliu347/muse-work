@@ -1,0 +1,85 @@
+packages/server/src/routes/assistant.ts
+  c26d1b1664bab700 4,66-87
+packages/webview/src/muse/hostBridge/index.ts
+  c26d1b1664bab700 155-159
+packages/server/tests/assistantMessages.test.ts
+  c26d1b1664bab700 150-166
+packages/webview/tests/components/assistantPage.test.tsx
+  c26d1b1664bab700 68-109
+packages/server/tests/assistantWiring.test.ts
+  c26d1b1664bab700 80-126
+packages/server/src/services/wsEvents.ts
+  c26d1b1664bab700 123
+packages/webview/src/components/assistant/AssistantPage.tsx
+  c26d1b1664bab700 67,923-932,953-956,966,1023-1037
+packages/server/src/services/assistant/messages.ts
+  c26d1b1664bab700 152,195-200,282
+packages/webview/src/muse/apiClient.ts
+  c26d1b1664bab700 1144-1148
+packages/webview/src/muse/wsClient.ts
+  c26d1b1664bab700 100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "7d79430ff53557d2235241865eb1be8660df49bb",
+  "prompts": {
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 190,
+      "total_deletions": 12,
+      "accepted_lines": 180,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/assistant/messages.ts": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 42,
+          "accepted_lines": 42
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 41,
+          "deletions": 11,
+          "accepted_lines": 31
+        },
+        "packages/server/src/routes/assistant.ts": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "packages/server/tests/assistantMessages.test.ts": {
+          "additions": 17,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/wsEvents.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantWiring.test.ts": {
+          "additions": 47,
+          "accepted_lines": 47
+        }
+      }
+    }
+  }
+}
