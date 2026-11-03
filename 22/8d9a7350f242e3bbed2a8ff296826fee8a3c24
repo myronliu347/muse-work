@@ -1,0 +1,66 @@
+packages/server/tests/assistantTools.test.ts
+  c26d1b1664bab700 250,1003-1056
+packages/server/tests/assistantSession.test.ts
+  c26d1b1664bab700 52
+packages/server/src/services/assistant/prompt.ts
+  c26d1b1664bab700 112
+packages/server/src/services/assistant/session.ts
+  c26d1b1664bab700 16
+packages/server/src/services/assistant/tools/issueTools.ts
+  c26d1b1664bab700 413-446
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "228d9a7350f242e3bbed2a8ff296826fee8a3c24",
+  "prompts": {
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 94,
+      "total_deletions": 1,
+      "accepted_lines": 100,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/runtime.ts": {
+          "accepted_lines": 3
+        },
+        "packages/agent/src/utils/commandArgumentParser.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 56,
+          "deletions": 1,
+          "accepted_lines": 55
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/assistant/session.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/tools/issueTools.ts": {
+          "additions": 35,
+          "accepted_lines": 35
+        }
+      }
+    }
+  }
+}
