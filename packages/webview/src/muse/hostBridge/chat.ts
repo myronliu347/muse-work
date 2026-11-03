@@ -131,11 +131,15 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
     }
 
     if (event.type === "reasoning:delta") {
-      if (ctx.aborted) return;
-      ensureAssistantMessage(event.messageId);
-      if (!ctx.loading) {
-        ctx.setLoading(true);
-        postToWebview({ command: "startStreaming" });
+      // Abort 后 SDK 仍会把思考块收成 stage:end。这条要放行，否则计时停不下来。
+      // 流式增量继续丢掉，避免中断后的迟到片段把会话重新点亮。
+      if (ctx.aborted && event.stage !== "end") return;
+      if (!ctx.aborted) {
+        ensureAssistantMessage(event.messageId);
+        if (!ctx.loading) {
+          ctx.setLoading(true);
+          postToWebview({ command: "startStreaming" });
+        }
       }
       postToWebview({
         command: "updateStreamingReasoning",

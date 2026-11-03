@@ -2390,7 +2390,9 @@ describe("issue tab", () => {
     expect(issueColumn.querySelector(".assistant-split-bar")).toBeTruthy();
     expect(within(botColumn).getByRole("button", { name: "灵光" })).toBeDisabled();
     expect(within(issueColumn).getByRole("button", { name: A11Y })).toBeTruthy();
-    expect(issueColumn.style.minWidth).toBe("520px");
+    const splitMain = frame.querySelector(".desktop-chat-main") as HTMLElement;
+    expect(splitMain.style.display).toBe("grid");
+    expect(splitMain.style.gridTemplateColumns).toBe("572px 6px minmax(0, 1fr)");
     const botTab = within(botColumn).getByRole("button", { name: "灵光" });
 
     await user.click(botTab);

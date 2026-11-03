@@ -374,11 +374,34 @@ function reduceChat(state: ChatState, action: ChatAction): ChatState {
         ...state,
         isStreaming: true,
       };
-    case "END_STREAMING":
+    case "END_STREAMING": {
+      // Abort posts endStreaming before the server's reasoning finalize, and
+      // that finalize is dropped while the turn is marked aborted. Close any
+      // open thought here so "思考中" stops with the turn.
+      const now = Date.now();
+      let changed = false;
+      const messages = state.messages.map((message) => {
+        if (message.role !== "assistant") return message;
+        let touched = false;
+        const blocks = message.blocks.map((block) => {
+          if (block.type !== "reasoning" || block.stage === "end") return block;
+          touched = true;
+          return {
+            ...block,
+            stage: "end" as const,
+            endTime: block.endTime ?? now,
+          };
+        });
+        if (!touched) return message;
+        changed = true;
+        return { ...message, blocks };
+      });
       return {
         ...state,
         isStreaming: false,
+        ...(changed ? { messages } : {}),
       };
+    }
     case "SET_COMPACTING":
       return {
         ...state,

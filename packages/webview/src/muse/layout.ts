@@ -67,6 +67,21 @@ export function clampDockWidth(width: number, maxWidth: number): number {
   return Math.min(maxWidth, Math.max(min, width));
 }
 
+/**
+ * Window resize should move the dock, not the chat. The chat track stays at
+ * its pinned width until the dock is already at its minimum.
+ */
+export function dockFlexGridColumns(
+  chatWidth: number,
+  chatMin: number,
+  dockMin: number = PANEL_MIN_WIDTH,
+): string {
+  const width = Math.max(0, Math.round(chatWidth));
+  const min = Math.max(0, Math.min(Math.round(chatMin), width));
+  const dock = Math.max(0, Math.round(dockMin));
+  return `minmax(${min}px, ${width}px) minmax(${dock}px, 1fr)`;
+}
+
 export function paneHasSidebarInset(
   panes:
     | Array<{ paneId: string; row?: number }>

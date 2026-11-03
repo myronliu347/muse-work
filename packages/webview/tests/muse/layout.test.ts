@@ -9,6 +9,7 @@ import {
   chatMainMinWidth,
   clampDockWidth,
   clampSidebarWidth,
+  dockFlexGridColumns,
   clampSplitLeftWidth,
   minPaneWidth,
   paneHasSidebarInset,
@@ -74,6 +75,17 @@ describe("clampSplitLeftWidth", () => {
 
   it("gives the leftover to the issue column when the pane is tighter than both floors", () => {
     expect(clampSplitLeftWidth(400, 10, chatMin)).toBe(400);
+  });
+});
+
+describe("dockFlexGridColumns", () => {
+  it("keeps the chat at its pinned width and gives the leftover to the dock", () => {
+    expect(dockFlexGridColumns(800, 572)).toBe(
+      "minmax(572px, 800px) minmax(320px, 1fr)",
+    );
+    expect(dockFlexGridColumns(480, 572, PANEL_MIN_WIDTH)).toBe(
+      "minmax(480px, 480px) minmax(320px, 1fr)",
+    );
   });
 });
 

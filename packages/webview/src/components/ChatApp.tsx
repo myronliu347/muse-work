@@ -93,7 +93,9 @@ import {
   DESKTOP_SIDEBAR_WIDTH,
   SPLIT_ISSUE_MIN_WIDTH,
   chatMainMinWidth,
+  clampDockWidth,
   clampSplitLeftWidth,
+  dockFlexGridColumns,
   paneHasSidebarInset,
 } from "../muse/layout";
 import { useDesktopSidebarCollapsed } from "../hooks/useDesktopSidebarCollapsed";
@@ -409,7 +411,9 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     [workspace],
   );
   const [threeColumnsOn, setThreeColumnsOn] = useState(false);
-  const [splitRatio, setSplitRatio] = useState(0.5);
+  // Pixel width of the Muse Bot column. Null until the user drags the split.
+  // The column is a fixed grid track, so a window resize changes the issue column.
+  const [splitLeftWidth, setSplitLeftWidth] = useState<number | null>(null);
   useEffect(() => {
     if (workspace.openIssueIds.length === 0) setThreeColumnsOn(false);
   }, [workspace.openIssueIds.length]);
@@ -1436,6 +1440,9 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.dockColumnOpen ===
       true,
   );
+  // Pixel width of the chat column while the dock is open. Window resize
+  // leaves this alone so the dock absorbs the change.
+  const [chatPaneWidth, setChatPaneWidth] = useState<number | null>(null);
   const setAssistantDockOpen = useCallback((open: boolean) => {
     setAssistantDockOpenState(open);
     usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
@@ -1516,6 +1523,37 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     chatColumnWidth,
     layoutChatMin,
     updateMuseWidthGroup,
+  ]);
+  useLayoutEffect(() => {
+    if (!assistantVisible || !assistantDockOpen || dockFullscreen) {
+      setChatPaneWidth(null);
+      return;
+    }
+    // Let the first-open width land before the chat column is pinned to it.
+    const waitingForFirstWidth =
+      checkedPanels.length === 0 &&
+      assistantWidths.preview === PANEL_DEFAULT_WIDTH &&
+      assistantWidths.diff === PANEL_DEFAULT_WIDTH &&
+      assistantWidths.terminal === PANEL_DEFAULT_WIDTH &&
+      assistantWidths.file === PANEL_DEFAULT_WIDTH;
+    if (waitingForFirstWidth) return;
+    setChatPaneWidth((current) => {
+      if (current != null) return current;
+      const dockPx = clampDockWidth(
+        assistantWidths.preview,
+        Math.max(0, dockMaxWidth),
+      );
+      if (!(chatColumnWidth > 0) || !(dockPx > 0)) return null;
+      return Math.max(0, Math.round(chatColumnWidth - dockPx));
+    });
+  }, [
+    assistantVisible,
+    assistantDockOpen,
+    dockFullscreen,
+    checkedPanels.length,
+    assistantWidths,
+    chatColumnWidth,
+    dockMaxWidth,
   ]);
   const beforeToggleRef = useRef<((kind: DesktopPanelKind) => boolean) | null>(null);
   const panelShortcutRef = useRef<((kind: DesktopPanelKind) => boolean) | null>(null);
@@ -1750,6 +1788,15 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     handleSelectPanel,
     handleDockWidthChange,
   } = panels;
+  const handleDockWidthChangeAndPin = useCallback(
+    (width: number) => {
+      handleDockWidthChange(width);
+      const frame = chatContainerRef.current?.clientWidth ?? 0;
+      if (!(frame > 0)) return;
+      setChatPaneWidth(Math.max(0, Math.round(frame - width)));
+    },
+    [handleDockWidthChange],
+  );
   // Panel chords open or switch. On Muse Bot they also leave 详情. A second
   // press keeps the panel; the tab close button is what removes it.
   panelShortcutRef.current = (kind) => {
@@ -2550,7 +2597,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       if ((group?.checked.length ?? 0) > 0) handleToggleDock();
     },
     onToggleFullscreen: handleToggleFullscreen,
-    onWidthChange: handleDockWidthChange,
+    onWidthChange: handleDockWidthChangeAndPin,
     vscode,
     paneId,
     isStreaming: state.isStreaming,
@@ -2726,7 +2773,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
 
   const assistantFrame = (
     <div
-      className={`chat-container assistant-frame${threeColumns ? " assistant-frame--split" : ""}`}
+      className={`chat-container assistant-frame${threeColumns ? " assistant-frame--split" : ""}${chatPaneWidth != null && assistantDockOpen && !dockFullscreen ? " assistant-frame--dock-flex" : ""}`}
       ref={chatContainerRef}
       data-testid="assistant-frame"
       style={
@@ -2734,6 +2781,14 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
           ...(botColumnMax != null ? { "--bot-column-max": `${botColumnMax}px` } : {}),
           ...(threeColumns
             ? { "--chat-main-min-width": `${layoutChatMin}px` }
+            : {}),
+          ...(chatPaneWidth != null && assistantDockOpen && !dockFullscreen
+            ? {
+                gridTemplateColumns: dockFlexGridColumns(
+                  chatPaneWidth,
+                  chatMinWidth,
+                ),
+              }
             : {}),
         } as React.CSSProperties
       }
@@ -2758,15 +2813,19 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         </div>
       )}
       <div className="desktop-chat-body">
-        <div className="desktop-chat-main">
+        <div
+          className="desktop-chat-main"
+          style={
+            threeColumns
+              ? {
+                  display: "grid",
+                  gridTemplateColumns: `${splitLeftWidth ?? chatMinWidth}px 6px minmax(0, 1fr)`,
+                }
+              : undefined
+          }
+        >
           {threeColumns ? (
-            <div
-              className="assistant-split-bot"
-              style={{
-                flexGrow: splitRatio,
-                minWidth: `min(${chatMinWidth}px, 100%)`,
-              }}
-            >
+            <div className="assistant-split-bot">
               <div className="assistant-split-bar">
                 <BotTabs
                   state={workspace}
@@ -2816,7 +2875,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                     ev.clientX - rect.left,
                     chatMinWidth,
                   );
-                  if (rect.width > 0) setSplitRatio(left / rect.width);
+                  setSplitLeftWidth(left);
                 };
                 const up = () => {
                   window.removeEventListener("mousemove", move);
@@ -2832,14 +2891,6 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
           {shownIssueGroup ? (
             <div
               className={threeColumns ? "assistant-split-issue" : "assistant-split-passthrough"}
-              style={
-                threeColumns
-                  ? {
-                      flexGrow: 1 - splitRatio,
-                      minWidth: `${SPLIT_ISSUE_MIN_WIDTH}px`,
-                    }
-                  : undefined
-              }
             >
             {threeColumns ? (
               <div className="assistant-split-bar">

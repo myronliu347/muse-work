@@ -1067,7 +1067,12 @@ export const AssistantPage: React.FC<{
 
   const viewSwitch = (
     <div className="assistant-header-actions">
-      <div className="assistant-view-switch" role="group" aria-label="查看内容">
+      <div
+        className="assistant-view-switch"
+        role="group"
+        aria-label="查看内容"
+        data-mode={mode}
+      >
         <button
           type="button"
           aria-pressed={mode === "chat"}

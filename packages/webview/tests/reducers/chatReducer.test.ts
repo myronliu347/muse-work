@@ -398,6 +398,58 @@ describe("chatReducer", () => {
     });
   });
 
+  describe("END_STREAMING", () => {
+    it("stops an in-progress reasoning block when the turn ends", () => {
+      const startTime = Date.now() - 36_000;
+      const message: Message = {
+        id: "msg-1",
+        role: "assistant",
+        timestamp: "0",
+        blocks: [
+          {
+            type: "reasoning",
+            content: "There",
+            stage: "streaming",
+            startTime,
+          },
+        ],
+      };
+      const state = { ...initialState, isStreaming: true, messages: [message] };
+
+      const next = chatReducer(state, { type: "END_STREAMING" });
+
+      expect(next.isStreaming).toBe(false);
+      const block = next.messages[0].blocks[0] as ReasoningBlock;
+      expect(block.stage).toBe("end");
+      expect(block.content).toBe("There");
+      expect(block.startTime).toBe(startTime);
+      expect(block.endTime).toEqual(expect.any(Number));
+      expect(block.endTime).toBeGreaterThanOrEqual(startTime);
+    });
+
+    it("leaves a finished reasoning block untouched", () => {
+      const message: Message = {
+        id: "msg-1",
+        role: "assistant",
+        timestamp: "0",
+        blocks: [
+          {
+            type: "reasoning",
+            content: "done",
+            stage: "end",
+            startTime: 1,
+            endTime: 2,
+          },
+        ],
+      };
+      const state = { ...initialState, isStreaming: true, messages: [message] };
+
+      const next = chatReducer(state, { type: "END_STREAMING" });
+
+      expect(next.messages[0].blocks[0]).toEqual(message.blocks[0]);
+    });
+  });
+
   describe("UPDATE_STREAMING_REASONING", () => {
     it("should update existing reasoning block content and stage", () => {
       const reasoningBlock: ReasoningBlock = {

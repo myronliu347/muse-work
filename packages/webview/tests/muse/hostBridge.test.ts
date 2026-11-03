@@ -965,6 +965,61 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(commands).not.toContain("appendMessage");
   });
 
+  it("reasoning finalize after an abort still reaches the UI to stop the timer", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+    const api = stubApi();
+    const bridge = createHostBridge({
+      api,
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    bridge.postMessage({ command: "abortMessage" });
+    await flush();
+
+    messages.length = 0;
+    handler!({
+      type: "reasoning:delta",
+      sessionId: "sess-active",
+      messageId: "m1",
+      text: "",
+      stage: "end",
+    });
+    await flush();
+
+    expect(messages).toContainEqual({
+      command: "updateStreamingReasoning",
+      messageId: "m1",
+      chunk: "",
+      stage: "end",
+    });
+    const commands = messages
+      .map((m) => (m as { command?: string })?.command)
+      .filter(Boolean);
+    expect(commands).not.toContain("startStreaming");
+
+    messages.length = 0;
+    handler!({
+      type: "reasoning:delta",
+      sessionId: "sess-active",
+      messageId: "m1",
+      text: "late",
+      stage: "streaming",
+    });
+    await flush();
+    expect(messages).toEqual([]);
+  });
+
   it("tool:update finalize after an abort still reaches the UI to stop the shimmer", async () => {
     let handler: ((e: unknown) => void) | undefined;
     const ws = {

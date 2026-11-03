@@ -36,14 +36,35 @@
 }
 
 .assistant-view-switch {
-  display: flex;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   flex-shrink: 0;
   padding: 2px;
   border-radius: 8px;
   background: var(--gray-3);
 }
 
+.assistant-view-switch::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc((100% - 4px) / 2);
+  border-radius: 6px;
+  background: var(--gray-5);
+  transform: translateX(0);
+  transition: transform 0.18s ease;
+}
+
+.assistant-view-switch[data-mode="transcript"]::before {
+  transform: translateX(100%);
+}
+
 .assistant-view-switch button {
+  position: relative;
+  z-index: 1;
   border: 0;
   background: transparent;
   color: var(--gray-11);
@@ -53,11 +74,18 @@
   padding: 4px 10px;
   border-radius: 6px;
   cursor: pointer;
+  transition: color 0.18s ease;
 }
 
 .assistant-view-switch button[aria-pressed="true"] {
-  background: var(--gray-5);
   color: var(--gray-12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-view-switch::before,
+  .assistant-view-switch button {
+    transition: none;
+  }
 }
 
 .assistant-queue {
@@ -137,6 +165,8 @@
   overflow-x: hidden;
   overflow-y: auto;
   box-sizing: border-box;
+  /* Same reserved gutter as .messages-container, so the two columns line up. */
+  scrollbar-gutter: stable;
   padding: var(--space-4) 28px 213px var(--space-4);
 }
 
