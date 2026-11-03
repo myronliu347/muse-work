@@ -149,6 +149,7 @@ export function createAssistantMessageLog(options: {
     msgIds?: string[],
     issueId?: string,
   ): MuseChatLine;
+  clear(): void;
   page(args?: { before?: string; limit?: number }): MuseChatPage;
   search(args: { q: string; before?: string; limit?: number }): MuseChatSearchPage;
 } {
@@ -189,6 +190,12 @@ export function createAssistantMessageLog(options: {
     };
     fs.appendFileSync(filePath, `${JSON.stringify(line)}\n`);
     return line;
+  }
+
+  function clear(): void {
+    for (const name of listSliceNames(dir)) {
+      fs.rmSync(path.join(dir, name), { force: true });
+    }
   }
 
   function page(args?: { before?: string; limit?: number }): MuseChatPage {
@@ -272,5 +279,5 @@ export function createAssistantMessageLog(options: {
       : { messages, hasMore };
   }
 
-  return { append, page, search };
+  return { append, clear, page, search };
 }

@@ -77,6 +77,53 @@ describe("assistant wiring", () => {
     });
   });
 
+  it("clears the visible log and the assistant session", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-assistant-clear-"));
+    homes.push(home);
+    const log = createAssistantMessageLog({ home });
+    log.append("user", "你好");
+    const cleared: string[] = [];
+    const broadcasts: unknown[] = [];
+    const ctx = {
+      assistantLog: log,
+      store: { list: () => [{ id: "asst", origin: "assistant" }] },
+      runner: {
+        clear: async (id: string) => {
+          cleared.push(id);
+          return { ok: true as const };
+        },
+      },
+      hub: { broadcastAll: (event: unknown) => broadcasts.push(event) },
+      assistantRuntime: { working: () => false },
+    } as unknown as AppContext;
+    const app = createHonoApp(ctx);
+
+    const clearedRes = await app.request("/assistant/clear", { method: "POST" });
+    expect(clearedRes.status).toBe(200);
+    expect(await clearedRes.json()).toEqual({ ok: true });
+    expect(cleared).toEqual(["asst"]);
+    expect(log.page().messages).toEqual([]);
+    expect(broadcasts).toEqual([{ type: "assistant:cleared" }]);
+  });
+
+  it("refuses to clear while the assistant is working", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-assistant-clear-busy-"));
+    homes.push(home);
+    const log = createAssistantMessageLog({ home });
+    log.append("user", "你好");
+    const ctx = {
+      assistantLog: log,
+      store: { list: () => [{ id: "asst", origin: "assistant" }] },
+      runner: { clear: async () => ({ ok: true as const }) },
+      hub: { broadcastAll: () => undefined },
+      assistantRuntime: { working: () => true },
+    } as unknown as AppContext;
+    const app = createHonoApp(ctx);
+    const res = await app.request("/assistant/clear", { method: "POST" });
+    expect(res.status).toBe(409);
+    expect(log.page().messages).toHaveLength(1);
+  });
+
   it("enqueues an issue event when that issue's session settles", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-assistant-issue-"));
     homes.push(home);

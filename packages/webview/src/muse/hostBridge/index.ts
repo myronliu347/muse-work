@@ -152,6 +152,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
+    if (event.type === "assistant:cleared") {
+      postToWebview({ command: "assistant:cleared" });
+      return;
+    }
+
     if (event.type === "assistant:status") {
       postToWebview({
         command: "assistant:status",

@@ -97,6 +97,7 @@ export type MuseWsEventPayload =
         app?: "popo";
       };
     }
+  | { type: "assistant:cleared" }
   | { type: "assistant:status"; working: boolean; compacting?: boolean }
   | {
       type: "assistant:queue";

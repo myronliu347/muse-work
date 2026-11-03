@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { HonoEnv } from "../honoEnv.js";
 import { normalizeAssistantImages } from "../services/assistant/messages.js";
+import { runnerErrorMessage, runnerErrorStatus } from "../utils/runnerError.js";
 
 export const assistantRoutes = new Hono<HonoEnv>();
 
@@ -61,4 +62,26 @@ assistantRoutes.post("/assistant/messages", async (c) => {
     ...(images.length > 0 ? { images } : {}),
   });
   return c.json(line);
+});
+
+/** 清空灵光可见记录，并清掉助手会话里的模型上下文。正在处理时忽略。 */
+assistantRoutes.post("/assistant/clear", async (c) => {
+  const ctx = c.get("ctx");
+  if (ctx.assistantRuntime.working()) {
+    return c.json({ error: "assistant is working" }, 409);
+  }
+  const session = ctx.store.list().find((item) => item.origin === "assistant");
+  if (session) {
+    try {
+      await ctx.runner.clear(session.id);
+    } catch (err) {
+      return c.json(
+        { error: runnerErrorMessage(err) },
+        runnerErrorStatus(err) as 400,
+      );
+    }
+  }
+  ctx.assistantLog.clear();
+  ctx.hub.broadcastAll({ type: "assistant:cleared" });
+  return c.json({ ok: true });
 });

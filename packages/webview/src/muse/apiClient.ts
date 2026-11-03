@@ -1141,6 +1141,11 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async clearAssistantMessages(): Promise<{ ok: true }> {
+    const res = await this.request("/assistant/clear", { method: "POST" });
+    return parseJson(res);
+  }
+
   async sendAssistantMessage(
     message: string,
     images?: Array<{ data: string; mediaType: string }>,

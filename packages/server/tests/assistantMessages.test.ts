@@ -147,4 +147,21 @@ describe("assistant message log", () => {
     ]);
     expect(broadcasts).toHaveLength(1);
   });
+
+  it("clear drops every slice", () => {
+    const dirHome = home();
+    const log = createAssistantMessageLog({
+      home: dirHome,
+      now: () => 1,
+      newId: () => "a",
+    });
+    log.append("user", "你好");
+    log.append("assistant", "在");
+    log.clear();
+    expect(log.page().messages).toEqual([]);
+    const dir = path.join(getMuseHomeDir(dirHome), "db", "assistant-messages");
+    expect(fs.existsSync(dir) ? fs.readdirSync(dir) : []).toEqual([]);
+    log.append("user", "下一句");
+    expect(log.page().messages.map((line) => line.message)).toEqual(["下一句"]);
+  });
 });

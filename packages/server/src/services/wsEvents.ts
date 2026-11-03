@@ -120,6 +120,7 @@ export type WsEvent =
         app?: "popo";
       };
     }
+  | { type: "assistant:cleared" }
   | { type: "assistant:status"; working: boolean; compacting?: boolean }
   | {
       type: "assistant:queue";

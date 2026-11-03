@@ -65,6 +65,48 @@ describe("AssistantPage", () => {
     expect(screen.queryByTestId("thinking-hint")).toBeNull();
   });
 
+  it("clears the transcript on /clear and does not send it as a message", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [{ id: "1", at: 1, role: "user", message: "你好" }],
+        hasMore: true,
+      }),
+      sendAssistantMessage: vi.fn(),
+      clearAssistantMessages: vi.fn().mockResolvedValue({ ok: true }),
+    };
+    render(<AssistantPage api={api} />);
+    expect(await screen.findByText("你好")).toBeTruthy();
+    typeComposer("/clear");
+    fireEvent.click(screen.getByTestId("send-btn"));
+    await waitFor(() => expect(api.clearAssistantMessages).toHaveBeenCalledOnce());
+    expect(api.sendAssistantMessage).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByText("你好")).toBeNull());
+  });
+
+  it("ignores /clear while the assistant is working", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [{ id: "1", at: 1, role: "user", message: "你好" }],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+      clearAssistantMessages: vi.fn(),
+    };
+    render(<AssistantPage api={api} />);
+    expect(await screen.findByText("你好")).toBeTruthy();
+    fireEvent(
+      window,
+      new MessageEvent("message", {
+        data: { command: "assistant:status", working: true },
+      }),
+    );
+    typeComposer("/clear");
+    fireEvent.click(screen.getByTestId("send-btn"));
+    expect(api.clearAssistantMessages).not.toHaveBeenCalled();
+    expect(api.sendAssistantMessage).not.toHaveBeenCalled();
+    expect(screen.getByText("你好")).toBeTruthy();
+  });
+
   it("switches the current issue when the quoted title is clicked", async () => {
     const onSelectIssue = vi.fn();
     const api = {

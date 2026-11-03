@@ -64,6 +64,7 @@ export type AssistantPageApi = {
     message: string,
     images?: Array<{ data: string; mediaType: string }>,
   ) => Promise<unknown>;
+  clearAssistantMessages?: () => Promise<unknown>;
   getAssistantSession?: () => Promise<{
     sessionId: string;
     title?: string;
@@ -919,6 +920,16 @@ export const AssistantPage: React.FC<{
     if (el && atTail.current) el.scrollTop = el.scrollHeight;
   }, [lines, working, compacting]);
 
+  const resetTranscript = useCallback(() => {
+    olderLoadedRef.current = false;
+    agentHasMoreRef.current = false;
+    setLines([]);
+    setHasMore(false);
+    setAgentMessages([]);
+    setAgentHasMore(false);
+    setError(null);
+  }, []);
+
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       const data = event.data as {
@@ -939,6 +950,10 @@ export const AssistantPage: React.FC<{
         if (data.working || data.compacting) atTail.current = true;
         return;
       }
+      if (data?.command === "assistant:cleared") {
+        resetTranscript();
+        return;
+      }
       if (data?.command !== "assistant:chat") return;
       const line = asLine(data.line);
       if (!line) return;
@@ -948,7 +963,7 @@ export const AssistantPage: React.FC<{
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [appendLine]);
+  }, [appendLine, resetTranscript]);
 
   const loadOlder = useCallback(async () => {
     const first = lines[0];
@@ -1005,6 +1020,21 @@ export const AssistantPage: React.FC<{
     const message = text.replace(/\u00A0/g, " ").trim();
     const attached = (images ?? []).filter((img) => img.data);
     if ((!message && attached.length === 0) || sending) return;
+    if (/^\/clear(?:\s|$)/.test(message)) {
+      if (working || !api.clearAssistantMessages) return;
+      setSending(true);
+      setError(null);
+      try {
+        await api.clearAssistantMessages();
+        resetTranscript();
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        if (!detail.includes("409")) setError(detail);
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
     setSending(true);
     setWorking(true);
     atTail.current = true;
