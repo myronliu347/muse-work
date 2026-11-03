@@ -1,0 +1,30 @@
+packages/server/tests/assistantSession.test.ts
+  ad38f788148e5e5b 50,87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1562972678b9f799e47241bedc7835ebdf99c815",
+  "prompts": {
+    "ad38f788148e5e5b": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2978e166-642c-4a78-acc3-8db1dededa40",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 2,
+      "accepted_lines": 2,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
