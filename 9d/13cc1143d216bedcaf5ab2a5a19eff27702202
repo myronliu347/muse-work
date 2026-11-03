@@ -1,0 +1,113 @@
+packages/webview/tests/components/desktopPanelDock.test.tsx
+  c26d1b1664bab700 4,728-839
+packages/webview/src/components/desktop/DesktopPanelSlots.tsx
+  c26d1b1664bab700 40-41,82-83,133,167,293,307-308
+packages/webview/src/components/ChatApp.tsx
+  c26d1b1664bab700 1042,2541-2551,2628-2633,2780
+packages/webview/src/styles/DiffPane.css
+  c26d1b1664bab700 335-351,371,378-384
+packages/webview/src/styles/DesktopApp.css
+  c26d1b1664bab700 956-970
+packages/webview/src/components/assistant/AssistantPage.tsx
+  c26d1b1664bab700 254-265,282,290-293,305-308,1037
+packages/webview/tests/components/assistantPage.test.tsx
+  c26d1b1664bab700 775-796
+packages/webview/src/components/panels/DiffPane.tsx
+  c26d1b1664bab700 2,275-277,279-289,293,297,299,311,313-314
+packages/webview/tests/muse/dockTabMenu.test.ts
+  c26d1b1664bab700 1-25
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  c26d1b1664bab700 19,26,62-63,76-79,111,122-123,147-152,271-294,340-401,486-491,493,534,581,636,672,745-835
+packages/webview/src/components/chat/MessageInput.tsx
+  c26d1b1664bab700 124-125,243,332,851-855
+packages/webview/src/muse/dockTabMenu.ts
+  c26d1b1664bab700 1-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "9d13cc1143d216bedcaf5ab2a5a19eff27702202",
+  "prompts": {
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 533,
+      "total_deletions": 61,
+      "accepted_lines": 523,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/DesktopPanelSlots.tsx": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "additions": 27,
+          "deletions": 5,
+          "accepted_lines": 27
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 20,
+          "deletions": 1,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 22,
+          "deletions": 14,
+          "accepted_lines": 22
+        },
+        "packages/webview/src/muse/dockTabMenu.ts": {
+          "additions": 28,
+          "accepted_lines": 28
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 2
+        },
+        "packages/agent/src/utils/commandArgumentParser.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 209,
+          "deletions": 3,
+          "accepted_lines": 206
+        },
+        "packages/webview/tests/muse/dockTabMenu.test.ts": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 22,
+          "accepted_lines": 22
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 21,
+          "deletions": 24,
+          "accepted_lines": 21
+        },
+        "packages/webview/tests/components/desktopPanelDock.test.tsx": {
+          "additions": 126,
+          "deletions": 14,
+          "accepted_lines": 113
+        }
+      }
+    }
+  }
+}
