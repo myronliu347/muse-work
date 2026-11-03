@@ -1,0 +1,72 @@
+packages/server/src/services/assistant/prompt.ts
+  ad38f788148e5e5b 74
+packages/server/tests/reviewStore.test.ts
+  ad38f788148e5e5b 86-87
+packages/server/tests/assistantTools.test.ts
+  ad38f788148e5e5b 1062
+docs/superpowers/plans/2026-11-02-review-record.md
+  ad38f788148e5e5b 24
+docs/superpowers/specs/2026-11-02-review-record-design.md
+  ad38f788148e5e5b 85,87
+packages/server/src/services/assistant/tools/reviewTools.ts
+  ad38f788148e5e5b 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "fae64e241eefa865d29cb03d8090b56b41589f66",
+  "prompts": {
+    "ad38f788148e5e5b": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2978e166-642c-4a78-acc3-8db1dededa40",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 12,
+      "total_deletions": 15,
+      "accepted_lines": 18,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/reviewStore.test.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "docs/superpowers/plans/2026-11-02-review-record.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/reviewStore.ts": {
+          "deletions": 3,
+          "accepted_lines": 7
+        },
+        "docs/superpowers/specs/2026-11-02-review-record-design.md": {
+          "additions": 2,
+          "deletions": 3,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/assistant/tools/reviewTools.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 2
+        },
+        "CONTEXT.md": {
+          "accepted_lines": 2
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
