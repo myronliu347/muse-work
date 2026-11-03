@@ -1,0 +1,145 @@
+packages/webview/tests/webview/terminalPane.test.tsx
+  c26d1b1664bab700 4-5,9,15-18,512-547
+packages/webview/src/components/panels/DiffPane.tsx
+  c26d1b1664bab700 2,13,254-324,355-360,388-391,483-486,520,524,530,603-615,634-640,767-770,842-850,1351-1359,1371-1378,1387-1403
+packages/webview/src/types/index.ts
+  c26d1b1664bab700 260-261,394-395
+packages/webview/tests/webview/diffPane.test.tsx
+  c26d1b1664bab700 1083-1118,1379-1424
+packages/desktop/tests/workdirHost.test.ts
+  c26d1b1664bab700 204,260
+packages/webview/src/styles/TerminalPane.css
+  c26d1b1664bab700 34-103
+packages/desktop/src/main/gitDiff.ts
+  c26d1b1664bab700 35,401-405
+packages/webview/src/styles/DiffPane.css
+  c26d1b1664bab700 303-403
+packages/webview/src/utils/filePathDisplay.ts
+  c26d1b1664bab700 17-27
+packages/webview/src/utils/fileHistorySnapshots.ts
+  c26d1b1664bab700 88-120
+packages/webview/src/components/ChatApp.tsx
+  c26d1b1664bab700 146,477-489,494,496,537,2141-2162,2553,2564-2602
+packages/desktop/src/main/gitBranches.ts
+  c26d1b1664bab700 14-15,52-65,80
+packages/webview/src/components/panels/TerminalPane.tsx
+  c26d1b1664bab700 2,9-10,28-39,190-192,207-208,478-528
+packages/webview/tests/utils/messagesForDockIssue.test.ts
+  c26d1b1664bab700 1-39
+packages/desktop/src/main/workdirHost.ts
+  c26d1b1664bab700 332-336,342,435,470,506,516,848
+packages/webview/src/components/DesktopApp.tsx
+  c26d1b1664bab700 71-75,80,200
+packages/webview/src/components/desktop/DesktopPanelSlots.tsx
+  c26d1b1664bab700 5,50-51,65-68,137,149-151,226,229-231,269-270,359-360
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "28e01e3a7bddcb6f030e6f487d10477865a68145",
+  "prompts": {
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 901,
+      "total_deletions": 169,
+      "accepted_lines": 759,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 89,
+          "deletions": 18,
+          "accepted_lines": 79
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/src/utils/fileHistorySnapshots.ts": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "packages/desktop/src/main/gitDiff.ts": {
+          "additions": 7,
+          "deletions": 3,
+          "accepted_lines": 6
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 11,
+          "deletions": 6,
+          "accepted_lines": 11
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/utils/messagesForDockIssue.test.ts": {
+          "additions": 39,
+          "accepted_lines": 39
+        },
+        "packages/webview/src/styles/TerminalPane.css": {
+          "additions": 70,
+          "accepted_lines": 70
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 2
+        },
+        "packages/desktop/tests/workdirHost.test.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "additions": 143,
+          "deletions": 42,
+          "accepted_lines": 101
+        },
+        "packages/webview/tests/webview/terminalPane.test.tsx": {
+          "additions": 44,
+          "deletions": 1,
+          "accepted_lines": 43
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/desktop/DesktopPanelSlots.tsx": {
+          "additions": 19,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 244,
+          "deletions": 90,
+          "accepted_lines": 157
+        },
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "additions": 90,
+          "deletions": 8,
+          "accepted_lines": 82
+        },
+        "packages/agent/src/utils/commandArgumentParser.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/panels/TerminalPane.tsx": {
+          "additions": 71,
+          "accepted_lines": 71
+        },
+        "packages/desktop/src/main/gitBranches.ts": {
+          "additions": 17,
+          "deletions": 1,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/components/DesktopApp.tsx": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/utils/filePathDisplay.ts": {
+          "additions": 11,
+          "accepted_lines": 11
+        }
+      }
+    }
+  }
+}
