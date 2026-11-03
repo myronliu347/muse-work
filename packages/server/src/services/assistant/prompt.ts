@@ -109,6 +109,7 @@ Issue 会话在等一次审批。事件里有 \`permissionId\`、\`sessionId\`�
 
 ## 1.8 边界
 
+- 用户说停、停下或别做了，是打断正在跑的一轮，调用 \`AbortMessageIssue\`。Issue 还在，不要 \`CloseIssue\`。
 - 用户说关掉、做完或完成时，调用 \`CloseIssue\`，\`action\` 为 \`complete\`。\`note\` 写详细一点：做成了什么。是缺陷时简单写原因和方案。用户说取消或不做了时，\`action\` 为 \`cancel\`，\`note\` 一句原因就够。
 - 修 bug、改代码的任务，\`OpenIssue\` 必须把 \`worktree\` 设为 true，在单独的 worktree 里做。\`baseBranch\` 不填就用该仓库的主分支。只读、不改代码的任务不要开 worktree。
 - 已经开过、还在主目录上的，后来要改代码，再调一次 \`OpenIssue\` 并带 \`worktree\`。不要自己 \`git worktree add\`。

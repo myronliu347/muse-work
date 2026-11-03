@@ -410,6 +410,41 @@ export function createIssueTools(deps: AssistantToolDeps) {
       (params) => compactText(params.question),
     ),
     tool(
+      "AbortMessageIssue",
+      "停下 Issue 正在跑的这一轮。用户说停、停下、别做了时用这个。不关闭 Issue。没在跑就停在这里，不要改去 CloseIssue。",
+      {
+        type: "object",
+        properties: {
+          issueId: { type: "string" },
+        },
+        required: ["issueId"],
+      },
+      async (args) => {
+        const issue = deps.issues.get(text(args.issueId));
+        if (!issue) return fail("not found");
+        if (issue.status === "completed" || issue.status === "cancelled") {
+          return fail("already closed");
+        }
+        const ids = [...new Set(
+          [issue.executionSessionId, issue.planningSessionId].filter(
+            (id): id is string => Boolean(id),
+          ),
+        )];
+        if (ids.length === 0) return fail("session not open");
+        const running = ids.filter((id) => deps.sessions.get(id)?.status === "running");
+        if (running.length === 0) return ok({ aborted: false });
+        try {
+          for (const sessionId of running) {
+            await deps.runner.abortMessage(sessionId);
+          }
+        } catch (err) {
+          return fail(err instanceof Error ? err.message : String(err));
+        }
+        return ok({ aborted: true, sessionIds: running });
+      },
+      (params) => compactText(params.issueId),
+    ),
+    tool(
       "CloseIssue",
       "关闭 Issue。action 为 complete 表示做完，note 写详细一点：做成了什么；是缺陷时简单写原因和方案。action 为 cancel 表示取消，note 一句原因就够。已完成不能再取消，已取消不能再完成。",
       {

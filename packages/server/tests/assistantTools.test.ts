@@ -247,6 +247,7 @@ describe("assistant tools", () => {
       "OpenIssue",
       "MessageIssue",
       "AskIssue",
+      "AbortMessageIssue",
       "CloseIssue",
       "ResolvePermission",
       "SendMessage",
@@ -998,5 +999,59 @@ describe("assistant tools", () => {
     );
     expect(missing.success).toBe(false);
     expect(issues.get(issue.id)?.replyPending).toBe(true);
+  });
+
+  it("aborts the running issue turn without closing it", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-abort-"));
+    const issues = createIssueStore({ home });
+    const sessions = createSessionStore({ home });
+    const issue = issues.create({ title: "修登录", description: "修" });
+    const planning = sessions.create({ workdir: "/tmp/a", model: "m", title: "规划" });
+    const execution = sessions.create({ workdir: "/tmp/a", model: "m", title: "执行" });
+    sessions.updateStatus(execution.id, "running");
+    issues.setPlanning(issue.id, {
+      planningSessionId: planning.id,
+      workdir: "/tmp/a",
+      worktreeEnabled: false,
+      agentMode: "split",
+    });
+    issues.setExecutionSessionId(issue.id, execution.id);
+    const aborted: string[] = [];
+    const tools = createAssistantTools({
+      home,
+      issues,
+      sessions,
+      automations: createAutomationStore({ home }),
+      log: createAssistantMessageLog({ home }),
+      hub: { broadcastAll: () => undefined } as WsHub,
+      runner: {
+        abortMessage: async (sessionId: string) => {
+          aborted.push(sessionId);
+          return { ok: true as const };
+        },
+      } as never,
+    });
+    const context = { workdir: "/tmp/a", taskManager: {} as never };
+    const stopped = await tool(tools, "AbortMessageIssue").execute(
+      { issueId: issue.id },
+      context,
+    );
+    expect(stopped.success).toBe(true);
+    expect(JSON.parse(stopped.content)).toEqual({
+      aborted: true,
+      sessionIds: [execution.id],
+    });
+    expect(aborted).toEqual([execution.id]);
+    expect(issues.get(issue.id)?.status).not.toBe("completed");
+    expect(issues.get(issue.id)?.status).not.toBe("cancelled");
+
+    sessions.updateStatus(execution.id, "idle");
+    const idle = await tool(tools, "AbortMessageIssue").execute(
+      { issueId: issue.id },
+      context,
+    );
+    expect(idle.success).toBe(true);
+    expect(JSON.parse(idle.content)).toEqual({ aborted: false });
+    expect(aborted).toEqual([execution.id]);
   });
 });
