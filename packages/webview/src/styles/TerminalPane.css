@@ -31,3 +31,73 @@
   flex-direction: column;
   gap: var(--space-2);
 }
+
+.terminal-issue-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  height: 24px;
+  margin: 0;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: var(--gray-12);
+  font: inherit;
+  font-size: var(--font-size-1);
+  line-height: 24px;
+  cursor: pointer;
+}
+
+.terminal-issue-select:hover,
+.terminal-issue-select[data-state="open"] {
+  background: var(--gray-a3);
+}
+
+.terminal-issue-select .codicon {
+  font-size: 12px;
+  color: var(--gray-11);
+}
+
+.terminal-issue-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  max-width: 248px;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.terminal-issue-option-title,
+.terminal-issue-option-workdir {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminal-issue-option-title {
+  font-size: var(--font-size-1);
+  color: var(--gray-12);
+}
+
+.terminal-issue-option-workdir {
+  font-size: 11px;
+  color: var(--gray-11);
+  direction: rtl;
+  text-align: left;
+}
+
+.terminal-issue-option-workdir > span {
+  unicode-bidi: plaintext;
+}
+
+.rt-BaseMenuItem:has(.terminal-issue-option) {
+  height: auto;
+  align-items: flex-start;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}

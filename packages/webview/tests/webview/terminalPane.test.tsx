@@ -1,13 +1,20 @@
 /** @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, screen, act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { Theme } from "@radix-ui/themes";
 import React from "react";
 import {
   TerminalPane,
+  shellCdInput,
   terminalSelectionBackground,
 } from "../../src/components/panels/TerminalPane";
 import { workdirTermId } from "../../src/stores/panelGroupStore";
 import { createMockVscode, sendCommand } from "./test-utils";
+
+HTMLElement.prototype.hasPointerCapture ??= () => false;
+HTMLElement.prototype.setPointerCapture ??= () => {};
+HTMLElement.prototype.releasePointerCapture ??= () => {};
 
 class MockTerminal {
   cols = 80;
@@ -501,5 +508,41 @@ describe("TerminalPane", () => {
     expect(mockTerminals).toHaveLength(1);
     expect(postsOf(vscode, "desktopTerminalCreate")).toHaveLength(1);
     script!.remove();
+  });
+
+  it("cds the terminal into the chosen issue workdir", async () => {
+    const user = userEvent.setup();
+    const vscode = createMockVscode();
+    render(
+      <Theme>
+        <TerminalPane
+          vscode={vscode}
+          width={420}
+          onWidthChange={vi.fn()}
+          maxWidth={716}
+          onClose={vi.fn()}
+          visible
+          workdir="/repo"
+          homeDir="/Users/lyy"
+          issues={[
+            {
+              id: "issue-a",
+              title: "修登录",
+              workdir: "/Users/lyy/repo/frontend",
+            },
+          ]}
+        />
+      </Theme>,
+    );
+    await user.click(screen.getByTestId("terminal-issue-select"));
+    const option = await screen.findByTestId("terminal-issue-option-issue-a");
+    expect(option).toHaveTextContent("修登录");
+    expect(option).toHaveTextContent("~/repo/frontend");
+    await user.click(option);
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      command: "desktopTerminalInput",
+      termId: workdirTermId("/repo"),
+      data: shellCdInput("/Users/lyy/repo/frontend"),
+    });
   });
 });

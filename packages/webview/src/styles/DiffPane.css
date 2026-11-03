@@ -300,6 +300,107 @@
   max-width: 220px;
 }
 
+.diff-pane-base-select.rt-SelectTrigger {
+  flex: 0 1 140px;
+  max-width: 140px;
+  min-width: 72px;
+}
+
+.diff-pane-base-select .rt-SelectTriggerInner {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diff-issue-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 168px;
+  min-width: 0;
+  height: 24px;
+  margin: 0;
+  padding: 0 4px 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: var(--gray-12);
+  font: inherit;
+  font-size: var(--font-size-1);
+  line-height: 24px;
+  cursor: pointer;
+}
+
+.diff-issue-select:hover,
+.diff-issue-select[data-state="open"] {
+  background: var(--gray-a3);
+}
+
+.diff-issue-select-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diff-issue-select .codicon {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--gray-11);
+}
+
+.diff-issue-menu {
+  max-width: 280px;
+}
+
+.diff-issue-menu .rt-BaseMenuItem {
+  height: auto;
+  align-items: flex-start;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.diff-issue-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  max-width: 248px;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.diff-issue-option-title,
+.diff-issue-option-workdir {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 路径从前面省略，留下目录末尾：.../hicode-sandbox */
+.diff-issue-option-workdir {
+  direction: rtl;
+  text-align: left;
+}
+
+.diff-issue-option-workdir > span {
+  unicode-bidi: plaintext;
+}
+
+.diff-issue-option-title {
+  font-size: var(--font-size-1);
+  color: var(--gray-12);
+}
+
+.diff-issue-option-workdir {
+  font-size: 11px;
+  color: var(--gray-11);
+}
+
 .diff-pane-commit-select.rt-SelectTrigger {
   flex: 0 1 240px;
   max-width: 240px;

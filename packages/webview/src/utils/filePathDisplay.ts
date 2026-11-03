@@ -14,6 +14,17 @@ export function middleEllipsis(text: string, max = 48): string {
  * Prefer a path relative to workdir when the file is under it;
  * otherwise return the absolute path.
  */
+/** Show a path under the home directory as `~/…`. */
+export function displayHomePath(path: string, home?: string): string {
+  if (!path) return path;
+  const file = path.replace(/\\/g, "/");
+  const root = home?.replace(/\\/g, "/").replace(/\/+$/, "");
+  if (!root || root === "/") return file;
+  if (file === root) return "~";
+  if (file.startsWith(`${root}/`)) return `~${file.slice(root.length)}`;
+  return file;
+}
+
 export function displayFilePath(absPath: string, workdir?: string): string {
   if (!workdir) return absPath;
   const wd = workdir.replace(/\\/g, "/").replace(/\/+$/, "");

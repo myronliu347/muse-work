@@ -2,6 +2,7 @@ import { DesktopPanelDock, type DockToolTab } from "./DesktopPanelDock";
 import { PreviewPane } from "../panels/PreviewPane";
 import {
   DiffPane,
+  type DiffIssueChoice,
   type WorkspaceDiffFile,
 } from "../panels/DiffPane";
 import { FilePane } from "../panels/FilePane";
@@ -46,6 +47,8 @@ export interface DesktopPanelSlotsProps {
   workdir?: string;
   /** Branch this session's worktree was cut from. */
   baseBranch?: string;
+  /** Home directory, so issue workdirs render as `~/…`. */
+  homeDir?: string;
   previewEpoch: number;
   previewUrl: string | null;
   currentForward: RemoteForwardRef | null;
@@ -59,6 +62,10 @@ export interface DesktopPanelSlotsProps {
   onAddComment: (text: string) => void;
   diffView: DiffViewState | null;
   recentFiles: WorkspaceDiffFile[];
+  /** 助手变更面板：事项切换。会话页不传。 */
+  issues?: DiffIssueChoice[];
+  issueId?: string;
+  onSelectIssue?: (issueId: string) => void;
   onOpenFile: (path: string, startLine?: number, endLine?: number) => void;
   onOpenFilePinned: (path: string) => void;
   /** Soft re-read without activating the file panel. */
@@ -127,6 +134,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   sessionId,
   workdir,
   baseBranch,
+  homeDir,
   previewEpoch,
   previewUrl,
   currentForward,
@@ -138,6 +146,9 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   onAddComment,
   diffView,
   recentFiles,
+  issues,
+  issueId,
+  onSelectIssue,
   onOpenFile,
   onOpenFilePinned,
   onRefreshOpenFile,
@@ -212,8 +223,12 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
           sessionId={sessionId}
           workdir={workdir}
           baseBranch={baseBranch}
+          homeDir={homeDir}
           diffView={diffView}
           recentFiles={recentFiles}
+          issues={issues}
+          issueId={issueId}
+          onSelectIssue={onSelectIssue}
           onOpenFile={onOpenFile}
           onAddComment={onAddComment}
           onSendMessage={onSendMessage}
@@ -251,6 +266,8 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
         visible={checked.includes("terminal")}
         workdir={workdir}
         onOpenPreview={openPreviewHandler}
+        issues={issues}
+        homeDir={homeDir}
         {...common}
       />
     );
@@ -339,6 +356,8 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
                 workdir={tool.workdir}
                 termId={botToolTermId(tool.id)}
                 testIdScope={showing ? undefined : tool.id}
+                issues={issues}
+                homeDir={homeDir}
                 onOpenPreview={openPreviewHandler}
                 {...common}
               />

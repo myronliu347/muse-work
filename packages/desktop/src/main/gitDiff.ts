@@ -32,7 +32,7 @@ export interface WorkspaceDiffFile {
 export type WorkspaceDiffResult =
   | { kind: "not-a-repo" }
   | { kind: "error"; message: string }
-  | { kind: "ok"; files: WorkspaceDiffFile[] };
+  | { kind: "ok"; files: WorkspaceDiffFile[]; baseRef?: string };
 
 export interface GitCommitSummary {
   hash: string;
@@ -398,7 +398,11 @@ export async function getBranchDiff(
         : await diffForTracked(root, diffBase, entry),
     );
   }
-  return { kind: "ok", files };
+  return { kind: "ok", files, baseRef: shortBranchName(baseRef) };
+}
+
+function shortBranchName(ref: string): string {
+  return ref.replace(/^refs\/remotes\//, "").replace(/^refs\/heads\//, "");
 }
 
 export async function listRecentCommits(

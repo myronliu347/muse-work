@@ -11,6 +11,8 @@ const execFileAsync = promisify(execFile);
 
 export type GitBranchesResult = {
   branches: string[];
+  /** Remote-tracking names such as `origin/main`, without `origin/HEAD`. */
+  remotes: string[];
   current: string | null;
 };
 
@@ -47,6 +49,20 @@ export async function listGitBranches(
       .split("\n")
       .map((b) => b.trim())
       .filter(Boolean);
+    let remotes: string[] = [];
+    try {
+      const remote = await execFileAsync(
+        "git",
+        ["-C", workdir, "for-each-ref", "--format=%(refname:short)", "refs/remotes"],
+        { encoding: "utf-8", maxBuffer: 2 * 1024 * 1024 },
+      );
+      remotes = remote.stdout
+        .split("\n")
+        .map((b) => b.trim())
+        .filter((b) => b && !b.endsWith("/HEAD"));
+    } catch {
+      remotes = [];
+    }
     let current: string | null = null;
     try {
       const head = await execFileAsync(
@@ -61,7 +77,7 @@ export async function listGitBranches(
     }
     // Confirm discovery rooted under workdir (avoid weird false positives).
     void resolvePath(workdir);
-    return { branches, current };
+    return { branches, remotes, current };
   } catch {
     return null;
   }

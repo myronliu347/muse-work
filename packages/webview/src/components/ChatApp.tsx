@@ -143,7 +143,7 @@ import {
   type PanelGroupState,
 } from "../stores";
 import { applyCloseFileTab } from "../stores/panelGroupStore";
-import { recentTurnDiffFiles } from "../utils/fileHistorySnapshots";
+import { messagesForDockIssue, recentTurnDiffFiles } from "../utils/fileHistorySnapshots";
 import { createMessageHandler } from "../muse/messageRouter";
 
 const EMPTY_LISTING_CACHE: PanelGroupState["fileTree"]["childrenCache"] = {};
@@ -474,13 +474,26 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const issueTranscriptRef = useRef(issueTranscript);
   issueTranscriptRef.current = issueTranscript;
   const requestedOlderIssueRef = useRef<string | undefined>(undefined);
+  // 左侧回到灵光时事项列会卸掉，但右侧当前事项还是这一条。继续拉它的记录，
+  // 最近一次修改才不会被清空。
+  const dockTranscriptSessionId = (() => {
+    if (!assistantVisible || !host || host.type !== "desktop") return undefined;
+    const issueId =
+      workspace.panel.kind === "issue"
+        ? workspace.panel.issueId
+        : workspace.lastIssueId;
+    if (!issueId) return undefined;
+    const group = (host.issueGroups ?? []).find((item) => item.issueId === issueId);
+    return group ? issueTabSessionId(group) : undefined;
+  })();
+  const loadedIssueSessionId = openIssueSessionId ?? dockTranscriptSessionId;
   useEffect(() => {
     requestedOlderIssueRef.current = undefined;
   }, [openIssueSessionId]);
   useEffect(() => {
-    if (!assistantVisible || !openIssueSessionId) return;
+    if (!assistantVisible || !loadedIssueSessionId) return;
     let cancelled = false;
-    const sessionId = openIssueSessionId;
+    const sessionId = loadedIssueSessionId;
     const load = () => {
       void museApi
         .getMessages(sessionId)
@@ -521,7 +534,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [assistantVisible, openIssueSessionId, museApi, issueTranscriptAttempt]);
+  }, [assistantVisible, loadedIssueSessionId, museApi, issueTranscriptAttempt]);
   const openIssueTranscript =
     issueTranscript && issueTranscript.sessionId === openIssueSessionId
       ? issueTranscript
@@ -2125,10 +2138,28 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     () => recentTurnDiffFiles(state.messages, effectiveWorkdir),
     [state.messages, effectiveWorkdir],
   );
-  const issueRecentDiffFiles = useMemo(
-    () => recentTurnDiffFiles(shownIssueMessages, dockWorkdir),
-    [shownIssueMessages, dockWorkdir],
-  );
+  const issueRecentDiffFiles = useMemo(() => {
+    const sessionId = dockIssueGroup ? issueTabSessionId(dockIssueGroup) : undefined;
+    return recentTurnDiffFiles(
+      messagesForDockIssue({
+        sessionId,
+        liveSessionId: state.currentSession?.id,
+        liveMessages: state.messages,
+        shownSessionId: openIssueSessionId,
+        shownMessages: shownIssueMessages,
+        cached: issueTranscript,
+      }),
+      dockWorkdir,
+    );
+  }, [
+    dockIssueGroup,
+    state.currentSession?.id,
+    state.messages,
+    openIssueSessionId,
+    shownIssueMessages,
+    issueTranscript,
+    dockWorkdir,
+  ]);
 
   const activeIssueGroup = useMemo(() => {
     if (host?.type !== "desktop") return undefined;
@@ -2519,6 +2550,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     workdir: assistantVisible || onSessionsSurface ? dockWorkdir : effectiveWorkdir,
     baseBranch:
       dockIssueId || assistantVisible ? undefined : sessionGitMeta?.baseBranch,
+    homeDir: host?.homeDir,
     previewEpoch: shownPreviewEpoch,
     previewUrl: shownPreviewUrl,
     currentForward: shownForward,
@@ -2529,6 +2561,45 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     diffView:
       dockIssueId && diffView?.mode !== "recent" ? issueDiffView : diffView,
     recentFiles: dockIssueId ? issueRecentDiffFiles : recentDiffFiles,
+    issues: assistantVisible
+      ? (host?.issueGroups ?? []).map((group) => ({
+          id: group.issueId,
+          title: group.title,
+          workdir: issueGroupSessionWorkdir(
+            group,
+            issueTabSessionId(group) ?? "",
+            host?.workdir,
+          ),
+        }))
+      : undefined,
+    issueId: assistantVisible ? dockIssueId : undefined,
+    onSelectIssue: assistantVisible
+      ? (issueId: string) => {
+          const group = (host?.issueGroups ?? []).find(
+            (item) => item.issueId === issueId,
+          );
+          const nextWorkdir = group
+            ? issueGroupSessionWorkdir(
+                group,
+                issueTabSessionId(group) ?? "",
+                host?.workdir,
+              )
+            : undefined;
+          if (nextWorkdir) {
+            const store = usePanelGroupStore.getState();
+            const existing = store.groups[nextWorkdir];
+            const checked = existing?.checked ?? [];
+            const mounted = existing?.mounted ?? [];
+            store.patchGroup(nextWorkdir, {
+              checked: checked.includes("diff") ? checked : [...checked, "diff"],
+              mounted: mounted.includes("diff") ? mounted : [...mounted, "diff"],
+              active: "diff",
+            });
+          }
+          selectBotPanel({ kind: "issue", issueId });
+          workspace.selectDock("diff");
+        }
+      : undefined,
     onOpenFile: handleOpenFile,
     onOpenFilePinned: handleOpenFilePin,
     onRefreshOpenFile: handleRefreshOpenFile,

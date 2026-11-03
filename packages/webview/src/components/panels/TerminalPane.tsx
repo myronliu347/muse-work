@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { DropdownMenu } from "@radix-ui/themes";
 import type { VsCodeApi } from "../../types";
 import type { Terminal as XtermTerminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { WebLinksAddon } from "@xterm/addon-web-links";
 import { matchTabStepShortcut } from "../../muse/panelShortcuts";
 import { isLocalhostUrl } from "../../utils/isLocalhostUrl";
+import { displayHomePath } from "../../utils/filePathDisplay";
+import { getOverlayHost } from "../../utils/bodyPortal";
 import { workdirTermId } from "../../stores/panelGroupStore";
 import { useMuseTheme } from "../../ui/theme";
 import "../../styles/TerminalPane.css";
@@ -21,6 +24,18 @@ declare global {
 }
 
 const MIN_WIDTH = 320;
+
+export interface TerminalIssueChoice {
+  id: string;
+  title: string;
+  workdir: string;
+}
+
+/** Clear the current line, then cd. `\r` is what the PTY treats as Enter. */
+export function shellCdInput(workdir: string): string {
+  const quoted = `'${workdir.replace(/'/g, `'\\''`)}'`;
+  return `\u0015cd ${quoted}\r`;
+}
 
 /** Singleton loader for the desktop-only xterm chunk. */
 let terminalLibPromise: Promise<NonNullable<Window["MuseTerminal"]>> | null =
@@ -172,6 +187,9 @@ export interface TerminalPaneProps {
   termId?: string;
   /** Set on inactive copies so the visible pane keeps the canonical test ids. */
   testIdScope?: string;
+  /** 助手事项：选中后在这个终端里 cd 过去。 */
+  issues?: TerminalIssueChoice[];
+  homeDir?: string;
 }
 
 /** Embedded PTY terminal panel: xterm.js frontend + node-pty in the desktop host. */
@@ -186,6 +204,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   onOpenPreview,
   termId: termIdProp,
   testIdScope,
+  issues,
+  homeDir,
 }) => {
   const tid = (name: string) => (testIdScope ? `${name}-${testIdScope}` : name);
   const [status, setStatus] = useState<PaneStatus>({ kind: "loading" });
@@ -455,6 +475,57 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       <div className="preview-pane-drag-handle" onMouseDown={onDragStart} />
       <div className="preview-pane-inner">
         <div className="preview-pane-toolbar">
+          {issues && issues.some((issue) => issue.workdir) ? (
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger>
+                <button
+                  type="button"
+                  className="terminal-issue-select"
+                  data-testid={tid("terminal-issue-select")}
+                  aria-label="前往事项目录"
+                >
+                  <span>前往目录</span>
+                  <i className="codicon codicon-chevron-down" aria-hidden />
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content
+                size="1"
+                variant="soft"
+                color="gray"
+                highContrast
+                align="start"
+                sideOffset={4}
+                container={getOverlayHost()}
+                data-testid={tid("terminal-issue-menu")}
+              >
+                {issues.map((issue) => {
+                  const path = displayHomePath(issue.workdir, homeDir);
+                  return (
+                    <DropdownMenu.Item
+                      key={issue.id}
+                      data-testid={tid(`terminal-issue-option-${issue.id}`)}
+                      disabled={!issue.workdir}
+                      onSelect={() => {
+                        if (!issue.workdir) return;
+                        vscode.postMessage({
+                          command: "desktopTerminalInput",
+                          termId,
+                          data: shellCdInput(issue.workdir),
+                        });
+                      }}
+                    >
+                      <span className="terminal-issue-option">
+                        <span className="terminal-issue-option-title">{issue.title}</span>
+                        <span className="terminal-issue-option-workdir" title={path}>
+                          <span>{path || "没有工作目录"}</span>
+                        </span>
+                      </span>
+                    </DropdownMenu.Item>
+                  );
+                })}
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
+          ) : null}
           <span className="preview-pane-url">终端</span>
           <button
             className="preview-pane-button"

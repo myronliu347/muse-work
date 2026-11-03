@@ -68,10 +68,16 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
     const handleMessage = (event: MessageEvent) => {
       const message = event.data;
       if (message.command === "desktopWorkdirState") {
+        const prevHome = useDesktopStore.getState().workdirState?.homeDir;
+        const homeDir =
+          typeof message.homeDir === "string" && message.homeDir
+            ? message.homeDir
+            : prevHome;
         setWorkdirState({
           workdir: message.workdir,
           recentWorkdirs: message.recentWorkdirs ?? [],
           host: message.host ?? "local",
+          ...(homeDir ? { homeDir } : {}),
         });
       } else if (message.command === "desktopSessionTree") {
         sessionTreeRef.current = message.groups ?? [];
@@ -191,6 +197,7 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
         panes,
         rowHeights,
         focusedPaneId,
+        homeDir: workdirState.homeDir,
       }}
     />
   );

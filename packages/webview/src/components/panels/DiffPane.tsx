@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Select } from "@radix-ui/themes";
+import { DropdownMenu, Select } from "@radix-ui/themes";
 import { PatchDiff } from "@pierre/diffs/react";
 import type { DiffLineAnnotation, FileDiffLoadedFiles, FileDiffMetadata } from "@pierre/diffs";
 import type { VsCodeApi, DiffViewState } from "../../types";
@@ -10,6 +10,7 @@ import {
 import {
   resolveWorkspaceFilePath,
   displayFilePath,
+  displayHomePath,
 } from "../../utils/filePathDisplay";
 import { buildPathTree, pathSegments } from "../../utils/pathTree";
 import {
@@ -250,6 +251,77 @@ const PATCH_DIFF_OPTIONS = {
   `,
 };
 
+export interface DiffIssueChoice {
+  id: string;
+  title: string;
+  workdir: string;
+}
+
+function DiffIssueSelect({
+  issues,
+  issueId,
+  homeDir,
+  onSelectIssue,
+}: {
+  issues: DiffIssueChoice[];
+  issueId?: string;
+  homeDir?: string;
+  onSelectIssue?: (issueId: string) => void;
+}) {
+  const current = issues.find((issue) => issue.id === issueId) ?? issues[0];
+  if (!current) return null;
+  const workdirLabel = (workdir: string) => displayHomePath(workdir, homeDir);
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger>
+        <button
+          type="button"
+          className="diff-issue-select"
+          data-testid="diff-issue-select"
+          aria-label="切换事项"
+          title={current.title}
+        >
+          <span className="diff-issue-select-title">{current.title}</span>
+          <i className="codicon codicon-chevron-down" aria-hidden />
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content
+        size="1"
+        variant="soft"
+        color="gray"
+        highContrast
+        align="start"
+        sideOffset={4}
+        container={getOverlayHost()}
+        className="diff-issue-menu"
+        data-testid="diff-issue-menu"
+      >
+        {issues.map((issue) => (
+          <DropdownMenu.Item
+            key={issue.id}
+            data-testid={`diff-issue-option-${issue.id}`}
+            onSelect={() => onSelectIssue?.(issue.id)}
+          >
+            <span className="diff-issue-option">
+              <span className="diff-issue-option-title">{issue.title}</span>
+              <span
+                className="diff-issue-option-workdir"
+                title={workdirLabel(issue.workdir)}
+              >
+                <span>{workdirLabel(issue.workdir) || "没有工作目录"}</span>
+              </span>
+            </span>
+          </DropdownMenu.Item>
+        ))}
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
+  );
+}
+
+function shortBranchName(ref: string): string {
+  return ref.replace(/^refs\/remotes\//, "").replace(/^refs\/heads\//, "");
+}
+
 export interface DiffPaneProps {
   vscode: VsCodeApi;
   width: number;
@@ -280,6 +352,12 @@ export interface DiffPaneProps {
   recentFiles?: WorkspaceDiffFile[];
   /** Branch this session's worktree was cut from, when the reflog is gone. */
   baseBranch?: string;
+  /** Home directory, so issue workdirs render as `~/…`. */
+  homeDir?: string;
+  /** 助手右侧变更：当前事项，以及可以切过去的其他事项。 */
+  issues?: DiffIssueChoice[];
+  issueId?: string;
+  onSelectIssue?: (issueId: string) => void;
 }
 
 interface CommentTarget {
@@ -307,6 +385,10 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   diffView,
   recentFiles,
   baseBranch,
+  homeDir,
+  issues,
+  issueId,
+  onSelectIssue,
 }) => {
   const [state, setState] = useState<DiffState>({ kind: "loading" });
   // recent: last assistant turn. unstaged: uncommitted worktree vs HEAD.
@@ -398,6 +480,10 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   const filesRef = useRef<WorkspaceDiffFile[]>([]);
   const baseBranchRef = useRef(baseBranch);
   baseBranchRef.current = baseBranch;
+  const [branchOverride, setBranchOverride] = useState<string | null>(null);
+  const [resolvedBase, setResolvedBase] = useState<string | null>(null);
+  const [gitBranches, setGitBranches] = useState<string[]>([]);
+  const branchOverrideRef = useRef<string | null>(null);
   const workdirRef = useRef(workdir);
   workdirRef.current = workdir;
   const sideLoadsRef = useRef(
@@ -431,16 +517,17 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   );
 
   const requestBranchDiff = useCallback(
-    (hard = false) => {
+    (hard = false, base?: string) => {
       if (hard) setState({ kind: "loading" });
       setRefreshing(true);
       clearComment();
+      const chosen = (base ?? branchOverrideRef.current ?? baseBranch)?.trim();
       vscode.postMessage({
         command: "desktopGetBranchDiff",
         requestId: nextRequestId(),
         ...(paneId ? { paneId } : {}),
         ...(workdir ? { workdir } : {}),
-        ...(baseBranch ? { baseBranch } : {}),
+        ...(chosen ? { baseBranch: chosen } : {}),
       });
     },
     [vscode, paneId, workdir, baseBranch, clearComment, nextRequestId],
@@ -513,6 +600,19 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
         else setState({ kind: "ok", files: [] });
         return;
       }
+      if (msg?.command === "desktopGitBranches") {
+        if (workdirRef.current && msg.workdir && msg.workdir !== workdirRef.current) return;
+        const listed = [
+          ...(Array.isArray(msg.result?.branches) ? msg.result.branches : []),
+          ...(Array.isArray(msg.result?.remotes) ? msg.result.remotes : []),
+        ];
+        setGitBranches(
+          listed
+            .filter((name: unknown): name is string => typeof name === "string" && name.trim() !== "")
+            .map((name: string) => shortBranchName(name)),
+        );
+        return;
+      }
       if (msg?.command === "desktopDiffFileSides") {
         const requestId = typeof msg.requestId === "string" ? msg.requestId : "";
         const pending = sideLoadsRef.current.get(requestId);
@@ -531,6 +631,13 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       }
       const result = msg.result;
       setRefreshing(false);
+      if (
+        modeRef.current === "branch" &&
+        typeof result?.baseRef === "string" &&
+        result.baseRef
+      ) {
+        setResolvedBase(shortBranchName(result.baseRef));
+      }
       setState(
         result?.kind === "ok"
           ? { kind: "ok", files: result.files }
@@ -657,6 +764,10 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     const generationEnded = visible && prev.isStreaming && !isStreaming;
     const baseChanged = prev.baseBranch !== baseBranch;
     if (contextChanged) {
+      branchOverrideRef.current = null;
+      setBranchOverride(null);
+      setResolvedBase(null);
+      setGitBranches([]);
       if (sessionChanged && prev.sessionId) {
         sessionViewRef.current.set(prev.sessionId, {
           mode: modeRef.current,
@@ -727,6 +838,15 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     loadCommits,
     baseBranch,
   ]);
+
+  useEffect(() => {
+    if (mode !== "branch" || !visible) return;
+    vscode.postMessage({
+      command: "desktopListGitBranches",
+      ...(paneId ? { paneId } : {}),
+      ...(workdir ? { workdir } : {}),
+    });
+  }, [mode, visible, vscode, paneId, workdir]);
 
   // Recent mode renders the live recentFiles prop; keep state in sync when the
   // transcript reloads (session switch, generation end, revert broadcast).
@@ -1228,6 +1348,15 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
               : state.kind === "ok" && state.files.length === 0
                 ? "无改动"
                 : null;
+  const shownBase = shortBranchName(branchOverride ?? resolvedBase ?? baseBranch ?? "");
+  const baseBranchNames = new Set<string>();
+  if (shownBase) baseBranchNames.add(shownBase);
+  for (const name of gitBranches) baseBranchNames.add(name);
+  const baseBranchOptions = [...baseBranchNames].map((name) => ({
+    value: name,
+    label: name,
+    testId: `diff-base-option-${name}`,
+  }));
 
   return (
     <aside
@@ -1239,6 +1368,14 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       <div className="preview-pane-drag-handle" onMouseDown={onDragStart} />
       <div className="preview-pane-inner">
         <div className="preview-pane-toolbar">
+        {issues && issues.length > 0 ? (
+          <DiffIssueSelect
+            issues={issues}
+            issueId={issueId}
+            homeDir={homeDir}
+            onSelectIssue={onSelectIssue}
+          />
+        ) : null}
         <DiffSelect
           label="变更范围"
           testId="diff-mode-select"
@@ -1247,6 +1384,23 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
           options={DIFF_MODE_OPTIONS}
           onChange={(value) => switchMode(value as DiffMode)}
         />
+        {mode === "branch" ? (
+          <DiffSelect
+            label="对比分支"
+            testId="diff-base-select"
+            className="diff-pane-mode-select diff-pane-base-select"
+            value={shownBase}
+            disabled={!shownBase && gitBranches.length === 0}
+            placeholder="对比分支"
+            options={baseBranchOptions}
+            onChange={(next) => {
+              if (!next || next === shownBase) return;
+              branchOverrideRef.current = next;
+              setBranchOverride(next);
+              requestBranchDiff(true, next);
+            }}
+          />
+        ) : null}
         {mode === "patch" && (
           <DiffSelect
             label="提交"

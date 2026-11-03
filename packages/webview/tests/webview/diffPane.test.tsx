@@ -1080,6 +1080,42 @@ describe("DiffPane", () => {
       );
     });
 
+    it("shows the compared branch and requests a different one when edited", async () => {
+      const { vscode } = renderPane({
+        paneId: "p1",
+        workdir: "/repo",
+        baseBranch: "main",
+      });
+      vscode.postMessage.mockClear();
+      await switchToBranch();
+      const first = lastBranchRequest(vscode);
+      sendCommand("desktopWorkspaceDiff", {
+        paneId: "p1",
+        requestId: first.requestId,
+        result: { kind: "ok", files: [makeFile()], baseRef: "main" },
+      });
+      expect(screen.getByTestId("diff-base-select")).toHaveTextContent("main");
+      sendCommand("desktopGitBranches", {
+        paneId: "p1",
+        workdir: "/repo",
+        result: {
+          branches: ["main", "develop"],
+          remotes: ["origin/main"],
+          current: "feature",
+        },
+      });
+      const user = userEvent.setup();
+      await user.click(screen.getByTestId("diff-base-select"));
+      await user.click(await screen.findByTestId("diff-base-option-develop"));
+      expect(lastBranchRequest(vscode)).toEqual(
+        expect.objectContaining({
+          command: "desktopGetBranchDiff",
+          baseBranch: "develop",
+          workdir: "/repo",
+        }),
+      );
+    });
+
     it("requests the branch diff and hides commit and discard actions", async () => {
       const { vscode } = renderPane({ paneId: "p1", workdir: "/repo" });
       vscode.postMessage.mockClear();
@@ -1339,5 +1375,51 @@ describe("DiffPane", () => {
         screen.queryByTestId("diff-tree-file-modified"),
       ).not.toBeInTheDocument();
     });
+  });
+
+  it("switches the assistant diff between issues and shows name plus workdir", async () => {
+    const user = userEvent.setup();
+    const onSelectIssue = vi.fn();
+    render(
+      <Theme>
+        <DiffPane
+          vscode={createMockVscode()}
+          width={420}
+          onWidthChange={vi.fn()}
+          maxWidth={716}
+          onClose={vi.fn()}
+          visible
+          isStreaming={false}
+          issueId="issue-a"
+          homeDir="/Users/lyy"
+          onSelectIssue={onSelectIssue}
+          issues={[
+            {
+              id: "issue-a",
+              title: "修登录",
+              workdir: "/Users/lyy/repo/frontend",
+            },
+            {
+              id: "issue-b",
+              title: "补测试",
+              workdir: "/Users/lyy/repo/backend",
+            },
+          ]}
+        />
+      </Theme>,
+    );
+
+    const trigger = screen.getByTestId("diff-issue-select");
+    expect(trigger).toHaveTextContent("修登录");
+    expect(trigger).not.toHaveTextContent("/Users/lyy/repo/frontend");
+    expect(screen.getByTestId("diff-mode-select")).toBeInTheDocument();
+
+    await user.click(trigger);
+    const option = await screen.findByTestId("diff-issue-option-issue-b");
+    expect(option).toHaveTextContent("补测试");
+    expect(option).toHaveTextContent("~/repo/backend");
+    expect(option).not.toHaveTextContent("/Users/lyy/repo/backend");
+    await user.click(option);
+    expect(onSelectIssue).toHaveBeenCalledWith("issue-b");
   });
 });

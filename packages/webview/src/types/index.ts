@@ -257,6 +257,8 @@ export interface DesktopHostProps {
   rowHeights?: number[];
   /** The pane that receives sidebar clicks / 新对话, pushed via `desktopPanes`. */
   focusedPaneId?: string | null;
+  /** Host home directory, so paths can render as `~/…`. */
+  homeDir?: string;
 }
 
 /** One directory group in the desktop sidebar session tree (FR-020). */
@@ -389,6 +391,8 @@ export interface DesktopWorkdirState {
   /** Current host — the focused pane's host (local-only for now). */
   host: string;
   recentWorkdirs: string[];
+  /** Host home directory, so paths can render as `~/…`. */
+  homeDir?: string;
 }
 
 export interface MessageListProps {

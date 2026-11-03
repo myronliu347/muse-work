@@ -329,12 +329,17 @@ function pushToWebview(win: BrowserWindow | null, data: unknown): void {
   win.webContents.send(TO_WEBVIEW, data);
 }
 
-function pushState(win: BrowserWindow | null, state: WorkdirHostState): void {
+function pushState(
+  win: BrowserWindow | null,
+  state: WorkdirHostState,
+  homeDir?: string,
+): void {
   pushToWebview(win, {
     command: "desktopWorkdirState",
     workdir: state.workdir,
     recentWorkdirs: state.recentWorkdirs,
     host: state.host,
+    ...(homeDir ? { homeDir } : {}),
   });
 }
 
@@ -427,7 +432,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
     const win = fromWebContents(event.sender) ?? options.getWindow();
 
     if (command === "desktopReady") {
-      pushState(win, state);
+      pushState(win, state, homedir());
       return;
     }
 
@@ -462,7 +467,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       if (result.canceled || !result.filePaths[0]) return;
       rememberWorkdir(state, result.filePaths[0]);
       savePersistedWorkdirState(options.userDataPath, state);
-      pushState(win, state);
+      pushState(win, state, homedir());
       return;
     }
 
@@ -498,7 +503,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
     if (command === "desktopSelectRecentWorkdir" && typeof msg.path === "string") {
       rememberWorkdir(state, msg.path);
       savePersistedWorkdirState(options.userDataPath, state);
-      pushState(win, state);
+      pushState(win, state, homedir());
       return;
     }
 
@@ -508,7 +513,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
         state.workdir = state.recentWorkdirs[0];
       }
       savePersistedWorkdirState(options.userDataPath, state);
-      pushState(win, state);
+      pushState(win, state, homedir());
       return;
     }
 
@@ -840,7 +845,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
         const session = await createWorktree(name, cwd, { baseBranch });
         rememberWorkdir(state, session.path);
         savePersistedWorkdirState(options.userDataPath, state);
-        pushState(win, state);
+        pushState(win, state, homedir());
         pushToWebview(win, {
           command: "desktopWorktreeCreated",
           requestId,
