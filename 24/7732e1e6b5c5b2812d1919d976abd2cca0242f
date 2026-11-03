@@ -1,0 +1,68 @@
+packages/server/tests/assistantPrompt.test.ts
+  ad38f788148e5e5b 8,12
+packages/server/src/services/assistant/prompt.ts
+  ad38f788148e5e5b 15-20,92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "247732e1e6b5c5b2812d1919d976abd2cca0242f",
+  "prompts": {
+    "ad38f788148e5e5b": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2978e166-642c-4a78-acc3-8db1dededa40",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 136,
+      "total_deletions": 33,
+      "accepted_lines": 19,
+      "overriden_lines": 5,
+      "per_file_stats": {
+        "packages/server/src/routes/reviews.ts": {
+          "additions": 3
+        },
+        "CONTEXT.md": {
+          "additions": 2,
+          "deletions": 2,
+          "overriden_lines": 2
+        },
+        "packages/server/tests/reviewStore.test.ts": {
+          "additions": 41
+        },
+        "packages/server/src/services/reviewStore.ts": {
+          "additions": 21,
+          "deletions": 8,
+          "accepted_lines": 6,
+          "overriden_lines": 2
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 26,
+          "deletions": 19,
+          "accepted_lines": 11
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 12
+        },
+        "packages/server/src/services/assistant/events.ts": {
+          "additions": 6
+        },
+        "packages/server/tests/assistantPrompt.test.ts": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/assistant/tools/reviewTools.ts": {
+          "additions": 6,
+          "deletions": 1,
+          "overriden_lines": 1
+        },
+        "packages/server/tests/reviewEvents.test.ts": {
+          "additions": 15
+        }
+      }
+    }
+  }
+}
