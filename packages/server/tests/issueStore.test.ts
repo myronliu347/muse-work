@@ -323,7 +323,7 @@ describe("issueStore", () => {
     fs.rmSync(home, { recursive: true, force: true });
   });
 
-  it("listActive skips leftover todo-board issues with unknown status and no priority", () => {
+  it("listActive shows leftover todo-board issues that never opened a session", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
     const dbDir = path.join(getMuseHomeDir(home), "db");
     fs.mkdirSync(dbDir, { recursive: true });
@@ -347,13 +347,40 @@ describe("issueStore", () => {
             title: "功能测试-已更新",
             status: "todo",
             createdAt: 1,
-            updatedAt: 2,
+            updatedAt: 1,
+          },
+          {
+            id: "gone",
+            title: "认不出的状态",
+            status: "archived",
+            createdAt: 1,
+            updatedAt: 3,
           },
         ],
       }),
     );
     const store = createIssueStore({ home });
-    expect(store.listActive()).toEqual([]);
+    expect(
+      store.listActive().map((issue) => ({
+        id: issue.id,
+        title: issue.title,
+        status: issue.status,
+        planningSessionId: issue.planningSessionId,
+      })),
+    ).toEqual([
+      {
+        id: "612263f6-aee5-4f5c-a395-f940f592e4ab",
+        title: "测试任务看板功能",
+        status: "review",
+        planningSessionId: undefined,
+      },
+      {
+        id: "be9807c0-58d5-4ad6-b1e1-9cf28d6d8ae2",
+        title: "功能测试-已更新",
+        status: "pending",
+        planningSessionId: undefined,
+      },
+    ]);
     fs.rmSync(home, { recursive: true, force: true });
   });
 

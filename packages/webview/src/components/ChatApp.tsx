@@ -2631,6 +2631,13 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         : messageInputRef.current ?? assistantInputRef.current;
       input?.insertFile(path);
     },
+    onAddSelectionToChat: (selection) => {
+      const input =
+        threeColumns && workspace.active === "bot"
+          ? assistantInputRef.current ?? messageInputRef.current
+          : messageInputRef.current ?? assistantInputRef.current;
+      input?.insertSelection(selection);
+    },
     fileTree: shownFileTree,
     onFileTreeChange: handleFileTreeChange,
     fileSidebarMode,

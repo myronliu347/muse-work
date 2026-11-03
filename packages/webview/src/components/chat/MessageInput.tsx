@@ -123,6 +123,13 @@ export interface MessageInputHandle {
   setText: (text: string) => void;
   /** Insert an @file chip for an absolute path. */
   insertFile: (absolutePath: string) => void;
+  /** Insert a file:line-range chip at the caret. */
+  insertSelection: (selection: {
+    fileName: string;
+    filePath: string;
+    startLine: number;
+    endLine: number;
+  }) => void;
   loadQueuedEditContent: (text: string) => void;
 }
 
@@ -241,6 +248,14 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     const textareaRef = useRef<HTMLDivElement>(null);
     const requestIdRef = useRef<string>("");
     const insertFileRef = useRef<(absolutePath: string) => void>(() => {});
+    const insertSelectionRef = useRef<
+      (selection: {
+        fileName: string;
+        filePath: string;
+        startLine: number;
+        endLine: number;
+      }) => void
+    >(() => {});
     const inputContentTimerRef = useRef<NodeJS.Timeout | null>(null);
     const selectionChangeTimerRef = useRef<NodeJS.Timeout | null>(null);
     const lastSelectionChangePosRef = useRef<number>(0);
@@ -330,6 +345,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         }
       },
       insertFile: (absolutePath: string) => insertFileRef.current(absolutePath),
+      insertSelection: (selection) => insertSelectionRef.current(selection),
       // Loads a queued message's content into the input for editing (chip + body).
       // Called via ref from ChatApp so it only affects this pane's input, not every
       // pane in a split-view layout (window.postMessage would be received by all panes).
@@ -690,13 +706,23 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       }) => {
         if (!textareaRef.current || !selection || selection.isEmpty) return;
 
-        // Focus the input first to ensure we can work with selection
-        textareaRef.current.focus();
+        const editor = textareaRef.current;
+        editor.focus();
 
         const windowSelection = window.getSelection();
-        if (!windowSelection || windowSelection.rangeCount === 0) return;
-
-        const range = windowSelection.getRangeAt(0);
+        if (!windowSelection) return;
+        let range: Range | null = null;
+        if (windowSelection.rangeCount > 0) {
+          const current = windowSelection.getRangeAt(0);
+          if (editor.contains(current.commonAncestorContainer)) range = current;
+        }
+        if (!range) {
+          range = document.createRange();
+          range.selectNodeContents(editor);
+          range.collapse(false);
+          windowSelection.removeAllRanges();
+          windowSelection.addRange(range);
+        }
 
         const fileName =
           selection.fileName.split(/[/\\]/).pop() || selection.fileName;
@@ -852,6 +878,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       if (!absolutePath) return;
       insertFileMentionAtCursor(fileItemFromAbsolutePath(absolutePath, workdir));
     };
+    insertSelectionRef.current = insertSelectionTag;
 
     useEffect(() => {
       const handleMessage = (event: MessageEvent) => {

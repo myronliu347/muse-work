@@ -11,7 +11,7 @@ import {
   emptyContentSearchState,
 } from "../../stores/panelGroupStore";
 import { FilePathBar } from "./FilePathBar";
-import { FilePreview } from "./FilePreview";
+import { FilePreview, type FileSelectionChatTarget } from "./FilePreview";
 import { FileTree, requestDirListings } from "./FileTree";
 import { useExitHold } from "../../hooks/useExitHold";
 import "../../styles/FilePane.css";
@@ -46,6 +46,8 @@ export interface FilePaneProps {
   /** Local HTML files: open in the built-in browser preview instead of the OS. */
   onOpenInPreview?: (path: string) => void;
   onRevealInFinder?: (path: string) => void;
+  /** Insert a code selection into the composer that is in use. */
+  onAddSelectionToChat?: (selection: FileSelectionChatTarget) => void;
   /** True while the AI is generating; its falling edge auto-refreshes the tree
    * and re-reads the open file (same pattern as DiffPane). */
   isStreaming?: boolean;
@@ -71,6 +73,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
   onRefreshOpenFile,
   onOpenInPreview,
   onRevealInFinder,
+  onAddSelectionToChat,
   isStreaming,
   visible,
 }) => {
@@ -315,6 +318,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
                   onScrollChange={(scrollTop) => {
                     scrollTopsRef.current[fileView.path] = scrollTop;
                   }}
+                  onAddSelectionToChat={onAddSelectionToChat}
                 />
               )}
             </div>

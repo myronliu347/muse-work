@@ -6,6 +6,7 @@ import {
   type WorkspaceDiffFile,
 } from "../panels/DiffPane";
 import { FilePane } from "../panels/FilePane";
+import type { FileSelectionChatTarget } from "../panels/FilePreview";
 import { TerminalPane } from "../panels/TerminalPane";
 import { PANEL_TAB_ORDER } from "../../muse/panelTabs";
 import { botToolTermId, dockToolLabel, dockToolTitle } from "../../muse/dockTools";
@@ -81,6 +82,8 @@ export interface DesktopPanelSlotsProps {
   onPinFileTab: (path: string) => void;
   /** File-tab menu: insert the path into the current composer. */
   onAddFileToChat?: (path: string) => void;
+  /** Code selection: insert the line range into the current composer. */
+  onAddSelectionToChat?: (selection: FileSelectionChatTarget) => void;
   fileTree: FileTreeState;
   onFileTreeChange: (next: FileTreeState) => void;
   fileSidebarMode: FileSidebarMode;
@@ -165,6 +168,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   onCloseFileTab,
   onPinFileTab,
   onAddFileToChat,
+  onAddSelectionToChat,
   fileTree,
   onFileTreeChange,
   fileSidebarMode,
@@ -259,6 +263,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
           onRefreshOpenFile={onRefreshOpenFile}
           onOpenInPreview={onOpenInPreview}
           onRevealInFinder={onRevealInFinder}
+          onAddSelectionToChat={onAddSelectionToChat}
           isStreaming={isStreaming}
           visible={checked.includes("file")}
           {...common}

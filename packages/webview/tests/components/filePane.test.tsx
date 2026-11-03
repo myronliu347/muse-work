@@ -889,6 +889,129 @@ describe("FilePane", () => {
     });
   });
 
+  describe("FilePreview add selection to chat", () => {
+    function mockRange(root: HTMLElement, hitLines: Element[], text: string) {
+      const fakeRange = {
+        commonAncestorContainer: root,
+        intersectsNode: (node: Node) => hitLines.includes(node),
+        getBoundingClientRect: () => ({
+          top: 48,
+          left: 96,
+          width: 140,
+          height: 20,
+          bottom: 68,
+          right: 236,
+          x: 96,
+          y: 48,
+          toJSON: () => ({}),
+        }),
+      };
+      vi.spyOn(window, "getSelection").mockReturnValue({
+        isCollapsed: false,
+        rangeCount: 1,
+        getRangeAt: () => fakeRange,
+        toString: () => text,
+        removeAllRanges: () => undefined,
+      } as unknown as Selection);
+    }
+
+    async function renderPreview(onAddSelectionToChat = vi.fn()) {
+      render(
+        <FilePreview
+          fileView={makeFileView()}
+          workdir="/work/a"
+          onAddSelectionToChat={onAddSelectionToChat}
+        />,
+      );
+      await waitFor(() => {
+        expect(document.querySelectorAll(".file-pane-line").length).toBe(2);
+      });
+      return onAddSelectionToChat;
+    }
+
+    it("stays hidden while the pointer is dragging", async () => {
+      await renderPreview();
+      const root = document.querySelector(".file-pane-code") as HTMLElement;
+      const lines = document.querySelectorAll(".file-pane-line");
+      mockRange(root, [lines[0], lines[1]], "const a = 1;\nconst b = 2;");
+      fireEvent.mouseDown(root);
+      document.dispatchEvent(new Event("selectionchange"));
+      expect(screen.queryByTestId("file-selection-add")).toBeNull();
+      fireEvent.mouseUp(root);
+      expect(screen.getByTestId("file-selection-add")).toBeTruthy();
+    });
+
+    it("anchors the button above the first selected line", async () => {
+      await renderPreview();
+      const root = document.querySelector(".file-pane-code") as HTMLElement;
+      const body = document.querySelector(".file-pane-preview-body") as HTMLElement;
+      const lines = document.querySelectorAll(".file-pane-line");
+      const code = lines[0].querySelector(".file-pane-line-code") as HTMLElement;
+      const box = (top: number, left: number, width: number, height: number) =>
+        ({
+          top,
+          left,
+          width,
+          height,
+          bottom: top + height,
+          right: left + width,
+          x: left,
+          y: top,
+          toJSON: () => ({}),
+        }) as DOMRect;
+      vi.spyOn(body, "getBoundingClientRect").mockReturnValue(box(40, 200, 480, 500));
+      vi.spyOn(lines[0] as HTMLElement, "getBoundingClientRect").mockReturnValue(
+        box(160, 200, 480, 20),
+      );
+      vi.spyOn(code, "getBoundingClientRect").mockReturnValue(box(160, 260, 400, 20));
+      mockRange(root, [lines[0], lines[1]], "const a = 1;\nconst b = 2;");
+      fireEvent.mouseUp(root);
+
+      const button = screen.getByTestId("file-selection-add");
+      expect(button).toHaveStyle({ top: "126px", left: "260px" });
+    });
+
+    it("offers the current selection and inserts it from the button", async () => {
+      const onAdd = await renderPreview();
+      const root = document.querySelector(".file-pane-code") as HTMLElement;
+      const lines = document.querySelectorAll(".file-pane-line");
+      mockRange(root, [lines[0]], "const a = 1;");
+      fireEvent.mouseUp(root);
+
+      const button = screen.getByTestId("file-selection-add");
+      expect(button).toHaveTextContent("添加到聊天");
+      fireEvent.click(button);
+      expect(onAdd).toHaveBeenCalledWith({
+        filePath: "/work/a/src/app.ts",
+        fileName: "app.ts",
+        startLine: 1,
+        endLine: 1,
+      });
+      expect(screen.queryByTestId("file-selection-add")).toBeNull();
+    });
+
+    it("inserts the selection with the add-to-chat shortcut", async () => {
+      const onAdd = await renderPreview();
+      const root = document.querySelector(".file-pane-code") as HTMLElement;
+      const lines = document.querySelectorAll(".file-pane-line");
+      mockRange(root, [lines[0], lines[1]], "const a = 1;\nconst b = 2;");
+      fireEvent.mouseUp(root);
+
+      const mac = /mac|iphone|ipad|ipod/i.test(navigator.platform);
+      fireEvent.keyDown(window, {
+        key: "l",
+        metaKey: mac,
+        ctrlKey: !mac,
+      });
+      expect(onAdd).toHaveBeenCalledWith({
+        filePath: "/work/a/src/app.ts",
+        fileName: "app.ts",
+        startLine: 1,
+        endLine: 2,
+      });
+    });
+  });
+
   it("marks the requested line range as active", async () => {
     const { container } = renderPane({
       fileView: makeFileView({ startLine: 1, endLine: 1 }),

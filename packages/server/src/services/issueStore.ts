@@ -151,6 +151,17 @@ function isKnownStatus(status: unknown): status is IssueStatus {
   return typeof status === "string" && KNOWN_STATUSES.has(status as IssueStatus);
 }
 
+/** 旧任务看板的状态。todo 还没开会话，reviewing 是待审核。 */
+function normalizeIssueStatus(value: unknown): IssueStatus | undefined {
+  if (value === "todo") return "pending";
+  if (value === "reviewing") return "review";
+  return isKnownStatus(value) ? value : undefined;
+}
+
+function isLegacyBoardStatus(status: unknown): boolean {
+  return status === "todo" || status === "reviewing";
+}
+
 function normalizePriority(priority: unknown): IssuePriority {
   return typeof priority === "string" &&
     KNOWN_PRIORITIES.has(priority as IssuePriority)
@@ -238,12 +249,14 @@ function replyFields(record: {
 
 function hydrateIssue(record: Issue & { tags?: unknown }): Issue {
   const { tags: _tags, replyNote: _note, replyPending: _pending, ...rest } = record;
+  const status = normalizeIssueStatus(record.status);
   return {
     ...rest,
     title: record.title,
     description: record.description ?? "",
     priority: normalizePriority(record.priority),
     type: normalizeIssueType(record.type),
+    ...(status ? { status } : {}),
     items: record.items ?? [],
     agentMode: normalizeAgentMode(record.agentMode),
     ...replyFields(record),
@@ -302,7 +315,9 @@ export function createIssueStore(
   }
 
   const needsPersist =
-    activeFile.issues.some((record) => isTerminal(record.status)) ||
+    activeFile.issues.some(
+      (record) => isTerminal(record.status) || isLegacyBoardStatus(record.status),
+    ) ||
     fs.existsSync(
       path.join(getMuseHomeDir(home), "db", "issues-closed.json"),
     );

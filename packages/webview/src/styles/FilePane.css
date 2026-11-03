@@ -175,6 +175,33 @@
   padding-right: var(--space-5);
 }
 
+.file-selection-add {
+  position: fixed;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--gray-6);
+  border-radius: 8px;
+  background: var(--gray-2);
+  color: var(--gray-12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+.file-selection-add kbd {
+  color: var(--gray-9);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+}
+
 .file-pane-truncated-hint {
   flex: 1;
   min-width: max-content;

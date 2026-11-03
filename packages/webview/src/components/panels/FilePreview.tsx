@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import type { FileViewState } from "../../types";
@@ -12,6 +12,7 @@ import {
 } from "../../utils/fileSearch";
 import { MarkdownView } from "../message/MarkdownView";
 import { MermaidRenderer } from "../message/MermaidRenderer";
+import { bodyPortal } from "../../utils/bodyPortal";
 import {
   encodeFileSelectionClipboard,
   FILE_SELECTION_CLIPBOARD_MIME,
@@ -19,6 +20,51 @@ import {
 } from "../../utils/filePanelDnD";
 
 const HIGHLIGHT_LINE_HEIGHT = 20;
+
+export type FileSelectionChatTarget = {
+  filePath: string;
+  fileName: string;
+  startLine: number;
+  endLine: number;
+};
+
+type SelectionOffer = FileSelectionChatTarget & {
+  top: number;
+  left: number;
+};
+
+const ADD_SELECTION_MOD =
+  typeof navigator !== "undefined" &&
+  /mac|iphone|ipad|ipod/i.test(navigator.platform);
+const ADD_BUTTON_HEIGHT = 28;
+const ADD_BUTTON_GAP = 6;
+
+/** 按钮贴在选区第一行上方，左缘对齐代码，不跟整段选区的外框走。 */
+function placeSelectionButton(
+  line: HTMLElement,
+  pane: HTMLElement,
+): { top: number; left: number } {
+  const lineRect = line.getBoundingClientRect();
+  const code = line.querySelector(".file-pane-line-code");
+  const codeRect =
+    code instanceof HTMLElement ? code.getBoundingClientRect() : lineRect;
+  const paneRect = pane.getBoundingClientRect();
+  let top = lineRect.top - ADD_BUTTON_HEIGHT - ADD_BUTTON_GAP;
+  const minTop = paneRect.top + 4;
+  if (top < minTop) top = minTop;
+  const left = Math.min(
+    Math.max(codeRect.left, paneRect.left + 8),
+    Math.max(paneRect.left + 8, paneRect.right - 8),
+  );
+  return { top, left };
+}
+
+function isAddSelectionShortcut(event: KeyboardEvent): boolean {
+  if (event.altKey || event.shiftKey || event.isComposing) return false;
+  if (event.key.toLowerCase() !== "l") return false;
+  if (ADD_SELECTION_MOD) return event.metaKey && !event.ctrlKey;
+  return event.ctrlKey && !event.metaKey;
+}
 
 const isMarkdownPath = (path: string) =>
   /\.(md|markdown|mdown|mkd)$/i.test(path);
@@ -192,6 +238,8 @@ export type FilePreviewProps = {
   savedScrollTop?: number;
   /** Reports scroll changes so the parent can persist per-file positions. */
   onScrollChange?: (scrollTop: number) => void;
+  /** Insert the current line range into the composer that is in use. */
+  onAddSelectionToChat?: (selection: FileSelectionChatTarget) => void;
 };
 
 export const FilePreview: React.FC<FilePreviewProps> = ({
@@ -205,11 +253,17 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
   onCloseSearch,
   savedScrollTop,
   onScrollChange,
+  onAddSelectionToChat,
 }) => {
   const { effective } = useMuseTheme();
   const dark = effective === "dark";
   const scrollRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const offerRef = useRef<SelectionOffer | null>(null);
+  const hiddenOfferKeyRef = useRef<string | null>(null);
+  const draggingRef = useRef(false);
+  const [offer, setOffer] = useState<SelectionOffer | null>(null);
+  offerRef.current = offer;
   const [lines, setLines] = useState<string[] | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentMatch, setCurrentMatch] = useState(0);
@@ -386,6 +440,132 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
     root.addEventListener("copy", onCopy);
     return () => root.removeEventListener("copy", onCopy);
   }, [showCode, fileView.path]);
+
+  const syncSelectionOffer = useCallback(() => {
+    if (!onAddSelectionToChat || !showCode) {
+      setOffer(null);
+      return;
+    }
+    const root = scrollRef.current?.querySelector(".file-pane-code");
+    if (!(root instanceof HTMLElement)) {
+      setOffer(null);
+      return;
+    }
+    const range = lineRangeFromFilePreviewSelection(root);
+    if (!range) {
+      hiddenOfferKeyRef.current = null;
+      if (offerRef.current) setOffer(null);
+      return;
+    }
+    const key = `${fileView.path}:${range.startLine}-${range.endLine}`;
+    if (hiddenOfferKeyRef.current === key) {
+      if (offerRef.current) setOffer(null);
+      return;
+    }
+    const pane = scrollRef.current;
+    let anchor: HTMLElement | null = null;
+    const selected = window.getSelection();
+    const domRange =
+      selected && selected.rangeCount > 0 ? selected.getRangeAt(0) : null;
+    if (domRange && pane) {
+      for (const node of root.querySelectorAll(".file-pane-line")) {
+        if (!(node instanceof HTMLElement)) continue;
+        try {
+          if (domRange.intersectsNode(node)) {
+            anchor = node;
+            break;
+          }
+        } catch {
+          /* detached */
+        }
+      }
+    }
+    if (!anchor || !pane) {
+      if (offerRef.current) setOffer(null);
+      return;
+    }
+    const place = placeSelectionButton(anchor, pane);
+    const fileName =
+      fileView.path.replace(/\\/g, "/").split("/").pop() || fileView.path;
+    const next: SelectionOffer = {
+      filePath: fileView.path,
+      fileName,
+      startLine: range.startLine,
+      endLine: range.endLine,
+      top: place.top,
+      left: place.left,
+    };
+    const prev = offerRef.current;
+    if (
+      prev &&
+      prev.filePath === next.filePath &&
+      prev.startLine === next.startLine &&
+      prev.endLine === next.endLine &&
+      prev.top === next.top &&
+      prev.left === next.left
+    ) {
+      return;
+    }
+    setOffer(next);
+  }, [fileView.path, onAddSelectionToChat, showCode]);
+
+  useEffect(() => {
+    if (!onAddSelectionToChat || !showCode) return;
+    const onMouseDown = (event: MouseEvent) => {
+      draggingRef.current = true;
+      const code = scrollRef.current?.querySelector(".file-pane-code");
+      if (
+        code instanceof HTMLElement &&
+        event.target instanceof Node &&
+        code.contains(event.target)
+      ) {
+        setOffer(null);
+      }
+    };
+    const onMouseUp = () => {
+      draggingRef.current = false;
+      syncSelectionOffer();
+    };
+    const onSelect = () => {
+      if (draggingRef.current) return;
+      syncSelectionOffer();
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("mouseup", onMouseUp);
+    document.addEventListener("selectionchange", onSelect);
+    const scroller = scrollRef.current;
+    scroller?.addEventListener("scroll", onSelect);
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("mouseup", onMouseUp);
+      document.removeEventListener("selectionchange", onSelect);
+      scroller?.removeEventListener("scroll", onSelect);
+    };
+  }, [onAddSelectionToChat, showCode, syncSelectionOffer]);
+
+  const addSelectionToChat = useCallback(() => {
+    const current = offerRef.current;
+    if (!current || !onAddSelectionToChat) return;
+    hiddenOfferKeyRef.current = `${current.filePath}:${current.startLine}-${current.endLine}`;
+    onAddSelectionToChat({
+      filePath: current.filePath,
+      fileName: current.fileName,
+      startLine: current.startLine,
+      endLine: current.endLine,
+    });
+    setOffer(null);
+  }, [onAddSelectionToChat]);
+
+  useEffect(() => {
+    if (!offer) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (!isAddSelectionShortcut(event)) return;
+      event.preventDefault();
+      addSelectionToChat();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [offer, addSelectionToChat]);
 
   if (fileView.error) {
     return (
@@ -599,6 +779,21 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
         </div>
       )}
       </div>
+      {offer && onAddSelectionToChat
+        ? bodyPortal(
+            <button
+              type="button"
+              className="file-selection-add"
+              data-testid="file-selection-add"
+              style={{ top: offer.top, left: offer.left }}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={addSelectionToChat}
+            >
+              添加到聊天
+              <kbd>{ADD_SELECTION_MOD ? "⌘L" : "Ctrl+L"}</kbd>
+            </button>,
+          )
+        : null}
     </div>
   );
 };
