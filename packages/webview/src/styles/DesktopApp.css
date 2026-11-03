@@ -369,7 +369,6 @@
   box-sizing: border-box;
   padding-top: var(--desktop-shell-titlebar-height);
   background: var(--gray-2);
-  border-right: var(--hairline) solid var(--gray-6);
   overflow: hidden;
 }
 
@@ -3453,12 +3452,13 @@ body.is-panel-resizing .assistant-split-handle::before {
 }
 
 /* An inline ConfirmationDialog (plan preview / permission / AskUserQuestions)
-   can grow taller than the pane; let the input area shrink within the flex
-   column and the dialog body scroll, instead of overflowing onto the panels.
-   Scoped under .desktop-chat-main, the desktop chat column, so the dialog
-   keeps the inline auto-height path. */
+   must stay readable. A long transcript used to shrink this box until only
+   the title line remained. Keep the card at its content height, cap it so
+   the thread is still visible, and scroll inside the card past that cap.
+   Scoped under .desktop-chat-main, the desktop chat column. */
 .desktop-chat-main .input-area-container--confirm {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
+  max-height: min(70%, 560px);
   min-height: 0;
   overflow: hidden;
   display: flex;
@@ -3466,15 +3466,36 @@ body.is-panel-resizing .assistant-split-handle::before {
 }
 
 .desktop-chat-main .input-area-container--confirm .confirmation-dialog {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* The column underneath is already the chat background. A second fill here
+     reads as an extra slab behind the card. */
+  background-color: transparent;
+}
+
+.desktop-chat-main .input-area-container--confirm .confirmation-header {
+  flex-shrink: 0;
 }
 
 .desktop-chat-main .input-area-container--confirm .confirmation-dialog-inner {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+}
+
+/* The transcript tail inset clears the composer. While a confirmation is
+   open that inset is just an empty band above the card. */
+.desktop-chat-main:has(.input-area-container--confirm) .messages-container,
+.desktop-chat-main:has(.input-area-container--confirm) .issue-tab-messages {
+  padding-bottom: 16px;
+}
+
+/* In the split column this transcript's basis is its content height, so a
+   long thread pushes the permission card below the clip. Size it to the
+   column instead, and let the message list scroll. */
+.assistant-frame .issue-tab-transcript {
+  flex-basis: 0;
 }

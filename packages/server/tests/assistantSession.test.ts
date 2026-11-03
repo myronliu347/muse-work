@@ -50,6 +50,7 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("超过大约两轮工具调用");
     expect(first.systemPrompt).toContain("改记忆、跑 `Skill` 是你自己的事");
     expect(first.systemPrompt).toContain("派出去就告诉用户开始了");
+    expect(first.systemPrompt).toContain("只 `CreateIssue` 或 `OpenIssue` 不算派活");
     expect(first.systemPrompt).toContain("不要在这一轮里空等或反复查");
     expect(first.systemPrompt).toContain("用第一人称");
     expect(first.systemPrompt).toContain("最近的动作停了或在重复，就说卡住了");
