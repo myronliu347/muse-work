@@ -1,0 +1,162 @@
+packages/webview/src/styles/AssistantPage.css
+  ad38f788148e5e5b 72-120
+packages/server/tests/reviewStore.test.ts
+  ad38f788148e5e5b 217-241
+packages/webview/e2e/demo/empty-view.demo.ts
+  ad38f788148e5e5b 1-74
+packages/webview/src/components/message/Message.tsx
+  ad38f788148e5e5b 793-812
+packages/webview/src/types/index.ts
+  ad38f788148e5e5b 521-522,555-556
+packages/server/src/services/assistant/tools/messageTools.ts
+  ad38f788148e5e5b 122,124-133,143-145,180,193,199,230,235-245,260
+packages/webview/src/components/chat/MessageInput.tsx
+  ad38f788148e5e5b 15,17,19,156,209-215,1025-1068,1239,1263-1268,1272-1275,1309,1313,1722-1723,1859-1860
+packages/webview/src/components/shared/FileSuggestionDropdown.tsx
+  ad38f788148e5e5b 21-22,122-139,144,186,194
+packages/webview/tests/components/assistantPage.test.tsx
+  ad38f788148e5e5b 136-154
+packages/webview/src/components/ChatApp.tsx
+  ad38f788148e5e5b 88,452-459,2456-2459,2461-2477,2602,2868-2869,3021-3022
+packages/server/tests/assistantTools.test.ts
+  ad38f788148e5e5b 255,653,659,732-754
+packages/webview/src/components/assistant/AssistantPage.tsx
+  ad38f788148e5e5b 260,268,288,375-384,529-538,605-661,673-674,710,1208-1214,1216,1229,1231,1237-1241,1352
+packages/webview/src/styles/DesktopApp.css
+  ad38f788148e5e5b 2815
+packages/server/src/services/assistant/prompt.ts
+  ad38f788148e5e5b 70,103
+packages/webview/src/components/desktop/ReviewBody.tsx
+  ad38f788148e5e5b 4,25,147-149,231
+packages/server/src/services/reviewStore.ts
+  ad38f788148e5e5b 36-37,221-235
+packages/webview/src/utils/messageUtils.ts
+  ad38f788148e5e5b 4,15-31,81-89,171,186,199,202,214-221
+packages/webview/src/styles/DesktopPanelDock.css
+  ad38f788148e5e5b 953,955,1044
+packages/server/src/services/assistant/session.ts
+  ad38f788148e5e5b 19
+packages/server/src/services/assistant/tools/reviewTools.ts
+  ad38f788148e5e5b 34-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c0818dd9c3f7419f3cba0e66ec764dbc1c4763cd",
+  "prompts": {
+    "ad38f788148e5e5b": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2978e166-642c-4a78-acc3-8db1dededa40",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 690,
+      "total_deletions": 111,
+      "accepted_lines": 572,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/utils/messageUtils.ts": {
+          "additions": 41,
+          "deletions": 3,
+          "accepted_lines": 41
+        },
+        "packages/server/src/services/assistant/tools/messageTools.ts": {
+          "additions": 31,
+          "deletions": 6,
+          "accepted_lines": 31
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 26,
+          "deletions": 1,
+          "accepted_lines": 26
+        },
+        "packages/server/tests/reviewStore.test.ts": {
+          "additions": 28,
+          "deletions": 3,
+          "accepted_lines": 25
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/reviewStore.ts": {
+          "additions": 51,
+          "deletions": 34,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/components/message/Message.tsx": {
+          "additions": 20,
+          "accepted_lines": 20
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/e2e/demo/reason-box.demo.ts": {
+          "additions": 51
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 35,
+          "deletions": 11,
+          "accepted_lines": 35
+        },
+        "packages/webview/src/components/desktop/ReviewBody.tsx": {
+          "additions": 6,
+          "deletions": 3,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 21,
+          "deletions": 1,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/components/shared/FileSuggestionDropdown.tsx": {
+          "additions": 41,
+          "deletions": 21,
+          "accepted_lines": 23
+        },
+        "packages/server/src/services/assistant/tools/reviewTools.ts": {
+          "additions": 24,
+          "deletions": 1,
+          "accepted_lines": 23
+        },
+        "packages/server/src/services/assistant/session.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/e2e/demo/empty-view.demo.ts": {
+          "additions": 77,
+          "deletions": 3,
+          "accepted_lines": 74
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 72,
+          "deletions": 6,
+          "accepted_lines": 72
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 103,
+          "deletions": 11,
+          "accepted_lines": 99
+        },
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 51,
+          "deletions": 2,
+          "accepted_lines": 49
+        }
+      }
+    }
+  }
+}
