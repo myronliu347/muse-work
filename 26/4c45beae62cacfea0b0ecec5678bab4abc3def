@@ -1,0 +1,36 @@
+packages/server/src/services/assistant/prompt.ts
+  ad38f788148e5e5b 73-75
+packages/server/tests/assistantPrompt.test.ts
+  ad38f788148e5e5b 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "264c45beae62cacfea0b0ecec5678bab4abc3def",
+  "prompts": {
+    "ad38f788148e5e5b": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2978e166-642c-4a78-acc3-8db1dededa40",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 2,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/assistantPrompt.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
