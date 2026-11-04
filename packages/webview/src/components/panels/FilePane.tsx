@@ -78,6 +78,11 @@ export const FilePane: React.FC<FilePaneProps> = ({
   visible,
 }) => {
   const asideRef = useRef<HTMLElement>(null);
+  const fileTreeRef = useRef(fileTree);
+  fileTreeRef.current = fileTree;
+  // Collapse on the empty pane is a choice. Coming back to an empty pane
+  // opens the tree again, since there is nothing else to browse.
+  const collapsedWhileEmpty = useRef(false);
   // Markdown preview/source mode is remembered per file (tab switch restores
   // each tab's mode). Search-open is NOT per-tab — it resets on path change.
   const [mdModeByPath, setMdModeByPath] = useState<
@@ -108,6 +113,17 @@ export const FilePane: React.FC<FilePaneProps> = ({
     // Only react to path changes; fileTree identity intentionally omitted
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileView?.path, workdir]);
+
+  useEffect(() => {
+    if (fileView) {
+      collapsedWhileEmpty.current = false;
+      return;
+    }
+    if (!onFileTreeChange || collapsedWhileEmpty.current) return;
+    const tree = fileTreeRef.current;
+    if (tree.collapsed === false) return;
+    onFileTreeChange({ ...tree, collapsed: false });
+  }, [fileView, onFileTreeChange]);
 
   const onDragStart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -157,7 +173,9 @@ export const FilePane: React.FC<FilePaneProps> = ({
 
   const toggleTreeCollapsed = () => {
     if (!onFileTreeChange) return;
-    onFileTreeChange({ ...fileTree, collapsed: !treeCollapsed });
+    const nextCollapsed = !treeCollapsed;
+    if (!fileView) collapsedWhileEmpty.current = nextCollapsed;
+    onFileTreeChange({ ...fileTree, collapsed: nextCollapsed });
   };
 
   // Re-request the currently open file from the host (soft refresh: old

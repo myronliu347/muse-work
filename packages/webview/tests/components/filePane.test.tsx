@@ -130,10 +130,20 @@ describe("FilePane", () => {
     expect(screen.getByText("从消息或文件树打开文件")).toBeInTheDocument();
   });
 
-  it("shows expand control in toolbar when tree is collapsed", () => {
+  it("opens the file tree on the empty pane", () => {
     const { onFileTreeChange } = renderPane({
       fileView: null,
-      fileTree: emptyFileTreeState(),
+      fileTree: { ...emptyFileTreeState(), collapsed: true },
+    });
+    expect(onFileTreeChange).toHaveBeenCalledWith(
+      expect.objectContaining({ collapsed: false }),
+    );
+  });
+
+  it("shows expand control in toolbar when tree is collapsed", () => {
+    const { onFileTreeChange } = renderPane({
+      fileView: makeFileView(),
+      fileTree: { ...emptyFileTreeState(), collapsed: true },
     });
     expect(screen.queryByTestId("file-tree")).toBeNull();
     fireEvent.click(screen.getByTestId("file-tree-expand-btn"));
@@ -161,7 +171,7 @@ describe("FilePane", () => {
     const { onFileTreeChange } = renderPane({
       fileView: makeFileView({ path: "/other/notes.md" }),
       workdir: "/work/a",
-      fileTree: emptyFileTreeState(),
+      fileTree: { ...emptyFileTreeState(), collapsed: true },
     });
     expect(onFileTreeChange).toHaveBeenCalledWith(
       expect.objectContaining({
