@@ -1,0 +1,75 @@
+packages/webview/src/components/panels/FilePane.tsx
+  65e0162bd9081307 81-85,117-127,176-178
+packages/webview/tests/components/filePane.test.tsx
+  65e0162bd9081307 133,136-146,174
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "4e789e60811b7459d0e5474c206a049a148c8bdf",
+  "prompts": {
+    "65e0162bd9081307": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "634930ac-3945-4b6c-9989-0bc5f41807d3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 38,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/fileTree.test.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/filePane.test.tsx": {
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/stores/fileTreeState.test.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/panels/FilePane.tsx": {
+          "accepted_lines": 19
+        }
+      }
+    },
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 10,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/routes/sessions.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "accepted_lines": 3
+        },
+        "packages/agent/src/utils/commandArgumentParser.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantWiring.test.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
