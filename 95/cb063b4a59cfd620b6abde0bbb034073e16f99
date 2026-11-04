@@ -1,0 +1,76 @@
+packages/server/src/services/assistant/prompt.ts
+  c26d1b1664bab700 115
+packages/webview/tests/components/issueTab.test.tsx
+  c26d1b1664bab700 9,257,307-349
+packages/server/tests/assistantTools.test.ts
+  c26d1b1664bab700 577,588-591,630,634-646
+packages/webview/src/components/chat/MessageInput.tsx
+  c26d1b1664bab700 89-98,387-389,392-393,396-397,402-403,413-415,417-419,466,477,1729-1731,1736,1741-1745,1747
+packages/server/src/services/assistant/tools/messageTools.ts
+  c26d1b1664bab700 265-266
+  ad38f788148e5e5b 175
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "95cb063b4a59cfd620b6abde0bbb034073e16f99",
+  "prompts": {
+    "ad38f788148e5e5b": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2978e166-642c-4a78-acc3-8db1dededa40",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 199,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/tools/messageTools.ts": {
+          "accepted_lines": 30
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "accepted_lines": 21
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "accepted_lines": 76
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "accepted_lines": 72
+        }
+      }
+    },
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 282,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/assistantTools.test.ts": {
+          "accepted_lines": 73
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "accepted_lines": 167
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "accepted_lines": 37
+        },
+        "packages/server/src/services/assistant/tools/messageTools.ts": {
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
