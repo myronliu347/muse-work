@@ -1,0 +1,97 @@
+packages/webview/src/styles/MessageInput.css
+  65e0162bd9081307 23,42,55-56,64,66-68
+packages/webview/src/styles/ChatApp.css
+  65e0162bd9081307 114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "a283272045fd3d156dc39e5d1994f31a64dc38dc",
+  "prompts": {
+    "65e0162bd9081307": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "634930ac-3945-4b6c-9989-0bc5f41807d3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 51,
+      "total_deletions": 45,
+      "accepted_lines": 44,
+      "overriden_lines": 3,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/FilePane.tsx": {
+          "additions": 20,
+          "deletions": 2,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/styles/ChatApp.css": {
+          "additions": 1,
+          "deletions": 5,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/filePane.test.tsx": {
+          "additions": 13,
+          "deletions": 3,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 8,
+          "deletions": 26,
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/components/fileTree.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 1,
+          "overriden_lines": 1
+        },
+        "packages/webview/tests/stores/fileTreeState.test.ts": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 2,
+          "overriden_lines": 1
+        }
+      }
+    },
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 10,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "accepted_lines": 3
+        },
+        "packages/agent/src/utils/commandArgumentParser.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantWiring.test.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
