@@ -1,0 +1,93 @@
+packages/webview/src/styles/AssistantPage.css
+  65e0162bd9081307 250-251,298-302
+packages/webview/src/styles/MessageInput.css
+  65e0162bd9081307 45,50-65,93
+packages/webview/src/components/assistant/AssistantPage.tsx
+  65e0162bd9081307 411-413,430
+packages/webview/tests/components/assistantPage.test.tsx
+  65e0162bd9081307 393-415
+packages/webview/src/styles/ChatApp.css
+  65e0162bd9081307 52,55-56,60-66,116-121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "232d910ed8a7924aeddcf4aaea6240befa423727",
+  "prompts": {
+    "65e0162bd9081307": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "634930ac-3945-4b6c-9989-0bc5f41807d3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 75,
+      "total_deletions": 42,
+      "accepted_lines": 75,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/ChatApp.css": {
+          "additions": 21,
+          "deletions": 4,
+          "accepted_lines": 21
+        },
+        "packages/webview/src/styles/NewSessionPage.css": {
+          "deletions": 7
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 20,
+          "deletions": 13,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 4,
+          "deletions": 16,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 7,
+          "deletions": 2,
+          "accepted_lines": 7
+        }
+      }
+    },
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 10,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/runtime.ts": {
+          "accepted_lines": 3
+        },
+        "packages/agent/src/utils/commandArgumentParser.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantWiring.test.ts": {
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
