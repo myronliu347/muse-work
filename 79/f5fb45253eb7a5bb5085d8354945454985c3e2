@@ -1,0 +1,195 @@
+packages/webview/src/styles/MessageList.css
+  65e0162bd9081307 81
+packages/webview/src/styles/TaskList.css
+  65e0162bd9081307 8
+packages/webview/src/styles/DesktopPanelDock.css
+  65e0162bd9081307 738
+packages/webview/src/styles/PanelToggleMenu.css
+  65e0162bd9081307 19
+packages/webview/src/styles/BackgroundTaskList.css
+  65e0162bd9081307 8
+packages/webview/src/ui/scrollingScrollbar.ts
+  65e0162bd9081307 1-40
+packages/webview/src/styles/ConfigurationDialog.css
+  65e0162bd9081307 17
+packages/webview/src/styles/globals.css
+  65e0162bd9081307 6-8,58-61,177-221
+packages/webview/src/ui/theme.tsx
+  65e0162bd9081307 11,44-45
+packages/webview/tests/ui/scrollingScrollbar.test.ts
+  65e0162bd9081307 1-29
+packages/webview/src/styles/Message.css
+  65e0162bd9081307 114-117,137,152-160,512,679,721,737,1019-1022
+packages/webview/src/styles/ConfirmationDialog.css
+  65e0162bd9081307 16
+packages/webview/src/styles/FileSuggestionDropdown.css
+  65e0162bd9081307 3,145
+packages/webview/src/styles/NewSessionPage.css
+  65e0162bd9081307 37,57,134
+packages/webview/src/styles/WelcomeView.css
+  65e0162bd9081307 71,141
+packages/webview/src/styles/AutomationsPage.css
+  65e0162bd9081307 234,690
+packages/webview/src/styles/MessageInput.css
+  65e0162bd9081307 32,69-72
+packages/webview/src/styles/QueuedMessageList.css
+  65e0162bd9081307 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "79f5fb45253eb7a5bb5085d8354945454985c3e2",
+  "prompts": {
+    "65e0162bd9081307": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "634930ac-3945-4b6c-9989-0bc5f41807d3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 168,
+      "total_deletions": 57,
+      "accepted_lines": 168,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/TaskList.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/PanelToggleMenu.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DiffViewer.css": {
+          "deletions": 17
+        },
+        "packages/webview/src/styles/ConfirmationDialog.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/WelcomeView.css": {
+          "additions": 2,
+          "deletions": 6,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/QueuedMessageList.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/ui/theme.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 22,
+          "deletions": 5,
+          "accepted_lines": 22
+        },
+        "packages/webview/src/styles/globals.css": {
+          "additions": 52,
+          "accepted_lines": 52
+        },
+        "packages/webview/src/styles/ConfigurationDialog.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/FileSuggestionDropdown.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/ui/scrollingScrollbar.test.ts": {
+          "additions": 29,
+          "accepted_lines": 29
+        },
+        "packages/webview/src/ui/scrollingScrollbar.ts": {
+          "additions": 40,
+          "accepted_lines": 40
+        },
+        "packages/webview/src/styles/BackgroundTaskList.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/NewSessionPage.css": {
+          "additions": 3,
+          "deletions": 12,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        }
+      }
+    },
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 82,
+      "total_deletions": 0,
+      "accepted_lines": 10,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/tools/issueTools.ts": {
+          "additions": 2
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "accepted_lines": 3
+        },
+        "packages/agent/src/utils/commandArgumentParser.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 9,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantWiring.test.ts": {
+          "additions": 44,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/issueDispatch.ts": {
+          "additions": 3
+        },
+        "packages/server/src/services/assistant/observe.ts": {
+          "additions": 3
+        },
+        "packages/server/src/services/assistant/issueTurnReport.ts": {
+          "additions": 21
+        }
+      }
+    }
+  }
+}
