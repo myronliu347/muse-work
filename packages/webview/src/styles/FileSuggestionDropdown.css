@@ -1,6 +1,6 @@
 /* File Suggestion Dropdown Styles */
 .file-suggestion-dropdown {
-  background: var(--gray-3);
+  background: var(--color-card);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-2);
   box-shadow: 0 var(--space-1) var(--space-2) color-mix(in srgb, var(--gray-1) 36%, transparent);
@@ -142,7 +142,7 @@
   gap: var(--space-1);
   padding: var(--space-1) var(--space-3);
   border-bottom: var(--hairline) solid var(--gray-6);
-  background: var(--gray-3);
+  background: var(--color-card);
   font-size: var(--font-size-1);
 }
 

@@ -34,7 +34,7 @@
 }
 
 .new-session-page .input-content {
-  background: var(--gray-3);
+  background: var(--color-card);
   border-color: var(--gray-6);
   box-shadow: 0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
 }
@@ -53,17 +53,8 @@
   border-color: var(--gray-6);
 }
 
-:root[data-theme="light"] .new-session-page .input-content {
-  background: var(--color-panel);
-  border-color: var(--gray-6);
-}
-
-:root[data-theme="light"] .new-session-page .input-content:focus-within {
-  border-color: var(--gray-6);
-}
-
 :root[data-theme="light"] .new-session-page .input-meta-row {
-  background: var(--gray-2);
+  background: var(--color-panel);
   border-color: var(--gray-6);
 }
 
@@ -140,7 +131,7 @@
 
 @media (prefers-reduced-transparency: reduce) {
   .new-session-page .input-content {
-    background: var(--gray-3);
+    background: var(--color-card);
   }
 
   .new-session-page .input-meta-row {

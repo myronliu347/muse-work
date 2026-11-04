@@ -68,7 +68,7 @@
   padding: var(--space-3);
   border: 1px solid var(--gray-6);
   border-radius: 16px;
-  background: var(--gray-3);
+  background: var(--color-card);
   box-shadow: none;
   color: inherit;
   font: inherit;
@@ -84,10 +84,6 @@
 .welcome-card:focus-visible {
   outline: 2px solid var(--accent-9);
   outline-offset: 2px;
-}
-
-:root[data-theme="light"] .welcome-card {
-  background: var(--color-panel);
 }
 
 :root[data-theme="light"] .welcome-card:hover {
@@ -142,7 +138,7 @@
   padding: 10px 14px 10px 16px;
   border: 1px solid var(--gray-6);
   border-radius: 16px;
-  background: var(--gray-3);
+  background: var(--color-card);
 }
 
 .welcome-cards + .welcome-login {

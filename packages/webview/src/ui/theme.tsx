@@ -8,6 +8,7 @@ import type {
   ThemeRadius,
   ThemeScaling,
 } from "../types";
+import { installScrollingScrollbars } from "./scrollingScrollbar";
 import { resolveEffectiveTheme } from "./themeStorage";
 import {
   getSystemDark,
@@ -39,6 +40,8 @@ export function MuseTheme({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     applyDataTheme(effective);
   }, [effective]);
+
+  useEffect(() => installScrollingScrollbars(), []);
 
   return (
     <Theme

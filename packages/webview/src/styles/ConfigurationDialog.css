@@ -14,7 +14,7 @@
 
 .configuration-dialog {
   position: relative;
-  background-color: var(--gray-3);
+  background-color: var(--color-card);
   color: var(--gray-12);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-2);

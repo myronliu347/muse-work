@@ -111,6 +111,10 @@
   color: var(--gray-11);
 }
 
+:root[data-theme="light"] .system-inject-bubble {
+  background: var(--color-panel);
+}
+
 .system-inject-head {
   display: flex;
   align-items: center;
@@ -130,7 +134,7 @@
 }
 
 .user-text-block {
-  background-color: var(--gray-3);
+  background-color: var(--color-card);
   border-radius: var(--radius-3);
   padding: var(--space-2) var(--space-3);
   transition: background-color 0.2s ease;
@@ -143,6 +147,15 @@
 
 .message.user:hover .user-text-block {
   background-color: var(--gray-4);
+}
+
+:root[data-theme="light"] .user-text-block {
+  border: 1px solid var(--gray-6);
+}
+
+:root[data-theme="light"] .message.user.queued .user-text-block {
+  border: none;
+  background-color: transparent;
 }
 
 .message.user.queued {
@@ -496,7 +509,7 @@
 .write-preview-box {
   position: relative;
   margin: var(--space-1) 0 0 0;
-  background: var(--gray-3);
+  background: var(--color-card);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-3);
   overflow: hidden;
@@ -663,7 +676,7 @@
   display: flex;
   align-items: flex-start;
   padding: var(--space-2) var(--space-3);
-  background-color: var(--gray-3);
+  background-color: var(--color-card);
   font-size: var(--font-size-1);
   line-height: 1.55;
   border-radius: var(--radius-3);
@@ -705,7 +718,7 @@
 
 .bash-command-output {
   padding: var(--space-2) var(--space-3);
-  background-color: var(--gray-3);
+  background-color: var(--color-card);
   color: var(--gray-12);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-3);
@@ -721,7 +734,7 @@
 
 .lsp-output {
   padding: var(--space-2) var(--space-3);
-  background-color: var(--gray-3);
+  background-color: var(--color-card);
   color: var(--gray-11);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-3);
@@ -1001,6 +1014,10 @@
   font-size: var(--font-size-1);
   margin: var(--space-3) 0;
   line-height: 1.55;
+}
+
+:root[data-theme="light"] .markdown-content pre {
+  background-color: var(--color-panel);
 }
 
 .markdown-content pre code {

@@ -231,7 +231,7 @@
   border: 1px solid color-mix(in srgb, var(--gray-6) 70%, transparent);
   border-radius: 12px;
   overflow: hidden;
-  background: var(--gray-3);
+  background: var(--color-card);
 }
 
 .automations-card {
@@ -687,7 +687,7 @@
 }
 
 .automations-empty-preview .automations-list {
-  background: var(--gray-3);
+  background: var(--color-card);
 }
 
 .automations-empty-preview .automations-switch {

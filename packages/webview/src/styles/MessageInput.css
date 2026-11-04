@@ -29,17 +29,13 @@
   gap: var(--space-1);
   box-sizing: border-box;
   padding: 12px var(--space-3) 10px;
-  background-color: var(--gray-3);
+  background-color: var(--color-card);
   border: 1px solid var(--gray-6);
   border-radius: 16px;
   max-height: 192px;
   box-shadow: 0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
   container-type: inline-size;
   container-name: composer;
-}
-
-:root[data-theme="light"] .input-content {
-  background-color: var(--color-panel);
 }
 
 .input-content:focus-within {
@@ -68,6 +64,10 @@
   border: 1px solid var(--gray-6);
   border-top: 0;
   border-radius: 0 0 16px 16px;
+}
+
+:root[data-theme="light"] .input-meta-row {
+  background: var(--color-panel);
 }
 
 .input-meta-row:has(.permission-mode-panel),

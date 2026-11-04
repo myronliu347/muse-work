@@ -735,7 +735,7 @@
   padding: 8px 10px;
   overflow: auto;
   border-radius: 6px;
-  background: var(--gray-3);
+  background: var(--color-card);
 }
 
 .dock-detail-md table {
