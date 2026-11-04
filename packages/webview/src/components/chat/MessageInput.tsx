@@ -83,6 +83,16 @@ function writeEditableText(el: HTMLElement, text: string) {
   if (own?.writable || own?.set) el.innerText = text;
 }
 
+// Survives the composer unmounting when the sidebar leaves the session page.
+// The desktop host never stores drafts, so this is the copy that comes back.
+const sessionInputDrafts = new Map<string, string>();
+const sessionImageDrafts = new Map<string, AttachedImage[]>();
+
+export function clearSessionInputDraftsForTests(): void {
+  sessionInputDrafts.clear();
+  sessionImageDrafts.clear();
+}
+
 function findTextOffset(
   container: Node,
   offset: number,
@@ -363,23 +373,23 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     // Use a ref to avoid re-running effect on every local message change
     const inputContentRef = useRef(inputContent);
     const prevSessionRef = useRef(sessionId);
-    // Per-session unsent drafts, keyed by sessionId. The host never implements
-    // updateInputContent (desktop main process has no handler), so drafts are
-    // kept here so switching away and back restores what the user was typing.
-    const draftsRef = useRef<Record<string, string>>({});
-    const imageDraftsRef = useRef<Record<string, AttachedImage[]>>({});
+    // Per-session unsent drafts. The host never implements updateInputContent
+    // (desktop main process has no handler). The maps outlive this input, so
+    // leaving for the assistant page and coming back restores what was typed.
     const attachedImagesRef = useRef(attachedImages);
     attachedImagesRef.current = attachedImages;
+    const sessionIdRef = useRef(sessionId);
+    sessionIdRef.current = sessionId;
     const saveDraft = useCallback((session: string | undefined, text: string) => {
       if (!session) return;
-      if (text) draftsRef.current[session] = text;
-      else delete draftsRef.current[session];
+      if (text) sessionInputDrafts.set(session, text);
+      else sessionInputDrafts.delete(session);
     }, []);
     const saveImageDraft = useCallback(
       (session: string | undefined, images: AttachedImage[]) => {
         if (!session) return;
-        if (images.length > 0) imageDraftsRef.current[session] = images;
-        else delete imageDraftsRef.current[session];
+        if (images.length > 0) sessionImageDrafts.set(session, images);
+        else sessionImageDrafts.delete(session);
       },
       [],
     );
@@ -389,10 +399,13 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     // with the (stale) inputContent prop the host last pushed.
     const messageRef = useRef(message);
     messageRef.current = message;
-    // inputContent is applied on session change below, but a freshly mounted
-    // input (assistant page coming back) never sees that change.
+    // inputContent is applied on session change below. A freshly mounted
+    // input (session page coming back from the assistant) never sees that
+    // change, so it also reads the draft saved when it last unmounted.
     useLayoutEffect(() => {
-      const initial = inputContentRef.current;
+      const fromHost = inputContentRef.current;
+      const saved = sessionId ? sessionInputDrafts.get(sessionId) : undefined;
+      const initial = fromHost !== undefined ? fromHost : saved;
       const el = textareaRef.current;
       if (!initial || !el) return;
       // An untouched contentEditable can already contain a newline. That is
@@ -439,7 +452,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         const next =
           inputContent !== undefined
             ? inputContent
-            : (sessionId ? (draftsRef.current[sessionId] ?? "") : "");
+            : (sessionId ? (sessionInputDrafts.get(sessionId) ?? "") : "");
         inputContentRef.current = next;
         setMessage(next);
         if (textareaRef.current) {
@@ -450,7 +463,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         if (inputContent !== undefined) saveDraft(sessionId, inputContent);
         if (sessionChanged) {
           setAttachedImages(
-            sessionId ? (imageDraftsRef.current[sessionId] ?? []) : [],
+            sessionId ? (sessionImageDrafts.get(sessionId) ?? []) : [],
           );
         }
       }
@@ -1649,21 +1662,25 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       };
     }, []);
 
-    // Cleanup timers on unmount
+    // Cleanup timers on unmount. Flush the draft first: the debounced save is
+    // still pending when the sidebar unmounts this input, and clearing the
+    // timer would otherwise drop the text.
     useEffect(() => {
       return () => {
         if (inputContentTimerRef.current) {
           clearTimeout(inputContentTimerRef.current);
+          inputContentTimerRef.current = null;
         }
         if (selectionChangeTimerRef.current) {
           clearTimeout(selectionChangeTimerRef.current);
         }
-        onPersistDraftRef.current?.({
-          text: readEditableText(textareaRef.current, messageRef.current),
-          images: attachedImagesRef.current.slice(),
-        });
+        const text = readEditableText(textareaRef.current, messageRef.current);
+        const images = attachedImagesRef.current.slice();
+        saveDraft(sessionIdRef.current, text);
+        saveImageDraft(sessionIdRef.current, images);
+        onPersistDraftRef.current?.({ text, images });
       };
-    }, []);
+    }, [saveDraft, saveImageDraft]);
 
     return (
       <div className="input-container" data-testid="input-container">

@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChatApp } from "../../src/components/ChatApp";
+import { clearSessionInputDraftsForTests } from "../../src/components/chat/MessageInput";
 import * as botWorkspace from "../../src/components/desktop/botWorkspace";
 import { MuseApiClient } from "../../src/muse/apiClient";
 import { defaultDockWidth } from "../../src/muse/panelFit";
@@ -253,6 +254,7 @@ describe("issue tab", () => {
     vi.restoreAllMocks();
     resetWebviewStores();
     resetAssistantNoticeForTests();
+    clearSessionInputDraftsForTests();
     delete (HTMLElement.prototype as { loadURL?: unknown }).loadURL;
   });
 
@@ -300,6 +302,49 @@ describe("issue tab", () => {
       sessionId: "sess-notes",
     });
     expect((await screen.findAllByText(NOTES_MESSAGE)).length).toBeGreaterThan(0);
+  });
+
+  it("keeps session composer text when leaving for the assistant and coming back", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            sessionTree: [
+              {
+                host: "local",
+                workdir: "/work/notes",
+                sessions: [session("sess-notes", "/work/notes", "会议记录")],
+              },
+            ],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    await screen.findByTestId("assistant-frame");
+    sendExtensionMessage({
+      command: "setInitialState",
+      messages: [textMessage("notes-1", NOTES_MESSAGE)],
+      session: { id: "sess-notes", title: "会议记录" },
+      workdir: "/work/notes",
+      isAuthenticated: true,
+    });
+
+    await user.click(screen.getByTestId("desktop-sessions-menu"));
+    const input = await screen.findByTestId("message-input");
+    await setInputText(input, "还没发出去");
+    expect(input.innerText).toBe("还没发出去");
+
+    await user.click(screen.getByTestId("desktop-assistant-menu"));
+    expect(screen.getByTestId("assistant-frame")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("desktop-sessions-menu"));
+    expect(await screen.findByTestId("message-input")).toHaveTextContent("还没发出去");
   });
 
   it("opens 新对话 from the sessions page without bouncing back", async () => {
