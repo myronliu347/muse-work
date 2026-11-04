@@ -1,0 +1,161 @@
+packages/webview/src/styles/globals.css
+  65e0162bd9081307 55-62
+packages/webview/src/styles/MessageList.css
+  65e0162bd9081307 81
+docs/webview-ui.md
+  65e0162bd9081307 1-343
+packages/webview/src/styles/QueuedMessageList.css
+  65e0162bd9081307 53-70
+packages/webview/src/styles/TaskList.css
+  65e0162bd9081307 78-98,103-105
+packages/webview/src/styles/ChatApp.css
+  65e0162bd9081307 38-109
+packages/webview/src/styles/Message.css
+  65e0162bd9081307 137
+packages/webview/src/components/chat/QueuedMessageList.tsx
+  65e0162bd9081307 22-23,67-71,74,120
+packages/webview/src/styles/MessageInput.css
+  65e0162bd9081307 17-29,36-37,62-69,77,79-80
+packages/webview/src/components/chat/BackgroundTaskList.tsx
+  65e0162bd9081307 74-77,117-118
+packages/webview/src/components/ChatApp.tsx
+  65e0162bd9081307 1078-1080,1095,1104-1105
+packages/webview/src/styles/BackgroundTaskList.css
+  65e0162bd9081307 78-95
+packages/webview/src/components/chat/TaskList.tsx
+  65e0162bd9081307 208-218,220-225,227-228,230
+packages/webview/tests/webview/taskListToggle.test.tsx
+  65e0162bd9081307 122-124
+packages/webview/src/components/chat/ChatBody.tsx
+  65e0162bd9081307 207,209,212,240,242
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "315f34ea28553c7920fa8411c7f5a5e62bc19128",
+  "prompts": {
+    "65e0162bd9081307": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "634930ac-3945-4b6c-9989-0bc5f41807d3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 809,
+      "total_deletions": 308,
+      "accepted_lines": 561,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/TaskList.tsx": {
+          "additions": 20,
+          "deletions": 16,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 1,
+          "deletions": 10,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/BackgroundTaskList.css": {
+          "additions": 28,
+          "deletions": 10,
+          "accepted_lines": 18
+        },
+        "packages/webview/src/components/chat/QueuedMessageList.tsx": {
+          "additions": 10,
+          "deletions": 6,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/chat/ChatBody.tsx": {
+          "additions": 7,
+          "deletions": 11,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/globals.css": {
+          "additions": 8,
+          "deletions": 4,
+          "accepted_lines": 8
+        },
+        "docs/webview-ui.md": {
+          "additions": 396,
+          "deletions": 53,
+          "accepted_lines": 343
+        },
+        "packages/webview/tests/webview/taskListToggle.test.tsx": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 6,
+          "deletions": 3,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 26,
+          "deletions": 6,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/components/chat/BackgroundTaskList.tsx": {
+          "additions": 6,
+          "deletions": 2,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/styles/QueuedMessageList.css": {
+          "additions": 28,
+          "deletions": 10,
+          "accepted_lines": 18
+        },
+        "packages/webview/src/styles/ChatApp.css": {
+          "additions": 234,
+          "deletions": 162,
+          "accepted_lines": 72
+        },
+        "packages/webview/src/styles/TaskList.css": {
+          "additions": 35,
+          "deletions": 13,
+          "accepted_lines": 24
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    },
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 10,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantWiring.test.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "accepted_lines": 3
+        },
+        "packages/agent/src/utils/commandArgumentParser.ts": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
