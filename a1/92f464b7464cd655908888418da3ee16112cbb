@@ -1,0 +1,148 @@
+packages/server/tests/assistantPrompt.test.ts
+  ad38f788148e5e5b 9-10
+packages/webview/src/components/assistant/AssistantPage.tsx
+  ad38f788148e5e5b 49-50,141-160,218-221,541,549,561,596-597,599,602-603,605,613,746-747,764,1390
+packages/server/src/services/assistant/prompt.ts
+  ad38f788148e5e5b 75
+packages/server/src/services/appContext.ts
+  ad38f788148e5e5b 23,157-168
+packages/server/src/services/assistant/tools/issueTools.ts
+  ad38f788148e5e5b 6,359-367,485-490,498-503
+packages/server/src/routes/issues.ts
+  ad38f788148e5e5b 9,164-169,187-192
+packages/server/tests/reviewStore.test.ts
+  ad38f788148e5e5b 244-271
+packages/server/src/services/assistant/messages.ts
+  ad38f788148e5e5b 31-32,112-114,156,173,188,198
+packages/server/src/services/sessionStore.ts
+  ad38f788148e5e5b 105-106,175,340,343,347-348
+packages/server/src/services/reviewStore.ts
+  ad38f788148e5e5b 38-39,146-160,190,233-239
+packages/server/src/routes/sessions.ts
+  ad38f788148e5e5b 17,330-340
+packages/webview/tests/components/assistantPage.test.tsx
+  ad38f788148e5e5b 135-158
+packages/server/src/services/assistant/tools/messageTools.ts
+  ad38f788148e5e5b 155-170,241,245-249,253-254,256,268,270,293,328
+packages/server/tests/reviewLifetime.test.ts
+  ad38f788148e5e5b 1-81
+packages/server/src/routes/reviews.ts
+  ad38f788148e5e5b 4,86-93
+packages/server/tests/assistantTools.test.ts
+  ad38f788148e5e5b 765-773
+packages/server/src/services/reviewLifetime.ts
+  ad38f788148e5e5b 1-40
+packages/webview/src/components/ChatApp.tsx
+  ad38f788148e5e5b 2529-2530,2557-2570,3061,3207
+packages/server/src/services/assistant/tools/reviewTools.ts
+  ad38f788148e5e5b 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "a192f464b7464cd655908888418da3ee16112cbb",
+  "prompts": {
+    "ad38f788148e5e5b": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2978e166-642c-4a78-acc3-8db1dededa40",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 421,
+      "total_deletions": 66,
+      "accepted_lines": 396,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/reviewLifetime.ts": {
+          "additions": 40,
+          "accepted_lines": 40
+        },
+        "packages/server/src/services/reviewStore.ts": {
+          "additions": 26,
+          "deletions": 9,
+          "accepted_lines": 25
+        },
+        "packages/server/tests/reviewStore.test.ts": {
+          "additions": 29,
+          "deletions": 1,
+          "accepted_lines": 28
+        },
+        "packages/server/src/routes/reviews.ts": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 11,
+          "deletions": 4,
+          "accepted_lines": 9
+        },
+        "packages/server/src/services/assistant/tools/messageTools.ts": {
+          "additions": 29,
+          "deletions": 9,
+          "accepted_lines": 29
+        },
+        "packages/server/tests/assistantPrompt.test.ts": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 64,
+          "deletions": 32,
+          "accepted_lines": 49
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 18,
+          "deletions": 1,
+          "accepted_lines": 18
+        },
+        "packages/server/tests/reviewLifetime.test.ts": {
+          "additions": 84,
+          "deletions": 3,
+          "accepted_lines": 81
+        },
+        "packages/server/src/services/assistant/tools/reviewTools.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/sessionStore.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/server/src/services/assistant/messages.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/assistant/tools/issueTools.ts": {
+          "additions": 22,
+          "accepted_lines": 22
+        },
+        "packages/server/src/routes/issues.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        }
+      }
+    }
+  }
+}
