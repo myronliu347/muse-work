@@ -1004,6 +1004,128 @@ describe("issue tab", () => {
     expect(within(frame).getByTestId("diff-file-path")).toHaveTextContent("app.tsx");
   });
 
+  it("switches the dock to the file tab when a diff path is clicked", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const vscode = createMockVscode();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={vscode}
+          host={createMockDesktopHost({ issueGroups: [RADII_ISSUE] })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    await user.click(within(dock).getByTestId("desktop-panel-tab-diff").querySelector("button")!);
+    await waitFor(() => {
+      expect(vscode.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ command: "desktopGetWorkspaceDiff" }),
+      );
+    });
+    sendExtensionMessage({
+      command: "desktopWorkspaceDiff",
+      result: {
+        kind: "ok",
+        files: [
+          {
+            path: ".scratch/ai-stage-scheduler/map.md",
+            status: "added",
+            additions: 3,
+            deletions: 0,
+            hunks: "@@ -0,0 +1,3 @@\n+---\n+title: map\n+label: wayfinder:map\n",
+          },
+        ],
+      },
+    });
+    const path = await within(dock).findByTestId("diff-file-path");
+    expect(path).toHaveTextContent("map.md");
+    await user.click(path);
+
+    const fileTab = await within(dock).findByTestId("file-tab");
+    expect(fileTab).toHaveAttribute("data-path", expect.stringContaining("map.md"));
+    expect(fileTab).toHaveAttribute("data-active", "true");
+    expect(within(dock).getByTestId("desktop-panel-tab-diff")).not.toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(within(dock).getByTestId("file-pane").closest(".desktop-panel-slot")).not.toHaveStyle({
+      display: "none",
+    });
+  });
+
+  it("switches a session dock to the file when a diff path is clicked", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            sessionTree: [
+              {
+                host: "local",
+                workdir: "/work/notes",
+                sessions: [session("sess-notes", "/work/notes", "会议记录")],
+              },
+            ],
+          })}
+        />
+      </MuseTheme>,
+    );
+    sendExtensionMessage({
+      command: "setInitialState",
+      messages: [
+        textMessage("u1", "写一下地图"),
+        {
+          id: "a1",
+          role: "assistant",
+          timestamp: "2026-10-22T00:00:01.000Z",
+          blocks: [
+            { type: "text", content: "写好了" },
+            {
+              type: "file_history",
+              snapshots: [
+                {
+                  filePath: "/work/notes/.scratch/ai-stage-scheduler/map.md",
+                  operation: "modify",
+                  additions: 3,
+                  deletions: 0,
+                  hunks: "@@ -0,0 +1,3 @@\n+---\n+title: map\n+label: wayfinder:map\n",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      session: { id: "sess-notes", title: "会议记录" },
+      workdir: "/work/notes",
+      isAuthenticated: true,
+    });
+    await user.click(screen.getByTestId("desktop-sessions-menu"));
+    expect((await screen.findAllByText("写一下地图")).length).toBeGreaterThan(0);
+
+    const card = await screen.findByTestId("file-history-card");
+    await user.click(within(card).getByTestId("file-history-card-row"));
+    const dock = await screen.findByTestId("desktop-panel-dock");
+    const path = await within(dock).findByTestId("diff-file-path");
+    expect(within(dock).getByTestId("desktop-panel-tab-diff")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    await user.click(path);
+
+    const fileTab = await within(dock).findByTestId("file-tab");
+    expect(fileTab).toHaveAttribute("data-active", "true");
+    expect(within(dock).getByTestId("desktop-panel-tab-diff")).not.toHaveClass(
+      "desktop-panel-tab--active",
+    );
+  });
+
   it("requests the selected issue directory when 变更 opens on Muse Bot", async () => {
     resetWebviewStores();
     stubAssistant([]);

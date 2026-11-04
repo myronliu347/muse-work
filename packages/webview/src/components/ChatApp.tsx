@@ -676,6 +676,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   groupKeyRef.current = groupKey;
   const assistantVisibleRef = useRef(assistantVisible);
   assistantVisibleRef.current = assistantVisible;
+  const onSessionsSurfaceRef = useRef(onSessionsSurface);
+  onSessionsSurfaceRef.current = onSessionsSurface;
   const dockWorkdirRef = useRef(dockWorkdir);
   dockWorkdirRef.current = dockWorkdir;
   const dockIssueIdRef = useRef(dockIssueId);
@@ -1912,23 +1914,34 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   } = filePanel;
   // 详情 doesn't change the directory group's active kind. Opening a file
   // while that kind is already "file" would update the tab and leave the
-  // dock on 详情. Always bring the file chrome forward on the bot surface.
+  // dock on 详情. The visible pane follows the chrome tab, so a session
+  // whose chrome is already 变更 stays there unless we select 文件 too.
+  const revealOpenedFile = useCallback(() => {
+    const onBot = assistantVisibleRef.current;
+    const onSessions = onSessionsSurfaceRef.current;
+    if (!onBot && !onSessions) return;
+    const store = usePanelGroupStore.getState();
+    const keys = [
+      previewGroupKeyRef.current,
+      groupKeyRef.current,
+      ASSISTANT_PANEL_GROUP_KEY,
+    ];
+    const opened = keys.some((key) => {
+      if (!key) return false;
+      const group = store.groups[key];
+      return group?.active === "file" || Boolean(group?.checked?.includes("file"));
+    });
+    if (!opened) return;
+    if (onBot) setAssistantDockOpen(true);
+    selectDockRef.current("file");
+  }, [setAssistantDockOpen]);
   const handleOpenFile = useCallback(
     (path: string, startLine?: number, endLine?: number, pinned?: boolean) => {
       openFileTabInGroup(path, startLine, endLine, pinned);
-      if (!path || !assistantVisibleRef.current) return;
-      const store = usePanelGroupStore.getState();
-      const keys = [previewGroupKeyRef.current, ASSISTANT_PANEL_GROUP_KEY];
-      const opened = keys.some((key) => {
-        if (!key) return false;
-        const group = store.groups[key];
-        return group?.active === "file" || Boolean(group?.checked?.includes("file"));
-      });
-      if (!opened) return;
-      setAssistantDockOpen(true);
-      selectDockRef.current("file");
+      if (!path) return;
+      revealOpenedFile();
     },
-    [openFileTabInGroup, setAssistantDockOpen],
+    [openFileTabInGroup, revealOpenedFile],
   );
   // A file link in the conversation opens a permanent tab. A later preview
   // open must not replace it.
@@ -2660,7 +2673,10 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         }
       : undefined,
     onOpenFile: handleOpenFile,
-    onOpenFilePinned: handleOpenFilePin,
+    onOpenFilePinned: (path) => {
+      handleOpenFilePin(path);
+      revealOpenedFile();
+    },
     onRefreshOpenFile: handleRefreshOpenFile,
     onSendMessage: (text) => sendIssueMessage(text),
     fileView,
