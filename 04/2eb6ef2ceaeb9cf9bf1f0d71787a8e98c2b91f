@@ -1,0 +1,49 @@
+packages/webview/src/components/ChatApp.tsx
+  c26d1b1664bab700 679-680,1917-1937,1941-1942,1944,2676-2679
+packages/webview/tests/components/issueTab.test.tsx
+  c26d1b1664bab700 1007-1128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "042eb6ef2ceaeb9cf9bf1f0d71787a8e98c2b91f",
+  "prompts": {
+    "c26d1b1664bab700": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "86716902-aab3-436a-87b5-c2f8d284bcf0",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 185,
+      "total_deletions": 47,
+      "accepted_lines": 159,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 30,
+          "deletions": 14,
+          "accepted_lines": 30
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "accepted_lines": 1
+        },
+        "packages/agent/src/utils/commandArgumentParser.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 155,
+          "deletions": 33,
+          "accepted_lines": 122
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
