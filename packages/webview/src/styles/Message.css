@@ -134,7 +134,7 @@
 }
 
 .user-text-block {
-  background-color: var(--color-card);
+  background-color: var(--gray-3);
   border-radius: var(--radius-3);
   padding: var(--space-2) var(--space-3);
   transition: background-color 0.2s ease;
@@ -147,15 +147,6 @@
 
 .message.user:hover .user-text-block {
   background-color: var(--gray-4);
-}
-
-:root[data-theme="light"] .user-text-block {
-  border: 1px solid var(--gray-6);
-}
-
-:root[data-theme="light"] .message.user.queued .user-text-block {
-  border: none;
-  background-color: transparent;
 }
 
 .message.user.queued {

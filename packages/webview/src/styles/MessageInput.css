@@ -14,13 +14,27 @@
   overflow: visible;
 }
 
+/* Field and footer share one outline. The shadow follows the wrapper so the
+   side borders stay straight into the footer's bottom curve. */
+.input-wrapper:has(.input-meta-row) {
+  border-radius: 16px;
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
+}
+
+.input-wrapper:has(.input-meta-row):focus-within {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent-9) 22%, transparent),
+    0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
+}
+
 .input-row {
   display: flex;
   gap: var(--space-2);
   align-items: flex-end;
 }
 
-/* Sender: independent rounded card. Footer tucks under it. */
+/* Sender card. With a footer, only the top corners stay rounded; the footer
+   owns the bottom corners so the side borders do not step. */
 .input-content {
   position: relative;
   z-index: 2;
@@ -45,7 +59,14 @@
     0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
 }
 
-/* Footer: own surface, slightly darker, flush under sender. */
+/* Footer continues the sender's side borders. Bottom corners match the
+   sender's top corners; the seam is a hairline, not a second pair of corners. */
+.input-wrapper:has(.input-meta-row) .input-content,
+.input-wrapper:has(.input-meta-row) .input-content:focus-within {
+  border-radius: 16px 16px 0 0;
+  box-shadow: none;
+}
+
 .input-meta-row {
   position: relative;
   z-index: 1;
@@ -53,11 +74,10 @@
   align-items: center;
   gap: 14px;
   min-width: 0;
-  min-height: 44px;
+  min-height: 36px;
   width: 100%;
-  margin: -16px 0 0;
-  /* Top padding includes the 16px sender overlap; extra 6px below the seam centers 24px controls in the visible footer strip. */
-  padding: 22px var(--space-3) 10px;
+  margin: 0;
+  padding: 8px var(--space-3) 10px;
   box-sizing: border-box;
   overflow: visible;
   background: var(--gray-2);

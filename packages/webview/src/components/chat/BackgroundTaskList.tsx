@@ -71,7 +71,10 @@ export const BackgroundTaskList: React.FC<BackgroundTaskListProps> = ({
           </span>
         </div>
       </div>
-      {!isCollapsed && (
+      <div
+        className={`background-task-collapse${isCollapsed ? " background-task-collapse--closed" : ""}`}
+      >
+        <div className="background-task-collapse-inner">
         <div className="background-task-items" ref={itemsRef}>
           {runningTasks.map((task) => (
             <div
@@ -111,7 +114,8 @@ export const BackgroundTaskList: React.FC<BackgroundTaskListProps> = ({
             </div>
           ))}
         </div>
-      )}
+        </div>
+      </div>
     </div>
   );
 };

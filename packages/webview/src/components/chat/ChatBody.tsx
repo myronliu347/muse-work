@@ -204,10 +204,12 @@ export const ChatBody = forwardRef<
         className={`input-area-container${pendingConfirmations.length > 0 ? " input-area-container--confirm" : ""}`}
       >
         <div
+          className="composer-surface"
           style={{
-            display: pendingConfirmations.length === 0 ? "block" : "none",
+            display: pendingConfirmations.length === 0 ? undefined : "none",
           }}
         >
+          <div className="composer-lead">
           <BackgroundTaskList
             // 按会话 id 重挂载：切换会话时重置"全部完成自动隐藏"的跟踪。
             // 注意与 TaskList 的 key 保持不同——两个兄弟组件用同一 key 会触发
@@ -235,15 +237,9 @@ export const ChatBody = forwardRef<
             editingQueuedId={editingQueuedId}
             vscode={vscode}
           />
-        </div>
+          </div>
 
-        <div
-          onFocus={onComposerFocus}
-          style={{
-            display: pendingConfirmations.length === 0 ? "block" : "none",
-          }}
-        >
-          {composer}
+          <div onFocus={onComposerFocus}>{composer}</div>
         </div>
 
         {pendingConfirmations.length > 0 && (

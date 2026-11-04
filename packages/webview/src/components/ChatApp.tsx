@@ -1075,8 +1075,9 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
 
   // Track the chat column width so dock maxWidth stays correct across
   // window resizes and split-pane changes (ref reads alone do not re-render).
-  // Re-measure after every commit: opening the dock does not resize the frame,
-  // and matchMedia does not follow that either.
+  // Do not measure in a layout effect with no deps: the measured width is
+  // written back into the layout, so every commit saw a new clientWidth and
+  // setState never settled.
   const measureFrame = useCallback(() => {
     const el = chatContainerRef.current;
     const frame = el?.clientWidth ?? 0;
@@ -1091,7 +1092,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   }, []);
   useLayoutEffect(() => {
     measureFrame();
-  });
+  }, [measureFrame, paneId, host?.panes?.length, view, shellSurface]);
   useEffect(() => {
     window.addEventListener("resize", measureFrame);
     window.visualViewport?.addEventListener("resize", measureFrame);
@@ -1100,6 +1101,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     if (el && typeof ResizeObserver !== "undefined") {
       ro = new ResizeObserver(() => measureFrame());
       ro.observe(el);
+      const main = el.querySelector(".desktop-chat-main");
+      if (main) ro.observe(main);
       const dock = el.querySelector(".desktop-panel-dock");
       if (dock) ro.observe(dock);
     }

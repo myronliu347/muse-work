@@ -3,9 +3,6 @@
 /* A CSS pixel is two device pixels on a 2x display, so layout dividers use a hairline. */
 :root {
   --hairline: 1px;
-  /* Large cards. Dark keeps the gray step; light uses the solid panel so the
-     fill does not read as a dirty gray patch on the page. */
-  --color-card: var(--gray-3);
 }
 
 @media (min-resolution: 2dppx) {
@@ -55,7 +52,14 @@ html[data-theme="light"] body {
   background-color: var(--color-background, #fcfcfc);
 }
 
-html[data-theme="light"] {
+/* Radix puts the light gray scale on :root and the dark scale on .dark.
+   Resolving --color-card on :root bakes in light gray-3 (#f0f0f0) and the
+   dark theme cannot override it. Define it on the theme node instead. */
+.radix-themes {
+  --color-card: var(--gray-3);
+}
+
+html[data-theme="light"] .radix-themes {
   --color-card: var(--color-panel);
 }
 

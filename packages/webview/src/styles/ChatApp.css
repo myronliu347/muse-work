@@ -35,6 +35,78 @@
      the message column (right 28px is the user-message-nav rail). */
   padding: 0 28px var(--space-3) var(--space-4);
 }
+
+/* One card. The list and the field share the outline; the seam is a
+   straight hairline that meets the side borders at a right angle.
+   Outer corners stay 16px. Do not split this into two rounded cards. */
+.composer-surface {
+  max-width: var(--bot-column-max, 800px);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.composer-surface:has(.composer-lead > *) {
+  background: var(--color-card);
+  border: 1px solid var(--gray-6);
+  border-radius: 16px;
+}
+
+.composer-surface:has(.composer-lead > *):focus-within {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-9) 22%, transparent);
+}
+
+/* Clip only the top arcs so the list fill does not cover them.
+   The bottom stays square so the hairline runs into both side borders. */
+.composer-surface:has(.composer-lead > *) .composer-lead {
+  border-radius: 16px 16px 0 0;
+  overflow: clip;
+}
+
+.composer-surface:has(.composer-lead > *)
+  :is(.background-task-list, .task-list-inline, .queued-message-list-container) {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  max-width: none;
+  margin: 0;
+}
+
+.composer-surface:has(.composer-lead > *) .composer-lead > * {
+  border-bottom: 1px solid var(--gray-6);
+}
+
+.composer-surface:has(.composer-lead > *) .input-container,
+.composer-surface:has(.composer-lead > *) .input-wrapper,
+.composer-surface:has(.composer-lead > *) .input-wrapper:focus-within {
+  max-width: none;
+  margin: 0;
+  background: transparent;
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+.composer-surface:has(.composer-lead > *) .input-wrapper .input-content,
+.composer-surface:has(.composer-lead > *) .input-wrapper .input-content:focus-within {
+  background: transparent;
+  border: none;
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+.composer-surface:has(.composer-lead > *) .input-meta-row {
+  margin-top: 0;
+  border: none;
+  border-top: 1px solid var(--gray-6);
+  border-radius: 0 0 15px 15px;
+  background: var(--gray-2);
+}
+
+:root[data-theme="light"]
+  .composer-surface:has(.composer-lead > *)
+  .input-meta-row {
+  background: transparent;
+}
 .queue-edit-warning-banner {
   display: flex;
   align-items: center;

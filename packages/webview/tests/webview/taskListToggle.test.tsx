@@ -119,7 +119,9 @@ describe("collapse via updateTasks", () => {
           ?.classList.contains("expanded"),
       ).toBe(false);
     });
-    expect(document.querySelector(".task-list-items")).not.toBeInTheDocument();
+    expect(document.querySelector(".task-list-collapse")).toHaveClass(
+      "task-list-collapse--closed",
+    );
   });
 });
 
