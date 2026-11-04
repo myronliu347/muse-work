@@ -13,7 +13,6 @@ import {
   type AssistantToolDeps,
 } from "./toolKit.js";
 
-const IMAGE_EXTS = new Set(["jpg", "jpeg", "gif", "png", "bmp"]);
 const SEND_MESSAGE_BODY_MAX = 200;
 
 function userWantsFullText(log: AssistantToolDeps["log"]): boolean {
@@ -85,10 +84,6 @@ function windowSessionLines(
   }
   selected.reverse();
   return { messages: selected, omitted: oldest };
-}
-
-function isImagePath(filePath: string): boolean {
-  return IMAGE_EXTS.has(path.extname(filePath).slice(1).toLowerCase());
 }
 
 function localFile(filePath: string): string | undefined {
@@ -164,7 +159,7 @@ export function createMessageTools(deps: AssistantToolDeps) {
   return [
     tool(
       "SendMessage",
-      "回复 Muse 或 POPO。app 为 muse 或 popo。popo 有 groupId 则发群，否则发给 user。ats 用来 @：Muse 只能 @ issue，POPO 群只能 @ user。本地图片和文件用 files 传绝对路径，链接用 links。正文超过 200 字且没有 files 会被拒绝。",
+      "回复 Muse 或 POPO。app 为 muse 或 popo。popo 有 groupId 则发群，否则发给 user。ats 用来 @：Muse 只能 @ issue，POPO 群只能 @ user。本地图片和文件用 files 传绝对路径，链接用 links。发给 POPO 时文件单独发，正文不要带本机路径。正文超过 200 字且没有 files 会被拒绝。",
       {
         type: "object",
         properties: {
@@ -242,11 +237,8 @@ export function createMessageTools(deps: AssistantToolDeps) {
           if (problem) return fail(problem);
         }
         const recordBody = composeOutbound(message, [...links, ...files]);
-        // POPO 图片走文件发送。路径留在 Muse 记录里，不再另发一条只有路径的文字。
-        const popoText = composeOutbound(message, [
-          ...links,
-          ...files.filter((filePath) => !isImagePath(filePath)),
-        ]);
+        // 文件另发。POPO 正文不拼本机路径；Muse 记录里仍留着路径。
+        const popoText = composeOutbound(message, links);
         if (args.app === "muse") {
           const line = deps.log.append(
             "assistant",

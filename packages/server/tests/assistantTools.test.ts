@@ -566,6 +566,7 @@ describe("assistant tools", () => {
     const automations = createAutomationStore({ home });
     const log = createAssistantMessageLog({ home });
     const files: string[] = [];
+    const sentText: string[] = [];
     const recalls: Array<{ msgId: string; sessionId: string; sessionType: number }> = [];
     const tools = createAssistantTools({
       home,
@@ -575,7 +576,10 @@ describe("assistant tools", () => {
       log,
       hub: { broadcastAll: () => undefined } as WsHub,
       runner: {} as never,
-      sendText: async () => ["text-1"],
+      sendText: async (_receiver, content) => {
+        sentText.push(content);
+        return ["text-1"];
+      },
       sendLocalFile: async (_receiver, filePath) => {
         files.push(filePath);
         return "file-1";
@@ -614,8 +618,23 @@ describe("assistant tools", () => {
     );
     expect(popo.success).toBe(true);
     expect(files).toEqual([png]);
+    expect(sentText).toEqual([]);
     expect(JSON.parse(popo.content)).toMatchObject({ msgIds: ["file-1"] });
     expect(log.page().messages[1]?.msgIds).toEqual(["file-1"]);
+
+    const packed = await tool(tools, "SendMessage").execute(
+      {
+        app: "popo",
+        groupId: "g1",
+        message: "包在这",
+        files: [note],
+      },
+      context,
+    );
+    expect(packed.success).toBe(true);
+    expect(sentText).toEqual(["包在这"]);
+    expect(sentText[0]).not.toContain(note);
+    expect(files).toEqual([png, note]);
 
     const recalled = await tool(tools, "RecallMessage").execute(
       { msgId: "file-1", user: "master" },
