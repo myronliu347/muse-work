@@ -247,6 +247,8 @@
   background: var(--gray-6);
   color: var(--gray-12);
   border-radius: 16px 16px 4px 16px;
+  /* Clip the inner scroller to the radius so the thumb stays inside the bubble. */
+  overflow: hidden;
 }
 
 .assistant-bubble-assistant {
@@ -293,8 +295,11 @@
 }
 
 .assistant-user-body {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 100%;
+  max-height: 100px;
+  overflow: auto;
+  white-space: pre;
 }
 
 .assistant-user-images {

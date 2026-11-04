@@ -39,13 +39,6 @@
   box-shadow: 0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
 }
 
-.new-session-page .input-content:focus-within {
-  border-color: var(--gray-6);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent-9) 22%, transparent),
-    0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
-}
-
 .new-session-page .input-meta-row {
   min-width: 0;
   flex: 0 0 auto;

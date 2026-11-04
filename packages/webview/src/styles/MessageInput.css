@@ -21,12 +21,6 @@
   box-shadow: 0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
 }
 
-.input-wrapper:has(.input-meta-row):focus-within {
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent-9) 22%, transparent),
-    0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
-}
-
 .input-row {
   display: flex;
   gap: var(--space-2);
@@ -48,15 +42,27 @@
   border-radius: 16px;
   max-height: 192px;
   box-shadow: 0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
+  transition: border-color 0.18s ease;
   container-type: inline-size;
   container-name: composer;
 }
 
-.input-content:focus-within {
-  border-color: var(--gray-6);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent-9) 22%, transparent),
-    0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
+/* One stroke. Hover and focus recolor it; they do not add a second ring. */
+.input-wrapper:hover .input-content,
+.input-wrapper:hover .input-meta-row {
+  border-color: var(--gray-7);
+}
+
+.input-wrapper:focus-within .input-content,
+.input-wrapper:focus-within .input-meta-row {
+  border-color: var(--accent-8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .input-content,
+  .input-meta-row {
+    transition: none;
+  }
 }
 
 /* Footer continues the sender's side borders. Bottom corners match the
@@ -84,6 +90,7 @@
   border: 1px solid var(--gray-6);
   border-top: 0;
   border-radius: 0 0 16px 16px;
+  transition: border-color 0.18s ease;
 }
 
 :root[data-theme="light"] .input-meta-row {

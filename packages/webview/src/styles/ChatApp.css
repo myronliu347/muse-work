@@ -49,10 +49,21 @@
   background: var(--color-card);
   border: 1px solid var(--gray-6);
   border-radius: 16px;
+  transition: border-color 0.18s ease;
+}
+
+.composer-surface:has(.composer-lead > *):hover {
+  border-color: var(--gray-7);
 }
 
 .composer-surface:has(.composer-lead > *):focus-within {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-9) 22%, transparent);
+  border-color: var(--accent-8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composer-surface:has(.composer-lead > *) {
+    transition: none;
+  }
 }
 
 /* Clip only the top arcs so the list fill does not cover them.
@@ -100,6 +111,12 @@
   border-top: 1px solid var(--gray-6);
   border-radius: 0 0 15px 15px;
   background: var(--gray-2);
+}
+
+/* The field's own border is removed here. Keep the seam on gray-6 when the
+   outer card border shifts on hover or focus. */
+.composer-surface:has(.composer-lead > *) .input-wrapper:is(:hover, :focus-within) .input-meta-row {
+  border-top-color: var(--gray-6);
 }
 
 :root[data-theme="light"]

@@ -349,15 +349,11 @@ function UserShot({
 
 function UserLine({
   line,
-  closedFilePaths,
   onOpenFile,
-  onLinkClick,
   onPreviewImage,
 }: {
   line: AssistantLine;
-  closedFilePaths: ReadonlySet<string>;
   onOpenFile?: (path: string) => void;
-  onLinkClick: (event: MouseEvent) => void;
   onPreviewImage: (
     src: string,
     alt: string,
@@ -411,16 +407,10 @@ function UserLine({
       );
     }
     if (!part.content) return null;
-    const linked = linkifyFilePaths(part.content);
-    const hasLink = linked !== part.content || /https?:\/\//.test(part.content);
-    if (!hasLink) return <span key={index}>{part.content}</span>;
     return (
-      <MarkdownView
-        key={index}
-        as="span"
-        className="assistant-user-text"
-        html={markdownHtml(part.content, closedFilePaths)}
-      />
+      <span key={index} className="assistant-user-text">
+        {part.content}
+      </span>
     );
   });
   for (const url of urls) {
@@ -437,7 +427,7 @@ function UserLine({
     <div className="assistant-bubble-row assistant-bubble-row-user">
       {line.app === "popo" ? <div className="assistant-bubble-source">POPO</div> : null}
       <div className="assistant-bubble assistant-bubble-user">
-        <div className="assistant-user-content" onClick={onLinkClick}>
+        <div className="assistant-user-content">
           {hasBody ? <div className="assistant-user-body">{body}</div> : null}
           {shots.length > 0 ? (
             <div className="assistant-user-images">
@@ -1196,11 +1186,9 @@ export const AssistantPage: React.FC<{
                 {line.role === "user" ? (
                   <UserLine
                     line={line}
-                    closedFilePaths={closedFilePaths}
                     onOpenFile={(path) =>
                       onOpenFile?.(resolveWorkspaceFilePath(path, agentWorkdir))
                     }
-                    onLinkClick={handleLinkClick}
                     onPreviewImage={previewImage}
                   />
                 ) : (

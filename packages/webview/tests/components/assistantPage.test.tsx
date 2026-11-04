@@ -390,6 +390,29 @@ describe("AssistantPage", () => {
     expect(tip).not.toHaveTextContent("abc123");
   });
 
+  it("shows a user message as plain text inside a capped scroller", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "1",
+            at: 1,
+            role: "user",
+            message: "# 标题\n第二行 [文档](https://example.com)",
+          },
+        ],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    render(<AssistantPage api={api} />);
+    const text = await screen.findByText(/# 标题/);
+    expect(text.closest(".assistant-user-body")).toBeTruthy();
+    expect(text.closest(".markdown-content")).toBeNull();
+    expect(screen.queryByRole("link", { name: "文档" })).toBeNull();
+    expect(screen.queryByRole("heading")).toBeNull();
+  });
+
   it("renders an issue mention in an assistant reply as a tag", async () => {
     const api = {
       listAssistantMessages: vi.fn().mockResolvedValue({
