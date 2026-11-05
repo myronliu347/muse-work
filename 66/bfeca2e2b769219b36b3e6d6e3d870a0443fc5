@@ -1,0 +1,185 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "66bfeca2e2b769219b36b3e6d6e3d870a0443fc5",
+  "prompts": {
+    "65e0162bd9081307": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "634930ac-3945-4b6c-9989-0bc5f41807d3",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 256,
+      "total_deletions": 92,
+      "accepted_lines": 124,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 85,
+          "deletions": 53,
+          "accepted_lines": 32
+        },
+        "packages/server/src/services/sessionRunner/actions.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 3
+        },
+        "packages/server/tests/assistantActivityLabel.test.ts": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "packages/server/src/services/sessionRunner/ctx.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 27
+        },
+        "packages/server/src/services/assistant/activityLabel.ts": {
+          "additions": 36,
+          "accepted_lines": 36
+        },
+        "packages/server/src/services/wsEvents.ts": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 10
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 44,
+          "deletions": 37,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 6,
+          "deletions": 1,
+          "accepted_lines": 6
+        }
+      }
+    },
+    "c8139a091bf8b870": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "be15d084-6e03-489a-8dac-476f958b05e5",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 356,
+      "total_deletions": 17,
+      "accepted_lines": 346,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "GLOSSARY.md": {
+          "additions": 29,
+          "accepted_lines": 29
+        },
+        ".scratch/host-plugin-build/issues/01-host-loads-plugin.md": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        ".scratch/host-plugin/issues/06-prompt-fragment.md": {
+          "additions": 22,
+          "deletions": 1,
+          "accepted_lines": 21
+        },
+        ".scratch/host-plugin/issues/04-popo-cut.md": {
+          "additions": 13,
+          "deletions": 3,
+          "accepted_lines": 12
+        },
+        ".scratch/host-plugin/map.md": {
+          "additions": 15,
+          "deletions": 5,
+          "accepted_lines": 14
+        },
+        ".scratch/host-plugin-build/issues/02-deepseek-default.md": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        ".scratch/host-plugin-build/issues/05-netease-popo.md": {
+          "additions": 19,
+          "accepted_lines": 19
+        },
+        ".scratch/host-plugin/issues/03-codemaker-cut.md": {
+          "additions": 13,
+          "deletions": 1,
+          "accepted_lines": 12
+        },
+        ".scratch/host-plugin/issues/05-contract-package.md": {
+          "additions": 15,
+          "deletions": 5,
+          "accepted_lines": 11
+        },
+        ".scratch/host-plugin-build/issues/03-test-plugin-channel-and-settings.md": {
+          "additions": 19,
+          "accepted_lines": 19
+        },
+        ".scratch/host-plugin-build/issues/04-netease-codemaker.md": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        ".scratch/host-plugin/issues/01-load-lifecycle.md": {
+          "additions": 13,
+          "deletions": 1,
+          "accepted_lines": 12
+        },
+        ".scratch/host-plugin/issues/02-assistant-extension.md": {
+          "additions": 13,
+          "deletions": 1,
+          "accepted_lines": 12
+        },
+        ".scratch/host-plugin/spec.md": {
+          "additions": 139,
+          "accepted_lines": 139
+        }
+      }
+    },
+    "cdc3327a7cd43508": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "91bae019-6acf-48ba-900b-ccb8ecefd7c5",
+        "model": "grok-4.7-high"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 105,
+      "total_deletions": 0,
+      "accepted_lines": 98,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".scratch/host-plugin/issues/02-assistant-extension.md": {
+          "additions": 11,
+          "accepted_lines": 11
+        },
+        ".scratch/host-plugin/issues/03-codemaker-cut.md": {
+          "additions": 11,
+          "accepted_lines": 11
+        },
+        ".scratch/host-plugin/issues/04-popo-cut.md": {
+          "additions": 11,
+          "accepted_lines": 9
+        },
+        ".scratch/host-plugin/map.md": {
+          "additions": 50,
+          "accepted_lines": 46
+        },
+        ".scratch/host-plugin/issues/01-load-lifecycle.md": {
+          "additions": 11,
+          "accepted_lines": 11
+        },
+        ".scratch/host-plugin/issues/05-contract-package.md": {
+          "additions": 11,
+          "accepted_lines": 10
+        }
+      }
+    }
+  }
+}
