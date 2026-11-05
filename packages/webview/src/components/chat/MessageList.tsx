@@ -23,7 +23,6 @@ import {
 import { ToolActivityGroup } from "../message/ToolActivityGroup";
 import {
   currentStatusLabel,
-  isActivityLive,
   segmentAssistantTurn,
   summarizeRefs,
 } from "../message/toolActivity";
@@ -57,7 +56,6 @@ type AssistantRow = {
   messages: MessageType[];
   collapsed: boolean;
   single: boolean;
-  live: boolean;
   finalText: { messageId: string; blockIndex: number } | null;
 };
 type ListRow = UserRow | AssistantRow;
@@ -249,7 +247,6 @@ function buildRows(messages: MessageType[], isStreaming: boolean | undefined): L
       messages: groupMessages,
       collapsed,
       single: dotCount <= 1,
-      live: isLiveGroup,
       finalText,
     });
     group = [];
@@ -906,10 +903,9 @@ export const MessageList = forwardRef<
   const renderAssistantTurn = (
     turnMessages: MessageType[],
     omit?: { messageId: string; blockIndex: number },
-    turnLive = false,
   ) => {
     const segments = segmentAssistantTurn(turnMessages, omit);
-    return segments.map((segment, index) => {
+    return segments.map((segment) => {
       if (segment.type === "single") {
         const message = turnMessages[segment.ref.messageIndex];
         return renderMessage(message, {
@@ -918,11 +914,6 @@ export const MessageList = forwardRef<
         });
       }
       const summary = summarizeRefs(turnMessages, segment.refs);
-      const childLive = segment.refs.some((ref) => {
-        const block = turnMessages[ref.messageIndex]?.blocks?.[ref.blockIndex];
-        return block ? isActivityLive(block) : false;
-      });
-      const live = childLive || (turnLive && index === segments.length - 1);
       const head = segment.refs[0];
       return (
         <ToolActivityGroup
@@ -930,7 +921,7 @@ export const MessageList = forwardRef<
           label={summary.label}
           additions={summary.additions}
           deletions={summary.deletions}
-          defaultOpen={live}
+          defaultOpen={false}
         >
           {segment.refs.map((ref) =>
             renderMessage(turnMessages[ref.messageIndex], {
@@ -973,7 +964,7 @@ export const MessageList = forwardRef<
     }
     return (
       <div className={`assistant-group${singleClass}`}>
-        {renderAssistantTurn(row.messages, undefined, row.live)}
+        {renderAssistantTurn(row.messages)}
       </div>
     );
   };

@@ -22,7 +22,8 @@ export function ToolActivityGroup({
   const wasDefaultOpen = useRef(defaultOpen);
   const holdScroll = useHoldTranscriptScroll();
 
-  // A running turn starts open. Once it finishes, fold the summary back up.
+  // Callers start the group folded. If one later stops asking for it to
+  // start open, fold it back up.
   useEffect(() => {
     if (wasDefaultOpen.current && !defaultOpen) setOpen(false);
     wasDefaultOpen.current = defaultOpen;

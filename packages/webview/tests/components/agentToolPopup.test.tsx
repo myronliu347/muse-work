@@ -80,6 +80,7 @@ describe("Agent tool transcript", () => {
       </MuseTheme>,
     );
 
+    fireEvent.click(screen.getByTestId("activity-summary"));
     const name = screen.getByTestId("tool-name");
     expect(name).toHaveTextContent("运行 列出目录");
     expect(name.className).toContain("text-shimmer");

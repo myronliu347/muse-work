@@ -165,6 +165,7 @@ describe("Diff Viewer", () => {
 
     sendCommand("updateMessages", { messages: [mockRunningEditMessage] });
 
+    expandActivity();
     expect(document.querySelector(".tool-line")).toHaveTextContent(
       "编辑 example.ts",
     );
