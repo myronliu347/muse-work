@@ -1,0 +1,415 @@
+packages/provider/src/codex/provider.ts
+  a5568c940e06a584 90
+packages/webview/src/muse/hostBridge/index.ts
+  a5568c940e06a584 334-349
+packages/webview/src/types/index.ts
+  a5568c940e06a584 778,940-941
+packages/server/src/services/assistant/prompt.ts
+  a5568c940e06a584 1-6,105,107,110,112,124
+packages/webview/src/muse/hostBridge/auth.ts
+  a5568c940e06a584 65-68
+packages/server/src/services/wsEvents.ts
+  a5568c940e06a584 120
+packages/provider/src/deepseek/envFile.ts
+  a5568c940e06a584 1-57
+packages/provider/src/configStore.ts
+  a5568c940e06a584 12,15,17-18,47-48
+packages/webview/tests/components/configDialog.appearance.test.tsx
+  a5568c940e06a584 60,71,85-92,102-103,162
+packages/webview/src/components/dialogs/ConfigDialog.tsx
+  a5568c940e06a584 23,28-29,68,71,81-82,116-132,135-147,300-309
+packages/server/tests/assistantTools.test.ts
+  a5568c940e06a584 512
+packages/server/src/services/appContext.ts
+  a5568c940e06a584 3,6,8-9,12-21,40-41,66,70-73,88-95,153-168,198-199,205-208,239-240,242-257,345,350-354,364-391
+packages/server/tests/providers.routes.test.ts
+  a5568c940e06a584 1,26,28-30,33-34,58,61,159,165,168-172,176-196,216-217
+packages/server/tests/assistantSession.test.ts
+  a5568c940e06a584 42-44
+packages/server/src/services/assistant/events.ts
+  a5568c940e06a584 5,102-108
+packages/server/tests/hostPlugins.test.ts
+  a5568c940e06a584 1-237
+packages/server/src/routes/hostPlugins.ts
+  a5568c940e06a584 1-9
+packages/plugin-sdk/tsconfig.json
+  a5568c940e06a584 1-8
+packages/provider/src/index.ts
+  a5568c940e06a584 5,36,44-58
+packages/provider/tests/configStore.test.ts
+  a5568c940e06a584 8,10,23,26-27,46,58-93
+packages/server/src/services/assistant/tools/toolKit.ts
+  a5568c940e06a584 31-32
+packages/server/src/plugins/hostPlugins.ts
+  a5568c940e06a584 1-263
+packages/webview/src/styles/ConfirmDialog.css
+  a5568c940e06a584 140-152
+packages/webview/tests/muse/museProviderSettings.test.tsx
+  a5568c940e06a584 122-155
+packages/plugin-sdk/package.json
+  a5568c940e06a584 1-24
+packages/server/src/index.ts
+  a5568c940e06a584 4,6,33-39,43-46,50-75,79-80,82-85
+packages/server/src/routes/providers.ts
+  a5568c940e06a584 4,51,53-70,74,77
+packages/plugin-sdk/src/index.ts
+  a5568c940e06a584 1-85
+packages/webview/src/components/settings/MuseProviderSettings.tsx
+  a5568c940e06a584 20,55-65,105-106,154,160-171,205-206,208-212,216-217,219-223,226,430-470
+packages/server/src/services/assistant/runtime.ts
+  a5568c940e06a584 3,13,33-34,80-84,227-231
+packages/server/scripts/copyPlugins.mjs
+  a5568c940e06a584 13-28
+packages/server/src/services/assistant/tools/messageTools.ts
+  a5568c940e06a584 3,159-163,167,172,186,252-254,256,260,262-271,274,276-277,281,283,332,359
+packages/provider/src/registry.ts
+  a5568c940e06a584 1,44-61
+packages/webview/src/components/dialogs/DeepSeekKeyDialog.tsx
+  a5568c940e06a584 1-80
+packages/webview/src/muse/apiClient.ts
+  a5568c940e06a584 53-62,271-286,377-390,898-899
+packages/server/src/services/assistant/session.ts
+  a5568c940e06a584 37,40-41,44-45,52-53,68-69
+packages/server/src/services/assistant/messages.ts
+  a5568c940e06a584 25-26,102-103,149,165,188
+packages/provider/src/deepseek/provider.ts
+  a5568c940e06a584 1-30,33-67,69-73,75-84,87-95,97,101-102,104-106,109-110,113-114,117,120-125,127-130,134-135,137-138
+packages/webview/src/muse/messageRouter.ts
+  a5568c940e06a584 782-789,792-802
+packages/provider/src/types.ts
+  a5568c940e06a584 38-42,66-73,78-79
+packages/server/src/services/assistant/tools/index.ts
+  a5568c940e06a584 4,9-17,21
+packages/webview/src/components/dialogs/ChatDialogs.tsx
+  a5568c940e06a584 7,137-143
+packages/server/package.json
+  a5568c940e06a584 22
+packages/webview/tests/components/settings/HostPluginPanel.test.tsx
+  a5568c940e06a584 1-58
+packages/server/src/app.ts
+  a5568c940e06a584 21,50,52-60
+packages/provider/tests/deepseek.test.ts
+  a5568c940e06a584 1-144
+packages/webview/src/components/settings/HostPluginPanel.tsx
+  a5568c940e06a584 1-84
+packages/server/src/services/sessionRunner/agent.ts
+  a5568c940e06a584 43-50,898
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "12c29bbcd9f2cb3d4d70117f5b0d3260b0fe9adf",
+  "prompts": {
+    "a5568c940e06a584": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3ae6b3da-5e58-4a45-988f-ed2d26588914",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 2750,
+      "total_deletions": 709,
+      "accepted_lines": 1961,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/ConfirmDialog.css": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/plugin-netease/src/popo/callbackApp.ts": {
+          "additions": 2,
+          "deletions": 3
+        },
+        "packages/plugin-netease/tests/channel.test.ts": {
+          "additions": 103
+        },
+        "packages/provider/tests/deepseek.test.ts": {
+          "additions": 144,
+          "accepted_lines": 144
+        },
+        "packages/server/src/services/assistant/tools/messageTools.ts": {
+          "additions": 32,
+          "deletions": 69,
+          "accepted_lines": 31
+        },
+        "packages/server/tests/hostPlugins.test.ts": {
+          "additions": 272,
+          "deletions": 35,
+          "accepted_lines": 237
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 28,
+          "deletions": 160,
+          "accepted_lines": 6
+        },
+        "packages/provider/src/deepseek/provider.ts": {
+          "additions": 144,
+          "accepted_lines": 144
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 11,
+          "deletions": 7,
+          "accepted_lines": 11
+        },
+        "packages/server/src/routes/providers.ts": {
+          "additions": 34,
+          "deletions": 25,
+          "accepted_lines": 34
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/provider/src/codex/provider.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/configDialog.appearance.test.tsx": {
+          "additions": 13,
+          "deletions": 8,
+          "accepted_lines": 13
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/assistant/tools/index.ts": {
+          "additions": 11,
+          "deletions": 1,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        "packages/server/src/services/assistant/events.ts": {
+          "additions": 8,
+          "deletions": 2,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 42,
+          "deletions": 12,
+          "accepted_lines": 42
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 10,
+          "deletions": 2,
+          "accepted_lines": 9
+        },
+        "packages/plugin-netease/src/assistant/channel.ts": {
+          "additions": 162,
+          "deletions": 1
+        },
+        "packages/plugin-netease/scripts/bundle.mjs": {
+          "additions": 21,
+          "deletions": 3
+        },
+        "packages/provider/tests/configStore.test.ts": {
+          "additions": 42,
+          "deletions": 5,
+          "accepted_lines": 42
+        },
+        "packages/plugin-netease/src/codemaker/defaults.ts": {
+          "additions": 24
+        },
+        "packages/webview/src/muse/hostBridge/auth.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/wsEvents.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/plugin-netease/vitest.config.ts": {
+          "additions": 7
+        },
+        "packages/plugin-sdk/tsconfig.json": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/muse/museProviderSettings.test.tsx": {
+          "additions": 35,
+          "deletions": 1,
+          "accepted_lines": 34
+        },
+        "packages/server/src/plugins/hostPlugins.ts": {
+          "additions": 271,
+          "deletions": 8,
+          "accepted_lines": 263
+        },
+        "packages/webview/src/components/dialogs/DeepSeekKeyDialog.tsx": {
+          "additions": 81,
+          "deletions": 1,
+          "accepted_lines": 80
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 20,
+          "deletions": 5,
+          "accepted_lines": 20
+        },
+        "packages/server/src/index.ts": {
+          "additions": 77,
+          "deletions": 101,
+          "accepted_lines": 50
+        },
+        "packages/plugin-netease/tests/credentials.test.ts": {
+          "additions": 1,
+          "deletions": 1
+        },
+        "packages/provider/src/registry.ts": {
+          "additions": 19,
+          "deletions": 1,
+          "accepted_lines": 19
+        },
+        "packages/server/src/app.ts": {
+          "additions": 18,
+          "deletions": 10,
+          "accepted_lines": 13
+        },
+        "packages/plugin-netease/scripts/install.mjs": {
+          "additions": 19
+        },
+        "packages/plugin-sdk/package.json": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "packages/provider/src/index.ts": {
+          "additions": 18,
+          "deletions": 58,
+          "accepted_lines": 18
+        },
+        "packages/webview/src/components/dialogs/ChatDialogs.tsx": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/provider/src/codemaker/provider.ts": {
+          "additions": 1
+        },
+        "packages/plugin-netease/tests/refresh.test.ts": {
+          "additions": 2,
+          "deletions": 2
+        },
+        "packages/provider/src/types.ts": {
+          "additions": 15,
+          "deletions": 1,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/components/settings/MuseProviderSettings.tsx": {
+          "additions": 89,
+          "deletions": 3,
+          "accepted_lines": 89
+        },
+        "packages/server/package.json": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/scripts/copyPlugins.mjs": {
+          "additions": 16,
+          "deletions": 2,
+          "accepted_lines": 16
+        },
+        "packages/plugin-netease/tests/plugin.test.ts": {
+          "additions": 61
+        },
+        "packages/plugin-netease/src/popo/setup.ts": {
+          "additions": 24,
+          "deletions": 17
+        },
+        "packages/provider/src/deepseek/envFile.ts": {
+          "additions": 57,
+          "accepted_lines": 57
+        },
+        "packages/webview/tests/components/settings/HostPluginPanel.test.tsx": {
+          "additions": 58,
+          "accepted_lines": 58
+        },
+        "packages/plugin-netease/src/index.ts": {
+          "additions": 176,
+          "deletions": 20
+        },
+        "packages/plugin-netease/tsconfig.json": {
+          "additions": 17,
+          "deletions": 2
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "additions": 14,
+          "deletions": 2,
+          "accepted_lines": 14
+        },
+        "packages/provider/src/configStore.ts": {
+          "additions": 8,
+          "deletions": 27,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/components/settings/HostPluginPanel.tsx": {
+          "additions": 88,
+          "deletions": 4,
+          "accepted_lines": 84
+        },
+        "packages/webview/src/components/dialogs/ConfigDialog.tsx": {
+          "additions": 51,
+          "deletions": 24,
+          "accepted_lines": 47
+        },
+        "packages/plugin-netease/package.json": {
+          "additions": 37,
+          "deletions": 12
+        },
+        "packages/plugin-netease/src/popo/handler.ts": {
+          "additions": 7,
+          "deletions": 2
+        },
+        "packages/server/src/services/assistant/messages.ts": {
+          "additions": 7,
+          "deletions": 6,
+          "accepted_lines": 7
+        },
+        "packages/plugin-netease/tests/models.test.ts": {
+          "additions": 1,
+          "deletions": 1
+        },
+        "packages/server/src/routes/hostPlugins.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/plugin-sdk/src/index.ts": {
+          "additions": 85,
+          "accepted_lines": 85
+        },
+        "packages/server/tests/providers.routes.test.ts": {
+          "additions": 43,
+          "deletions": 7,
+          "accepted_lines": 43
+        },
+        "packages/plugin-netease/tests/login.test.ts": {
+          "additions": 1,
+          "deletions": 1
+        },
+        "packages/server/src/services/assistant/session.ts": {
+          "additions": 11,
+          "deletions": 10,
+          "accepted_lines": 10
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 115,
+          "deletions": 35,
+          "accepted_lines": 104
+        },
+        "packages/webview/tests/webview/configDialog.test.tsx": {
+          "additions": 1,
+          "deletions": 4
+        },
+        "packages/server/src/services/assistant/tools/toolKit.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
