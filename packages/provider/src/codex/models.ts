@@ -9,7 +9,7 @@ export const CODEX_API_BASE_URL = "https://chatgpt.com/backend-api/codex";
 /** Sent as `client_version` on the Codex `/models` catalog request. */
 export const CODEX_MODELS_CLIENT_VERSION = "0.0.0";
 
-/** Same freshness window as the CodeMaker catalog cache. */
+/** Catalog cache freshness window. */
 export const CODEX_MODELS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 export function getCodexModelsCachePath(home: string): string {

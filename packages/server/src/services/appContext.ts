@@ -40,6 +40,7 @@ import { createAutomationRuntime } from "./automationRuntime.js";
 import { buildAssistantSystemPrompt } from "./assistant/prompt.js";
 import { ASSISTANT_TOOLS } from "./assistant/session.js";
 import { createAssistantMessageLog } from "./assistant/messages.js";
+import { collectQueueLabels } from "./assistant/events.js";
 import { createAssistantQueue } from "./assistant/queue.js";
 import { createAssistantRuntime } from "./assistant/runtime.js";
 import { createAssistantTools } from "./assistant/tools.js";
@@ -62,11 +63,6 @@ export interface AppContext {
   issueDispatcher: ReturnType<typeof createIssueDispatcher>;
   assistantLog: ReturnType<typeof createAssistantMessageLog>;
   assistantRuntime: ReturnType<typeof createAssistantRuntime>;
-  popoSend: {
-    current?: (receiver: string, content: string, at?: { atUids?: string[] }) => Promise<string[]>;
-    sendLocalFile?: (receiver: string, filePath: string) => Promise<string>;
-    recall?: (args: { msgId: string; sessionId: string; sessionType: 1 | 3 }) => Promise<void>;
-  };
   pluginRoutes: import("../plugins/hostPlugins.js").PluginRoute[];
   settingsPanels: SettingsPanel[];
   /** Bind plugin listeners after the logger is configured and before the main server listens. */
@@ -181,8 +177,11 @@ export function createAppContext(
     getAssistantTools: () => assistantTools ?? [],
   });
   const assistantLog = createAssistantMessageLog({ home });
-  const assistantQueue = createAssistantQueue({ home });
-  const popoSend: AppContext["popoSend"] = {};
+  const apps = options?.apps ?? [];
+  const assistantQueue = createAssistantQueue({
+    home,
+    queueLabels: collectQueueLabels(apps),
+  });
   const assistantSessionId = () =>
     sessions.store.list().find((session) => session.origin === "assistant")?.id;
   const publishAssistantStatus = (working: boolean) => {
@@ -195,7 +194,6 @@ export function createAppContext(
         : false,
     });
   };
-  const apps = options?.apps ?? [];
   const extraTools = options?.extraTools ?? [];
   const assistantRuntime = createAssistantRuntime({
     home,
@@ -221,21 +219,6 @@ export function createAppContext(
     automations,
     log: assistantLog,
     hub: sessions.hub,
-    sendText: (receiver, content, at) => {
-      const send = popoSend.current;
-      if (!send) return Promise.reject(new Error("POPO 未配置"));
-      return send(receiver, content, at);
-    },
-    sendLocalFile: (receiver, filePath) => {
-      const send = popoSend.sendLocalFile;
-      if (!send) return Promise.reject(new Error("POPO 未配置"));
-      return send(receiver, filePath);
-    },
-    recallPopo: (args) => {
-      const recall = popoSend.recall;
-      if (!recall) return Promise.reject(new Error("POPO 未配置"));
-      return recall(args);
-    },
     apps,
     extraTools,
   });
@@ -358,7 +341,6 @@ export function createAppContext(
     issueDispatcher: dispatcher,
     assistantLog,
     assistantRuntime,
-    popoSend,
   };
 }
 

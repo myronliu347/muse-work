@@ -22,15 +22,15 @@ afterEach(() => {
 const providersBody = {
   providers: [
     {
-      id: "codemaker",
-      displayName: "CodeMaker",
+      id: "hosted",
+      displayName: "Hosted",
       models: [
         { id: "deepseek-v4-pro", label: "DeepSeek V4 Pro" },
         { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
       ],
     },
   ],
-  active: { providerId: "codemaker", modelId: "deepseek-v4-pro" },
+  active: { providerId: "hosted", modelId: "deepseek-v4-pro" },
 };
 
 function stubProvidersApi(
@@ -40,7 +40,7 @@ function stubProvidersApi(
     listProviders: vi.fn(async () => providersBody),
     setActive: vi.fn(async () => ({
       ok: true as const,
-      active: { providerId: "codemaker", modelId: "deepseek-v4-flash" },
+      active: { providerId: "hosted", modelId: "deepseek-v4-flash" },
     })),
     ...overrides,
   } as unknown as MuseApiClient;
@@ -115,7 +115,7 @@ describe("MuseModelSelect controlled session mode", () => {
             ],
           },
         ],
-        active: { providerId: "codemaker", modelId: "claude-opus-4-6" },
+        active: { providerId: "hosted", modelId: "claude-opus-4-6" },
       })),
     });
 
@@ -142,7 +142,7 @@ describe("MuseModelSelect controlled session mode", () => {
             ],
           },
         ],
-        active: { providerId: "codemaker", modelId: "claude-opus-4-6" },
+        active: { providerId: "hosted", modelId: "claude-opus-4-6" },
       })),
     });
 
@@ -170,7 +170,7 @@ describe("MuseModelSelect controlled session mode", () => {
             ],
           },
         ],
-        active: { providerId: "codemaker", modelId: "deepseek-v4-flash" },
+        active: { providerId: "hosted", modelId: "deepseek-v4-flash" },
       })),
     });
 
@@ -233,7 +233,7 @@ describe("MuseModelSelect controlled session mode", () => {
 
     await waitFor(() => {
       expect(api.setActive).toHaveBeenCalledWith(
-        "codemaker",
+        "hosted",
         "deepseek-v4-flash",
       );
     });
@@ -254,7 +254,7 @@ describe("MuseModelSelect controlled session mode", () => {
     await waitFor(() => {
       const tooltip = document.querySelector(".tooltip-box.visible");
       expect(tooltip).not.toBeNull();
-      expect(tooltip).toHaveTextContent("CodeMaker · DeepSeek V4 Flash");
+      expect(tooltip).toHaveTextContent("Hosted · DeepSeek V4 Flash");
     });
 
     await act(async () => {

@@ -6,7 +6,7 @@ export interface LoginDialogProps {
   isAuthenticated: boolean;
   /** Human-readable login failure (timeout / SSO error), shown for retry. */
   loginError?: string;
-  /** Product name in the title. CodeMaker and ChatGPT share this dialog. */
+  /** Product name in the title. SSO providers share this dialog. */
   serviceName?: string;
   /** Starts the browser login flow. */
   onLogin: () => void;
@@ -21,7 +21,7 @@ export interface LoginDialogProps {
 export const LoginDialog: React.FC<LoginDialogProps> = ({
   isAuthenticated,
   loginError,
-  serviceName = "CodeMaker",
+  serviceName = "账号",
   onLogin,
   onCancel,
 }) => {

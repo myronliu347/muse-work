@@ -20,7 +20,7 @@ function stubApi(overrides: Partial<MuseApiClient> = {}): MuseApiClient {
     baseUrl: "http://127.0.0.1:9",
     getAuthStatus: vi.fn(async () => ({
       state: "unauthenticated",
-      providerId: "codemaker",
+      providerId: "hosted",
     })),
     listSessionsGrouped: vi.fn(async () => ({
       pinned: [],

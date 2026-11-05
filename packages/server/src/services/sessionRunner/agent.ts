@@ -41,7 +41,7 @@ import type {
  * core (via ctx.core) + ctx + serialization — never on actions.
  */
 
-/** CodeMaker and Codex set this. DeepSeek does not, so a 401 keeps its key. */
+/** Providers that set this drop stored credentials on 401. DeepSeek does not. */
 export function shouldRevokeUnauthorized(
   provider: { revokeOnUnauthorized?: boolean } | undefined,
 ): boolean {
@@ -570,8 +570,8 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
             isCompacting: false,
           });
           hub.broadcast(sessionId, { type: "error:block", error });
-          // Mid-turn CodeMaker 403 (token expired) arrives as an error block,
-          // not a thrown sendMessage — still prompt re-login.
+          // Mid-turn auth failure arrives as an error block, not a thrown
+          // sendMessage — still prompt re-login.
           if (isUnauthorized(error)) {
             void handleUnauthorized(sessionId);
           }

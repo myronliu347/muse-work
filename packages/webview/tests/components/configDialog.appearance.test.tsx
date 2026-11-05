@@ -84,9 +84,9 @@ describe("ConfigDialog appearance tab", () => {
 
   it("adds a tab from a declared plugin panel", () => {
     renderDialog(vi.fn(), [
-      { id: "popo", title: "POPO", empty: "未找到配置。", fields: [] },
+      { id: "channel", title: "频道", empty: "未找到配置。", fields: [] },
     ]);
-    fireEvent.click(screen.getByRole("tab", { name: "POPO" }));
+    fireEvent.click(screen.getByRole("tab", { name: "频道" }));
     expect(screen.getByText("未找到配置。")).toBeTruthy();
   });
 

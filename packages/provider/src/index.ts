@@ -1,23 +1,21 @@
 export type {
   AiProvider,
   AuthStatus,
-  CodeMakerProviderConfig,
   DeepSeekProviderConfig,
   GatewayResolution,
   LoginStart,
   ModelInfo,
   CodexProviderConfig,
   OpenAiCompatibleProviderConfig,
+  ProviderBlock,
   ProvidersFile,
 } from "./types.js";
 
 export {
-  getCodeMakerAuthPath,
   getCodexAuthPath,
   getMuseHomeDir,
   getProvidersConfigPath,
   getSessionsConfigPath,
-  getSharedCodeMakerAuthPath,
 } from "./paths.js";
 
 export {

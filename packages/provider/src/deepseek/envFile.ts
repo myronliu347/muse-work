@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { DEEPSEEK_API_KEY_ENV } from "./provider.js";
 
-/** Shared with dev and production, like CodeMaker credentials. */
+/** Shared across dev and production. Ignores `MUSE_HOME_DIR`. */
 export function deepSeekEnvFile(home = os.homedir()): string {
   return path.join(home, ".muse-work", "env");
 }

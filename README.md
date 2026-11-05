@@ -7,7 +7,7 @@ AI 编程工作桌面应用：本地优先的 Agent 对话 + 代码工作台，�
 ## 特性
 
 - **本地优先** — Agent 运行时是随应用启动的本地 server，会话与凭证数据都在本机，不依赖云端控制台。
-- **可插拔 Provider** — 支持 CodeMaker（SSO 登录）与任意 OpenAI 兼容服务（API Key 注入）。在设置页配置 Provider，在对话里切换 model。
+- **可插拔 Provider** — 内置 DeepSeek（API Key）与任意 OpenAI 兼容服务。在设置页配置 Provider，在对话里切换 model。宿主插件可以再注册自己的供应商。
 - **图标栏** — 左侧只有五个入口：灵光、会话、自动化、技能、设置。打开应用落在灵光。
 - **灵光** — 主页。没有消息时显示「灵光一现 迎刃而解」。右上角是待处理和事项；Issue 会话以标签开在旁边，不进会话列表。
 - **右侧面板** — 详情、文件、终端、浏览器、变更，可整栏收起。文件和变更跟着当前事项；浏览器、终端在灵光上可以多开。
@@ -21,7 +21,6 @@ AI 编程工作桌面应用：本地优先的 Agent 对话 + 代码工作台，�
 - **文件交互** — `@` 提及文件（级联目录浏览）、拖拽/粘贴/本地文件选择、Quick Open 快速搜索、代码/图片预览。
 - **Agent 能力** — 子 Agent（subagent）、MCP 工具、slash commands、工具调用权限确认、任务列表、后台任务。
 - **消息体验** — 流式输出、消息队列（可编辑/删除排队消息）、rewind 回退、会话压缩提示。压缩后打开会话先看到摘要之后的对话；往上翻再加载更早的记录，界面上没有单独的加载按钮。
-- **POPO** — 主人私聊或群里 @ 机器人的消息进入灵光，由助理回复。
 
 ## 快速开始
 
@@ -42,13 +41,13 @@ pnpm dev:desktop
 
 Provider 配置位于 `~/.muse-work/providers.json`（默认端口 `8787`）：
 
-- **CodeMaker**：优先复用本机 CodeMaker 登录态（`~/.muse-work/auth/codemaker.json` → 本机 CodeMaker `auth.json`），未登录时可在应用内发起 SSO。
+- **DeepSeek**：密钥写在环境变量 `DEEPSEEK_API_KEY`，或由设置页弹窗写入 `~/.muse-work/env`。未配置时发消息会提示填写。
 - **OpenAI 兼容**：编辑 `baseURL` / `apiKeyEnv`，通过环境变量注入 API Key（默认 `MUSE_OPENAI_API_KEY`）。
 - **Agent 运行时**：用户级 `~/.muse-work/settings.json`；环境变量用 `MUSE_*`（仍可读遗留 `WAVE_*`），详见 [`packages/agent/README.md`](packages/agent/README.md)。
 
 ## Issue
 
-把「一件要做成的事」登记成 Issue。它出现在灵光的事项里，点开后是中间的会话标签；规划会话和执行会话都挂在同一条线上。UI 里新建，或在对话 / POPO 里随口说一句「建个 issue」都行。会话列表里不出现 Issue。
+把「一件要做成的事」登记成 Issue。它出现在灵光的事项里，点开后是中间的会话标签；规划会话和执行会话都挂在同一条线上。UI 里新建，或在对话里随口说一句「建个 issue」都行。会话列表里不出现 Issue。
 
 打开会话时选定工作目录，并选一种干活方式（选定后不可改）：
 
@@ -58,34 +57,6 @@ Provider 配置位于 `~/.muse-work/providers.json`（默认端口 `8787`）：
 规划 + 执行适合更大、需要拆步骤的事：方案和改代码不搅在同一条上下文里，仓库不会边聊边被改乱；执行会话从头干到尾、上下文连续；每一步都要规划对照清单验收，执行完不会自动勾完成。
 
 事项里只留进行中的事；完成或取消后从列表消失，聊天记录还在。
-
-## POPO
-
-在 POPO 开放平台创建机器人，把消息事件回调指向本机。主人的**私聊**和**群里 @** 都会进入灵光，由助理决定怎么回。
-
-### 配置
-
-1. 在本机创建 `~/.popo-config.json`（权限 0600，含机器人凭据与回调验签参数）：
-
-```json
-{
-  "appId": "<App ID>",
-  "appKey": "<App Key>",
-  "appSecret": "<App Secret>",
-  "token": "<回调 token>",
-  "aesKey": "<回调 aesKey>",
-  "masterUid": "you@corp.netease.com"
-}
-```
-
-2. 在开放平台后台「事件订阅」配置回调地址 `http://<局域网 IP>:3100/popo/callback`，订阅消息事件。
-
-### 使用
-
-- **主人私聊 / 群里 @ 机器人** → 消息交给灵光。私聊会记进灵光的对话；回复由助理用 `SendMessage` 发回
-- **其他人发消息**一律回复「大胆，只有尊敬的大人可以指挥我做事」
-- 回调配置在设置里查看。模型用场景默认模型里的 **AI 助手**
-- 回调端口默认 `3100`，dev 可用环境变量 `POPO_CALLBACK_PORT` 覆盖；端口被占用或未配置时自动降级，不影响主应用
 
 ## 使用
 
@@ -105,7 +76,7 @@ Provider 配置位于 `~/.muse-work/providers.json`（默认端口 `8787`）：
 | `@muse-work/webview` | 对话 UI、model 选择、登录入口、各类面板 |
 | `@muse-work/server` | Agent 宿主：会话 / 消息流 / 权限，HTTP + WebSocket API |
 | `@muse-work/agent` | Agent 运行时（从 `wave-agent-sdk` fork，本仓维护） |
-| `@muse-work/provider` | Provider 接口、凭证、签名、`providers.json` 配置 |
+| `@muse-work/provider` | Provider 接口与 `providers.json` 配置 |
 
 ## 开发
 
@@ -138,4 +109,3 @@ pnpm test
 ## 相关文档
 
 - 截图与说明：`docs/public/screenshots/`
-- 集成说明：[`docs/popo-robot-integration.md`](docs/popo-robot-integration.md)

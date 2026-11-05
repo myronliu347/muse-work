@@ -24,7 +24,11 @@ describe("configStore", () => {
     expect(cfg.activeModelId).toBe(DEFAULT_ACTIVE_MODEL_ID);
     expect(cfg.activeModelId).toBe("deepseek-flash");
     expect(cfg.providers.deepseek.models[0]?.id).toBe("deepseek-flash");
-    expect(cfg.providers.codemaker).toBeUndefined();
+    expect(Object.keys(cfg.providers).sort()).toEqual([
+      "codex",
+      "deepseek",
+      "openai-compatible",
+    ]);
     expect(cfg.providers["openai-compatible"]).toBeDefined();
     expect(cfg.providers.codex.models.map((m) => m.id)).toEqual([
       "gpt-5.4",
@@ -43,7 +47,11 @@ describe("configStore", () => {
     );
     const loaded = loadProvidersConfig(tmp);
     expect(loaded.providers.codex.models.map((m) => m.id)).toContain("gpt-5.4");
-    expect(loaded.providers.codemaker).toBeUndefined();
+    expect(Object.keys(loaded.providers).sort()).toEqual([
+      "codex",
+      "deepseek",
+      "openai-compatible",
+    ]);
   });
 
   it("round-trips active model selection", () => {
@@ -56,20 +64,25 @@ describe("configStore", () => {
     expect(again.activeModelId).toBe("gpt-4.1");
   });
 
-  it("keeps an existing CodeMaker selection", () => {
+  it("keeps an extra provider block and its selection", () => {
     const cfg = loadProvidersConfig(tmp);
-    cfg.activeProviderId = "codemaker";
-    cfg.activeModelId = "claude-opus-4-6";
+    cfg.providers.hosted = {
+      enabled: true,
+      models: [{ id: "m1", label: "M1" }],
+    };
+    cfg.activeProviderId = "hosted";
+    cfg.activeModelId = "m1";
     saveProvidersConfig(cfg, tmp);
     const again = loadProvidersConfig(tmp);
-    expect(again.activeProviderId).toBe("codemaker");
-    expect(again.activeModelId).toBe("claude-opus-4-6");
+    expect(again.activeProviderId).toBe("hosted");
+    expect(again.activeModelId).toBe("m1");
+    expect(again.providers.hosted.models[0]?.id).toBe("m1");
     expect(again.providers.deepseek.models[0]?.id).toBe("deepseek-flash");
   });
 
   it("falls back to deepseek when the saved provider is not registered", () => {
     const cfg = loadProvidersConfig(tmp);
-    cfg.activeProviderId = "codemaker";
+    cfg.activeProviderId = "missing";
     cfg.activeModelId = "gpt-5.4";
     saveProvidersConfig(cfg, tmp);
     reconcileActiveProvider({ get: (id) => (id === "deepseek" ? {} : undefined) }, tmp);
@@ -78,17 +91,17 @@ describe("configStore", () => {
     expect(again.activeModelId).toBe("deepseek-flash");
   });
 
-  it("keeps codemaker when that provider is registered", () => {
+  it("keeps the saved provider when it is registered", () => {
     const cfg = loadProvidersConfig(tmp);
-    cfg.activeProviderId = "codemaker";
-    cfg.activeModelId = "claude-opus-4-6";
+    cfg.activeProviderId = "hosted";
+    cfg.activeModelId = "m1";
     saveProvidersConfig(cfg, tmp);
     reconcileActiveProvider(
-      { get: (id) => (id === "codemaker" || id === "deepseek" ? {} : undefined) },
+      { get: (id) => (id === "hosted" || id === "deepseek" ? {} : undefined) },
       tmp,
     );
     const again = loadProvidersConfig(tmp);
-    expect(again.activeProviderId).toBe("codemaker");
-    expect(again.activeModelId).toBe("claude-opus-4-6");
+    expect(again.activeProviderId).toBe("hosted");
+    expect(again.activeModelId).toBe("m1");
   });
 });

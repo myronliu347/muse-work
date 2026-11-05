@@ -6,7 +6,7 @@ Muse 走进程内 `Agent.create()`，不跑 `wave --stdio` / Wave 企业托管�
 
 - 进程内 Agent、消息 / session jsonl、权限、Issue 规划助手、Plan subagent、Skill、MCP、LSP
 - **本地插件**：`PluginLoader` + `PluginManager.loadPlugins([{ type: "local", path }])`
-- Workflow（工具 / manager / UI；POPO 与定时自动化会话不挂这个工具）
+- Workflow（工具 / manager / UI；定时自动化会话不挂这个工具）
 - AskUserQuestion、auto-memory、WebFetch、任务列表、subagent
 
 ## 已移除（第一轮）

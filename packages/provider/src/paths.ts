@@ -22,25 +22,7 @@ export function getSessionsConfigPath(home = os.homedir()): string {
   return path.join(getMuseHomeDir(home), "sessions.json");
 }
 
-/**
- * CodeMaker auth lives under `<home>/.muse-work/auth/` regardless of
- * `MUSE_HOME_DIR`: credentials are per-account, not per-environment, so dev
- * and production instances share the same login (auth stays consistent
- * across prod/dev). Tests still isolate via the `home` parameter.
- */
-export function getCodeMakerAuthPath(home = os.homedir()): string {
-  return path.join(home, ".muse-work", "auth", "codemaker.json");
-}
-
-export function getSharedCodeMakerAuthPath(home = os.homedir()): string {
-  return path.join(home, ".local", "share", "codemaker", "auth.json");
-}
-
-/**
- * ChatGPT OAuth for the Codex provider. Same sharing rule as CodeMaker:
- * credentials stay under `~/.muse-work/auth` and are not written into the
- * Codex CLI auth file.
- */
+/** Per-account auth file. Ignores `MUSE_HOME_DIR` so dev and production share it. */
 export function getCodexAuthPath(home = os.homedir()): string {
   return path.join(home, ".muse-work", "auth", "codex.json");
 }

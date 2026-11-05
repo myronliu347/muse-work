@@ -1,6 +1,6 @@
 # Muse Work — Issue
 
-用户以 Issue 记录一件要做成的事。可从 UI、普通会话或 POPO 创建。打开会话时选定工作目录和工作模式（选定后不可改）。默认是单 agent：本会话确认需求并改代码。也可以选规划 + 执行：规划会话禁改源码，再 dispatch 到同一个执行会话。关单发生在 UI，或规划/单 agent/POPO 对话里用 skill。
+用户以 Issue 记录一件要做成的事。可从 UI 或普通会话创建。打开会话时选定工作目录和工作模式（选定后不可改）。默认是单 agent：本会话确认需求并改代码。也可以选规划 + 执行：规划会话禁改源码，再 dispatch 到同一个执行会话。关单发生在 UI，或规划/单 agent 对话里用 skill。
 
 ## Language
 
@@ -13,7 +13,7 @@ _Avoid_: Todo、Task 实体、需求单
 _Avoid_: 打开后再改模式、给单 agent 接状态机
 
 **任务清单（Checklist）**:
-Issue 上的结构化条目：`id`、`content`、`pending | running | done`。对人暂不可见。普通会话和 POPO 可以给 pending Issue 追加清单。规划 AI（仅 split）只能追加或删除尚未执行的项，不能整表覆盖已执行项。执行 AI 按条目干活；全部 `done` 后 Issue 进入待审核。
+Issue 上的结构化条目：`id`、`content`、`pending | running | done`。对人暂不可见。普通会话可以给 pending Issue 追加清单。规划 AI（仅 split）只能追加或删除尚未执行的项，不能整表覆盖已执行项。执行 AI 按条目干活；全部 `done` 后 Issue 进入待审核。
 _Avoid_: 子任务实体、看板列、侧栏勾选清单
 
 **打开会话**:
@@ -66,7 +66,7 @@ _Avoid_: 把运行混进置顶/工作空间/待办事项
 
 **触发器**:
 v1 仅定时（周期 / 按间隔 / 单次，人不用写 cron）与本机 Issue 生命周期（创建、待审核、完成、取消，可按标签、优先级过滤）。一条规则可挂多个。
-_Avoid_: GitHub 轮询、HTTP webhook、POPO 当触发器
+_Avoid_: GitHub 轮询、HTTP webhook、把外部频道当触发器
 
 **停用 / 启用**:
 开关。停用后定时和 Issue 都不再自动开跑，也不允许「立即运行」；重新启用从下一拍或下一次事件恢复，不补跑停用期间错过的。

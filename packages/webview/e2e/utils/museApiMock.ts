@@ -29,12 +29,9 @@ export async function mockMuseSettingsApis(page: Page): Promise<void> {
       body: JSON.stringify({
         providers: [
           {
-            id: "codemaker",
-            displayName: "CodeMaker",
-            models: [
-              { id: "deepseek-flash", label: "DeepSeek Flash" },
-              { id: "glm-5.2", label: "GLM 5.2" },
-            ],
+            id: "deepseek",
+            displayName: "DeepSeek",
+            models: [{ id: "deepseek-flash", label: "DeepSeek Flash" }],
           },
           {
             id: "openai-compatible",
@@ -42,21 +39,25 @@ export async function mockMuseSettingsApis(page: Page): Promise<void> {
             models: [{ id: "gpt-4o", label: "GPT-4o" }],
           },
         ],
-        active: { providerId: "codemaker", modelId: "deepseek-flash" },
+        active: { providerId: "deepseek", modelId: "deepseek-flash" },
       }),
     });
   });
 
-  await page.route("**/providers/codemaker/quota", async (route) => {
+  await page.route("**/providers/deepseek/quota", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        user: "demo@example.com",
-        total: 100,
-        used: 12.5,
-        remaining: 87.5,
-        percentage: 12.5,
+        is_available: true,
+        balance_infos: [
+          {
+            currency: "CNY",
+            total_balance: "100.00",
+            granted_balance: "100.00",
+            topped_up_balance: "0.00",
+          },
+        ],
       }),
     });
   });

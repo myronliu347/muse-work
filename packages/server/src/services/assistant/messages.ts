@@ -24,7 +24,7 @@ export interface MuseChatLine {
   images?: MuseChatImage[];
   /** 这条消息来自哪个渠道。缺省表示 Muse 里的对话。 */
   app?: string;
-  /** POPO 发出去的消息 id，用来撤回。 */
+  /** 渠道发出去的消息 id，用来撤回。 */
   msgIds?: string[];
   /** 这句在说的 Issue。引用没写进正文时也记着，用来判断下一句要不要再带。 */
   issueId?: string;

@@ -67,7 +67,10 @@ function load(filePath: string): { events: AssistantEvent[]; inflightCount: numb
   }
 }
 
-export function createAssistantQueue(options: { home: string }): {
+export function createAssistantQueue(options: {
+  home: string;
+  queueLabels?: Record<string, string>;
+}): {
   enqueue(event: AssistantEvent): void;
   absorb(event: AssistantEvent, headLocked: boolean): boolean;
   claimBatch(): AssistantEvent[];
@@ -81,6 +84,7 @@ export function createAssistantQueue(options: { home: string }): {
   markBatchRetry(turnError: string): void;
 } {
   const filePath = queuePath(options.home);
+  const queueLabels = options.queueLabels ?? {};
   let { events, inflightCount } = load(filePath);
 
   function save(): void {
@@ -130,7 +134,7 @@ export function createAssistantQueue(options: { home: string }): {
     },
     list() {
       return events.map((event, index) => {
-        const view = viewAssistantEvent(event);
+        const view = viewAssistantEvent(event, queueLabels);
         return index < inflightCount ? { ...view, active: true as const } : view;
       });
     },

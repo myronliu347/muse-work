@@ -32,8 +32,8 @@ function createApi(overrides?: Partial<MuseApiClient>): MuseApiClient {
     listProviders: vi.fn(async () => ({
       providers: [
         {
-          id: "codemaker",
-          displayName: "CodeMaker",
+          id: "hosted",
+          displayName: "Hosted",
           models: [{ id: "m1", label: "M1" }],
         },
         {
@@ -42,13 +42,13 @@ function createApi(overrides?: Partial<MuseApiClient>): MuseApiClient {
           models: [{ id: "gpt-4.1", label: "GPT-4.1" }],
         },
       ],
-      active: { providerId: "codemaker", modelId: "m1" },
+      active: { providerId: "hosted", modelId: "m1" },
     })),
     setActive: vi.fn(async (providerId: string, modelId: string) => ({
       ok: true as const,
       active: { providerId, modelId },
     })),
-    getCodeMakerQuota: vi.fn(async () => ({
+    getProviderQuota: vi.fn(async () => ({
       raw: {
         data: {
           current_month: {
@@ -103,12 +103,12 @@ describe("MuseProviderSettings", () => {
     vi.clearAllMocks();
   });
 
-  it("shows CodeMaker quota for the active provider", async () => {
+  it("shows Hosted quota for the active provider", async () => {
     const api = createApi();
     renderProviderSettings({ api });
 
     await waitFor(() => {
-      expect(screen.getByTestId("muse-codemaker-quota")).toBeTruthy();
+      expect(screen.getByTestId("muse-token-quota")).toBeTruthy();
       expect(screen.getByTestId("muse-quota-progress")).toBeTruthy();
     });
     expect(screen.getByText("alice")).toBeTruthy();
@@ -210,13 +210,13 @@ describe("MuseProviderSettings", () => {
     window.removeEventListener(MUSE_PROVIDERS_CHANGED_EVENT, changed);
   });
 
-  it("falls back to deepseek-flash when switching to CodeMaker without matching active", async () => {
+  it("falls back to deepseek-flash when switching to Hosted without matching active", async () => {
     const api = createApi({
       listProviders: vi.fn(async () => ({
         providers: [
           {
-            id: "codemaker",
-            displayName: "CodeMaker",
+            id: "hosted",
+            displayName: "Hosted",
             models: [
               { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
               { id: "deepseek-flash", label: "DeepSeek Flash" },
@@ -248,12 +248,12 @@ describe("MuseProviderSettings", () => {
     });
 
     await user.click(screen.getByLabelText("AI 供应商 (Provider)"));
-    await user.click(await screen.findByRole("option", { name: "CodeMaker" }));
+    await user.click(await screen.findByRole("option", { name: "Hosted" }));
 
     const ok = await ref.current!.save();
     expect(ok).toBe(true);
     expect(api.setActive).toHaveBeenCalledWith(
-      "codemaker",
+      "hosted",
       "deepseek-flash",
     );
   });
@@ -269,7 +269,7 @@ describe("MuseProviderSettings", () => {
     const user = userEvent.setup();
     renderProviderSettings({ ref, api });
 
-    await screen.findByTestId("muse-codemaker-quota");
+    await screen.findByTestId("muse-token-quota");
     const input = await screen.findByLabelText("Tavily API Key");
     expect(input).toHaveAttribute("placeholder", "已配置（留空则保持不变）");
     expect(ref.current!.isDirty()).toBe(false);

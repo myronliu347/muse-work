@@ -25,7 +25,6 @@ describe("assistant tools", () => {
     const automations = createAutomationStore({ home });
     const log = createAssistantMessageLog({ home });
     const broadcasts: unknown[] = [];
-    const sent: Array<{ receiver: string; content: string }> = [];
     const decisions: Array<{ sessionId: string; permissionId: string; behavior: string }> = [];
     const opened: OpenIssueBody[] = [];
     const hub = { broadcastAll: (event: unknown) => broadcasts.push(event) } as WsHub;
@@ -64,9 +63,6 @@ describe("assistant tools", () => {
           },
         ],
       } as never,
-      sendText: async (receiver, content) => {
-        sent.push({ receiver, content });
-      },
       openIssue: (_ctx, id, body) => {
         opened.push(body);
         issues.setPlanning(id, {
@@ -173,12 +169,11 @@ describe("assistant tools", () => {
     expect(muse.success).toBe(true);
     expect(log.page().messages[0]?.role).toBe("assistant");
 
-    const popo = await tool(tools, "SendMessage").execute(
-      { app: "popo", message: "群" },
+    const unknown = await tool(tools, "SendMessage").execute(
+      { app: "channel", message: "群" },
       context,
     );
-    expect(popo.success).toBe(false);
-    expect(sent).toHaveLength(0);
+    expect(unknown.success).toBe(false);
     expect(log.page().messages).toHaveLength(1);
 
     log.append("user", "你".repeat(8001));
@@ -768,7 +763,6 @@ describe("assistant tools", () => {
   it("rejects a long chat body unless a file is attached or the user asked for the full text", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-length-"));
     const log = createAssistantMessageLog({ home });
-    const sent: string[] = [];
     const note = path.join(home, "report.md");
     fs.writeFileSync(note, "报告正文");
     const tools = createAssistantTools({
@@ -779,11 +773,6 @@ describe("assistant tools", () => {
       log,
       hub: { broadcastAll: () => undefined } as WsHub,
       runner: {} as never,
-      sendText: async (_receiver, content) => {
-        sent.push(content);
-        return ["m1"];
-      },
-      popoMasterUid: () => "master",
     });
     const context = { sessionId: "assistant", toolUseId: "tool-1" };
     const long = "字".repeat(201);
@@ -796,7 +785,6 @@ describe("assistant tools", () => {
     expect(rejected.success).toBe(false);
     expect(rejected.error).toContain("200");
     expect(log.page().messages).toEqual([]);
-    expect(sent).toEqual([]);
 
     const exact = await tool(tools, "SendMessage").execute(
       { app: "muse", message: boundary },

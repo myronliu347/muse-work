@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { isUnauthorized } from "../src/services/sessionRunner/serialization.js";
 
-const CODEMAKER_403 =
+const EXPIRED_TOKEN_403 =
   'HTTP 403 Forbidden: {"msg":"auth failed","extra":{"code":30002,"msg":"request access token is invalid: token error: Token is expired"}}';
 
 describe("isUnauthorized", () => {
-  it("matches CodeMaker 403 token-expired error strings from SDK error blocks", () => {
-    expect(isUnauthorized(CODEMAKER_403)).toBe(true);
-    expect(isUnauthorized(new Error(CODEMAKER_403))).toBe(true);
+  it("matches expired-token 403 strings from SDK error blocks", () => {
+    expect(isUnauthorized(EXPIRED_TOKEN_403)).toBe(true);
+    expect(isUnauthorized(new Error(EXPIRED_TOKEN_403))).toBe(true);
   });
 
   it("matches 401 thrown errors", () => {

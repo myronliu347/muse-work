@@ -12,7 +12,6 @@ describe("MuseApiClient scenario models", () => {
           JSON.stringify({
             models: {
               session: "deepseek-v4-flash",
-              popo: "deepseek-v4-flash",
               "issue-plan": "deepseek-v4-flash",
               "issue-exec": "deepseek-v4-flash",
             },
@@ -39,7 +38,6 @@ describe("MuseApiClient scenario models", () => {
           JSON.stringify({
             models: {
               session: "m2",
-              popo: "deepseek-v4-flash",
               "issue-plan": "deepseek-v4-flash",
               "issue-exec": "deepseek-v4-flash",
             },

@@ -312,11 +312,10 @@ test.describe("Desktop App Screenshots", () => {
       "../../docs/public/screenshots/desktop-settings-dialog.webp",
     );
 
-    // Provider tab (CodeMaker quota)
     await webviewPage.getByRole("tab", { name: "供应商" }).click();
     await expect(webviewPage.getByTestId("muse-provider-settings")).toBeVisible();
-    await expect(webviewPage.getByTestId("muse-codemaker-quota")).toBeVisible();
-    await expect(webviewPage.getByTestId("muse-quota-progress")).toBeVisible();
+    await expect(webviewPage.getByTestId("muse-deepseek-quota")).toBeVisible();
+    await expect(webviewPage.getByText("总余额")).toBeVisible();
     await screenshotWebp(
       webviewPage,
       "../../docs/public/screenshots/desktop-settings-provider.webp",

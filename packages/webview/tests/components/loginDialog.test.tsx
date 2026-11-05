@@ -13,7 +13,7 @@ describe("LoginDialog", () => {
       />,
     );
 
-    expect(screen.getByText(/CodeMaker/)).toBeInTheDocument();
+    expect(screen.getByText(/账号/)).toBeInTheDocument();
     expect(screen.getByTestId("login-dialog-login")).toHaveTextContent(
       "去登录",
     );
@@ -94,13 +94,13 @@ describe("LoginDialog", () => {
     rerender(
       <LoginDialog
         isAuthenticated={false}
-        loginError="CodeMaker login timed out"
+        loginError="login timed out"
         onLogin={onLogin}
         onCancel={vi.fn()}
       />,
     );
 
-    expect(screen.getByText(/CodeMaker login timed out/)).toBeInTheDocument();
+    expect(screen.getByText(/login timed out/)).toBeInTheDocument();
     expect(screen.getByTestId("login-dialog-login")).not.toBeDisabled();
   });
 });

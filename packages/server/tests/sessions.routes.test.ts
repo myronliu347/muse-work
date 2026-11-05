@@ -214,8 +214,8 @@ describe("sessions HTTP routes", () => {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        providerId: "codemaker",
-        modelId: "claude-opus-4-6",
+        providerId: "openai-compatible",
+        modelId: "gpt-4.1",
       }),
     });
 
@@ -497,7 +497,6 @@ describe("sessions scenario defaults", () => {
         version: 1,
         models: {
           session: "m-from-scenario",
-          popo: "deepseek-flash",
           "issue-plan": "deepseek-flash",
           "issue-exec": "deepseek-flash",
         },

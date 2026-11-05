@@ -42,12 +42,16 @@ export interface AiProvider {
   revokeOnUnauthorized?: boolean;
 }
 
-export interface CodeMakerProviderConfig {
+export interface ProviderBlock {
   enabled: boolean;
   models: ModelInfo[];
+  baseURL?: string;
+  apiKey?: string;
+  apiKeyEnv?: string;
+  forcedWorkspaceIds?: string[];
 }
 
-export interface OpenAiCompatibleProviderConfig {
+export interface OpenAiCompatibleProviderConfig extends ProviderBlock {
   enabled: boolean;
   baseURL?: string;
   /** Optional key stored in providers.json (preferred over env when set). */
@@ -56,14 +60,14 @@ export interface OpenAiCompatibleProviderConfig {
   models: ModelInfo[];
 }
 
-export interface CodexProviderConfig {
+export interface CodexProviderConfig extends ProviderBlock {
   enabled: boolean;
   models: ModelInfo[];
   /** When set, ChatGPT login must land in one of these account ids. */
   forcedWorkspaceIds?: string[];
 }
 
-export interface DeepSeekProviderConfig {
+export interface DeepSeekProviderConfig extends ProviderBlock {
   enabled: boolean;
   models: ModelInfo[];
   /** Stored key. Environment `DEEPSEEK_API_KEY` is used when this is empty. */
@@ -76,8 +80,7 @@ export interface ProvidersFile {
   activeModelId?: string;
   providers: {
     deepseek: DeepSeekProviderConfig;
-    codemaker?: CodeMakerProviderConfig;
     codex: CodexProviderConfig;
     "openai-compatible": OpenAiCompatibleProviderConfig;
-  };
+  } & Record<string, ProviderBlock>;
 }

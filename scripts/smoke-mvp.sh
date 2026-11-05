@@ -36,7 +36,7 @@ echo "==> server ready at ${BASE}"
 curl -sf "${BASE}/health" | grep -q '"ok":true'
 echo "OK  GET /health"
 
-curl -sf "${BASE}/providers" | grep -q '"codemaker"'
+curl -sf "${BASE}/providers" | grep -q '"deepseek"'
 echo "OK  GET /providers"
 
 curl -sf "${BASE}/auth/status" | grep -q '"state"'

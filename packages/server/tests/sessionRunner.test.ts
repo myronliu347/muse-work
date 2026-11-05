@@ -964,7 +964,6 @@ describe("sessionRunner concurrency / dispose", () => {
     await expect.poll(() => seen.length).toBe(1);
     expect(JSON.stringify(seen[0].plugins)).toContain("plugins/issue");
     expect(JSON.stringify(seen[0].plugins)).toContain("plugins/automation");
-    expect(JSON.stringify(seen[0].plugins)).not.toContain("plugins/popo-notify");
     expect(seen[0].tools).toEqual(["WebSearch"]);
 
     const exec = store.create({
@@ -975,7 +974,6 @@ describe("sessionRunner concurrency / dispose", () => {
     await runner.sendMessage(exec.id, "hi");
     await expect.poll(() => seen.length).toBe(2);
     expect(JSON.stringify(seen[1].plugins ?? [])).not.toContain("plugins/issue");
-    expect(JSON.stringify(seen[1].plugins ?? [])).not.toContain("plugins/popo-notify");
     expect(seen[1].tools).toEqual(["WebSearch"]);
 
     const automation = store.create({
@@ -986,7 +984,6 @@ describe("sessionRunner concurrency / dispose", () => {
     });
     await runner.sendMessage(automation.id, "hi");
     await expect.poll(() => seen.length).toBe(3);
-    expect(JSON.stringify(seen[2].plugins ?? [])).not.toContain("plugins/popo-notify");
     expect(JSON.stringify(seen[2].plugins ?? [])).not.toContain("plugins/issue");
     expect(JSON.stringify(seen[2].plugins ?? [])).not.toContain("plugins/automation");
     expect(seen[2].tools).toEqual(["WebSearch"]);

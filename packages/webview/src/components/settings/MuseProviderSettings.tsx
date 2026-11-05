@@ -16,7 +16,7 @@ import {
 } from "@radix-ui/themes";
 import {
   MuseApiClient,
-  type MuseCodeMakerQuota,
+  type MuseTokenQuota,
   type MuseDeepSeekBalance,
   type MuseModelInfo,
   type MuseOpenAiCompatibleConfig,
@@ -27,8 +27,8 @@ import { resolveMuseServerUrl } from "../../muse/hostBridge";
 import { notifyProvidersChanged } from "../../muse/providersEvents";
 import { Field } from "../../ui/Field";
 
-/** Prefer this when active model is missing from CodeMaker list (not models[0]). */
-const CODEMAKER_DEFAULT_MODEL_ID = "deepseek-flash";
+/** Prefer this when the active model is missing from the provider list. */
+const FALLBACK_MODEL_ID = "deepseek-flash";
 
 export interface MuseProviderSettingsProps {
   api?: MuseApiClient;
@@ -50,6 +50,21 @@ function formatQuotaNumber(n: number | undefined): string {
 function formatQuotaPercent(n: number | undefined): string {
   if (n === undefined) return "—";
   return `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}%`;
+}
+
+function isTokenQuota(body: unknown): body is MuseTokenQuota {
+  if (!body || typeof body !== "object") return false;
+  const row = body as { total?: unknown; used?: unknown; remaining?: unknown };
+  return (
+    typeof row.total === "number" ||
+    typeof row.used === "number" ||
+    typeof row.remaining === "number"
+  );
+}
+
+function isMissingQuota(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return /\b404\b/.test(message);
 }
 
 function quotaFailureText(err: unknown): string {
@@ -100,8 +115,9 @@ export const MuseProviderSettings = forwardRef<
 >(function MuseProviderSettings({ api, onSavingChange }, ref) {
   const [data, setData] = useState<MuseProvidersResponse | null>(null);
   const [draftProviderId, setDraftProviderId] = useState("");
-  const [quota, setQuota] = useState<MuseCodeMakerQuota | null>(null);
+  const [quota, setQuota] = useState<MuseTokenQuota | null>(null);
   const [quotaError, setQuotaError] = useState<string | null>(null);
+  const [showTokenQuota, setShowTokenQuota] = useState(false);
   const [deepseekBalance, setDeepseekBalance] = useState<MuseDeepSeekBalance | null>(null);
   const [deepseekQuotaError, setDeepseekQuotaError] = useState<string | null>(null);
   const [openaiCfg, setOpenaiCfg] = useState<MuseOpenAiCompatibleConfig | null>(
@@ -141,16 +157,25 @@ export const MuseProviderSettings = forwardRef<
   );
 
   const loadQuota = useCallback(
-    async (gen: number) => {
+    async (providerId: string, gen: number) => {
       setQuota(null);
       setQuotaError(null);
+      setShowTokenQuota(true);
       try {
-        const body = await client.getCodeMakerQuota();
+        const body = await client.getProviderQuota(providerId);
         if (gen !== loadGenRef.current) return;
+        if (!isTokenQuota(body)) {
+          setShowTokenQuota(false);
+          return;
+        }
         setQuota(body);
       } catch (err) {
         if (gen !== loadGenRef.current) return;
         setQuota(null);
+        if (isMissingQuota(err)) {
+          setShowTokenQuota(false);
+          return;
+        }
         setQuotaError(quotaFailureText(err));
       }
     },
@@ -200,27 +225,24 @@ export const MuseProviderSettings = forwardRef<
   const loadPanelForProvider = useCallback(
     async (providerId: string) => {
       const gen = ++loadGenRef.current;
-      if (providerId === "codemaker") {
-        setOpenaiCfg(null);
-        setDeepseekBalance(null);
-        setDeepseekQuotaError(null);
-        await loadQuota(gen);
-      } else if (providerId === "deepseek") {
+      if (providerId === "deepseek") {
+        setShowTokenQuota(false);
         setOpenaiCfg(null);
         setQuota(null);
         setQuotaError(null);
         await loadDeepSeekQuota(gen);
       } else if (providerId === "openai-compatible") {
+        setShowTokenQuota(false);
         setQuota(null);
         setQuotaError(null);
         setDeepseekBalance(null);
         setDeepseekQuotaError(null);
         await loadOpenai(gen);
       } else {
-        setQuota(null);
-        setQuotaError(null);
+        setOpenaiCfg(null);
         setDeepseekBalance(null);
         setDeepseekQuotaError(null);
+        await loadQuota(providerId, gen);
       }
     },
     [loadQuota, loadDeepSeekQuota, loadOpenai],
@@ -305,7 +327,7 @@ export const MuseProviderSettings = forwardRef<
       }
       modelId =
         provider.models.find((m) => m.id === data.active.modelId)?.id ??
-        provider.models.find((m) => m.id === CODEMAKER_DEFAULT_MODEL_ID)?.id ??
+        provider.models.find((m) => m.id === FALLBACK_MODEL_ID)?.id ??
         provider.models[0]!.id;
     }
 
@@ -381,8 +403,8 @@ export const MuseProviderSettings = forwardRef<
         </Select.Root>
       </Field>
 
-      {draftProviderId === "codemaker" && (
-        <div data-testid="muse-codemaker-quota">
+      {showTokenQuota && (
+        <div data-testid="muse-token-quota">
           <div className="muse-quota-header">
             <label>Token 额度</label>
             {quota?.user ? (

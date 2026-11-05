@@ -42,20 +42,15 @@ export function createProviderRegistry(
   };
 }
 
-/** Saved provider missing from the registry falls back to CodeMaker, then DeepSeek. */
+/** Saved provider missing from the registry falls back to DeepSeek. */
 export function reconcileActiveProvider(
   registry: { get(id: string): unknown },
   home?: string,
 ): void {
   const cfg = loadProvidersConfig(home);
   if (registry.get(cfg.activeProviderId)) return;
-  const nextId = registry.get("codemaker")
-    ? "codemaker"
-    : registry.get("deepseek")
-      ? "deepseek"
-      : undefined;
-  if (!nextId) return;
-  cfg.activeProviderId = nextId;
+  if (!registry.get("deepseek")) return;
+  cfg.activeProviderId = "deepseek";
   cfg.activeModelId = DEFAULT_ACTIVE_MODEL_ID;
   saveProvidersConfig(cfg, home);
 }

@@ -156,12 +156,12 @@ describe("providers + auth routes", () => {
     ]);
   });
 
-  it("GET /providers/codemaker/quota is missing without the netease plugin", async () => {
+  it("GET /providers/hosted/quota is 404 when that provider is not registered", async () => {
     const app = await listenTestApp();
     server = app.server;
     home = app.home;
 
-    const res = await fetch(`${app.baseUrl}/providers/codemaker/quota`);
+    const res = await fetch(`${app.baseUrl}/providers/hosted/quota`);
     expect(res.status).toBe(404);
   });
 
@@ -220,10 +220,10 @@ describe("providers + auth routes", () => {
   it("POST /auth/login returns authUrl without opening browser", async () => {
     let loginCalls = 0;
     const stub: AiProvider = {
-      id: "codemaker",
-      displayName: "CodeMaker",
+      id: "hosted",
+      displayName: "Hosted",
       async getAuthStatus() {
-        return { state: "unauthenticated", providerId: "codemaker" };
+        return { state: "unauthenticated", providerId: "hosted" };
       },
       async beginLogin() {
         loginCalls += 1;
@@ -233,7 +233,7 @@ describe("providers + auth routes", () => {
         return {
           state: "authenticated",
           user: "alice",
-          providerId: "codemaker",
+          providerId: "hosted",
         };
       },
       async logout() {},
@@ -279,10 +279,10 @@ describe("providers + auth routes", () => {
 
   it("POST /auth/login with wait completes login", async () => {
     const stub: AiProvider = {
-      id: "codemaker",
-      displayName: "CodeMaker",
+      id: "hosted",
+      displayName: "Hosted",
       async getAuthStatus() {
-        return { state: "unauthenticated", providerId: "codemaker" };
+        return { state: "unauthenticated", providerId: "hosted" };
       },
       async beginLogin() {
         return { authUrl: "https://example.test/login" };
@@ -291,7 +291,7 @@ describe("providers + auth routes", () => {
         return {
           state: "authenticated",
           user: "bob",
-          providerId: "codemaker",
+          providerId: "hosted",
         };
       },
       async logout() {},
@@ -337,7 +337,7 @@ describe("providers + auth routes", () => {
     expect(await res.json()).toEqual({
       state: "authenticated",
       user: "bob",
-      providerId: "codemaker",
+      providerId: "hosted",
     });
   });
 
@@ -346,10 +346,10 @@ describe("providers + auth routes", () => {
     let completeCalls = 0;
     let active = false;
     const stub: AiProvider = {
-      id: "codemaker",
-      displayName: "CodeMaker",
+      id: "hosted",
+      displayName: "Hosted",
       async getAuthStatus() {
-        return { state: "unauthenticated", providerId: "codemaker" };
+        return { state: "unauthenticated", providerId: "hosted" };
       },
       async beginLogin() {
         beginCalls += 1;
@@ -365,7 +365,7 @@ describe("providers + auth routes", () => {
         return {
           state: "authenticated",
           user: "carol",
-          providerId: "codemaker",
+          providerId: "hosted",
         };
       },
       async logout() {},
@@ -417,7 +417,7 @@ describe("providers + auth routes", () => {
     expect(await waitRes.json()).toEqual({
       state: "authenticated",
       user: "carol",
-      providerId: "codemaker",
+      providerId: "hosted",
     });
     expect(beginCalls).toBe(1);
     expect(completeCalls).toBe(1);
@@ -426,15 +426,15 @@ describe("providers + auth routes", () => {
   it("POST /auth/logout clears session", async () => {
     let loggedOut = false;
     const stub: AiProvider = {
-      id: "codemaker",
-      displayName: "CodeMaker",
+      id: "hosted",
+      displayName: "Hosted",
       async getAuthStatus() {
         return loggedOut
-          ? { state: "unauthenticated", providerId: "codemaker" }
+          ? { state: "unauthenticated", providerId: "hosted" }
           : {
               state: "authenticated",
               user: "alice",
-              providerId: "codemaker",
+              providerId: "hosted",
             };
       },
       async beginLogin() {
@@ -444,7 +444,7 @@ describe("providers + auth routes", () => {
         return {
           state: "authenticated",
           user: "alice",
-          providerId: "codemaker",
+          providerId: "hosted",
         };
       },
       async logout() {
@@ -498,7 +498,7 @@ async function listenWithStubs(providers: AiProvider[]) {
   saveProvidersConfig(
     {
       ...loadProvidersConfig(home),
-      activeProviderId: "codemaker",
+      activeProviderId: "hosted",
       activeModelId: "m1",
     },
     home,

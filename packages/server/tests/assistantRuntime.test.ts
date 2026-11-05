@@ -33,7 +33,7 @@ describe("assistant runtime", () => {
     runtime.start();
     const assistantId = sessions.list().find((s) => s.origin === "assistant")!.id;
     runtime.enqueue({ type: "chat", from: "muse", message: "一" });
-    runtime.enqueue({ type: "chat", from: "popo", user: "a", message: "二" });
+    runtime.enqueue({ type: "chat", from: "desk", user: "a", message: "二" });
     expect(sends).toHaveLength(1);
     expect(sends[0].source).toBe("system-inject");
     expect(sends[0].content).toContain("message: 一");
@@ -71,7 +71,7 @@ describe("assistant runtime", () => {
     runtime.start();
     const assistantId = sessions.list().find((s) => s.origin === "assistant")!.id;
     runtime.enqueue({ type: "chat", from: "muse", message: "一" });
-    runtime.enqueue({ type: "chat", from: "popo", user: "a", message: "泡泡" });
+    runtime.enqueue({ type: "chat", from: "desk", user: "a", message: "那边" });
     runtime.enqueue({
       type: "chat",
       from: "muse",
@@ -79,27 +79,27 @@ describe("assistant runtime", () => {
       images: [{ data: "bbb", mediaType: "image/png" }],
     });
     runtime.enqueue({ type: "chat", from: "muse", message: "三" });
-    runtime.enqueue({ type: "chat", from: "popo-group", user: "a", groupId: "g1", message: "群1" });
-    runtime.enqueue({ type: "chat", from: "popo-group", user: "a", groupId: "g1", message: "群1补" });
-    runtime.enqueue({ type: "chat", from: "popo-group", user: "a", groupId: "g2", message: "群2" });
+    runtime.enqueue({ type: "chat", from: "room", user: "a", groupId: "g1", message: "群1" });
+    runtime.enqueue({ type: "chat", from: "room", user: "a", groupId: "g1", message: "群1补" });
+    runtime.enqueue({ type: "chat", from: "room", user: "a", groupId: "g2", message: "群2" });
     expect(sends).toHaveLength(3);
     expect(sends[1].content).toContain("from: muse");
     expect(sends[1].content).toContain("message: 二");
-    expect(sends[1].content).not.toContain("泡泡");
+    expect(sends[1].content).not.toContain("那边");
     expect(sends[1].images?.map((image) => image.data)).toEqual(["bbb"]);
     expect(sends[2].content).toContain("message: 三");
     expect(queue.list().map((item) => item.title)).toEqual([
       "Muse：一",
-      "POPO：泡泡",
-      "POPO 群：群1 群1补",
-      "POPO 群：群2",
+      "desk：那边",
+      "room：群1 群1补",
+      "room：群2",
     ]);
     expect(queue.list().map((item) => item.active ?? false)).toEqual([true, false, false, false]);
     runtime.onAssistantTurnSettled(assistantId, { ok: true });
     expect(sends).toHaveLength(4);
     expect(sends[3].content).not.toContain("message: 二");
-    expect(sends[3].content).toContain("message: 泡泡");
-    expect(sends[3].content.indexOf("message: 泡泡")).toBeLessThan(sends[3].content.indexOf("message: 群1"));
+    expect(sends[3].content).toContain("message: 那边");
+    expect(sends[3].content.indexOf("message: 那边")).toBeLessThan(sends[3].content.indexOf("message: 群1"));
     expect(sends[3].content).toContain("message: 群1\n群1补");
     expect(sends[3].content).toContain("groupId: g1");
     expect(sends[3].content).toContain("message: 群2");
@@ -141,7 +141,7 @@ describe("assistant runtime", () => {
     runtime.enqueue({ type: "issue", issueId: "i1", title: "登录", workdir: "/repo", summary: "s" });
     runtime.enqueue({
       type: "chat",
-      from: "popo",
+      from: "desk",
       user: "a",
       message: "二",
       images: [{ data: "bbb", mediaType: "image/png" }],
@@ -161,7 +161,7 @@ describe("assistant runtime", () => {
     expect(sends).toHaveLength(2);
     expect(sends[1].content).toContain("message: 三");
     expect(sends[1].content).not.toContain("retry: 1");
-    expect(queue.list().map((item) => item.title)).toEqual(["Muse：一", "登录", "POPO：二", "支付"]);
+    expect(queue.list().map((item) => item.title)).toEqual(["Muse：一", "登录", "desk：二", "支付"]);
     expect(queue.list().map((item) => item.active ?? false)).toEqual([true, true, true, false]);
     runtime.onAssistantTurnSettled(assistantId, { ok: false, error: "boom" });
     expect(sends).toHaveLength(3);
@@ -302,7 +302,7 @@ describe("assistant runtime", () => {
     runtime.enqueue({ type: "chat", from: "muse", message: "正在做" });
     advance(90_000);
     expect(sends).toHaveLength(1);
-    runtime.enqueue({ type: "chat", from: "popo", user: "a", message: "后来" });
+    runtime.enqueue({ type: "chat", from: "desk", user: "a", message: "后来" });
     advance(0);
     expect(sends).toHaveLength(2);
     expect(sends[1]).toContain("不要停在这里");

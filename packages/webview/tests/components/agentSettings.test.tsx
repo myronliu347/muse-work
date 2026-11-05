@@ -35,7 +35,6 @@ function baseApi(): Record<string, ReturnType<typeof vi.fn>> {
     getScenarioModels: vi.fn().mockResolvedValue({
       models: {
         session: "deepseek-v4-flash",
-        popo: "deepseek-v4-flash",
         "issue-plan": "deepseek-v4-flash",
         "issue-exec": "deepseek-v4-flash",
         assistant: "deepseek-v4-flash",
@@ -44,7 +43,6 @@ function baseApi(): Record<string, ReturnType<typeof vi.fn>> {
     putScenarioModels: vi.fn().mockResolvedValue({
       models: {
         session: "deepseek-v4-flash",
-        popo: "deepseek-v4-flash",
         "issue-plan": "deepseek-v4-flash",
         "issue-exec": "deepseek-v4-flash",
         assistant: "deepseek-v4-flash",
@@ -54,15 +52,15 @@ function baseApi(): Record<string, ReturnType<typeof vi.fn>> {
     listProviders: vi.fn().mockResolvedValue({
       providers: [
         {
-          id: "codemaker",
-          displayName: "CodeMaker",
+          id: "hosted",
+          displayName: "Hosted",
           models: [
             { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
             { id: "m2", label: "M2" },
           ],
         },
       ],
-      active: { providerId: "codemaker", modelId: "deepseek-v4-flash" },
+      active: { providerId: "hosted", modelId: "deepseek-v4-flash" },
     }),
   };
 }
@@ -148,7 +146,6 @@ describe("AgentSettings", () => {
     const putScenarioModels = vi.fn().mockResolvedValue({
       models: {
         session: "m2",
-        popo: "deepseek-v4-flash",
         "issue-plan": "deepseek-v4-flash",
         "issue-exec": "deepseek-v4-flash",
         assistant: "deepseek-v4-flash",

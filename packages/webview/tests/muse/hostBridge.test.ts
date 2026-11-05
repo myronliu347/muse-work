@@ -24,7 +24,7 @@ function stubApi(overrides: Partial<MuseApiClient> = {}): MuseApiClient {
     baseUrl: "http://127.0.0.1:9",
     getAuthStatus: vi.fn(async () => ({
       state: "unauthenticated",
-      providerId: "codemaker",
+      providerId: "hosted",
     })),
     listSessionsGrouped: vi.fn(async () => ({
       pinned: [],
@@ -2792,7 +2792,7 @@ describe("createHostBridge reconnect", () => {
   });
 });
 
-describe("createHostBridge codemaker auth-failure dialog", () => {
+describe("createHostBridge auth-failure dialog", () => {
   const messages: unknown[] = [];
   let nativeDispatch: typeof window.dispatchEvent;
 
@@ -2811,11 +2811,11 @@ describe("createHostBridge codemaker auth-failure dialog", () => {
     vi.restoreAllMocks();
   });
 
-  it("isAuthError matches codemaker credential/expiry/unauthorized errors", () => {
-    expect(isAuthError("CodeMaker credentials missing or expired")).toBe(true);
+  it("isAuthError matches credential, expiry, and unauthorized errors", () => {
+    expect(isAuthError("credentials missing or expired")).toBe(true);
     expect(isAuthError("Unauthorized")).toBe(true);
     expect(isAuthError("Request failed with status code 401")).toBe(true);
-    expect(isAuthError("CodeMaker token renew failed (401)")).toBe(true);
+    expect(isAuthError("token renew failed (401)")).toBe(true);
     expect(
       isAuthError(
         'HTTP 403 Forbidden: {"msg":"auth failed","extra":{"code":30002,"msg":"request access token is invalid: token error: Token is expired"}}',
@@ -2826,13 +2826,13 @@ describe("createHostBridge codemaker auth-failure dialog", () => {
   it("isAuthError does not match unrelated errors", () => {
     expect(isAuthError("session not found")).toBe(false);
     expect(isAuthError("network error")).toBe(false);
-    expect(isAuthError("CodeMaker login timed out")).toBe(false);
+    expect(isAuthError("login timed out")).toBe(false);
   });
 
-  it("posts showAuthDialog when codemaker send fails with an auth error", async () => {
+  it("posts showAuthDialog when send fails with an auth error", async () => {
     const api = stubApi({
       sendMessage: vi.fn(async () => {
-        throw new Error("CodeMaker credentials missing or expired");
+        throw new Error("credentials missing or expired");
       }),
     });
     const bridge = createHostBridge({ api, ws: stubWs(), workdir: "/tmp" });
@@ -2873,14 +2873,14 @@ describe("createHostBridge codemaker auth-failure dialog", () => {
     );
   });
 
-  it("does not post showAuthDialog when the active provider is not codemaker", async () => {
+  it("does not post showAuthDialog for an API-key provider", async () => {
     const api = stubApi({
       getAuthStatus: vi.fn(async () => ({
         state: "unauthenticated",
         providerId: "openai-compatible",
       })),
       sendMessage: vi.fn(async () => {
-        throw new Error("CodeMaker credentials missing or expired");
+        throw new Error("credentials missing or expired");
       }),
     });
     const bridge = createHostBridge({ api, ws: stubWs(), workdir: "/tmp" });
@@ -2928,7 +2928,7 @@ describe("createHostBridge codemaker auth-failure dialog", () => {
       api: stubApi({
         getAuthStatus: vi.fn(async () => ({
           state: "authenticated",
-          providerId: "codemaker",
+          providerId: "hosted",
         })),
       }),
       ws,
@@ -2985,7 +2985,7 @@ describe("createHostBridge codemaker auth-failure dialog", () => {
     handler!({
       type: "auth:changed",
       sessionId: "sess-active",
-      status: { state: "unauthenticated", providerId: "codemaker" },
+      status: { state: "unauthenticated", providerId: "hosted" },
     });
     await flush();
 

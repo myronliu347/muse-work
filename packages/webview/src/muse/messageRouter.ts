@@ -784,8 +784,7 @@ export function createMessageHandler({
               ? { type: "deepseek-key" }
               : {
                   type: "login",
-                  serviceName:
-                    message.providerId === "codex" ? "ChatGPT" : "CodeMaker",
+                  serviceName: message.providerId === "codex" ? "ChatGPT" : "账号",
                 },
         });
         break;

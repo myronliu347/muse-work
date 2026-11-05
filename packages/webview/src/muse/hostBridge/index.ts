@@ -116,7 +116,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         status?.state === "unauthenticated" ||
         status?.state === "expired"
       ) {
-        auth.promptCodeMakerReauth();
+        auth.promptReauth();
       }
       return;
     }

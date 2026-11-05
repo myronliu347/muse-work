@@ -10,11 +10,11 @@ describe("assistant events and queue", () => {
   it("formats the three event kinds and omits empty fields", () => {
     expect(formatAssistantEvent({
       type: "chat",
-      from: "popo-group",
+      from: "room",
       message: "你好",
       user: "a@corp",
       groupId: "g1",
-    })).toBe("type: chat\nfrom: popo-group\nmessage: 你好\nuser: a@corp\ngroupId: g1");
+    })).toBe("type: chat\nfrom: room\nmessage: 你好\nuser: a@corp\ngroupId: g1");
     const triggeredAt = Date.UTC(2026, 9, 20, 8, 1, 37);
     expect(formatAssistantEvent({
       type: "chat",
@@ -112,17 +112,17 @@ describe("assistant events and queue", () => {
     expect(q.peek()).toMatchObject({ message: "一\n二" });
     q.enqueue({ type: "issue", issueId: "i1", title: "登录", workdir: "/repo", summary: "s" });
     expect(q.absorb({ type: "chat", from: "muse", message: "三" }, true)).toBe(false);
-    q.enqueue({ type: "chat", from: "popo", user: "a", message: "4", images: [{ data: "a", mediaType: "image/png" }] });
+    q.enqueue({ type: "chat", from: "desk", user: "a", message: "4", images: [{ data: "a", mediaType: "image/png" }] });
     expect(q.absorb({
       type: "chat",
-      from: "popo",
+      from: "desk",
       user: "a",
       message: "5",
       images: [{ data: "b", mediaType: "image/png" }],
     }, true)).toBe(true);
-    expect(q.absorb({ type: "chat", from: "popo", user: "b", message: "6" }, true)).toBe(false);
+    expect(q.absorb({ type: "chat", from: "desk", user: "b", message: "6" }, true)).toBe(false);
     const tail = q.list();
-    expect(tail.map((item) => item.title)).toEqual(["Muse：一 二", "登录", "POPO：4 5"]);
+    expect(tail.map((item) => item.title)).toEqual(["Muse：一 二", "登录", "desk：4 5"]);
     const homeBatch = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-q4-"));
     const batch = createAssistantQueue({ home: homeBatch });
     batch.enqueue({ type: "issue", issueId: "i1", title: "登录", workdir: "/repo", summary: "s" });
@@ -150,6 +150,15 @@ describe("assistant events and queue", () => {
       message: "关一下",
       images: [{ data: "abc", mediaType: "image/png" }],
     })).toEqual({ type: "chat", title: "Muse：关一下" });
+    expect(viewAssistantEvent(
+      { type: "chat", from: "desk", message: "在吗" },
+      { desk: "服务台" },
+    )).toEqual({ type: "chat", title: "服务台：在吗" });
+    expect(viewAssistantEvent({
+      type: "chat",
+      from: "desk",
+      message: "在吗",
+    })).toEqual({ type: "chat", title: "desk：在吗" });
     expect(viewAssistantEvent({
       type: "issue",
       issueId: "i1",

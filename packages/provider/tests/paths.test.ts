@@ -2,7 +2,7 @@ import { describe, expect, it, afterEach } from "vitest";
 import os from "node:os";
 import path from "node:path";
 import {
-  getCodeMakerAuthPath,
+  getCodexAuthPath,
   getMuseHomeDir,
   getProvidersConfigPath,
   getSessionsConfigPath,
@@ -34,8 +34,8 @@ describe("getMuseHomeDir", () => {
       path.join("/home/u", ".dev-muse-work", "sessions.json"),
     );
     // auth 例外：凭证按账号共享，prod/dev 保持一致（不随 MUSE_HOME_DIR）
-    expect(getCodeMakerAuthPath("/home/u")).toBe(
-      path.join("/home/u", ".muse-work", "auth", "codemaker.json"),
+    expect(getCodexAuthPath("/home/u")).toBe(
+      path.join("/home/u", ".muse-work", "auth", "codex.json"),
     );
   });
 

@@ -15,7 +15,7 @@ Issue 负责把一件事做成，自动化负责按规则跑一轮独立 Agent�
 - 一条长期活着的助理会话。应用启动时若还没有就创建，重启后续上。
 - 事件循环把事件排成队列，一次一条，用 `system-inject` 注入这条会话。
 - 助理自己判断：对上已有 Issue 就发消息；对不上就创建、打开会话、再发消息。
-- 回复人或 POPO 必须调用 `SendMessage`。循环不把回合正文自动发出去。
+- 回复人必须调用 `SendMessage`。循环不把回合正文自动发出去。
 
 **非目标**
 
@@ -26,7 +26,7 @@ Issue 负责把一件事做成，自动化负责按规则跑一轮独立 Agent�
 
 ## 会话
 
-会话身份以 session store 里 `origin` 为 `assistant` 的那一条为准。没有则创建，已有则复用，不另建索引文件，也不创建第二条。工作目录是 `<home>/assistant-chat`（与 POPO 的 `popo-chat` 一样放在应用 home 下），只作会话落点，不在这里改产品代码。权限为免确认（`bypassPermissions`），工具不弹窗。上下文满了走现有压缩。
+会话身份以 session store 里 `origin` 为 `assistant` 的那一条为准。没有则创建，已有则复用，不另建索引文件，也不创建第二条。工作目录是 `<home>/assistant-chat`，只作会话落点，不在这里改产品代码。权限为免确认（`bypassPermissions`），工具不弹窗。上下文满了走现有压缩。
 
 它不出现在普通会话列表里。侧栏有一个固定入口，点进去看到的是 Muse 对话记录，不是这条会话的 transcript。
 
@@ -42,9 +42,7 @@ Issue 负责把一件事做成，自动化负责按规则跑一轮独立 Agent�
 
 全部事件都以 `system-inject` 注入助理会话。正文是下面的纯文本，一行一个字段，空字段省略。
 
-只有绑定了 Issue 的会话回合结束，以及自动化运行结束，才入队。助理自己的回合结束不入队。`MessageIssue` 让 Issue 会话跑完后，那一轮的结论以 `type: issue` 入队。执行会话结束、规划会话结束，各产生一条。
-
-POPO 仍只接受主人。`/clear` 和 `/btw` 走原来的机器人路径。其余主人消息入队，不自动回执，也不再跑原来的 POPO 机器人会话。
+只有绑定了 Issue 的会话回合结束，以及自动化运行结束，才入队。助理自己的回合结束不入队。`MessageIssue` 让 Issue 会话跑完后，那一轮的结论以 `type: issue` 入队。执行会话结束、规划会话结束，各产生一条。外部频道的入队由宿主插件完成。
 
 ### chat
 
@@ -52,15 +50,14 @@ POPO 仍只接受主人。`/clear` 和 `/btw` 走原来的机器人路径。其�
 
 ```text
 type: chat
-from: muse | popo | popo-group
+from: muse | <channel>
 message: ...
 user: ...
 groupId: ...
 ```
 
 - `from: muse`：用户在助理会话里发送。先把这条写入 Muse 对话记录，再入队。不直接调用会话的 `sendMessage`。
-- `from: popo`：私聊。带 `user`（邮箱或 id）。
-- `from: popo-group`：群聊。带 `groupId`，以及发言人 `user`（有则带上）。
+- 其他 `from`：宿主插件解释。字段随该渠道带上，宿主不认识具体频道名。
 
 ### issue
 
@@ -101,13 +98,12 @@ summary: ...
 | 字段 | 含义 |
 |------|------|
 | `message` | 必填，markdown |
-| `app` | `muse` 或 `popo` |
+| `app` | `muse`，或宿主插件注册的渠道 id |
 | `user` | 发给某人时的邮箱或 id |
-| `groupId` | 发 POPO 群时的群 id |
+| `groupId` | 发到群时的群 id |
 
 - `app: muse`：成功后把这条 markdown 追加进 Muse 对话记录。失败不写。
-- `app: popo`：走现有机器人 `sendText`。有 `groupId` 则发给该群，否则发给 `user`。不写入 Muse 对话记录。
-- `user` 和 `groupId` 都空，或 POPO 未配置：工具返回错误，不猜接收人。
+- 其他 `app`：交给注册了该 id 的宿主插件发送。没人注册则工具失败，不猜接收人。
 
 ## Muse 对话记录
 
@@ -122,7 +118,7 @@ Muse 界面只展示这份记录，不渲染助理会话的 transcript。模型�
 {"id":"...","at":1710000001000,"role":"assistant","message":"..."}
 ```
 
-`id` 为 uuid。`at` 为毫秒时间戳。`role: user` 是用户在 Muse 里发出的消息。`role: assistant` 是 `SendMessage` 且 `app: muse` 成功后的正文。`message` 为完整 markdown，存储时不截断。POPO 来回不进入这些文件。
+`id` 为 uuid。`at` 为毫秒时间戳。`role: user` 是用户在 Muse 里发出的消息。`role: assistant` 是 `SendMessage` 且 `app: muse` 成功后的正文。`message` 为完整 markdown，存储时不截断。外部频道要不要写入，由该插件决定。
 
 界面第一次打开只取最新一片末尾 50 行。滚到顶再向更早的行要，当前片不够就打开上一片。新行追加后，停在底部的界面只接这一行。接口为 `GET /assistant/messages?before=<id>&limit=50`，按时间从早到晚返回这一页，并带 `hasMore`。新行用 websocket 事件 `assistant:chat` 推给已打开的界面。现有的 `assistant:message` 是会话流里「助理消息开始」的事件，不能复用。
 
@@ -159,7 +155,7 @@ Muse 界面只展示这份记录，不渲染助理会话的 transcript。模型�
 
 队首事件导致助理回合失败：该事件留在队首，正文追加 `retry: 1` 和 `error: ...`，再注入一次。第二次仍失败：从队列删除，由循环直接在助理会话 transcript 写入一条失败记录（不经过模型，也不再入队，不写入 Muse 对话记录），内容含事件类型和错误，然后处理下一条。Muse 界面不显示这条失败记录。
 
-工具错误留在当前回合，交回模型。目录不存在、`MessageIssue` 时会话未打开、`SendMessage` 缺接收人、POPO 未配置，都是这种错误。
+工具错误留在当前回合，交回模型。目录不存在、`MessageIssue` 时会话未打开、`SendMessage` 缺接收人或渠道未注册，都是这种错误。
 
 ## 测试
 
@@ -170,9 +166,8 @@ Muse 界面只展示这份记录，不渲染助理会话的 transcript。模型�
 - 回合失败再注入一次并带 `retry` 与 `error`；第二次失败后队列去掉该条，失败记录只在 transcript 里，不在 `db/assistant-messages/`。
 - 助理自身回合不入队。`MessageIssue` 对应的 Issue 会话结束后入队一条 `type: issue`。
 - 三种正文字段与上文一致；`summary` 超过 8000 码点时被截断。
-- `SendMessage`：`muse` 成功后向 `db/assistant-messages/` 追加一行 `role: assistant`，失败不写；`popo` 有 `groupId` 发群，否则发 `user`，且不写 Muse 记录；两者皆空或 POPO 未配置时工具失败。
+- `SendMessage`：`muse` 成功后向 `db/assistant-messages/` 追加一行 `role: assistant`，失败不写。未注册的 `app` 工具失败，不写记录。
 - Muse 用户发送先追加 `role: user`，再入队 `from: muse`。记录按 1 MiB 换片；单行可超过 1 MiB 并独占当前片。`GET /assistant/messages` 默认返回最新 50 行，`before` 跨片向更早读取。
 - `ListMuseMessages` 与上述读取同一目录。默认 50 条；`before` 翻更早的一页；`q` 最多扫 8 片或 8 MiB，未完则 `truncatedScan`；返回正文超过 8000 码点则 `truncated`，磁盘原文仍完整。
 - `CreateIssue` 默认 `p1`、空标签。`OpenIssue` 默认 `single`、无 worktree；已打开返回原会话；目录不存在失败。`MessageIssue` 在目标会话运行中时被该会话队列接受。
 - 助理工具列表为上述七种，不含清单、dispatch、完成、取消。
-- POPO `/clear` 与 `/btw` 不入队；其他主人消息入队且不自动回执；非主人仍被拒绝。

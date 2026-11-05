@@ -526,7 +526,7 @@ function reduceChat(state: ChatState, action: ChatAction): ChatState {
         configurationError: action.payload.error,
         loginServiceName:
           action.payload.type === "login"
-            ? action.payload.serviceName ?? "CodeMaker"
+            ? action.payload.serviceName ?? "账号"
             : state.loginServiceName,
       };
     case "HIDE_DIALOG":

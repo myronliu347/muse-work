@@ -77,18 +77,6 @@ function stubFetch(automations = [SAMPLE]) {
     if (url.includes("/agents")) {
       return jsonResponse({ version: 1, agents: [] });
     }
-    if (url.includes("/popo/config")) {
-      return jsonResponse({
-        url: "",
-        token: "",
-        aesKey: "",
-        masterUid: "",
-        port: 0,
-        ready: false,
-        configured: false,
-        error: null,
-      });
-    }
     if (url.includes("/providers")) {
       return jsonResponse({ providers: [], active: { providerId: "x" } });
     }

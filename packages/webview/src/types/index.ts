@@ -777,9 +777,9 @@ export interface ChatState {
     | "login"
     | "deepseek-key"
     | null;
-  /** Login failure shown inside the auth dialog (CodeMaker or ChatGPT SSO). */
+  /** Login failure shown inside the auth dialog. */
   loginError?: string;
-  /** Name shown on the login dialog. Defaults to CodeMaker. */
+  /** Name shown on the login dialog. */
   loginServiceName?: string;
   configurationData?: ConfigurationData;
   configurationLoading: boolean;

@@ -93,8 +93,6 @@ function sessionListElement(props: Record<string, unknown> = {}) {
     onLogin: _onLogin,
     isAuthenticated: _isAuthenticated,
     activeMenu: _activeMenu,
-    popoEnabled: _popoEnabled,
-    popoChats: _popoChats,
     sidebarAccessHidden: _sidebarAccessHidden,
     ...rest
   } = props;
@@ -308,15 +306,6 @@ describe("DesktopSidebar pin/recent sessions", () => {
         entry({ sessionId: "r1", workdir: "/repo/beta" }),
       ],
       issueGroups: [issueGroup({ issueId: "a", title: "Issue A" })],
-      popoEnabled: true,
-      popoChats: [
-        {
-          chatKey: "c1",
-          title: "chat",
-          updatedAt: Date.now(),
-          processing: false,
-        },
-      ],
     });
 
     expect(

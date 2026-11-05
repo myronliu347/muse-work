@@ -79,7 +79,7 @@ export interface BridgeCtx {
   wsConnected: boolean;
   toastedInterrupted: boolean;
   wsEverOpened: boolean;
-  /** Active provider id (from /auth/status); gates the CodeMaker login dialog. */
+  /** Active provider id (from /auth/status); gates the login dialog. */
   activeProviderId: string | undefined;
   pinned: TreeSession[];
   recent: TreeSession[];

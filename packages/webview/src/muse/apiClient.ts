@@ -40,7 +40,7 @@ export interface MuseTavilyConfig {
   source: "stored" | "env" | "none";
 }
 
-export interface MuseCodeMakerQuota {
+export interface MuseTokenQuota {
   raw: unknown;
   user?: string;
   total?: number;
@@ -100,7 +100,7 @@ export interface MuseSession {
   worktreeBranch?: string;
   baseBranch?: string;
   worktreeRepoRoot?: string;
-  /** 内置角色 key（default/plan/execute/popo），会话创建时写入；不可再通过 API 切换。 */
+  /** 内置角色 key（default/plan/execute），会话创建时写入；不可再通过 API 切换。 */
   agentName?: string;
   /** 自定义 system prompt（会话级覆盖）。 */
   systemPrompt?: string;
@@ -369,8 +369,8 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
-  async getCodeMakerQuota(): Promise<MuseCodeMakerQuota> {
-    const res = await this.request("/providers/codemaker/quota");
+  async getProviderQuota(providerId: string): Promise<unknown> {
+    const res = await this.request(`/providers/${encodeURIComponent(providerId)}/quota`);
     return parseJson(res);
   }
 

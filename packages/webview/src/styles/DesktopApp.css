@@ -287,7 +287,7 @@
   background: var(--gray-5);
 }
 
-/* 侧栏顶部菜单项（新对话 / POPO 机器人共用） */
+/* 侧栏顶部菜单项 */
 .app-menu {
   display: flex;
   align-items: center;
@@ -545,7 +545,7 @@
 
 /* Closed sections must not keep layout height. Nested workdir/issue lists
    stay `1fr` while open; 0fr alone still min-sizes to that content, which
-   showed up as extra gap before the next header (工作空间 → POPO). */
+   showed up as extra gap before the next header. */
 .desktop-session-collapse--closed {
   grid-template-rows: 0fr;
   height: 0;

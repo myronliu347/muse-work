@@ -5,7 +5,7 @@ export interface AuthModule {
   refreshAuth: () => Promise<void>;
   handleLogin: () => Promise<void>;
   handleLogout: () => Promise<void>;
-  promptCodeMakerReauth: () => void;
+  promptReauth: () => void;
   maybePromptAuthDialog: (error: string) => void;
   maybePatchTitle: (sid: string, text: string) => void;
   normalizeOutboundImages: (raw: unknown) => Array<{ data: string; mediaType: string }>;
@@ -50,14 +50,12 @@ export function createAuthModule(ctx: BridgeCtx): AuthModule {
   }
 
   /** Prompt re-login when a turn fails on auth grounds for an SSO provider. */
-  function promptCodeMakerReauth(): void {
+  function promptReauth(): void {
     const providerId = ctx.activeProviderId;
-    if (providerId && providerId !== "codemaker" && providerId !== "codex") {
-      return;
-    }
+    if (providerId === "deepseek" || providerId === "openai-compatible") return;
     postToWebview({
       command: "showAuthDialog",
-      providerId: providerId ?? "codemaker",
+      ...(providerId ? { providerId } : {}),
     });
   }
 
@@ -73,7 +71,7 @@ export function createAuthModule(ctx: BridgeCtx): AuthModule {
       command: "authStatusResponse",
       isAuthenticated: false,
     });
-    promptCodeMakerReauth();
+    promptReauth();
   }
 
   async function handleLogin(): Promise<void> {
@@ -130,7 +128,7 @@ export function createAuthModule(ctx: BridgeCtx): AuthModule {
     refreshAuth,
     handleLogin,
     handleLogout,
-    promptCodeMakerReauth,
+    promptReauth,
     maybePromptAuthDialog,
     maybePatchTitle,
     normalizeOutboundImages,

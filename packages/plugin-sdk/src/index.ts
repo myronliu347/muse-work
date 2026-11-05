@@ -18,12 +18,14 @@ export interface AssistantTool {
 }
 
 export interface AssistantApp {
-  /** Channel id claimed on SendMessage, for example `popo`. */
+  /** Channel id claimed on SendMessage. */
   id: string;
   /** One line added to the SendMessage description. */
   description: string;
   /** Appended after the core assistant prompt. */
   prompt?: string;
+  /** Queue title prefixes keyed by chat event `from`. */
+  queueLabels?: Record<string, string>;
   send(args: Record<string, unknown>): Promise<{
     success: boolean;
     content: string;

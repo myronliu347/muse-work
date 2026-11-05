@@ -42,7 +42,7 @@ export interface DesktopSidebarProps {
   disabled: boolean;
   /** Opens provider settings from the sidebar footer. */
   onOpenSettings: () => void;
-  /** CodeMaker SSO from the sidebar footer (next to settings). */
+  /** SSO from the sidebar footer (next to settings). */
   onLogin?: () => void;
   isAuthenticated?: boolean;
   /**

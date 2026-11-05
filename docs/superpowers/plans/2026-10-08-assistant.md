@@ -4,26 +4,26 @@
 
 **Goal:** 做一条长期助理会话，用事件队列叫醒它，由它通过 Issue 协调工作，并用按 1 MiB 切片的 JSONL 保存、展示 Muse 对话。
 
-**Architecture:** 服务端 `assistant` 目录放记录、队列、事件正文、运行时和七个进程内工具。助理会话 `origin` 为 `assistant`，`tools` 白名单只有这七个，`customTools` 在创建 agent 时注入，不挂 issue / automation / popo-notify 插件。Muse 界面只读 JSONL，不渲染 transcript。推送事件名是 `assistant:chat`，因为 `assistant:message` 已被会话流占用。
+**Architecture:** 服务端 `assistant` 目录放记录、队列、事件正文、运行时和七个进程内工具。助理会话 `origin` 为 `assistant`，`tools` 白名单只有这七个，`customTools` 在创建 agent 时注入，不挂 issue / automation 插件。Muse 界面只读 JSONL，不渲染 transcript。推送事件名是 `assistant:chat`，因为 `assistant:message` 已被会话流占用。
 
-**Tech Stack:** TypeScript、Vitest、Hono、现有 `SessionRunner.sendMessage(..., "system-inject")`、现有 POPO `sendText`、React webview。
+**Tech Stack:** TypeScript、Vitest、Hono、现有 `SessionRunner.sendMessage(..., "system-inject")`、React webview。
 
 ## Global Constraints
 
 - 一条助理会话。session store 里 `origin === "assistant"` 的那条复用，没有则创建，不建第二条，不另建索引文件。
-- 工作目录 `<home>/assistant-chat`（与 `popo-chat` 一样放在应用 home 下）。权限 `bypassPermissions`。
+- 工作目录 `<home>/assistant-chat`。权限 `bypassPermissions`。
 - 不挂载 issue-management。工具只有：`ListIssues`、`ListWorkdirs`、`CreateIssue`、`OpenIssue`、`MessageIssue`、`SendMessage`、`ListMuseMessages`。
 - 不建清单、不 dispatch、不完成、不取消。`OpenIssue` 不启用 worktree。未传 `agentMode` 时为 `single`。`CreateIssue` 未传优先级时为 `p1`，标签默认空。
 - 事件全部 `system-inject`。队列文件 `db/assistant-queue.json`，FIFO，重启后续跑。一次只放行队首。
 - 对话记录目录 `db/assistant-messages/`，文件 `000001.jsonl` 起。追加前若当前片已达 1048576 字节则换片。一行一条，不拆行。单行可超过 1 MiB 并独占当前片。
-- 行格式：`{"id","at","role":"user"|"assistant","message"}`。`role: user` 仅 Muse 发送。`role: assistant` 仅 `SendMessage` 且 `app: muse` 成功。POPO 不写入。存储不截断。
+- 行格式：`{"id","at","role":"user"|"assistant","message"}`。`role: user` 仅 Muse 发送。`role: assistant` 仅 `SendMessage` 且 `app: muse` 成功。外部频道是否写入由插件决定。存储不截断。
 - `GET /assistant/messages?before=<id>&limit=50` 按时间从早到晚返回，带 `hasMore`。新行 websocket 事件 `assistant:chat`。
 - `ListMuseMessages`：默认 50，最大 50；`before` 翻更早页；`q` 最多 8 个文件或 8 MiB；返回正文超过 8000 码点则 `truncated: true`；未扫完 `truncatedScan: true`。
 - issue 事件字段只有 `type`、`issueId`、`title`、`workdir`、`summary`。`summary` 截断 8000 码点。执行会话结束和规划会话结束各一条。
 - automation 事件含 `skipped`。`summary` 同样截断 8000。`error` 仅在有运行错误时出现。
-- chat 事件：`from` 为 `muse | popo | popo-group`。空字段省略。
+- chat 事件：`from` 为 `muse` 或宿主插件的渠道 id。空字段省略。
 - 回合失败：队首留下，正文追加 `retry: 1` 与 `error: <原因>`，再注入一次。第二次失败：出队，transcript 写失败记录，不进 JSONL，不经过模型。
-- POPO 仍只接受主人。`/clear` 与 `/btw` 走原路径。其余主人消息入队且不自动回执。
+- 外部频道的入队由宿主插件完成。
 - 助理自己的回合不入队。
 - 界面第一次 50 行，滚到顶再向更早要。侧栏入口不进普通会话列表。
 
@@ -177,7 +177,7 @@ git commit -m "feat: store assistant muse chat in sliced jsonl"
 你是长期助理。每条系统注入是一个事件，字段 type 为 chat、issue 或 automation。
 用 ListIssues 按工作目录、标题、描述判断。对得上就 MessageIssue；还没开会话就先 OpenIssue。对不上就 CreateIssue、OpenIssue、MessageIssue。
 目录选不出就 SendMessage 回问。issue 和 automation 可以不调用任何工具。
-回复人或 POPO 必须调用 SendMessage。app 为 muse 写给 Muse 用户，app 为 popo 时有 groupId 发群，否则发给 user。
+回复人必须调用 SendMessage。app 为 muse 写给 Muse 用户，其他 app 交给注册了该渠道的宿主插件。
 禁止创建清单、dispatch、完成、取消。OpenIssue 拿不准模式就用 single。
 transcript 压缩后，用 ListMuseMessages 回查 Muse 对话。
 ```
@@ -226,7 +226,7 @@ Expected: FAIL，`origin: "assistant"` 不能赋值，或 `ensureAssistantSessio
 
 - `sessionStore.ts`：`origin?: "user" | "automation" | "assistant"`。`create` 里保留传入的 `assistant`，只有缺省才落到 `user`。`listGrouped` 的过滤改为 `origin !== "automation" && origin !== "assistant"`
 - `routes/sessions.ts` 列表过滤同样排除 `assistant`
-- `agent.ts` 的 `enabledPluginDirs`：`session?.origin === "assistant"` 时直接 `return dirs` 之前先 return 空插件列表（不要 push issue / automation / popo-notify）。把参数类型里的 `origin` 扩成 `"user" | "automation" | "assistant"`
+- `agent.ts` 的 `enabledPluginDirs`：`session?.origin === "assistant"` 时直接 `return dirs` 之前先 return 空插件列表（不要 push issue / automation）。把参数类型里的 `origin` 扩成 `"user" | "automation" | "assistant"`
 - 按 Interfaces 实现 `session.ts` 与 `prompt.ts`
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -274,11 +274,11 @@ describe("assistant events and queue", () => {
   it("formats the three event kinds and omits empty fields", () => {
     expect(formatAssistantEvent({
       type: "chat",
-      from: "popo-group",
+      from: "channel",
       message: "你好",
       user: "a@corp",
       groupId: "g1",
-    })).toBe("type: chat\nfrom: popo-group\nmessage: 你好\nuser: a@corp\ngroupId: g1");
+    })).toBe("type: chat\nfrom: channel\nmessage: 你好\nuser: a@corp\ngroupId: g1");
     expect(formatAssistantEvent({
       type: "issue",
       issueId: "i1",
@@ -467,14 +467,14 @@ git commit -m "feat: run the assistant from a single-flight event loop"
 - Modify: `packages/server/src/services/sessionRunner/agent.ts`（`origin === "assistant"` 时把 `customTools` 传给 `createAgent`，并让 `tools` 白名单生效）
 
 **Interfaces:**
-- Consumes: `IssueStore`、`SessionStore`、`SessionRunner.sendMessage`、`createAssistantMessageLog`、POPO `sendText?`、`AutomationStore.list`
+- Consumes: `IssueStore`、`SessionStore`、`SessionRunner.sendMessage`、`createAssistantMessageLog`、`AutomationStore.list`
 - Produces: `createAssistantTools(deps): ToolPlugin[]`，名字与 `ASSISTANT_TOOL_NAMES` 一致。`execute` 返回 `{ success, content, error? }`，`content` 为 JSON 字符串
   - `ListIssues`：未完成 Issue 的 `id` `title` `description` `workdir` `sessionOpen`（`planningSessionId` 是否存在）
   - `ListWorkdirs`：Issue（含已关闭、有 `workdir`）、自动化 `workdir`、`origin === "user"` 的会话 `workdir`，`fs.existsSync` 后去重
   - `CreateIssue`：`title` `description` 必填；`priority` 默认 `p1`；`tags` 默认 `[]`
   - `OpenIssue`：`issueId` `workdir` 必填；`agentMode` 默认 `single`。目录不存在返回 `success: false`。已有 `planningSessionId` 则返回现有 `sessionId` 与 `workdir`，不调用打开逻辑。否则调用与 `POST /issues/:id/sessions` 相同的打开函数，`worktreeEnabled: false`
   - `MessageIssue`：向该 Issue 的 `planningSessionId` `sendMessage(content)`，source 默认用户消息（不要 `system-inject`）。无会话则 `success: false`，错误文案 `session not open`
-  - `SendMessage`：`app: "muse"` 成功则 `log.append("assistant", message)` 并 `hub.broadcastAll({ type: "assistant:chat", line })`。`app: "popo"`：有 `groupId` 则 `sendText(groupId)`，否则 `sendText(user)`；两者皆空或没有 `sendText` 则失败。失败不 `append`
+  - `SendMessage`：`app: "muse"` 成功则 `log.append("assistant", message)` 并 `hub.broadcastAll({ type: "assistant:chat", line })`。其他 `app` 交给注册了该渠道的宿主插件；没人注册则失败。失败不 `append`
   - `ListMuseMessages`：参数 `before?` `q?` `limit?`。有 `q` 走 `log.search`，否则 `log.page` 再把超 8000 码点的 `message` 截断并加 `truncated`
 
 打开会话不要在工具里复制 HTTP 解析。从 `packages/server/src/routes/issues.ts` 抽出 `openIssueSession(ctx, issueId, body)`，路由与 `OpenIssue` 共用。`body` 为 `{ workdir, agentMode, worktreeEnabled: false }`。
@@ -483,7 +483,7 @@ git commit -m "feat: run the assistant from a single-flight event loop"
 
 - [ ] **Step 1: Write the failing test**
 
-覆盖：`CreateIssue` 默认 `p1` 与空标签；`OpenIssue` 目录不存在失败、再次调用返回同一 `sessionId`、`worktreeEnabled` 不为 true；`MessageIssue` 在无会话时失败；`SendMessage` muse 追加一行且 popo 缺少接收人失败并不写记录；`ListMuseMessages` 对 8001 个「你」返回 `truncated: true`。用 `fs.mkdtempSync` 做 home，`createIssueStore`、`createSessionStore`、`createAssistantMessageLog`，POPO 用 `{ sendText: async (receiver, content) => { sent.push({ receiver, content }); } }`。
+覆盖：`CreateIssue` 默认 `p1` 与空标签；`OpenIssue` 目录不存在失败、再次调用返回同一 `sessionId`、`worktreeEnabled` 不为 true；`MessageIssue` 在无会话时失败；`SendMessage` muse 追加一行，未注册的 app 失败并不写记录；`ListMuseMessages` 对 8001 个「你」返回 `truncated: true`。用 `fs.mkdtempSync` 做 home，`createIssueStore`、`createSessionStore`、`createAssistantMessageLog`。
 
 `OpenIssue` 的打开依赖抽出的 `openIssueSession`。测试给一个假实现：`openIssueSession: (id, body) => { opened.push(body); return { sessionId: "s1", workdir: body.workdir }; }`，并让 Issue 在假实现里被 `setPlanning`。第二次调用时期望 `opened` 仍为 1。
 
@@ -495,7 +495,7 @@ Expected: FAIL，`createAssistantTools` 不存在
 
 - [ ] **Step 3: Write minimal implementation**
 
-按 Interfaces 实现 `tools.ts`，并从 `issues.ts` 抽出 `openIssueSession`。工具 schema 的 `parameters` 用 JSON Schema。`SendMessage.app` enum `["muse","popo"]`。`OpenIssue.agentMode` enum `["single","split"]`。
+按 Interfaces 实现 `tools.ts`，并从 `issues.ts` 抽出 `openIssueSession`。工具 schema 的 `parameters` 用 JSON Schema。`SendMessage.app` 为 `muse` 或插件注册的渠道。`OpenIssue.agentMode` enum `["single","split"]`。
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -512,17 +512,15 @@ git commit -m "feat: add the assistant coordination tools"
 
 ---
 
-### Task 6: 接上 Issue、自动化、POPO 与 HTTP
+### Task 6: 接上 Issue、自动化与 HTTP
 
 **Files:**
 - Modify: `packages/server/src/services/appContext.ts`
 - Modify: `packages/server/src/services/automationRuntime.ts`（`handleTurnSettled` 末尾调用可选 `onRunSettled`）
-- Modify: `packages/server/src/popo/handler.ts` 与 `packages/server/src/popo/setup.ts`
 - Create: `packages/server/src/routes/assistant.ts`
 - Modify: `packages/server/src/app.ts`
 - Modify: `packages/server/src/services/wsEvents.ts`（增加 `{ type: "assistant:chat"; line: MuseChatLine }`，不要改现有 `assistant:message`）
 - Test: `packages/server/tests/assistantWiring.test.ts`
-- Test: `packages/server/tests/popoHandler.test.ts`（补一条：普通消息入队、不调用原来的 `runner.run`、不 `sendText` 回执）
 
 **Interfaces:**
 - Consumes: Task 1–5 的工厂
@@ -531,7 +529,8 @@ git commit -m "feat: add the assistant coordination tools"
   - `GET /assistant/messages`
   - Issue 绑定会话回合结束 → `enqueue` 一条 `type: issue`（`summary` 用已导出的 `lastAssistantText`）
   - 自动化 `handleTurnSettled` 改完状态后 `onRunSettled(run, automation)` → `enqueue` 一条 `type: automation`。`summary` 来自该 run 的 `sessionId` 的 `lastAssistantText`，没有会话则省略
-  - POPO：主人且不是 `/clear`、`/btw` 时 `enqueue({ type: "chat", from: type === "team" ? "popo-group" : "popo", message, user: from, groupId: type === "team" ? receiver : undefined })`。不发送 ACK。`/clear` 与 `/btw` 保持现有函数
+
+外部频道的入队和发送在宿主插件里，不改宿主。
 
 `setOnTurnSettled` 现有回调先保持 `dispatcher` 与 `automationRuntime`。再调用 `assistantRuntime.onAssistantTurnSettled`。另外若 `issueStore` 里某条未完成 Issue 的 `planningSessionId` 或 `executionSessionId` 等于 `sessionId`，且 `sessionId` 不是助理自己，则入队 issue 事件。执行会话与规划会话都会各自触发，因为它们是两次 `onTurnSettled`。
 
@@ -548,29 +547,27 @@ Muse 用户发送不走这个 HTTP 以外的路径。`POST /assistant/messages` 
 - `POST /assistant/messages` 先有 JSONL 行，队列里有 `from: muse`
 - 助理会话 id 的 `onTurnSettled` 不产生 `type: issue`
 
-POPO 测试沿用 `packages/server/tests/popoHandler.test.ts` 的现有 harness。普通文本消息时期望 `enqueued[0].from === "popo"`，`sendText` 未被调用。`/clear` 仍清空且不入队。
-
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @muse-work/server exec vitest run tests/assistantWiring.test.ts tests/popoHandler.test.ts`
+Run: `pnpm --filter @muse-work/server exec vitest run tests/assistantWiring.test.ts`
 
-Expected: FAIL，路由或 `onRunSettled` 不存在；POPO 仍会 `sendText` 回执
+Expected: FAIL，路由或 `onRunSettled` 不存在
 
 - [ ] **Step 3: Write minimal implementation**
 
-按 Interfaces 接线。`createAppContext` 在 runner 创建后调用 `sessions.runner.setAssistantTools(() => createAssistantTools(...))`，`agent.ts` 仅在 `origin === "assistant"` 时把该回调的返回值传给 `createAgent({ customTools })`。`handler.ts` 的 `handle` 在主人校验和 `/clear`、`/btw` 之后改为入队并 return，删掉这段路径上的 ACK 与 `runner.run`。群聊 `from` 用 `popo-group`，`groupId` 用现有 `receiver`。
+按 Interfaces 接线。`createAppContext` 在 runner 创建后调用 `sessions.runner.setAssistantTools(() => createAssistantTools(...))`，`agent.ts` 仅在 `origin === "assistant"` 时把该回调的返回值传给 `createAgent({ customTools })`。
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter @muse-work/server exec vitest run tests/assistantWiring.test.ts tests/popoHandler.test.ts tests/automationRuntime.test.ts`
+Run: `pnpm --filter @muse-work/server exec vitest run tests/assistantWiring.test.ts tests/automationRuntime.test.ts`
 
 Expected: PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/server/src/services/appContext.ts packages/server/src/services/automationRuntime.ts packages/server/src/popo/handler.ts packages/server/src/popo/setup.ts packages/server/src/routes/assistant.ts packages/server/src/app.ts packages/server/src/services/wsEvents.ts packages/server/tests/assistantWiring.test.ts packages/server/tests/popoHandler.test.ts
-git commit -m "feat: wake the assistant from issue, automation, and popo events"
+git add packages/server/src/services/appContext.ts packages/server/src/services/automationRuntime.ts packages/server/src/routes/assistant.ts packages/server/src/app.ts packages/server/src/services/wsEvents.ts packages/server/tests/assistantWiring.test.ts
+git commit -m "feat: wake the assistant from issue and automation events"
 ```
 
 ---

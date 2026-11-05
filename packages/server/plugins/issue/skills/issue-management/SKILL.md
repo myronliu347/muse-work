@@ -7,7 +7,7 @@ description: "管理本机 Issue：用户明确要求创建 issue/待办时创�
 
 你负责在本机创建与调度 Issue（规划侧）。操作通过同目录下的 `scripts/issue.mjs` 调用本地 REST API。
 
-**执行会话不会挂载本插件**，因此执行 AI 看不到这些命令。关单与调度只应在规划/普通/单 agent/POPO 会话完成。
+**执行会话不会挂载本插件**，因此执行 AI 看不到这些命令。关单与调度只应在规划/普通/单 agent 会话完成。
 
 系统提示词若写明「单 agent」：规划与实现都在**当前会话**，**可以改代码**；**禁止 dispatch**，**不要建清单、不要 items / exec-turn**。对照当初要做的那件事，做完了且没有还在等用户拍板，调用 `ready`，不要自己关单。用户明确说关掉 / 完成时才 `complete --note`。note 写详细一点：做成了什么。是缺陷时简单写原因和方案。用户说取消时才 `cancel --note`，一句原因就够。若写明「规划会话」且「不要修改产品实现」：按下面「规划与调度」执行。
 
@@ -16,7 +16,7 @@ description: "管理本机 Issue：用户明确要求创建 issue/待办时创�
 - **只有用户明确说要创建 issue / 待办 / 记一个任务 / 用这个建** 时才 `create`。
 - 不要根据闲聊或猜测擅自建 Issue。
 - **当前会话已经是某个 Issue 的会话**（system prompt 里有 Issue ID）：**禁止再 `create`**。规划+执行才对那个 ID `items --add-json`；单 agent 不要维护清单。
-- **从普通对话或 POPO 创建**：`create` 只填 title / description / priority / type，**不要**附带当前会话 workdir。workdir 仍等用户点「打开会话」再选。默认先建空 Issue，**不要**顺手 `--add-json`。`--type` 只是分类：bug、feature、research、analysis、review、work。不填是 work。它不决定怎么开工。
+- **从普通对话创建**：`create` 只填 title / description / priority / type，**不要**附带当前会话 workdir。workdir 仍等用户点「打开会话」再选。默认先建空 Issue，**不要**顺手 `--add-json`。`--type` 只是分类：bug、feature、research、analysis、review、work。不填是 work。它不决定怎么开工。
 - **写入清单必须先给拟议条目，等用户确认后再写。** 规划会话还要先有用户确认过的实施计划，才能建执行清单。pending Issue 就能加条目，不必等打开会话；但「用户说建清单」只表示可以开始拟议，**同一轮不要** `items --add-json` / `create --add-json`，除非用户已经逐条确认或明确说「就这些、写进去」。
 - `dispatch` 才需要已打开的**规划+执行**会话；没开规划、用户未确认开工时都不要 dispatch。
 

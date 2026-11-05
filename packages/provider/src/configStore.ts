@@ -2,9 +2,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { getProvidersConfigPath } from "./paths.js";
-import type { ProvidersFile } from "./types.js";
+import type { ProviderBlock, ProvidersFile } from "./types.js";
 
-/** Default model for new sessions / CodeMaker fallback (not models[0]). */
+/** Default model for new sessions. */
 export const DEFAULT_ACTIVE_MODEL_ID = "deepseek-flash";
 
 function defaultProvidersConfig(): ProvidersFile {
@@ -38,18 +38,38 @@ function defaultProvidersConfig(): ProvidersFile {
   };
 }
 
+const BUILTIN_PROVIDER_IDS = new Set([
+  "deepseek",
+  "codex",
+  "openai-compatible",
+]);
+
+function hostedProviders(
+  raw: Record<string, unknown> | undefined,
+): Record<string, ProviderBlock> {
+  const hosted: Record<string, ProviderBlock> = {};
+  if (!raw) return hosted;
+  for (const [id, block] of Object.entries(raw)) {
+    if (BUILTIN_PROVIDER_IDS.has(id)) continue;
+    if (!block || typeof block !== "object" || Array.isArray(block)) continue;
+    hosted[id] = block as ProviderBlock;
+  }
+  return hosted;
+}
+
 function mergeProvidersConfig(raw: ProvidersFile): ProvidersFile {
   const defaults = defaultProvidersConfig();
+  const incoming = raw.providers as unknown as Record<string, unknown> | undefined;
   return {
     activeProviderId: raw.activeProviderId || defaults.activeProviderId,
     activeModelId: raw.activeModelId ?? defaults.activeModelId,
     providers: {
       deepseek: raw.providers?.deepseek ?? defaults.providers.deepseek,
-      ...(raw.providers?.codemaker ? { codemaker: raw.providers.codemaker } : {}),
       codex: raw.providers?.codex ?? defaults.providers.codex,
       "openai-compatible":
         raw.providers?.["openai-compatible"] ??
         defaults.providers["openai-compatible"],
+      ...hostedProviders(incoming),
     },
   };
 }

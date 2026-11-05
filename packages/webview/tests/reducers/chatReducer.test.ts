@@ -1815,15 +1815,15 @@ describe("chatReducer", () => {
     it("SET_LOGIN_ERROR surfaces the failure message", () => {
       const state = chatReducer(initialState, {
         type: "SET_LOGIN_ERROR",
-        payload: "CodeMaker login timed out",
+        payload: "login timed out",
       });
-      expect(state.loginError).toBe("CodeMaker login timed out");
+      expect(state.loginError).toBe("login timed out");
     });
 
     it("HIDE_DIALOG clears the login error", () => {
       const withError = chatReducer(initialState, {
         type: "SET_LOGIN_ERROR",
-        payload: "CodeMaker login timed out",
+        payload: "login timed out",
       });
       const state = chatReducer(withError, { type: "HIDE_DIALOG" });
       expect(state.activeDialog).toBeNull();
@@ -1833,7 +1833,7 @@ describe("chatReducer", () => {
     it("successful auth clears the login error", () => {
       const withError = chatReducer(initialState, {
         type: "SET_LOGIN_ERROR",
-        payload: "CodeMaker login timed out",
+        payload: "login timed out",
       });
       const state = chatReducer(withError, {
         type: "SET_AUTHENTICATED",

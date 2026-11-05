@@ -11,7 +11,7 @@ describe("MuseApiClient", () => {
         return new Response(JSON.stringify({ ok: true }), { status: 200 });
       },
     });
-    await client.setActive("codemaker", "deepseek-v4-pro");
+    await client.setActive("hosted", "deepseek-v4-pro");
     expect(fetches[0]).toContain("/providers/active");
     expect(fetches[0]).toMatch(/^POST /);
   });
@@ -25,7 +25,7 @@ describe("MuseApiClient", () => {
         return new Response(
           JSON.stringify({
             providers: [],
-            active: { providerId: "codemaker", modelId: "m1" },
+            active: { providerId: "hosted", modelId: "m1" },
           }),
           { status: 200 },
         );
@@ -33,7 +33,7 @@ describe("MuseApiClient", () => {
     });
     const body = await client.listProviders();
     expect(fetches[0]).toBe("GET http://127.0.0.1:9/providers");
-    expect(body.active.providerId).toBe("codemaker");
+    expect(body.active.providerId).toBe("hosted");
   });
 
   it("login posts /auth/login", async () => {

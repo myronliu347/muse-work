@@ -7,17 +7,17 @@ describe("HostPluginPanel", () => {
     render(
       <HostPluginPanel
         panel={{
-          id: "popo",
-          title: "POPO",
+          id: "channel",
+          title: "频道",
           fields: [
-            { label: "请求地址", value: "http://10.0.0.1:3100/popo/callback" },
+            { label: "请求地址", value: "http://10.0.0.1:3100/callback" },
             { label: "主人账号", value: "me@corp.netease.com", copyable: false },
           ],
         }}
       />,
     );
-    expect(screen.getByTestId("plugin-panel-popo")).toBeInTheDocument();
-    expect(screen.getByText("http://10.0.0.1:3100/popo/callback")).toBeInTheDocument();
+    expect(screen.getByTestId("plugin-panel-channel")).toBeInTheDocument();
+    expect(screen.getByText("http://10.0.0.1:3100/callback")).toBeInTheDocument();
     expect(screen.getByText("me@corp.netease.com")).toBeInTheDocument();
     expect(screen.getByLabelText("复制 请求地址")).toBeInTheDocument();
     expect(screen.queryByLabelText("复制 主人账号")).toBeNull();
@@ -27,8 +27,8 @@ describe("HostPluginPanel", () => {
     render(
       <HostPluginPanel
         panel={{
-          id: "popo",
-          title: "POPO",
+          id: "channel",
+          title: "频道",
           heading: "回调配置",
           ready: true,
           readyLabel: "回调就绪",
@@ -39,20 +39,20 @@ describe("HostPluginPanel", () => {
     );
     expect(screen.getByText("回调配置")).toBeInTheDocument();
     expect(screen.getByText("回调就绪")).toBeInTheDocument();
-    expect(screen.queryByText("POPO")).toBeNull();
+    expect(screen.queryByText("频道")).toBeNull();
   });
 
   it("shows the empty-state copy when the plugin declares no fields", () => {
     render(
       <HostPluginPanel
         panel={{
-          id: "popo",
-          title: "POPO",
-          empty: "未找到 ~/.popo-config.json。",
+          id: "channel",
+          title: "频道",
+          empty: "未找到配置。",
           fields: [],
         }}
       />,
     );
-    expect(screen.getByText("未找到 ~/.popo-config.json。")).toBeInTheDocument();
+    expect(screen.getByText("未找到配置。")).toBeInTheDocument();
   });
 });

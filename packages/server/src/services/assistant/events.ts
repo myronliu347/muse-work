@@ -95,17 +95,32 @@ function clipQueueText(text: string): string {
   return `${chars.slice(0, 80).join("")}…`;
 }
 
-export function viewAssistantEvent(event: AssistantEvent): AssistantQueueView {
+export function collectQueueLabels(
+  apps: Array<{ queueLabels?: Record<string, string> }>,
+): Record<string, string> {
+  const labels: Record<string, string> = {};
+  for (const app of apps) {
+    for (const [from, label] of Object.entries(app.queueLabels ?? {})) {
+      const key = from.trim();
+      const text = label.trim();
+      if (key && text) labels[key] = text;
+    }
+  }
+  return labels;
+}
+
+function chatSourceLabel(from: string | undefined, queueLabels: Record<string, string>): string {
+  if (!from || from === "muse") return "Muse";
+  return queueLabels[from]?.trim() || from;
+}
+
+export function viewAssistantEvent(
+  event: AssistantEvent,
+  queueLabels: Record<string, string> = {},
+): AssistantQueueView {
   const retry = event.retry === 1 ? ({ retry: true } as const) : {};
   if (event.type === "chat") {
-    const who =
-      event.from === "popo-group"
-        ? "POPO 群"
-        : event.from === "popo"
-          ? "POPO"
-          : event.from === "muse" || !event.from
-            ? "Muse"
-            : event.from;
+    const who = chatSourceLabel(event.from, queueLabels);
     const body = clipQueueText(event.message) || (event.images?.length ? "图片" : "空消息");
     return queueView({ type: "chat", title: `${who}：${body}`, ...retry }, event.timestamp);
   }

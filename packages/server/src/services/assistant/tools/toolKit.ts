@@ -19,15 +19,6 @@ export type AssistantToolDeps = {
   automations: AutomationStore;
   log: Log;
   hub: WsHub;
-  sendText?: (
-    receiver: string,
-    content: string,
-    at?: { atUids?: string[] },
-  ) => Promise<string[] | void>;
-  sendLocalFile?: (receiver: string, filePath: string) => Promise<string | void>;
-  recallPopo?: (args: { msgId: string; sessionId: string; sessionType: 1 | 3 }) => Promise<void>;
-  /** 主人账号。只有发给这个人的 POPO 私聊才写入对话列表。 */
-  popoMasterUid?: () => string | undefined;
   apps?: import("@muse-work/plugin-sdk").AssistantApp[];
   extraTools?: import("@muse-work/plugin-sdk").AssistantTool[];
   openIssue?: typeof openIssueSession;

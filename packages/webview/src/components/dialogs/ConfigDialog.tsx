@@ -1,5 +1,5 @@
 /**
- * ConfigDialog — settings overlay hosts appearance, agent, provider, and POPO.
+ * ConfigDialog — settings overlay hosts appearance, agent, provider, and host-plugin panels.
  */
 
 import React, {

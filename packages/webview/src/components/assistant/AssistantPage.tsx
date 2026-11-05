@@ -42,7 +42,7 @@ export type AssistantLine = {
   role: "user" | "assistant";
   message: string;
   images?: Array<{ data: string; mediaType: string }>;
-  app?: "popo";
+  app?: string;
   /** 这条回复引用的 Issue。标题引用可点击并切到它。 */
   issueId?: string;
 };
@@ -119,13 +119,13 @@ const noopHost: VsCodeApi = {
   setState: () => {},
 };
 
-const POPO_IMAGE_TAG = /\[img\](https?:\/\/[^\s[\]]+)\[\/img\]/gi;
+const CHANNEL_IMAGE_TAG = /\[img\](https?:\/\/[^\s[\]]+)\[\/img\]/gi;
 
-/** POPO 把图片写成 `[img]url[/img]`。抽出来单独显示，正文里不再留这串标记。 */
-function popoImageUrls(message: string): { text: string; urls: string[] } {
+/** 渠道把图片写成 `[img]url[/img]`。抽出来单独显示，正文里不再留这串标记。 */
+function channelImageUrls(message: string): { text: string; urls: string[] } {
   const urls: string[] = [];
   const text = message
-    .replace(POPO_IMAGE_TAG, (_match, url: string) => {
+    .replace(CHANNEL_IMAGE_TAG, (_match, url: string) => {
       urls.push(url);
       return "";
     })
@@ -133,6 +133,13 @@ function popoImageUrls(message: string): { text: string; urls: string[] } {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   return { text, urls };
+}
+
+/** 气泡上来源条。muse 和空渠道不标。 */
+function sourceApp(app: string | undefined): string | undefined {
+  const value = app?.trim();
+  if (!value || value === "muse") return undefined;
+  return value;
 }
 
 function withIssueQuote(html: string, issueId: string | undefined): string {
@@ -190,12 +197,17 @@ function asLine(value: unknown): AssistantLine | undefined {
     typeof line.id === "string" &&
     typeof line.message === "string"
   ) {
+    const app = sourceApp(
+      typeof (line as { app?: unknown }).app === "string"
+        ? (line as { app: string }).app
+        : undefined,
+    );
     return {
       id: line.id,
       at: typeof line.at === "number" ? line.at : Date.now(),
       role: line.role,
       message: line.message,
-      ...((line as { app?: unknown }).app === "popo" ? { app: "popo" as const } : {}),
+      ...(app ? { app } : {}),
       ...(typeof (line as { issueId?: unknown }).issueId === "string" &&
       (line as { issueId: string }).issueId.trim()
         ? { issueId: (line as { issueId: string }).issueId.trim() }
@@ -361,7 +373,7 @@ function UserLine({
     index: number,
   ) => void;
 }) {
-  const { text, urls } = popoImageUrls(line.message);
+  const { text, urls } = channelImageUrls(line.message);
   const parts = parseMentions(
     text,
     line.images?.map((img, index) => ({
@@ -423,9 +435,10 @@ function UserLine({
     });
   const hasBody = body.some(Boolean);
   const gallery = shots.map((shot) => ({ url: shot.src, alt: shot.alt }));
+  const source = sourceApp(line.app);
   return (
     <div className="assistant-bubble-row assistant-bubble-row-user">
-      {line.app === "popo" ? <div className="assistant-bubble-source">POPO</div> : null}
+      {source ? <div className="assistant-bubble-source">{source}</div> : null}
       <div className="assistant-bubble assistant-bubble-user">
         <div className="assistant-user-content">
           {hasBody ? <div className="assistant-user-body">{body}</div> : null}
@@ -509,7 +522,7 @@ function AssistantBubbleBody({
     index: number,
   ) => void;
 }) {
-  const { text, urls } = popoImageUrls(line.message);
+  const { text, urls } = channelImageUrls(line.message);
   const shots = [...urls, ...(line.images ?? []).map((img) => img.data)];
   const gallery = shots.map((src, index) => ({ url: src, alt: `图片 ${index + 1}` }));
   const parts = parseMentions(text).filter(
@@ -1176,6 +1189,7 @@ export const AssistantPage: React.FC<{
           {virtualizer.getVirtualItems().map((virtualRow) => {
             const line = lines[virtualRow.index];
             if (!line) return null;
+            const source = sourceApp(line.app);
             return (
               <div
                 key={virtualRow.key}
@@ -1193,8 +1207,8 @@ export const AssistantPage: React.FC<{
                   />
                 ) : (
                   <div className="assistant-bubble-row assistant-bubble-row-assistant">
-                    {line.app === "popo" ? (
-                      <div className="assistant-bubble-source">POPO</div>
+                    {source ? (
+                      <div className="assistant-bubble-source">{source}</div>
                     ) : null}
                     <div className="assistant-bubble assistant-bubble-assistant">
                       <AssistantBubbleBody

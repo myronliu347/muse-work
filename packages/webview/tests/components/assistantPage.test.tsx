@@ -317,12 +317,12 @@ describe("AssistantPage", () => {
     ).toBeTruthy();
   });
 
-  it("labels the master's POPO private messages", async () => {
+  it("labels channel messages with their app", async () => {
     const api = {
       listAssistantMessages: vi.fn().mockResolvedValue({
         messages: [
-          { id: "1", at: 1, role: "user", message: "私聊过来", app: "popo" },
-          { id: "2", at: 2, role: "assistant", message: "私聊回去", app: "popo" },
+          { id: "1", at: 1, role: "user", message: "私聊过来", app: "desk" },
+          { id: "2", at: 2, role: "assistant", message: "私聊回去", app: "desk" },
         ],
         hasMore: false,
       }),
@@ -331,11 +331,11 @@ describe("AssistantPage", () => {
     render(<AssistantPage api={api} />);
     expect(await screen.findByText("私聊过来")).toBeTruthy();
     expect(screen.getByText("私聊回去")).toBeTruthy();
-    expect(screen.getAllByText("POPO")).toHaveLength(2);
+    expect(screen.getAllByText("desk")).toHaveLength(2);
   });
 
-  it("renders a POPO image tag as a picture", async () => {
-    const src = "https://popofp.vipfp.ps.netease.com/file/abc";
+  it("renders an image tag as a picture", async () => {
+    const src = "https://cdn.example.com/file/abc";
     const api = {
       listAssistantMessages: vi.fn().mockResolvedValue({
         messages: [
@@ -343,7 +343,6 @@ describe("AssistantPage", () => {
             id: "1",
             at: 1,
             role: "user",
-            app: "popo",
             message: `[img]${src}[/img]`,
           },
           {

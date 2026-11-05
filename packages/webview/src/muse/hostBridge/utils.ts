@@ -88,9 +88,8 @@ export function truncateTitle(content: string): string {
 }
 
 /**
- * Match CodeMaker auth failures that should prompt a re-login dialog:
+ * Match auth failures that should prompt a re-login dialog:
  * missing/expired credentials, revoked tokens (401), and renew failures.
- * Only the CodeMaker provider produces these error strings.
  */
 export function isAuthError(error: string): boolean {
   return /credentials?\s+(missing|expired)|unauthorized|\b401\b|token.*(?:expired|invalid|revoked)/i.test(
