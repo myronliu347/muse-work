@@ -74,6 +74,7 @@ function makeFile(
 
 function renderPane(options?: {
   paneId?: string;
+  width?: number;
   visible?: boolean;
   isStreaming?: boolean;
   sessionId?: string;
@@ -103,7 +104,7 @@ function renderPane(options?: {
     <Theme>
     <DiffPane
       vscode={vscode}
-      width={420}
+      width={options?.width ?? 420}
       onWidthChange={vi.fn()}
       maxWidth={716}
       onClose={onClose}
@@ -127,6 +128,7 @@ function renderPane(options?: {
     </Theme>,
   );
   const rerenderWith = (props: {
+    width?: number;
     visible?: boolean;
     isStreaming?: boolean;
     sessionId?: string;
@@ -146,7 +148,7 @@ function renderPane(options?: {
       <Theme>
       <DiffPane
         vscode={vscode}
-        width={420}
+        width={props.width ?? options?.width ?? 420}
         onWidthChange={vi.fn()}
         maxWidth={716}
         onClose={onClose}
@@ -294,6 +296,7 @@ describe("DiffPane", () => {
     renderPane({
       initialMode: "unstaged",
       workdir: "/work",
+      width: 320,
     });
     sendDiffResult([
       makeFile({ path: "/work/src/a.ts" }),
@@ -307,7 +310,7 @@ describe("DiffPane", () => {
   });
 
   it("renders file blocks with status, path and +/- stats", () => {
-    renderPane({ initialMode: "unstaged" });
+    renderPane({ initialMode: "unstaged", width: 320 });
     sendDiffResult([
       makeFile(),
       makeFile({
@@ -391,10 +394,11 @@ describe("DiffPane", () => {
     expect(
       document.querySelector(".desktop-panel-placeholder"),
     ).toHaveTextContent("无改动");
+    expect(screen.queryByTestId("diff-tree-nav")).not.toBeInTheDocument();
   });
 
   it("collapses and expands a file block via its header", () => {
-    const { container } = renderPane({ initialMode: "unstaged" });
+    const { container } = renderPane({ initialMode: "unstaged", width: 320 });
     sendDiffResult([makeFile()]);
     const header = container.querySelector(".diff-file-header") as HTMLElement;
     expect(header).toHaveAttribute("aria-expanded", "true");
@@ -411,6 +415,7 @@ describe("DiffPane", () => {
     const { container } = renderPane({
       onOpenFile,
       workdir: "/Users/dev/projects/muse-work",
+      width: 320,
     });
     sendDiffResult([makeFile()]);
     const header = container.querySelector(".diff-file-header") as HTMLElement;
@@ -424,7 +429,7 @@ describe("DiffPane", () => {
 
   describe("mutual-exclusion accordion", () => {
     it("expands only the first file by default", () => {
-      const { container } = renderPane({ initialMode: "unstaged" });
+      const { container } = renderPane({ initialMode: "unstaged", width: 320 });
       sendDiffResult([
         makeFile(),
         makeFile({ path: "src/b.ts" }),
@@ -441,7 +446,7 @@ describe("DiffPane", () => {
     });
 
     it("expanding another file collapses the previously expanded one", () => {
-      const { container } = renderPane({ initialMode: "unstaged" });
+      const { container } = renderPane({ initialMode: "unstaged", width: 320 });
       sendDiffResult([makeFile(), makeFile({ path: "src/b.ts" })]);
       const headers = container.querySelectorAll(".diff-file-header");
       fireEvent.click(headers[1]);
@@ -451,7 +456,7 @@ describe("DiffPane", () => {
     });
 
     it("clicking the expanded file collapses it", () => {
-      const { container } = renderPane({ initialMode: "unstaged" });
+      const { container } = renderPane({ initialMode: "unstaged", width: 320 });
       sendDiffResult([makeFile(), makeFile({ path: "src/b.ts" })]);
       const headers = container.querySelectorAll(".diff-file-header");
       fireEvent.click(headers[0]);
@@ -461,7 +466,7 @@ describe("DiffPane", () => {
     });
 
     it("keeps the expanded file across a refresh", () => {
-      const { container } = renderPane({ initialMode: "unstaged" });
+      const { container } = renderPane({ initialMode: "unstaged", width: 320 });
       sendDiffResult([makeFile(), makeFile({ path: "src/b.ts" })]);
       let headers = container.querySelectorAll(".diff-file-header");
       fireEvent.click(headers[1]);
@@ -891,7 +896,7 @@ describe("DiffPane", () => {
     });
 
     it("file revert posts single path and does not toggle expand", () => {
-      const { vscode, container } = renderPane({ initialMode: "unstaged", paneId: "p1" });
+      const { vscode, container } = renderPane({ initialMode: "unstaged", paneId: "p1", width: 320 });
       sendDiffResult([makeFile()], "p1");
       const header = container.querySelector(".diff-file-header") as HTMLElement;
       expect(header).toHaveAttribute("aria-expanded", "true");
@@ -1203,21 +1208,45 @@ describe("DiffPane", () => {
   });
 
   describe("tree view (列表/树视图切换)", () => {
-    it("shows the view toggle icons and defaults to list view", () => {
-      renderPane({ initialMode: "unstaged" });
+    it("opens the change tree by default and collapses it when the pane is narrow", async () => {
+      const { rerenderWith } = renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile()]);
       const toggle = screen.getByTestId("diff-view-toggle");
-      expect(toggle).toHaveAttribute("aria-pressed", "false");
-      expect(toggle).toHaveAttribute("title", "树视图");
-      // List view still renders the accordion file blocks, no tree nav.
+      expect(toggle).toHaveAttribute("aria-pressed", "true");
+      expect(toggle).toHaveAttribute("title", "列表视图");
+      expect(screen.getByTestId("diff-tree-nav")).toBeInTheDocument();
+
+      rerenderWith({ width: 320 });
+      expect(screen.getByTestId("diff-view-toggle")).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+      expect(screen.getByTestId("diff-view-toggle")).toHaveAttribute(
+        "title",
+        "宽度不足，已收起文件树",
+      );
+      expect(screen.getByTestId("diff-tree-nav")).toHaveClass("is-closing");
+      await waitFor(() => {
+        expect(screen.queryByTestId("diff-tree-nav")).not.toBeInTheDocument();
+      });
       expect(screen.getByTestId("diff-file-modified")).toBeInTheDocument();
-      expect(screen.queryByTestId("diff-tree-nav")).not.toBeInTheDocument();
+
+      rerenderWith({ width: 420 });
+      expect(screen.getByTestId("diff-tree-nav")).toBeInTheDocument();
+
+      sendDiffResult([]);
+      expect(screen.getByTestId("diff-tree-nav")).toHaveClass("is-closing");
+      await waitFor(() => {
+        expect(screen.queryByTestId("diff-tree-nav")).not.toBeInTheDocument();
+      });
+      expect(
+        document.querySelector(".desktop-panel-placeholder"),
+      ).toHaveTextContent("无改动");
     });
 
     it("keeps the change tree mounted while it closes", async () => {
       renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile()]);
-      fireEvent.click(screen.getByTestId("diff-view-toggle"));
       expect(screen.getByTestId("diff-tree-nav")).not.toHaveClass("is-closing");
       fireEvent.click(screen.getByTestId("diff-view-toggle"));
       expect(screen.getByTestId("diff-tree-nav")).toHaveClass("is-closing");
@@ -1232,7 +1261,6 @@ describe("DiffPane", () => {
         makeFile({ path: "src/a.ts" }),
         makeFile({ path: "lib/c.ts" }),
       ]);
-      fireEvent.click(screen.getByTestId("diff-view-toggle"));
       expect(screen.getByTestId("diff-view-toggle")).toHaveAttribute(
         "aria-pressed",
         "true",
@@ -1255,7 +1283,6 @@ describe("DiffPane", () => {
     it("resizes the change-tree column by dragging the left edge", () => {
       renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile()]);
-      fireEvent.click(screen.getByTestId("diff-view-toggle"));
       const nav = screen.getByTestId("diff-tree-nav");
       expect(nav).toHaveClass("is-opening");
       expect(nav).toHaveStyle({ width: "240px" });
@@ -1274,7 +1301,6 @@ describe("DiffPane", () => {
         makeFile({ path: "src/a.ts" }),
         makeFile({ path: "lib/c.ts" }),
       ]);
-      fireEvent.click(screen.getByTestId("diff-view-toggle"));
       expect(screen.getAllByTestId("diff-tree-file-modified")).toHaveLength(2);
       const srcDir = screen.getByTestId("diff-tree-dir-src");
       expect(srcDir).toHaveAttribute("aria-expanded", "true");
@@ -1300,7 +1326,6 @@ describe("DiffPane", () => {
           hunks: "@@ -1,1 +1,2 @@\n-old\n+second-file",
         }),
       ]);
-      fireEvent.click(screen.getByTestId("diff-view-toggle"));
       // Default selection is the first file (src/a.ts).
       expect(screen.getByText("first-file")).toBeInTheDocument();
       const cNode = screen
@@ -1322,7 +1347,6 @@ describe("DiffPane", () => {
         onAddComment,
       });
       sendDiffResult([makeFile()]);
-      fireEvent.click(screen.getByTestId("diff-view-toggle"));
       // Open-file: clicking the path in the left detail resolves against workdir.
       fireEvent.click(screen.getByTestId("diff-file-path"));
       expect(onOpenFile).toHaveBeenCalledWith("/repo/src/a.ts");
@@ -1347,7 +1371,6 @@ describe("DiffPane", () => {
           hunks: "@@ -1 +1 @@\n-old\n+new-readme",
         }),
       ]);
-      fireEvent.click(screen.getByTestId("diff-view-toggle"));
       // The tree starts at the workdir root, not the filesystem root.
       expect(screen.getByTestId("diff-tree-dir-frontend")).toBeInTheDocument();
       expect(
@@ -1363,7 +1386,6 @@ describe("DiffPane", () => {
     it("merges multi-level single-child directory chains into one node", () => {
       renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile({ path: "a/b/c/file.ts" })]);
-      fireEvent.click(screen.getByTestId("diff-view-toggle"));
       // The whole a/b/c chain collapses into a single directory row.
       const dirNode = screen.getByTestId("diff-tree-dir-a/b/c");
       expect(dirNode).toHaveTextContent("a/b/c");

@@ -16,6 +16,7 @@ import { buildPathTree, pathSegments } from "../../utils/pathTree";
 import {
   clampFileTreeWidth,
   FILE_TREE_WIDTH_DEFAULT,
+  FILE_TREE_WIDTH_MIN,
 } from "../../stores/panelGroupStore";
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { Tooltip } from "../shared/Tooltip";
@@ -319,6 +320,9 @@ function shortBranchName(ref: string): string {
   return ref.replace(/^refs\/remotes\//, "").replace(/^refs\/heads\//, "");
 }
 
+/** Change tree stays open unless the pane cannot fit the tree plus a readable diff. */
+const DIFF_TREE_OPEN_MIN = FILE_TREE_WIDTH_MIN + 200;
+
 export interface DiffPaneProps {
   vscode: VsCodeApi;
   width: number;
@@ -401,11 +405,15 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   // for large workspace diffs — data is still loaded once for all files).
   // The expanded path survives refreshes; defaults to the first file.
   const [expandedPath, setExpandedPath] = useState<string | null>(null);
-  // Tree view (列表/树视图切换): list is the default and behaves exactly as
-  // before; tree view splits the panel into a selected-file diff (left) and a
-  // directory-organized change tree (right). Selection and dir collapse are
-  // local UI state, never persisted.
-  const [viewMode, setViewMode] = useState<"list" | "tree">("list");
+  // Tree view splits the panel into a selected-file diff (left) and a
+  // directory-organized change tree (right). It starts open when there are
+  // files and the pane can fit the column. An empty diff or a pane that is
+  // too narrow falls back to the list; widening it, or files arriving, opens
+  // the tree again unless the user closed it.
+  const [treeDismissed, setTreeDismissed] = useState(false);
+  const treeFits = width >= DIFF_TREE_OPEN_MIN;
+  const hasChangeFiles = state.kind === "ok" && state.files.length > 0;
+  const viewMode = treeFits && hasChangeFiles && !treeDismissed ? "tree" : "list";
   const treePresence = useExitHold(viewMode === "tree");
   const [treeSelected, setTreeSelected] = useState<string | null>(null);
   const [collapsedDirs, setCollapsedDirs] = useState<Set<string>>(new Set());
@@ -1422,8 +1430,19 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
             className="preview-pane-button"
             data-testid="diff-view-toggle"
             aria-pressed={viewMode === "tree"}
-            title={viewMode === "tree" ? "列表视图" : "树视图"}
-            onClick={() => setViewMode(viewMode === "tree" ? "list" : "tree")}
+            title={
+              !hasChangeFiles
+                ? "没有文件变更"
+                : !treeFits
+                  ? "宽度不足，已收起文件树"
+                  : viewMode === "tree"
+                    ? "列表视图"
+                    : "树视图"
+            }
+            onClick={() => {
+              if (!treeFits || !hasChangeFiles) return;
+              setTreeDismissed((dismissed) => !dismissed);
+            }}
           >
             <i
               className={`codicon ${viewMode === "tree" ? "codicon-list-flat" : "codicon-list-tree"}`}
