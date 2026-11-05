@@ -1,0 +1,63 @@
+packages/webview/src/components/message/Message.tsx
+  65e0162bd9081307 936
+packages/webview/tests/components/thinkingHint.test.tsx
+  65e0162bd9081307 122-123,125-151,158
+packages/webview/src/components/message/ToolActivityGroup.tsx
+  65e0162bd9081307 25-26
+packages/webview/tests/components/agentToolPopup.test.tsx
+  65e0162bd9081307 83
+packages/webview/src/components/chat/MessageList.tsx
+  65e0162bd9081307 908,924,967
+packages/webview/tests/webview/diffViewer.test.tsx
+  65e0162bd9081307 168
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b5fb590e73b10686e29eb2f9a7067ed053b0a65c",
+  "prompts": {
+    "65e0162bd9081307": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "634930ac-3945-4b6c-9989-0bc5f41807d3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 38,
+      "total_deletions": 54,
+      "accepted_lines": 38,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/diffViewer.test.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/thinkingHint.test.tsx": {
+          "additions": 30,
+          "deletions": 36,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/components/message/ToolActivityGroup.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/agentToolPopup.test.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/message/Message.tsx": {
+          "additions": 1,
+          "deletions": 5,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 3,
+          "deletions": 12,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
