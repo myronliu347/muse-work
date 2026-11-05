@@ -258,6 +258,46 @@ describe("MuseProviderSettings", () => {
     );
   });
 
+  it("hides Codex from the provider picker", async () => {
+    const api = createApi({
+      listProviders: vi.fn(async () => ({
+        providers: [
+          {
+            id: "deepseek",
+            displayName: "DeepSeek",
+            models: [{ id: "deepseek-flash", label: "DeepSeek Flash" }],
+          },
+          {
+            id: "codex",
+            displayName: "ChatGPT",
+            models: [{ id: "gpt-5", label: "GPT-5" }],
+          },
+          {
+            id: "openai-compatible",
+            displayName: "OpenAI Compatible",
+            models: [{ id: "gpt-4.1", label: "GPT-4.1" }],
+          },
+        ],
+        active: { providerId: "deepseek", modelId: "deepseek-flash" },
+      })),
+      getDeepSeekQuota: vi.fn(async () => ({
+        is_available: true,
+        balance_infos: [],
+      })),
+    } as Partial<MuseApiClient>);
+    const user = userEvent.setup();
+    renderProviderSettings({ api });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("AI 供应商 (Provider)")).toBeTruthy();
+    });
+
+    await user.click(screen.getByLabelText("AI 供应商 (Provider)"));
+    expect(await screen.findByRole("option", { name: "DeepSeek" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "OpenAI Compatible" })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: "ChatGPT" })).toBeNull();
+  });
+
   it("saves a Tavily key from the provider tab and keeps a blank field", async () => {
     const api = createApi({
       getTavilyConfig: vi.fn(async () => ({

@@ -30,6 +30,9 @@ import { Field } from "../../ui/Field";
 /** Prefer this when the active model is missing from the provider list. */
 const FALLBACK_MODEL_ID = "deepseek-flash";
 
+/** Kept in the app, but not offered in the settings picker yet. */
+const HIDDEN_PROVIDER_IDS = new Set(["codex"]);
+
 export interface MuseProviderSettingsProps {
   api?: MuseApiClient;
   onSavingChange?: (saving: boolean) => void;
@@ -379,11 +382,18 @@ export const MuseProviderSettings = forwardRef<
 
   useImperativeHandle(ref, () => ({ save, isDirty }), [save, isDirty]);
 
+  const providers = (data?.providers ?? []).filter(
+    (provider) => !HIDDEN_PROVIDER_IDS.has(provider.id),
+  );
+  const providerValue = providers.some((provider) => provider.id === draftProviderId)
+    ? draftProviderId
+    : "";
+
   return (
     <div className="muse-settings-stack" data-testid="muse-provider-settings">
       <Field label="AI 供应商 (Provider)" htmlFor="muse-provider">
         <Select.Root
-          value={draftProviderId}
+          value={providerValue}
           disabled={!data || saving}
           onValueChange={onChangeProvider}
         >
@@ -394,7 +404,7 @@ export const MuseProviderSettings = forwardRef<
             placeholder={error ? "加载失败" : "加载中…"}
           />
           <Select.Content>
-            {data?.providers.map((p) => (
+            {providers.map((p) => (
               <Select.Item key={p.id} value={p.id}>
                 {p.displayName}
               </Select.Item>
