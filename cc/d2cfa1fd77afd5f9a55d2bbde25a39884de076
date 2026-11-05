@@ -1,0 +1,89 @@
+packages/webview/src/styles/TerminalPane.css
+  65e0162bd9081307 35-43
+packages/webview/src/components/panels/TerminalPane.tsx
+  65e0162bd9081307 478,530
+packages/webview/tests/webview/activityTestHelpers.ts
+  65e0162bd9081307 15,17-18
+packages/webview/tests/webview/readToolOpenFile.test.tsx
+  65e0162bd9081307 11,43,86,100-179
+packages/webview/src/styles/Message.css
+  65e0162bd9081307 434,439-440,453-454,863-875
+packages/webview/src/components/message/ToolActivityGroup.tsx
+  65e0162bd9081307 22,25-29,53-78,88-89,99-100,108,123,127-139
+packages/webview/tests/webview/terminalPane.test.tsx
+  65e0162bd9081307 537-543
+packages/webview/src/components/message/toolActivity.ts
+  65e0162bd9081307 165-190
+packages/webview/src/components/message/Message.tsx
+  65e0162bd9081307 47,409-412,564-565,578-579,583
+packages/webview/tests/components/thinkingHint.test.tsx
+  65e0162bd9081307 121-165
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "ccd2cfa1fd77afd5f9a55d2bbde25a39884de076",
+  "prompts": {
+    "65e0162bd9081307": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "634930ac-3945-4b6c-9989-0bc5f41807d3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 293,
+      "total_deletions": 70,
+      "accepted_lines": 259,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/thinkingHint.test.tsx": {
+          "additions": 45,
+          "accepted_lines": 45
+        },
+        "packages/webview/tests/webview/activityTestHelpers.ts": {
+          "additions": 7,
+          "deletions": 5,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/webview/terminalPane.test.tsx": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 20,
+          "deletions": 3,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/components/message/toolActivity.ts": {
+          "additions": 26,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/styles/TerminalPane.css": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/message/Message.tsx": {
+          "additions": 12,
+          "deletions": 25,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/panels/TerminalPane.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/readToolOpenFile.test.tsx": {
+          "additions": 105,
+          "deletions": 25,
+          "accepted_lines": 83
+        },
+        "packages/webview/src/components/message/ToolActivityGroup.tsx": {
+          "additions": 60,
+          "deletions": 11,
+          "accepted_lines": 54
+        }
+      }
+    }
+  }
+}
