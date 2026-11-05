@@ -475,6 +475,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       <div className="preview-pane-drag-handle" onMouseDown={onDragStart} />
       <div className="preview-pane-inner">
         <div className="preview-pane-toolbar">
+          <span className="preview-pane-url">终端</span>
           {issues && issues.some((issue) => issue.workdir) ? (
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
@@ -526,7 +527,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
               </DropdownMenu.Content>
             </DropdownMenu.Root>
           ) : null}
-          <span className="preview-pane-url">终端</span>
+          <span className="terminal-pane-spacer" />
           <button
             className="preview-pane-button"
             title="重启终端"

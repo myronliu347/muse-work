@@ -19,7 +19,14 @@ export function ToolActivityGroup({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const wasDefaultOpen = useRef(defaultOpen);
   const holdScroll = useHoldTranscriptScroll();
+
+  // A running turn starts open. Once it finishes, fold the summary back up.
+  useEffect(() => {
+    if (wasDefaultOpen.current && !defaultOpen) setOpen(false);
+    wasDefaultOpen.current = defaultOpen;
+  }, [defaultOpen]);
 
   return (
     <div className="activity-group" data-testid="activity-group">
@@ -43,6 +50,32 @@ export function ToolActivityGroup({
   );
 }
 
+function labelWithFile(
+  label: string,
+  fileName: string | undefined,
+  onOpenFile: (() => void) | undefined,
+) {
+  if (!fileName || !onOpenFile) return label;
+  const at = label.indexOf(fileName);
+  if (at < 0) return label;
+  return (
+    <>
+      {label.slice(0, at)}
+      <span
+        className="tool-file-link"
+        data-testid="tool-file-link"
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpenFile();
+        }}
+      >
+        {fileName}
+      </span>
+      {label.slice(at + fileName.length)}
+    </>
+  );
+}
+
 export function ToolLine({
   label,
   additions = 0,
@@ -52,6 +85,8 @@ export function ToolLine({
   error,
   testId = "tool-line",
   onActivate,
+  fileName,
+  onOpenFile,
 }: {
   label: string;
   additions?: number;
@@ -61,6 +96,8 @@ export function ToolLine({
   error?: string;
   testId?: string;
   onActivate?: () => void;
+  fileName?: string;
+  onOpenFile?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const holdScroll = useHoldTranscriptScroll();
@@ -68,7 +105,7 @@ export function ToolLine({
   const button = (
     <button
       type="button"
-      className={`tool-line${hasDetail ? " can" : ""}${open ? " open" : ""}`}
+      className={`tool-line${hasDetail || onActivate ? " can" : ""}${open ? " open" : ""}`}
       data-testid={testId}
       onClick={() => {
         if (hasDetail) {
@@ -83,11 +120,23 @@ export function ToolLine({
         className={`txt${shimmer ? " text-shimmer" : ""}`}
         data-testid="tool-name"
       >
-        {label}
+        {labelWithFile(label, fileName, onOpenFile)}
       </span>
       {additions > 0 && <span className="activity-add">+{additions}</span>}
       {deletions > 0 && <span className="activity-del">−{deletions}</span>}
-      {hasDetail ? <QueueChevronIcon className="activity-chev" /> : null}
+      {hasDetail ? (
+        <span
+          className="activity-chev-hit"
+          data-testid="tool-detail-toggle"
+          onClick={(event) => {
+            event.stopPropagation();
+            holdScroll();
+            setOpen((value) => !value);
+          }}
+        >
+          <QueueChevronIcon className="activity-chev" />
+        </span>
+      ) : null}
     </button>
   );
 

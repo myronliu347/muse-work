@@ -32,6 +32,15 @@
   gap: var(--space-2);
 }
 
+.terminal-pane .preview-pane-url {
+  flex: 0 1 auto;
+}
+
+.terminal-pane-spacer {
+  flex: 1;
+  min-width: 0;
+}
+
 .terminal-issue-select {
   display: inline-flex;
   align-items: center;

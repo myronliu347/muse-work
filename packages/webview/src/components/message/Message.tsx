@@ -44,6 +44,7 @@ import {
   segmentAssistantBlocks,
   summarizeActivity,
   toolHasDetail,
+  toolOpenTarget,
   toolPresentation,
 } from "./toolActivity";
 import "../../styles/Message.css";
@@ -405,26 +406,10 @@ export const Message: React.FC<MessageProps> = React.memo(
     const isToolActive = (stage?: string) =>
       stage === "start" || stage === "running" || stage === "streaming";
 
-    const openReadFile = (toolBlock: ToolBlock) => {
-      let filePath = "";
-      let offset: number | undefined;
-      let limit: number | undefined;
-      try {
-        if (toolBlock.parameters) {
-          const params = JSON.parse(toolBlock.parameters);
-          filePath = params.file_path || "";
-          offset = typeof params.offset === "number" ? params.offset : undefined;
-          limit = typeof params.limit === "number" ? params.limit : undefined;
-        }
-      } catch {
-        filePath = "";
-      }
-      if (!filePath) return;
-      openFile(
-        filePath,
-        offset,
-        offset && limit ? offset + limit - 1 : undefined,
-      );
+    const openToolFile = (toolBlock: ToolBlock) => {
+      const target = toolOpenTarget(toolBlock);
+      if (!target) return;
+      openFile(target.path, target.startLine, target.endLine);
     };
 
     const renderAskUserResult = (toolBlock: ToolBlock) => {
@@ -576,6 +561,8 @@ export const Message: React.FC<MessageProps> = React.memo(
       const detail = renderToolDetail(toolBlock, index);
       const presentation = toolPresentation(toolBlock);
       const errorText = toolBlock.error ? String(toolBlock.error) : "";
+      const file = toolOpenTarget(toolBlock);
+      const fileName = file?.path.split(/[/\\]/).filter(Boolean).pop();
       return (
         <ToolLine
           key={index}
@@ -588,12 +575,12 @@ export const Message: React.FC<MessageProps> = React.memo(
           testId={
             toolBlock.name === AGENT_TOOL_NAME ? "agent-tool-row" : "tool-line"
           }
+          fileName={fileName}
+          onOpenFile={file ? () => openToolFile(toolBlock) : undefined}
           onActivate={
             toolBlock.name === AGENT_TOOL_NAME
               ? () => onOpenAgentTranscript?.(toolBlock)
-              : toolBlock.name === READ_TOOL_NAME
-                ? () => openReadFile(toolBlock)
-                : undefined
+              : undefined
           }
         />
       );

@@ -534,6 +534,13 @@ describe("TerminalPane", () => {
         />
       </Theme>,
     );
+    const toolbar = document.querySelector(".terminal-pane .preview-pane-toolbar");
+    const title = toolbar?.querySelector(".preview-pane-url");
+    const directory = toolbar?.querySelector('[data-testid="terminal-issue-select"]');
+    expect(title).toHaveTextContent("终端");
+    expect(
+      title && directory && (title.compareDocumentPosition(directory) & Node.DOCUMENT_POSITION_FOLLOWING),
+    ).toBeTruthy();
     await user.click(screen.getByTestId("terminal-issue-select"));
     const option = await screen.findByTestId("terminal-issue-option-issue-a");
     expect(option).toHaveTextContent("修登录");

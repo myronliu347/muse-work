@@ -12,6 +12,8 @@ export function expandActivity(root: ParentNode = document) {
 
 export function expandToolDetail(root: ParentNode = document) {
   expandActivity(root);
+  const toggle = root.querySelector('[data-testid="tool-detail-toggle"]');
   const line = root.querySelector(".tool-line.can");
-  if (line instanceof HTMLElement) fireEvent.click(line);
+  const target = toggle instanceof Element ? toggle : line;
+  if (target instanceof Element) fireEvent.click(target);
 }

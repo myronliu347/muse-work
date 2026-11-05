@@ -118,4 +118,49 @@ describe("thinking hint", () => {
     );
     expect(screen.queryByTestId("thinking-hint")).toBeNull();
   });
+
+  it("folds the activity summary once the turn finishes", () => {
+    const messages = [
+      {
+        id: "a1",
+        role: "assistant" as const,
+        timestamp: "2024-01-01T00:00:00.000Z",
+        blocks: [
+          {
+            type: "tool" as const,
+            name: BASH_TOOL_NAME,
+            stage: "end" as const,
+            parameters: JSON.stringify({ command: "ls", description: "列目录" }),
+            id: "t1",
+          },
+          {
+            type: "tool" as const,
+            name: BASH_TOOL_NAME,
+            stage: "end" as const,
+            parameters: JSON.stringify({ command: "pwd", description: "当前目录" }),
+            id: "t2",
+          },
+        ],
+      },
+    ];
+    const { rerender } = render(
+      <MuseTheme>
+        <MessageList messages={messages} isStreaming vscode={vscode} />
+      </MuseTheme>,
+    );
+    expect(screen.getByTestId("activity-summary")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+
+    rerender(
+      <MuseTheme>
+        <MessageList messages={messages} isStreaming={false} vscode={vscode} />
+      </MuseTheme>,
+    );
+    expect(screen.getByTestId("activity-summary")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
 });

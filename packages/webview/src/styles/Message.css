@@ -431,9 +431,13 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  margin-bottom: var(--space-1);
+  margin-bottom: 0;
   cursor: pointer;
   user-select: none;
+}
+
+.reasoning-header:has(+ .reasoning-content) {
+  margin-bottom: var(--space-1);
 }
 
 .reasoning-dot {
@@ -446,8 +450,8 @@
 
 .reasoning-title {
   font-size: var(--font-size-1);
-  font-weight: 600;
-  color: var(--gray-12);
+  font-weight: 400;
+  color: var(--gray-11);
 }
 
 .reasoning-chevron {
@@ -854,6 +858,19 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+}
+
+.tool-file-link {
+  cursor: pointer;
+}
+
+.tool-file-link:hover {
+  text-decoration: underline;
+}
+
+.activity-chev-hit {
+  display: inline-flex;
+  flex-shrink: 0;
 }
 
 .activity-chev {

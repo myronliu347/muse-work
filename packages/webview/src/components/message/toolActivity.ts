@@ -162,6 +162,32 @@ export function toolLineLabel(block: ToolBlock): string {
   return name;
 }
 
+/** Read / edit / write rows open this file. Line ranges come from Read's offset. */
+export function toolOpenTarget(block: ToolBlock): {
+  path: string;
+  startLine?: number;
+  endLine?: number;
+} | null {
+  if (
+    block.name !== READ_TOOL_NAME &&
+    block.name !== EDIT_TOOL_NAME &&
+    block.name !== WRITE_TOOL_NAME
+  ) {
+    return null;
+  }
+  const params = parseParams(block);
+  const path = stringParam(params, "file_path");
+  if (!path) return null;
+  if (block.name !== READ_TOOL_NAME) return { path };
+  const offset = typeof params.offset === "number" ? params.offset : undefined;
+  const limit = typeof params.limit === "number" ? params.limit : undefined;
+  return {
+    path,
+    startLine: offset,
+    endLine: offset !== undefined && limit !== undefined ? offset + limit - 1 : undefined,
+  };
+}
+
 export function toolPresentation(block: ToolBlock): {
   label: string;
   additions: number;

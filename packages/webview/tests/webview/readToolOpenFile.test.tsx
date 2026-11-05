@@ -8,7 +8,7 @@ import {
 } from "./test-utils";
 import { expandActivity } from "./activityTestHelpers";
 import { MockDataGenerator } from "../fixtures/mockData";
-import { READ_TOOL_NAME } from "@muse-work/agent";
+import { EDIT_TOOL_NAME, READ_TOOL_NAME, WRITE_TOOL_NAME } from "@muse-work/agent";
 
 describe("Read tool header click → openFile with line range", () => {
   beforeEach(() => {
@@ -40,7 +40,7 @@ describe("Read tool header click → openFile with line range", () => {
 
     (vscode.postMessage as ReturnType<typeof vi.fn>).mockClear();
     await act(async () => {
-      fireEvent.click(pathEl);
+      fireEvent.click(pathEl.querySelector('[data-testid="tool-file-link"]')!);
     });
 
     const sent = (
@@ -83,7 +83,7 @@ describe("Read tool header click → openFile with line range", () => {
 
     (vscode.postMessage as ReturnType<typeof vi.fn>).mockClear();
     await act(async () => {
-      fireEvent.click(pathEl);
+      fireEvent.click(pathEl.querySelector('[data-testid="tool-file-link"]')!);
     });
 
     const sent = (
@@ -96,5 +96,85 @@ describe("Read tool header click → openFile with line range", () => {
     expect(openFileMsg.startLine).toBe(42);
     // No limit → no endLine (undefined is dropped by JSON.stringify).
     expect(openFileMsg.endLine).toBeUndefined();
+  });
+
+  it("opens the file when an edit or write row is clicked", async () => {
+    const { vscode } = renderChatApp();
+
+    sendCommand("updateMessages", {
+      messages: [
+        {
+          id: "msg_files",
+          role: "assistant" as const,
+          timestamp: "2024-01-01T00:00:00.000Z",
+          blocks: [
+            {
+              type: "tool" as const,
+              name: EDIT_TOOL_NAME,
+              parameters: JSON.stringify({
+                file_path: "/work/probe_dom.py",
+                old_string: "a",
+                new_string: "b",
+              }),
+              stage: "end" as const,
+              success: true,
+              id: "edit_1",
+            },
+            {
+              type: "tool" as const,
+              name: WRITE_TOOL_NAME,
+              parameters: JSON.stringify({
+                file_path: "/work/index.html",
+                content: "<p>hi</p>",
+              }),
+              stage: "end" as const,
+              success: true,
+              id: "write_1",
+            },
+          ],
+        },
+      ],
+    });
+
+    expandActivity();
+    const lines = await waitFor(() => {
+      const found = [...document.querySelectorAll('[data-testid="tool-line"]')];
+      expect(found).toHaveLength(2);
+      return found as HTMLElement[];
+    });
+
+    (vscode.postMessage as ReturnType<typeof vi.fn>).mockClear();
+    await act(async () => {
+      fireEvent.click(lines[0]);
+    });
+    expect(
+      (vscode.postMessage as ReturnType<typeof vi.fn>).mock.calls
+        .map((call) => call[0])
+        .some((message: { command: string }) => message.command === "openFile"),
+    ).toBe(false);
+    expect(document.querySelector(".diff-viewer-container")).toBeInTheDocument();
+
+    (vscode.postMessage as ReturnType<typeof vi.fn>).mockClear();
+    await act(async () => {
+      fireEvent.click(lines[0].querySelector('[data-testid="tool-file-link"]')!);
+    });
+    const editOpen = (
+      vscode.postMessage as ReturnType<typeof vi.fn>
+    ).mock.calls
+      .map((call) => call[0])
+      .find((message: { command: string }) => message.command === "openFile");
+    expect(editOpen?.path).toBe("/work/probe_dom.py");
+    expect(document.querySelector(".diff-viewer-container")).toBeInTheDocument();
+
+    (vscode.postMessage as ReturnType<typeof vi.fn>).mockClear();
+    await act(async () => {
+      fireEvent.click(lines[1].querySelector('[data-testid="tool-file-link"]')!);
+    });
+    const writeOpen = (
+      vscode.postMessage as ReturnType<typeof vi.fn>
+    ).mock.calls
+      .map((call) => call[0])
+      .find((message: { command: string }) => message.command === "openFile");
+    expect(writeOpen?.path).toBe("/work/index.html");
   });
 });
