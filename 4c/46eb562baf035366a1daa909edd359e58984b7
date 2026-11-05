@@ -1,0 +1,43 @@
+packages/webview/tests/muse/museProviderSettings.test.tsx
+  77f2456c8992f900 261-300
+README.md
+  77f2456c8992f900 3,5,7,9-19,22,24-25,48,52,54,63
+packages/webview/src/components/settings/MuseProviderSettings.tsx
+  77f2456c8992f900 33-35,385-391,396,407
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "4c46eb562baf035366a1daa909edd359e58984b7",
+  "prompts": {
+    "77f2456c8992f900": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e32ef64-7567-4b85-9961-7e1fc15ed467",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 73,
+      "total_deletions": 19,
+      "accepted_lines": 73,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "README.md": {
+          "additions": 21,
+          "deletions": 17,
+          "accepted_lines": 21
+        },
+        "packages/webview/tests/muse/museProviderSettings.test.tsx": {
+          "additions": 40,
+          "accepted_lines": 40
+        },
+        "packages/webview/src/components/settings/MuseProviderSettings.tsx": {
+          "additions": 12,
+          "deletions": 2,
+          "accepted_lines": 12
+        }
+      }
+    }
+  }
+}
