@@ -1,6 +1,6 @@
 # Muse Work
 
-以 Personal Agent 为核心的 AI 工作台。助手同时推进多件事，并主动跟踪每件事的进展，把下一步接上。
+以 Personal Agent 为核心的 AI 工作台。助手同时推进多件事，并主动跟踪每件事的进展，把下一步接上。你不用再在多个会话之间来回切换。
 
 ![助手主页](docs/public/screenshots/desktop-muse-bot.webp)
 
