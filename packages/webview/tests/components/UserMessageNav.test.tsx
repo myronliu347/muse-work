@@ -47,12 +47,15 @@ describe("pickActiveUserMessageId", () => {
     { id: "u3", top: 800 },
   ];
 
-  it("picks the last user message that has entered the viewport", () => {
+  it("keeps the user message at the top of the viewport active", () => {
     expect(
-      pickActiveUserMessageId(items, { scrollTop: 0, clientHeight: 500 }),
+      pickActiveUserMessageId(items, { scrollTop: 0, clientHeight: 900 }),
+    ).toBe("u1");
+    expect(
+      pickActiveUserMessageId(items, { scrollTop: 400, clientHeight: 500 }),
     ).toBe("u2");
     expect(
-      pickActiveUserMessageId(items, { scrollTop: 700, clientHeight: 400 }),
+      pickActiveUserMessageId(items, { scrollTop: 800, clientHeight: 400 }),
     ).toBe("u3");
   });
 });

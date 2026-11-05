@@ -21,16 +21,19 @@ export function navEntriesFromMessages(
   return out;
 }
 
-/** Last user message whose top has entered the viewport (from the top). */
+/** User message sitting at the top of the viewport. Later messages that are
+ * merely still visible do not take the highlight. */
 export function pickActiveUserMessageId(
   items: Array<{ id: string; top: number }>,
   viewport: { scrollTop: number; clientHeight: number },
 ): string | undefined {
   if (items.length === 0) return undefined;
-  const threshold = viewport.scrollTop + viewport.clientHeight - 48;
+  // Only a message that has reached the top edge counts. One still below
+  // the edge must not steal the highlight from the question being read.
+  const line = viewport.scrollTop + 1;
   let active = items[0]?.id;
   for (const item of items) {
-    if (item.top < threshold) active = item.id;
+    if (item.top <= line) active = item.id;
   }
   return active;
 }

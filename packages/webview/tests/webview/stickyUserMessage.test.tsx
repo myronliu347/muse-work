@@ -192,6 +192,69 @@ describe("sticky user message", () => {
     });
   });
 
+  it("does not pin the previous message over the one just jumped to", async () => {
+    renderChatApp();
+    act(() => {
+      sendCommand("updateMessages", {
+        messages: [
+          userMsg("第一条问题", "u1"),
+          userMsg("第二条问题", "u2"),
+          userMsg("第三条问题", "u3"),
+        ],
+      });
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("user-message-nav-u2")).toBeInTheDocument(),
+    );
+
+    const container = screen.getByTestId("messages-container");
+    // jsdom reports a 0 scroll range, which clamps every jump to the top.
+    Object.defineProperty(container, "scrollHeight", {
+      value: 4000,
+      configurable: true,
+    });
+    Object.defineProperty(container, "clientHeight", {
+      value: 400,
+      configurable: true,
+    });
+    Object.defineProperty(container, "scrollTop", {
+      value: 0,
+      writable: true,
+      configurable: true,
+    });
+    if (!HTMLElement.prototype.scrollTo) {
+      HTMLElement.prototype.scrollTo = function scrollTo() {};
+    }
+    const spy = vi.spyOn(container, "scrollTo").mockImplementation(() => {});
+    act(() => {
+      fireEvent.click(screen.getByTestId("user-message-nav-u2"));
+    });
+    const jumped = spy.mock.calls
+      .map((call) => {
+        const arg = call[0] as { top?: number } | undefined;
+        return arg?.top;
+      })
+      .filter((top): top is number => typeof top === "number")
+      .at(-1);
+    expect(jumped).toBeGreaterThan(0);
+
+    Object.defineProperty(container, "scrollTop", {
+      value: jumped,
+      configurable: true,
+    });
+    Object.defineProperty(container, "clientHeight", {
+      value: 400,
+      configurable: true,
+    });
+    act(() => {
+      fireEvent.scroll(container);
+    });
+    expect(screen.queryByTestId("sticky-user-message")).not.toBeInTheDocument();
+    expect(screen.getByTestId("user-message-nav-u2").className).toContain(
+      "user-message-nav-item--active",
+    );
+  });
+
   it("clicking the sticky header scrolls the original message to the viewport center", async () => {
     renderChatApp();
     act(() => {

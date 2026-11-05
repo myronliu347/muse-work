@@ -499,10 +499,25 @@ export const MessageList = forwardRef<
       setSticky(null);
       return;
     }
+    const list = rowsRef.current;
     const at = virtualizer.getVirtualItemForOffset(container.scrollTop);
     let index = at ? at.index : -1;
-    if (at && at.start >= container.scrollTop) index = at.index - 1;
-    const list = rowsRef.current;
+    // Jumping to a message aligns its row with the top edge. That row is
+    // already on screen, so pinning the previous one paints the wrong
+    // question over it.
+    if (
+      at &&
+      list[at.index]?.kind === "user" &&
+      at.start <= container.scrollTop + 1 &&
+      at.end > container.scrollTop + 1
+    ) {
+      const into = container.scrollTop - at.start;
+      if (into <= 1) {
+        setSticky(null);
+        return;
+      }
+    }
+    if (at && at.start > container.scrollTop) index = at.index - 1;
     let candidate: {
       id: string;
       text: string;
@@ -570,9 +585,10 @@ export const MessageList = forwardRef<
       const index = rowsRef.current.findIndex(
         (row) => row.kind === "user" && row.message.id === id,
       );
-      if (index >= 0) {
-        virtualizer.scrollToIndex(index, { align: "center", behavior: "auto" });
-      }
+      if (index < 0) return;
+      userScrolledUpRef.current = true;
+      setActiveNavId(id);
+      virtualizer.scrollToIndex(index, { align: "start", behavior: "auto" });
     },
     [virtualizer],
   );
