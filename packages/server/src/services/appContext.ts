@@ -1,11 +1,24 @@
 import {
-  createCodeMakerProvider,
   createCodexProvider,
+  createDeepSeekProvider,
   createOpenAiCompatibleProvider,
   createProviderRegistry,
+  DEEPSEEK_API_KEY_ENV,
   loadProvidersConfig,
+  reconcileActiveProvider,
+  type AiProvider,
   type ProviderRegistry,
 } from "@muse-work/provider";
+import type { AssistantApp, AssistantTool, SettingsPanel } from "@muse-work/plugin-sdk";
+import type { AssistantBridge } from "../plugins/hostPlugins.js";
+import {
+  loadHostPlugins,
+  prepareHostPlugins,
+  startPreparedPlugins,
+  createAssistantBridge,
+  type PreparedPlugin,
+} from "../plugins/hostPlugins.js";
+import { getLogger } from "../utils/logger.js";
 import { resolveHome } from "../utils/paths.js";
 import {
   createSessionRunner,
@@ -24,13 +37,13 @@ import {
   type AutomationStore,
 } from "./automationStore.js";
 import { createAutomationRuntime } from "./automationRuntime.js";
+import { buildAssistantSystemPrompt } from "./assistant/prompt.js";
+import { ASSISTANT_TOOLS } from "./assistant/session.js";
 import { createAssistantMessageLog } from "./assistant/messages.js";
 import { createAssistantQueue } from "./assistant/queue.js";
 import { createAssistantRuntime } from "./assistant/runtime.js";
 import { createAssistantTools } from "./assistant/tools.js";
 import { enqueueIssuePermission, enqueueIssueSessionTurn } from "./assistant/observe.js";
-import { loadPopoConfig } from "../popo/popoConfig.js";
-import type { PopoTextAt } from "../popo/sender.js";
 import { lastAssistantText } from "./issueDispatch.js";
 
 export { resolveHome };
@@ -50,12 +63,14 @@ export interface AppContext {
   assistantLog: ReturnType<typeof createAssistantMessageLog>;
   assistantRuntime: ReturnType<typeof createAssistantRuntime>;
   popoSend: {
-    current?: (receiver: string, content: string, at?: PopoTextAt) => Promise<string[]>;
+    current?: (receiver: string, content: string, at?: { atUids?: string[] }) => Promise<string[]>;
     sendLocalFile?: (receiver: string, filePath: string) => Promise<string>;
     recall?: (args: { msgId: string; sessionId: string; sessionType: 1 | 3 }) => Promise<void>;
   };
-  /** POPO 回调运行时（未配置时为未就绪的 runtime，而不是 undefined）。 */
-  popo?: import("../popo/setup.js").PopoRuntime;
+  pluginRoutes: import("../plugins/hostPlugins.js").PluginRoute[];
+  settingsPanels: SettingsPanel[];
+  /** Bind plugin listeners after the logger is configured and before the main server listens. */
+  startHostPlugins(requestedMainPort: number): Promise<void>;
 }
 
 export interface CreateAppContextOptions {
@@ -70,6 +85,14 @@ export interface CreateAppContextOptions {
   ) => Promise<unknown[] | null>;
   /** Injectable clock for automation tick tests. */
   now?: () => Date;
+  /** Providers contributed by host plugins. Later ids override built-ins. */
+  extraProviders?: AiProvider[];
+  pluginRoutes?: import("../plugins/hostPlugins.js").PluginRoute[];
+  preparedPlugins?: PreparedPlugin[];
+  apps?: AssistantApp[];
+  extraTools?: AssistantTool[];
+  settingsPanels?: SettingsPanel[];
+  assistantBridge?: AssistantBridge;
 }
 
 export interface CreateSessionServicesOptions {
@@ -110,14 +133,6 @@ export function createAppContext(
 
   const getConfig = () => loadProvidersConfig(home);
 
-  const codemaker = createCodeMakerProvider({
-    home,
-    getConfig: () => getConfig().providers.codemaker,
-    // Prefer returning authUrl to UI/desktop; do not auto-open here.
-    openBrowser: () => {},
-    fetch: globalThis.fetch.bind(globalThis),
-  });
-
   const codex = createCodexProvider({
     home,
     getConfig: () => getConfig().providers.codex,
@@ -135,7 +150,22 @@ export function createAppContext(
     },
   });
 
-  const registry = createProviderRegistry([codemaker, codex, openai], home);
+  const deepseek = createDeepSeekProvider({
+    getConfig: () => getConfig().providers.deepseek,
+    getApiKey: () => {
+      const cfg = getConfig().providers.deepseek;
+      if (cfg.apiKey?.trim()) return cfg.apiKey.trim();
+      const envName = cfg.apiKeyEnv ?? DEEPSEEK_API_KEY_ENV;
+      const value = process.env[envName];
+      return value?.trim() || undefined;
+    },
+  });
+
+  const registry = createProviderRegistry(
+    [deepseek, codex, openai, ...(options?.extraProviders ?? [])],
+    home,
+  );
+  reconcileActiveProvider(registry, home);
   const issues = createIssueStore({ home });
   const automations = createAutomationStore({ home });
   let assistantTools: ReturnType<typeof createAssistantTools> | undefined;
@@ -165,11 +195,17 @@ export function createAppContext(
         : false,
     });
   };
+  const apps = options?.apps ?? [];
+  const extraTools = options?.extraTools ?? [];
   const assistantRuntime = createAssistantRuntime({
     home,
     sessions: sessions.store,
     runner: sessions.runner,
     queue: assistantQueue,
+    systemPrompt: buildAssistantSystemPrompt(
+      apps.map((app) => app.prompt ?? "").filter(Boolean),
+    ),
+    toolNames: [...ASSISTANT_TOOLS, ...extraTools.map((entry) => entry.name)],
     onActivity: (working) => {
       publishAssistantStatus(working);
     },
@@ -200,15 +236,25 @@ export function createAppContext(
       if (!recall) return Promise.reject(new Error("POPO 未配置"));
       return recall(args);
     },
-    popoMasterUid: () => {
-      try {
-        const uid = loadPopoConfig(home).masterUid.trim();
-        return uid || undefined;
-      } catch {
-        return undefined;
-      }
-    },
+    apps,
+    extraTools,
   });
+  if (options?.assistantBridge) {
+    options.assistantBridge.recordInbound = (event) => {
+      if (!event.message.trim()) return;
+      const line = assistantLog.append("user", event.message, undefined, event.app);
+      sessions.hub.broadcastAll({ type: "assistant:chat", line });
+    };
+    options.assistantBridge.enqueue = (event) => {
+      assistantRuntime.enqueue({
+        type: "chat",
+        from: event.from,
+        message: event.message,
+        ...(event.user ? { user: event.user } : {}),
+        ...(event.groupId ? { groupId: event.groupId } : {}),
+      });
+    };
+  }
   const dispatcher = createIssueDispatcher({
     issues,
     sessions: sessions.store,
@@ -296,10 +342,16 @@ export function createAppContext(
   });
   automationRuntime.start();
   void assistantRuntime.start();
+  const preparedPlugins = options?.preparedPlugins ?? [];
   return {
     ...sessions,
     home,
     registry,
+    pluginRoutes: options?.pluginRoutes ?? [],
+    settingsPanels: options?.settingsPanels ?? [],
+    startHostPlugins(requestedMainPort: number) {
+      return startPreparedPlugins(preparedPlugins, requestedMainPort, getLogger());
+    },
     issueStore: issues,
     automationStore: automations,
     automationRuntime,
@@ -308,4 +360,32 @@ export function createAppContext(
     assistantRuntime,
     popoSend,
   };
+}
+
+/** Load host plugins, register them, then build the app context. */
+export async function openHostedAppContext(
+  options?: CreateAppContextOptions,
+): Promise<AppContext> {
+  const home = resolveHome(options?.home);
+  const logger = getLogger();
+  const bridge = createAssistantBridge();
+  const plugins = await loadHostPlugins(home, logger);
+  const prepared = await prepareHostPlugins({ home, plugins, logger, bridge });
+  return createAppContext({
+    ...options,
+    home,
+    extraProviders: [
+      ...(options?.extraProviders ?? []),
+      ...prepared.contributions.providers,
+    ],
+    pluginRoutes: [
+      ...(options?.pluginRoutes ?? []),
+      ...prepared.contributions.routes,
+    ],
+    preparedPlugins: prepared.prepared,
+    apps: prepared.contributions.apps,
+    extraTools: prepared.contributions.tools,
+    settingsPanels: prepared.contributions.panels,
+    assistantBridge: bridge,
+  });
 }

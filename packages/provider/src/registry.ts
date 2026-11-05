@@ -1,4 +1,4 @@
-import { loadProvidersConfig, saveProvidersConfig } from "./configStore.js";
+import { loadProvidersConfig, saveProvidersConfig, DEFAULT_ACTIVE_MODEL_ID } from "./configStore.js";
 import type { AiProvider } from "./types.js";
 
 export interface ActiveSelection {
@@ -40,4 +40,22 @@ export function createProviderRegistry(
       saveProvidersConfig(cfg, home);
     },
   };
+}
+
+/** Saved provider missing from the registry falls back to CodeMaker, then DeepSeek. */
+export function reconcileActiveProvider(
+  registry: { get(id: string): unknown },
+  home?: string,
+): void {
+  const cfg = loadProvidersConfig(home);
+  if (registry.get(cfg.activeProviderId)) return;
+  const nextId = registry.get("codemaker")
+    ? "codemaker"
+    : registry.get("deepseek")
+      ? "deepseek"
+      : undefined;
+  if (!nextId) return;
+  cfg.activeProviderId = nextId;
+  cfg.activeModelId = DEFAULT_ACTIVE_MODEL_ID;
+  saveProvidersConfig(cfg, home);
 }

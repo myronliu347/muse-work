@@ -779,12 +779,27 @@ export function createMessageHandler({
       case "showAuthDialog":
         dispatch({
           type: "SHOW_DIALOG",
-          payload: {
-            type: "login",
-            serviceName:
-              message.providerId === "codex" ? "ChatGPT" : "CodeMaker",
-          },
+          payload:
+            message.providerId === "deepseek"
+              ? { type: "deepseek-key" }
+              : {
+                  type: "login",
+                  serviceName:
+                    message.providerId === "codex" ? "ChatGPT" : "CodeMaker",
+                },
         });
+        break;
+      case "deepseekKeyResponse":
+        if (message.success) {
+          dispatch({ type: "SET_AUTHENTICATED", payload: true });
+          dispatch({ type: "HIDE_DIALOG" });
+        } else {
+          dispatch({
+            type: "SET_LOGIN_ERROR",
+            payload:
+              typeof message.error === "string" ? message.error : "保存失败，请重试",
+          });
+        }
         break;
       case "loginResponse":
         if (message.success) {

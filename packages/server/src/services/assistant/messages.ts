@@ -22,8 +22,8 @@ export interface MuseChatLine {
   role: MuseChatRole;
   message: string;
   images?: MuseChatImage[];
-  /** 主人与机器人的 POPO 私聊。缺省表示 Muse 里的对话。 */
-  app?: "popo";
+  /** 这条消息来自哪个渠道。缺省表示 Muse 里的对话。 */
+  app?: string;
   /** POPO 发出去的消息 id，用来撤回。 */
   msgIds?: string[];
   /** 这句在说的 Issue。引用没写进正文时也记着，用来判断下一句要不要再带。 */
@@ -99,7 +99,8 @@ function parseLine(raw: string): MuseChatLine | undefined {
     );
     if (images.length > 0) record.images = images;
     else delete record.images;
-    if ((record as { app?: unknown }).app === "popo") record.app = "popo";
+    const app = (record as { app?: unknown }).app;
+    if (typeof app === "string" && app.trim()) record.app = app.trim();
     else delete record.app;
     const msgIds = normalizeMsgIds((record as { msgIds?: unknown }).msgIds);
     if (msgIds.length > 0) record.msgIds = msgIds;
@@ -145,7 +146,7 @@ export function createAssistantMessageLog(options: {
     role: MuseChatRole,
     message: string,
     images?: MuseChatImage[],
-    app?: "popo",
+    app?: string,
     msgIds?: string[],
     issueId?: string,
   ): MuseChatLine;
@@ -161,7 +162,7 @@ export function createAssistantMessageLog(options: {
     role: MuseChatRole,
     message: string,
     images?: MuseChatImage[],
-    app?: "popo",
+    app?: string,
     msgIds?: string[],
     issueId?: string,
   ): MuseChatLine {
@@ -184,7 +185,7 @@ export function createAssistantMessageLog(options: {
       role,
       message,
       ...(kept.length > 0 ? { images: kept } : {}),
-      ...(app === "popo" ? { app: "popo" as const } : {}),
+      ...(app ? { app } : {}),
       ...(keptIds.length > 0 ? { msgIds: keptIds } : {}),
       ...(keptIssueId ? { issueId: keptIssueId } : {}),
     };

@@ -38,12 +38,12 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).not.toContain("禁止创建清单");
     expect(first.systemPrompt).toContain("当前这一步结束后进入同一轮");
     expect(first.systemPrompt).not.toContain("interrupt");
-    expect(first.systemPrompt).toContain("主人跟机器人的私聊");
+    expect(first.systemPrompt).toContain("谁在哪个频道问");
+    expect(first.systemPrompt).toContain("没指明渠道时默认 `app` 为 `muse`");
+    expect(first.systemPrompt).not.toContain("POPO");
+    expect(first.systemPrompt).not.toContain("主人跟机器人的私聊");
     expect(first.systemPrompt).toContain("干活的是 Issue 会话");
     expect(first.systemPrompt).not.toContain("`Agent`");
-    expect(first.systemPrompt).toContain("谁在哪个频道问");
-    expect(first.systemPrompt).toContain("这种私聊默认 `app` 为 `muse`");
-    expect(first.systemPrompt).not.toContain("发 POPO 私聊");
     expect(first.systemPrompt).toContain("做成的不要再做");
     expect(first.systemPrompt).not.toContain("`Bash` 只用来跑");
     expect(first.systemPrompt).toContain("`Bash` 不做长时间任务");

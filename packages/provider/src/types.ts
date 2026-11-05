@@ -35,6 +35,11 @@ export interface AiProvider {
 
   listModels(): Promise<ModelInfo[]>;
   resolveGateway(modelId: string): Promise<GatewayResolution>;
+
+  /** Account usage or balance. Absent when this provider has none. */
+  getQuota?(): Promise<unknown>;
+  /** Drop stored credentials when the API rejects the session. */
+  revokeOnUnauthorized?: boolean;
 }
 
 export interface CodeMakerProviderConfig {
@@ -58,11 +63,20 @@ export interface CodexProviderConfig {
   forcedWorkspaceIds?: string[];
 }
 
+export interface DeepSeekProviderConfig {
+  enabled: boolean;
+  models: ModelInfo[];
+  /** Stored key. Environment `DEEPSEEK_API_KEY` is used when this is empty. */
+  apiKey?: string;
+  apiKeyEnv?: string;
+}
+
 export interface ProvidersFile {
   activeProviderId: string;
   activeModelId?: string;
   providers: {
-    codemaker: CodeMakerProviderConfig;
+    deepseek: DeepSeekProviderConfig;
+    codemaker?: CodeMakerProviderConfig;
     codex: CodexProviderConfig;
     "openai-compatible": OpenAiCompatibleProviderConfig;
   };

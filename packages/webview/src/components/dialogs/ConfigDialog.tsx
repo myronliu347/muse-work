@@ -20,11 +20,13 @@ import {
   type MuseProviderSettingsHandle,
 } from "../settings/MuseProviderSettings";
 import { AppearanceSettings } from "../settings/AppearanceSettings";
-import { PopoSettings } from "../settings/PopoSettings";
+import { HostPluginPanel } from "../settings/HostPluginPanel";
 import {
   AgentSettings,
   type AgentSettingsHandle,
 } from "../settings/AgentSettings";
+import { MuseApiClient, type HostPluginSettingsPanel } from "../../muse/apiClient";
+import { resolveMuseServerUrl } from "../../muse/hostBridge";
 import "../../styles/ConfigurationDialog.css";
 
 /**
@@ -63,9 +65,10 @@ const ConfigDialog = forwardRef<
     vscode: VsCodeApi;
     isAuthenticated?: boolean;
     onLogin?: () => void;
+    pluginPanels?: HostPluginSettingsPanel[];
   }
 >(function ConfigDialog(
-  { onCancel, layout = "dialog", isAuthenticated, onLogin },
+  { onCancel, layout = "dialog", isAuthenticated, onLogin, pluginPanels },
   ref,
 ) {
   const page = layout === "page";
@@ -75,9 +78,8 @@ const ConfigDialog = forwardRef<
   const [saving, setSaving] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
   const savedTimerRef = useRef<number | null>(null);
-  const [activeTab, setActiveTab] = useState<
-    "appearance" | "agent" | "provider" | "popo"
-  >("appearance");
+  const [activeTab, setActiveTab] = useState("appearance");
+  const [loadedPanels, setLoadedPanels] = useState<HostPluginSettingsPanel[]>([]);
   const savingRef = useRef(false);
   const reduceMotion =
     typeof window !== "undefined" &&
@@ -111,16 +113,38 @@ const ConfigDialog = forwardRef<
       if (savedTimerRef.current !== null) window.clearTimeout(savedTimerRef.current);
     };
   }, []);
+  useEffect(() => {
+    if (pluginPanels) return;
+    const client = new MuseApiClient({ baseUrl: resolveMuseServerUrl() });
+    let cancelled = false;
+    client
+      .listHostPluginSettings()
+      .then((body) => {
+        if (!cancelled) setLoadedPanels(body.panels ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadedPanels([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pluginPanels]);
+  const panels = pluginPanels ?? loadedPanels;
   const settingsTabs = (
     <div className="config-tabs" role="tablist" aria-label="设置">
-      {(
-        [
-          ["appearance", "外观", "config-appearance-panel"],
-          ["agent", "Agent", "config-agent-panel"],
-          ["provider", "供应商", "config-provider-panel"],
-          ["popo", "POPO", "config-popo-panel"],
-        ] as const
-      ).map(([id, label, controls]) => (
+      {([
+        ["appearance", "外观", "config-appearance-panel"],
+        ["agent", "Agent", "config-agent-panel"],
+        ["provider", "供应商", "config-provider-panel"],
+        ...panels.map(
+          (panel) =>
+            [panel.id, panel.title, `config-plugin-${panel.id}`] as [
+              string,
+              string,
+              string,
+            ],
+        ),
+      ] as Array<[string, string, string]>).map(([id, label, controls]) => (
         <button
           key={id}
           type="button"
@@ -273,13 +297,16 @@ const ConfigDialog = forwardRef<
                 onSavingChange={setSaving}
               />
             </div>
-            <div
-              id="config-popo-panel"
-              role="tabpanel"
-              hidden={activeTab !== "popo"}
-            >
-              <PopoSettings />
-            </div>
+            {panels.map((panel) => (
+              <div
+                key={panel.id}
+                id={`config-plugin-${panel.id}`}
+                role="tabpanel"
+                hidden={activeTab !== panel.id}
+              >
+                <HostPluginPanel panel={panel} />
+              </div>
+            ))}
           </div>
         </div>
         </div>

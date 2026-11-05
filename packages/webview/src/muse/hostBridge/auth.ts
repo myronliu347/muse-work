@@ -62,6 +62,10 @@ export function createAuthModule(ctx: BridgeCtx): AuthModule {
   }
 
   function maybePromptAuthDialog(error: string): void {
+    if (/未配置密钥/.test(error)) {
+      postToWebview({ command: "showAuthDialog", providerId: "deepseek" });
+      return;
+    }
     if (!isAuthError(error)) return;
     // Local getAuthStatus can still be authenticated (expire timestamp not
     // hit yet). Flip UI auth so LoginDialog is not auto-closed on mount.

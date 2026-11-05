@@ -28,6 +28,8 @@ export type AssistantToolDeps = {
   recallPopo?: (args: { msgId: string; sessionId: string; sessionType: 1 | 3 }) => Promise<void>;
   /** 主人账号。只有发给这个人的 POPO 私聊才写入对话列表。 */
   popoMasterUid?: () => string | undefined;
+  apps?: import("@muse-work/plugin-sdk").AssistantApp[];
+  extraTools?: import("@muse-work/plugin-sdk").AssistantTool[];
   openIssue?: typeof openIssueSession;
   /** 测试可替换。缺省时服务器自己执行 git worktree add。 */
   createWorktree?: (args: { workdir: string; baseBranch?: string }) => Promise<ServerWorktree>;

@@ -331,6 +331,22 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       }
     },
     login: () => void auth.handleLogin(),
+    saveDeepSeekKey: (msg) => {
+      const apiKey = typeof msg.apiKey === "string" ? msg.apiKey : "";
+      void ctx.api
+        .saveDeepSeekApiKey(apiKey)
+        .then(() => {
+          postToWebview({ command: "deepseekKeyResponse", success: true });
+          void auth.refreshAuth();
+        })
+        .catch((err: unknown) => {
+          postToWebview({
+            command: "deepseekKeyResponse",
+            success: false,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
+    },
     logout: () => void auth.handleLogout(),
     sendMessage: (msg) => void chat.handleSendMessage(msg as { text?: string }),
     abortMessage: (msg) =>

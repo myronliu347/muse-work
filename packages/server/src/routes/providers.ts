@@ -1,8 +1,7 @@
 import { Hono } from "hono";
 import {
-  fetchCodeMakerQuotaUsage,
-  loadCodeMakerCredentials,
   loadProvidersConfig,
+  saveDeepSeekApiKey,
   saveProvidersConfig,
   type ModelInfo,
 } from "@muse-work/provider";
@@ -49,23 +48,33 @@ providersRoutes.post("/providers/active", async (c) => {
   });
 });
 
-providersRoutes.get("/providers/codemaker/quota", async (c) => {
+providersRoutes.post("/providers/deepseek/api-key", async (c) => {
   const ctx = c.get("ctx");
-  const provider = ctx.registry.get("codemaker");
-  if (!provider) {
-    return c.json({ error: "unknown provider: codemaker" }, 404);
+  let body: { apiKey?: string } | undefined;
+  try {
+    body = await c.req.json<{ apiKey?: string }>();
+  } catch {
+    body = undefined;
+  }
+  const apiKey = body?.apiKey?.trim();
+  if (!apiKey) return c.json({ error: "apiKey required" }, 400);
+  saveDeepSeekApiKey(apiKey, ctx.home);
+  return c.json({ ok: true });
+});
+
+providersRoutes.get("/providers/:providerId/quota", async (c) => {
+  const ctx = c.get("ctx");
+  const providerId = c.req.param("providerId");
+  const provider = ctx.registry.get(providerId);
+  if (!provider?.getQuota) {
+    return c.json({ error: `unknown provider: ${providerId}` }, 404);
   }
   const status = await provider.getAuthStatus();
   if (status.state !== "authenticated") {
-    return c.json({ error: "CodeMaker 未登录" }, 401);
-  }
-  const creds = loadCodeMakerCredentials(ctx.home);
-  if (!creds) {
-    return c.json({ error: "CodeMaker 未登录" }, 401);
+    return c.json({ error: "unauthenticated" }, 401);
   }
   try {
-    const usage = await fetchCodeMakerQuotaUsage({ creds });
-    return c.json(usage);
+    return c.json(await provider.getQuota());
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return c.json({ error: message }, 502);

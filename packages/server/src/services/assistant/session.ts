@@ -17,7 +17,6 @@ export const ASSISTANT_TOOLS = [
   "CloseIssue",
   "ResolvePermission",
   "SendMessage",
-  "RecallMessage",
   "ReadSessionMessages",
   "ListMuseMessages",
   "Skill",
@@ -35,21 +34,23 @@ export const ASSISTANT_TITLE = "灵光";
 
 export function ensureAssistantSession(
   store: SessionStore,
-  args: { home: string },
+  args: { home: string; systemPrompt?: string; toolNames?: readonly string[] },
 ): Session {
   const model = resolveScenarioModel("assistant", args.home);
+  const systemPrompt = args.systemPrompt ?? ASSISTANT_SYSTEM_PROMPT;
+  const toolNames = args.toolNames ?? ASSISTANT_TOOLS;
   const existing = store.list().find((session) => session.origin === "assistant");
   if (existing) {
-    const promptOk = existing.systemPrompt === ASSISTANT_SYSTEM_PROMPT;
-    const toolsOk = JSON.stringify(existing.tools ?? []) === JSON.stringify(ASSISTANT_TOOLS);
+    const promptOk = existing.systemPrompt === systemPrompt;
+    const toolsOk = JSON.stringify(existing.tools ?? []) === JSON.stringify(toolNames);
     const denyOk = !existing.disallowedTools?.length;
     const titleOk = existing.title === ASSISTANT_TITLE;
     const modelOk = existing.model === model;
     if (promptOk && toolsOk && denyOk && titleOk && modelOk) return existing;
     return (
       store.update(existing.id, {
-        ...(promptOk ? {} : { systemPrompt: ASSISTANT_SYSTEM_PROMPT }),
-        ...(toolsOk ? {} : { tools: [...ASSISTANT_TOOLS] }),
+        ...(promptOk ? {} : { systemPrompt }),
+        ...(toolsOk ? {} : { tools: [...toolNames] }),
         ...(denyOk ? {} : { disallowedTools: undefined }),
         ...(titleOk ? {} : { title: ASSISTANT_TITLE }),
         ...(modelOk ? {} : { model }),
@@ -64,7 +65,7 @@ export function ensureAssistantSession(
     permissionMode: "bypassPermissions",
     title: ASSISTANT_TITLE,
     model,
-    systemPrompt: ASSISTANT_SYSTEM_PROMPT,
-    tools: [...ASSISTANT_TOOLS],
+    systemPrompt,
+    tools: [...toolNames],
   });
 }

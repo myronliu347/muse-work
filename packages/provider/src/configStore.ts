@@ -9,33 +9,13 @@ export const DEFAULT_ACTIVE_MODEL_ID = "deepseek-flash";
 
 function defaultProvidersConfig(): ProvidersFile {
   return {
-    activeProviderId: "codemaker",
+    activeProviderId: "deepseek",
     activeModelId: DEFAULT_ACTIVE_MODEL_ID,
     providers: {
-      codemaker: {
+      deepseek: {
         enabled: true,
-        models: [
-          // Keep default model first so naive models[0] fallbacks stay correct.
-          { id: "deepseek-flash", label: "DeepSeek Flash" },
-          { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
-          { id: "deepseek-v4-pro", label: "DeepSeek V4 Pro" },
-          { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
-          { id: "claude-opus-4-8", label: "Claude Opus 4.8" },
-          { id: "claude-opus-5", label: "Claude Opus 5" },
-          { id: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5" },
-          { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
-          { id: "claude-sonnet-5", label: "Claude Sonnet 5" },
-          { id: "gemini-3.1-pro", label: "Gemini 3.1 Pro" },
-          { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
-          { id: "glm-5.2", label: "GLM 5.2" },
-          { id: "gpt-5.4", label: "GPT-5.4" },
-          { id: "gpt-5.5-2026-04-24", label: "GPT-5.5" },
-          { id: "gpt-5.6-luna", label: "GPT-5.6 Luna" },
-          { id: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
-          { id: "kimi-k2.7-code", label: "Kimi K2.7 Code" },
-          { id: "MiniMax-M3", label: "MiniMax M3" },
-          { id: "qwen3.8-max", label: "Qwen 3.8 Max" },
-        ],
+        apiKeyEnv: "DEEPSEEK_API_KEY",
+        models: [{ id: DEFAULT_ACTIVE_MODEL_ID, label: "DeepSeek Flash" }],
       },
       codex: {
         enabled: true,
@@ -64,7 +44,8 @@ function mergeProvidersConfig(raw: ProvidersFile): ProvidersFile {
     activeProviderId: raw.activeProviderId || defaults.activeProviderId,
     activeModelId: raw.activeModelId ?? defaults.activeModelId,
     providers: {
-      codemaker: raw.providers?.codemaker ?? defaults.providers.codemaker,
+      deepseek: raw.providers?.deepseek ?? defaults.providers.deepseek,
+      ...(raw.providers?.codemaker ? { codemaker: raw.providers.codemaker } : {}),
       codex: raw.providers?.codex ?? defaults.providers.codex,
       "openai-compatible":
         raw.providers?.["openai-compatible"] ??

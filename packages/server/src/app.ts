@@ -18,7 +18,7 @@ import { settingsRoutes } from "./routes/settings.js";
 import { issuesRoutes } from "./routes/issues.js";
 import { automationsRoutes } from "./routes/automations.js";
 import { assistantRoutes } from "./routes/assistant.js";
-import { createPopoRoutes } from "./popo/routes.js";
+import { hostPluginRoutes } from "./routes/hostPlugins.js";
 
 export function createHonoApp(ctx: AppContext): Hono<HonoEnv> {
   const app = new Hono<HonoEnv>();
@@ -47,9 +47,17 @@ export function createHonoApp(ctx: AppContext): Hono<HonoEnv> {
   app.route("/", issuesRoutes);
   app.route("/", automationsRoutes);
   app.route("/", assistantRoutes);
+  app.route("/", hostPluginRoutes);
 
-  if (ctx.popo) {
-    app.route("/", createPopoRoutes(ctx.popo));
+  for (const handle of ctx.pluginRoutes ?? []) {
+    app.use("*", async (c, next) => {
+      const res = await handle(c.req.raw);
+      if (res.status === 404) {
+        await next();
+        return;
+      }
+      return res;
+    });
   }
 
   app.notFound((c) =>

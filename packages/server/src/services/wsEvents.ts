@@ -117,7 +117,7 @@ export type WsEvent =
         at: number;
         role: "user" | "assistant";
         message: string;
-        app?: "popo";
+        app?: string;
       };
     }
   | { type: "assistant:cleared" }

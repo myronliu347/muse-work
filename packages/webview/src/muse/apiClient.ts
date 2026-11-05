@@ -50,6 +50,16 @@ export interface MuseCodeMakerQuota {
   percentage?: number;
 }
 
+export interface MuseDeepSeekBalance {
+  is_available: boolean;
+  balance_infos: Array<{
+    currency?: string;
+    total_balance?: string;
+    granted_balance?: string;
+    topped_up_balance?: string;
+  }>;
+}
+
 export interface MuseOpenAiCompatibleConfig {
   baseURL: string;
   apiKeyEnv: string;
@@ -258,16 +268,22 @@ export type MuseAutomationPatch = {
   schedule?: MuseScheduleUi;
 };
 
-export interface PopoConfigInfo {
-  url: string;
-  token: string;
-  aesKey: string;
-  masterUid: string;
-  port: number;
-  ready: boolean;
-  /** 本地存在 popo 配置（~/.popo-config.json）；false 时隐藏机器人入口 */
-  configured: boolean;
-  error: string | null;
+export interface HostPluginSettingsField {
+  label: string;
+  value: string;
+  copyable?: boolean;
+}
+
+export interface HostPluginSettingsPanel {
+  id: string;
+  title: string;
+  heading?: string;
+  ready?: boolean;
+  readyLabel?: string;
+  pendingLabel?: string;
+  error?: string | null;
+  empty?: string;
+  fields?: HostPluginSettingsField[];
 }
 
 function joinUrl(baseUrl: string, path: string): string {
@@ -355,6 +371,20 @@ export class MuseApiClient {
 
   async getCodeMakerQuota(): Promise<MuseCodeMakerQuota> {
     const res = await this.request("/providers/codemaker/quota");
+    return parseJson(res);
+  }
+
+  async getDeepSeekQuota(): Promise<MuseDeepSeekBalance> {
+    const res = await this.request("/providers/deepseek/quota");
+    return parseJson(res);
+  }
+
+  async saveDeepSeekApiKey(apiKey: string): Promise<{ ok: true }> {
+    const res = await this.request("/providers/deepseek/api-key", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ apiKey }),
+    });
     return parseJson(res);
   }
 
@@ -865,8 +895,8 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
-  async getPopoConfig(): Promise<PopoConfigInfo> {
-    const res = await this.request("/popo/config");
+  async listHostPluginSettings(): Promise<{ panels: HostPluginSettingsPanel[] }> {
+    const res = await this.request("/host-plugins/settings");
     return parseJson(res);
   }
 

@@ -40,6 +40,14 @@ import type {
  * loading, title generation, and the runTurn send pipeline. Depends only on
  * core (via ctx.core) + ctx + serialization — never on actions.
  */
+
+/** CodeMaker and Codex set this. DeepSeek does not, so a 401 keeps its key. */
+export function shouldRevokeUnauthorized(
+  provider: { revokeOnUnauthorized?: boolean } | undefined,
+): boolean {
+  return provider?.revokeOnUnauthorized === true;
+}
+
 export function createAgentLayer(ctx: RunnerContext): AgentLayer {
   const {
     store,
@@ -887,7 +895,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
 
     const active = registry.getActive();
     const provider = registry.get(active.providerId);
-    if (provider?.id === "codemaker" || provider?.id === "codex") {
+    if (shouldRevokeUnauthorized(provider) && provider) {
       // Local expire may still look valid while the API already rejected the
       // token; drop creds so the next login does not reuse the dead token.
       await provider.logout();

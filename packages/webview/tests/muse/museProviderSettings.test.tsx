@@ -119,6 +119,40 @@ describe("MuseProviderSettings", () => {
     expect(screen.getByText("0.07%")).toBeTruthy();
   });
 
+  it("shows DeepSeek balance for the active provider", async () => {
+    const api = createApi({
+      listProviders: vi.fn(async () => ({
+        providers: [
+          {
+            id: "deepseek",
+            displayName: "DeepSeek",
+            models: [{ id: "deepseek-flash", label: "DeepSeek Flash" }],
+          },
+        ],
+        active: { providerId: "deepseek", modelId: "deepseek-flash" },
+      })),
+      getDeepSeekQuota: vi.fn(async () => ({
+        is_available: true,
+        balance_infos: [
+          {
+            currency: "CNY",
+            total_balance: "100.00",
+            granted_balance: "100.00",
+            topped_up_balance: "0.00",
+          },
+        ],
+      })),
+    } as Partial<MuseApiClient>);
+    renderProviderSettings({ api });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("muse-deepseek-quota")).toBeTruthy();
+    });
+    expect(screen.getByText("可用")).toBeTruthy();
+    expect(screen.getAllByText("100.00 CNY")).toHaveLength(2);
+    expect(screen.getByText("0.00 CNY")).toBeTruthy();
+  });
+
   it("keeps provider switch as draft until save, using draft model ids", async () => {
     const api = createApi();
     const ref = createRef<MuseProviderSettingsHandle>();

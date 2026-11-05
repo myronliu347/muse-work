@@ -2,7 +2,7 @@ import { ASSISTANT_TEXT_MAX } from "./messages.js";
 
 export type AssistantChatEvent = {
   type: "chat";
-  from: "muse" | "popo" | "popo-group";
+  from: string;
   message: string;
   user?: string;
   groupId?: string;
@@ -99,7 +99,13 @@ export function viewAssistantEvent(event: AssistantEvent): AssistantQueueView {
   const retry = event.retry === 1 ? ({ retry: true } as const) : {};
   if (event.type === "chat") {
     const who =
-      event.from === "popo-group" ? "POPO 群" : event.from === "popo" ? "POPO" : "Muse";
+      event.from === "popo-group"
+        ? "POPO 群"
+        : event.from === "popo"
+          ? "POPO"
+          : event.from === "muse" || !event.from
+            ? "Muse"
+            : event.from;
     const body = clipQueueText(event.message) || (event.images?.length ? "图片" : "空消息");
     return queueView({ type: "chat", title: `${who}：${body}`, ...retry }, event.timestamp);
   }

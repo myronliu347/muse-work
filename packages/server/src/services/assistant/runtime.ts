@@ -1,5 +1,6 @@
 import type { SessionRunner } from "../sessionRunner/index.js";
 import type { SessionStore } from "../sessionStore.js";
+import { getLogger } from "../../utils/logger.js";
 import {
   formatAssistantEvents,
   type AssistantChatEvent,
@@ -9,6 +10,7 @@ import {
 import { normalizeAssistantImages } from "./messages.js";
 import type { createAssistantQueue } from "./queue.js";
 import { ensureAssistantSession } from "./session.js";
+import { buildAssistantSystemPrompt } from "./prompt.js";
 
 type Queue = ReturnType<typeof createAssistantQueue>;
 
@@ -28,6 +30,8 @@ export function createAssistantRuntime(options: {
   schedule?: (fn: () => void, ms: number) => () => void;
   onActivity?: (working: boolean) => void;
   onQueue?: (items: AssistantQueueView[]) => void;
+  systemPrompt?: string;
+  toolNames?: readonly string[];
 }): {
   enqueue(event: AssistantEvent): void;
   onAssistantTurnSettled(
@@ -73,7 +77,11 @@ export function createAssistantRuntime(options: {
   }
 
   function syncAssistant(): void {
-    const session = ensureAssistantSession(sessions, { home: options.home });
+    const session = ensureAssistantSession(sessions, {
+      home: options.home,
+      systemPrompt: options.systemPrompt ?? buildAssistantSystemPrompt(),
+      toolNames: options.toolNames,
+    });
     assistantId = session.id;
   }
 
@@ -216,7 +224,11 @@ export function createAssistantRuntime(options: {
     void runner.appendSystemNote(
       assistantId,
       `type: failure\nerror: ${reason}`,
-    );
+    ).catch((err: unknown) => {
+      getLogger().warn("assistant failure note skipped", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
     pump();
     notify();
   }

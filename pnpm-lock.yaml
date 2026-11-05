@@ -110,6 +110,16 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/debug@4.1.13)(@types/node@25.9.5)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(tsx@4.23.12)
 
+  packages/plugin-sdk:
+    dependencies:
+      '@muse-work/provider':
+        specifier: workspace:*
+        version: link:../provider
+    devDependencies:
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+
   packages/provider:
     devDependencies:
       '@types/node':
@@ -130,6 +140,9 @@ importers:
       '@muse-work/agent':
         specifier: workspace:*
         version: link:../agent
+      '@muse-work/plugin-sdk':
+        specifier: workspace:*
+        version: link:../plugin-sdk
       '@muse-work/provider':
         specifier: workspace:*
         version: link:../provider

@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
+import type { AssistantApp } from "@muse-work/plugin-sdk";
 import { userMessageText } from "../../sessionRunner/serialization.js";
 import { ASSISTANT_TEXT_MAX } from "../messages.js";
 import {
   compactText,
   fail,
-  messageIds,
   ok,
   stringList,
   text,
@@ -156,15 +156,20 @@ function truncateCodePoints(input: string, max: number): { text: string; truncat
 }
 
 export function createMessageTools(deps: AssistantToolDeps) {
+  const channels = deps.apps ?? [];
+  const sendDescription = [
+    "回复人。app 为 muse。ats 用来 @ issue。本地图片和文件用 files 传绝对路径，链接用 links。正文超过 200 字且没有 files 会被拒绝。",
+    ...channels.map((app) => app.description),
+  ].join("");
   return [
     tool(
       "SendMessage",
-      "回复 Muse 或 POPO。app 为 muse 或 popo。popo 有 groupId 则发群，否则发给 user。ats 用来 @：Muse 只能 @ issue，POPO 群只能 @ user。本地图片和文件用 files 传绝对路径，链接用 links。发给 POPO 时文件单独发，正文不要带本机路径。正文超过 200 字且没有 files 会被拒绝。",
+      sendDescription,
       {
         type: "object",
         properties: {
           message: { type: "string" },
-          app: { type: "string", enum: ["muse", "popo"] },
+          app: { type: "string", enum: ["muse", ...(deps.apps ?? []).map((app) => app.id)] },
           user: { type: "string" },
           groupId: { type: "string" },
           ats: {
@@ -178,7 +183,7 @@ export function createMessageTools(deps: AssistantToolDeps) {
               required: ["type", "id"],
             },
             description:
-              "Muse 用 { type: issue, id }。换了才加引用，跟上一条是同一条时不加。连着发几条不用每条都传。POPO 群用 { type: user, id }，id 是邮箱。私聊不要传。",
+              "Muse 用 { type: issue, id }。换了才加引用，跟上一条是同一条时不加。连着发几条不用每条都传。",
           },
           files: { type: "array", items: { type: "string" } },
           links: { type: "array", items: { type: "string" } },
@@ -205,13 +210,11 @@ export function createMessageTools(deps: AssistantToolDeps) {
             "正文超过 200 字。收成一两句，或把报告写成文件，用 files 附上绝对路径。",
           );
         }
-        const groupId = text(args.groupId);
         const parsedAts = parseAts(args.ats);
         if (typeof parsedAts === "string") return fail(parsedAts);
         const issueAts = parsedAts.filter((at) => at.type === "issue");
         const userAts = parsedAts.filter((at) => at.type === "user");
         let rememberedIssueId: string | undefined;
-        let atUids: string[] | undefined;
         if (args.app === "muse") {
           if (userAts.length > 0) return fail("muse 只能 @ issue");
           if (issueAts.length === 1 && previousIssueId(deps.log) === issueAts[0]?.id) {
@@ -226,10 +229,6 @@ export function createMessageTools(deps: AssistantToolDeps) {
             }
             message = withIssueLead(message, quotes.join("\n"), "\n\n");
           }
-        } else if (args.app === "popo") {
-          if (issueAts.length > 0) return fail("POPO 不能 @ issue");
-          if (userAts.length > 0 && !groupId) return fail("只有群聊可以 @ 人");
-          if (userAts.length > 0) atUids = userAts.map((at) => at.id);
         }
         if (!message && files.length === 0 && links.length === 0) return fail("message required");
         for (const filePath of files) {
@@ -237,8 +236,6 @@ export function createMessageTools(deps: AssistantToolDeps) {
           if (problem) return fail(problem);
         }
         const recordBody = composeOutbound(message, [...links, ...files]);
-        // 文件另发。POPO 正文不拼本机路径；Muse 记录里仍留着路径。
-        const popoText = composeOutbound(message, links);
         if (args.app === "muse") {
           const line = deps.log.append(
             "assistant",
@@ -252,74 +249,40 @@ export function createMessageTools(deps: AssistantToolDeps) {
           deps.hub.broadcastAll({ type: "assistant:chat", line });
           return ok({ line });
         }
-        if (args.app !== "popo") return fail("app must be muse or popo");
-        const user = text(args.user);
-        const receiver = groupId || user;
-        if (!receiver || !deps.sendText) return fail("popo recipient required");
-        if (files.length > 0 && !deps.sendLocalFile) return fail("popo file send unavailable");
-        const msgIds: string[] = [];
+        const channel = channels.find((app) => app.id === args.app);
+        if (!channel) return fail(`unknown app: ${String(args.app ?? "")}`);
+        let result: Awaited<ReturnType<AssistantApp["send"]>>;
         try {
-          if (popoText) {
-            msgIds.push(
-              ...messageIds(await deps.sendText(receiver, popoText, atUids ? { atUids } : undefined)),
-            );
-          }
-          for (const filePath of files) {
-            const msgId = await deps.sendLocalFile!(receiver, filePath);
-            if (typeof msgId === "string" && msgId.trim()) msgIds.push(msgId.trim());
-          }
+          result = await channel.send({ ...args, message, files, links });
         } catch (err: unknown) {
           return fail(err instanceof Error ? err.message : String(err));
         }
+        if (!result.success) return fail(result.error || "send failed");
         if (settleId) deps.issues.clearReplyPending(settleId);
-        const master = deps.popoMasterUid?.()?.trim();
-        if (!groupId && master && user === master) {
+        let body: Record<string, unknown> = {};
+        if (result.content) {
+          try {
+            const parsed = JSON.parse(result.content) as unknown;
+            if (parsed && typeof parsed === "object") body = parsed as Record<string, unknown>;
+          } catch {
+            body = { content: result.content };
+          }
+        }
+        if (result.line) {
           const line = deps.log.append(
             "assistant",
-            recordBody,
+            result.line.message,
             undefined,
-            "popo",
-            msgIds,
+            result.line.app,
+            result.line.msgIds,
             settleId || rememberedIssueId,
           );
           deps.hub.broadcastAll({ type: "assistant:chat", line });
-          return ok({ sent: true, receiver, msgIds, line });
+          body.line = line;
         }
-        return ok({ sent: true, receiver, msgIds });
+        return { success: true, content: JSON.stringify(body) };
       },
       (params) => compactText(params.message),
-    ),
-    tool(
-      "RecallMessage",
-      "撤回一条已经发出的 POPO 消息。msgId 用 SendMessage 返回的。有 groupId 撤回群消息，否则用 user 撤回私聊。",
-      {
-        type: "object",
-        properties: {
-          msgId: { type: "string" },
-          user: { type: "string" },
-          groupId: { type: "string" },
-        },
-        required: ["msgId"],
-      },
-      async (args) => {
-        const msgId = text(args.msgId);
-        const groupId = text(args.groupId);
-        const user = text(args.user);
-        const sessionId = groupId || user;
-        if (!msgId || !sessionId) return fail("msgId and recipient required");
-        if (!deps.recallPopo) return fail("popo recall unavailable");
-        try {
-          await deps.recallPopo({
-            msgId,
-            sessionId,
-            sessionType: groupId ? 3 : 1,
-          });
-        } catch (err: unknown) {
-          return fail(err instanceof Error ? err.message : String(err));
-        }
-        return ok({ recalled: true, msgId, sessionId });
-      },
-      (params) => compactText(params.msgId),
     ),
     tool(
       "ReadSessionMessages",
@@ -366,7 +329,7 @@ export function createMessageTools(deps: AssistantToolDeps) {
     ),
     tool(
       "ListMuseMessages",
-      "从最新一片往前查询对话记录。没有 app 的是 Muse 里的对话，app 为 popo 的是主人跟机器人的私聊。",
+      "从最新一片往前查询对话记录。没有 app 的是 Muse 里的对话。",
       {
         type: "object",
         properties: {
@@ -393,7 +356,7 @@ export function createMessageTools(deps: AssistantToolDeps) {
               id: line.id,
               at: line.at,
               role: line.role,
-              ...(line.app === "popo" ? { app: "popo" as const } : {}),
+              ...(line.app ? { app: line.app } : {}),
               ...(line.msgIds && line.msgIds.length > 0 ? { msgIds: line.msgIds } : {}),
               message: clipped.text,
               ...(truncated ? { truncated: true } : {}),

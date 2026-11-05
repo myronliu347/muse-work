@@ -30,10 +30,6 @@ vi.mock("../../src/components/settings/MuseProviderSettings", () => {
   };
 });
 
-vi.mock("../../src/components/settings/PopoSettings", () => ({
-  PopoSettings: () => <div data-testid="popo-settings">popo settings</div>,
-}));
-
 vi.mock("../../src/components/settings/AgentSettings", () => {
   const React = require("react") as typeof import("react");
   return {
@@ -61,7 +57,7 @@ const vscode = {
   setState: vi.fn(),
 } as unknown as VsCodeApi;
 
-function renderDialog(onCancel = vi.fn()) {
+function renderDialog(onCancel = vi.fn(), pluginPanels?: { id: string; title: string; empty?: string; fields?: [] }[]) {
   return {
     onCancel,
     ...render(
@@ -72,6 +68,7 @@ function renderDialog(onCancel = vi.fn()) {
           onSave={vi.fn()}
           onCancel={onCancel}
           vscode={vscode}
+          pluginPanels={pluginPanels}
         />
       </MuseTheme>,
     ),
@@ -85,6 +82,14 @@ describe("ConfigDialog appearance tab", () => {
     vi.clearAllMocks();
   });
 
+  it("adds a tab from a declared plugin panel", () => {
+    renderDialog(vi.fn(), [
+      { id: "popo", title: "POPO", empty: "未找到配置。", fields: [] },
+    ]);
+    fireEvent.click(screen.getByRole("tab", { name: "POPO" }));
+    expect(screen.getByText("未找到配置。")).toBeTruthy();
+  });
+
   it("shows appearance first and provider after selecting its tab", () => {
     renderDialog();
 
@@ -94,8 +99,8 @@ describe("ConfigDialog appearance tab", () => {
     fireEvent.click(screen.getByRole("tab", { name: "供应商" }));
 
     expect(screen.getByTestId("muse-provider-settings")).toBeTruthy();
-    fireEvent.click(screen.getByRole("tab", { name: "POPO" }));
-    expect(screen.getByTestId("popo-settings")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "外观" }));
+    expect(screen.queryByTestId("config-dialog-save")).toBeNull();
   });
 
   it("places tabs in a side column and widens the dialog on Agent", () => {
@@ -154,7 +159,7 @@ describe("ConfigDialog appearance tab", () => {
   it("hides save on instant-apply tabs and shows it for provider", () => {
     renderDialog();
     expect(screen.queryByTestId("config-dialog-save")).toBeNull();
-    fireEvent.click(screen.getByRole("tab", { name: "POPO" }));
+    fireEvent.click(screen.getByRole("tab", { name: "外观" }));
     expect(screen.queryByTestId("config-dialog-save")).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: "供应商" }));
     expect(screen.getByTestId("config-dialog-save")).toBeTruthy();

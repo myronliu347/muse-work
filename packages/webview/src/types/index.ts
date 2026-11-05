@@ -775,6 +775,7 @@ export interface ChatState {
     | "workflows"
     | "agents"
     | "login"
+    | "deepseek-key"
     | null;
   /** Login failure shown inside the auth dialog (CodeMaker or ChatGPT SSO). */
   loginError?: string;
@@ -936,7 +937,8 @@ export type ChatAction =
           | "status"
           | "workflows"
           | "agents"
-          | "login";
+          | "login"
+          | "deepseek-key";
         data?: ConfigurationData;
         error?: string;
         serviceName?: string;

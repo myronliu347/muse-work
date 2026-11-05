@@ -251,7 +251,6 @@ describe("assistant tools", () => {
       "CloseIssue",
       "ResolvePermission",
       "SendMessage",
-      "RecallMessage",
       "ReadSessionMessages",
       "ListMuseMessages",
       "WebSearch",
@@ -510,51 +509,7 @@ describe("assistant tools", () => {
     expect(messageIssue?.config.function.description).not.toContain("interrupt");
   });
 
-  it("records the master's POPO private chat and skips groups", async () => {
-    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-popo-"));
-    const issues = createIssueStore({ home });
-    const sessions = createSessionStore({ home });
-    const automations = createAutomationStore({ home });
-    const log = createAssistantMessageLog({ home });
-    const sent: string[] = [];
-    const broadcasts: unknown[] = [];
-    const tools = createAssistantTools({
-      home,
-      issues,
-      sessions,
-      automations,
-      log,
-      hub: { broadcastAll: (event: unknown) => broadcasts.push(event) } as WsHub,
-      runner: {} as never,
-      sendText: async (receiver, content) => {
-        sent.push(`${receiver}:${content}`);
-      },
-      popoMasterUid: () => "master",
-    });
-    const context = { sessionId: "assistant", toolUseId: "tool-1" };
-    const direct = await tool(tools, "SendMessage").execute(
-      { app: "popo", user: "master", message: "私聊回复" },
-      context,
-    );
-    expect(direct.success).toBe(true);
-    const group = await tool(tools, "SendMessage").execute(
-      { app: "popo", user: "master", groupId: "g1", message: "群回复" },
-      context,
-    );
-    expect(group.success).toBe(true);
-    const other = await tool(tools, "SendMessage").execute(
-      { app: "popo", user: "someone", message: "别人" },
-      context,
-    );
-    expect(other.success).toBe(true);
-    expect(sent).toEqual(["master:私聊回复", "g1:群回复", "someone:别人"]);
-    expect(log.page().messages).toEqual([
-      expect.objectContaining({ role: "assistant", message: "私聊回复", app: "popo" }),
-    ]);
-    expect(broadcasts).toHaveLength(1);
-  });
-
-  it("sends local files and links, and recalls the POPO message", async () => {
+  it("keeps file paths and links in a Muse reply", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-file-"));
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-attach-"));
     const png = path.join(dir, "shot.png");
@@ -565,9 +520,6 @@ describe("assistant tools", () => {
     const sessions = createSessionStore({ home });
     const automations = createAutomationStore({ home });
     const log = createAssistantMessageLog({ home });
-    const files: string[] = [];
-    const sentText: string[] = [];
-    const recalls: Array<{ msgId: string; sessionId: string; sessionType: number }> = [];
     const tools = createAssistantTools({
       home,
       issues,
@@ -576,18 +528,6 @@ describe("assistant tools", () => {
       log,
       hub: { broadcastAll: () => undefined } as WsHub,
       runner: {} as never,
-      sendText: async (_receiver, content) => {
-        sentText.push(content);
-        return ["text-1"];
-      },
-      sendLocalFile: async (_receiver, filePath) => {
-        files.push(filePath);
-        return "file-1";
-      },
-      recallPopo: async (args) => {
-        recalls.push(args);
-      },
-      popoMasterUid: () => "master",
     });
     const context = { sessionId: "assistant", toolUseId: "tool-1" };
     const muse = await tool(tools, "SendMessage").execute(
@@ -607,50 +547,6 @@ describe("assistant tools", () => {
     expect(museLine?.images).toBeUndefined();
     expect(muse.content).not.toContain("base64");
 
-    const popo = await tool(tools, "SendMessage").execute(
-      {
-        app: "popo",
-        user: "master",
-        message: "",
-        files: [png],
-      },
-      context,
-    );
-    expect(popo.success).toBe(true);
-    expect(files).toEqual([png]);
-    expect(sentText).toEqual([]);
-    expect(JSON.parse(popo.content)).toMatchObject({ msgIds: ["file-1"] });
-    expect(log.page().messages[1]?.msgIds).toEqual(["file-1"]);
-
-    const packed = await tool(tools, "SendMessage").execute(
-      {
-        app: "popo",
-        groupId: "g1",
-        message: "包在这",
-        files: [note],
-      },
-      context,
-    );
-    expect(packed.success).toBe(true);
-    expect(sentText).toEqual(["包在这"]);
-    expect(sentText[0]).not.toContain(note);
-    expect(files).toEqual([png, note]);
-
-    const recalled = await tool(tools, "RecallMessage").execute(
-      { msgId: "file-1", user: "master" },
-      context,
-    );
-    const group = await tool(tools, "RecallMessage").execute(
-      { msgId: "file-1", groupId: "g1" },
-      context,
-    );
-    expect(recalled.success).toBe(true);
-    expect(group.success).toBe(true);
-    expect(recalls).toEqual([
-      { msgId: "file-1", sessionId: "master", sessionType: 1 },
-      { msgId: "file-1", sessionId: "g1", sessionType: 3 },
-    ]);
-
     const missing = await tool(tools, "SendMessage").execute(
       { app: "muse", message: "", files: ["relative.png"] },
       context,
@@ -662,7 +558,6 @@ describe("assistant tools", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-mention-"));
     const issues = createIssueStore({ home });
     const log = createAssistantMessageLog({ home });
-    const sent: Array<{ content: string; atUids?: string[] }> = [];
     const tools = createAssistantTools({
       home,
       issues,
@@ -671,11 +566,6 @@ describe("assistant tools", () => {
       log,
       hub: { broadcastAll: () => undefined } as WsHub,
       runner: {} as never,
-      sendText: async (_receiver, content, at) => {
-        sent.push({ content, ...(at?.atUids ? { atUids: at.atUids } : {}) });
-        return ["m1"];
-      },
-      popoMasterUid: () => "master",
     });
     const context = { sessionId: "assistant", toolUseId: "tool-1" };
     const analysis = issues.create({ title: "高码澄清", description: "查" });
@@ -710,28 +600,6 @@ describe("assistant tools", () => {
       context,
     );
     expect(museUser.success).toBe(false);
-    const privateAt = await tool(tools, "SendMessage").execute(
-      { app: "popo", user: "master", ats: [{ type: "user", id: "a@corp.netease.com" }], message: "私聊" },
-      context,
-    );
-    expect(privateAt.success).toBe(false);
-    const groupIssue = await tool(tools, "SendMessage").execute(
-      { app: "popo", groupId: "g1", ats: [{ type: "issue", id: design.id }], message: "群里" },
-      context,
-    );
-    expect(groupIssue.success).toBe(false);
-
-    const group = await tool(tools, "SendMessage").execute(
-      {
-        app: "popo",
-        groupId: "g1",
-        ats: [{ type: "user", id: "a@corp.netease.com" }],
-        message: "看一下",
-      },
-      context,
-    );
-    expect(group.success).toBe(true);
-    expect(sent).toEqual([{ content: "看一下", atUids: ["a@corp.netease.com"] }]);
 
     const missing = await tool(tools, "SendMessage").execute(
       { app: "muse", ats: [{ type: "issue", id: "missing" }], message: "没有" },

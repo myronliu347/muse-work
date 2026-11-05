@@ -4,6 +4,7 @@ import StatusDialog from "./StatusDialog";
 import WorkflowManager from "../settings/WorkflowManager";
 import AgentsDialog from "./AgentsDialog";
 import LoginDialog from "./LoginDialog";
+import { DeepSeekKeyDialog } from "./DeepSeekKeyDialog";
 import { AgentTranscriptPopup } from "./AgentTranscriptPopup";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ToastStack } from "../shared/ToastStack";
@@ -130,6 +131,13 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
           loginError={loginError}
           serviceName={loginServiceName}
           onLogin={onLogin}
+          onCancel={onDialogClose}
+        />
+      )}
+      {activeDialog === "deepseek-key" && (
+        <DeepSeekKeyDialog
+          vscode={vscode}
+          error={loginError}
           onCancel={onDialogClose}
         />
       )}

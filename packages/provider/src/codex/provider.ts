@@ -87,6 +87,7 @@ export function createCodexProvider(deps: CodexProviderDeps): AiProvider {
   return {
     id: "codex",
     displayName: "ChatGPT",
+    revokeOnUnauthorized: true,
 
     async getAuthStatus() {
       try {

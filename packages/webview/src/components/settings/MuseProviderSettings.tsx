@@ -17,6 +17,7 @@ import {
 import {
   MuseApiClient,
   type MuseCodeMakerQuota,
+  type MuseDeepSeekBalance,
   type MuseModelInfo,
   type MuseOpenAiCompatibleConfig,
   type MuseProvidersResponse,
@@ -49,6 +50,17 @@ function formatQuotaNumber(n: number | undefined): string {
 function formatQuotaPercent(n: number | undefined): string {
   if (n === undefined) return "—";
   return `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}%`;
+}
+
+function quotaFailureText(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  if (/401|unauthenticated|未配置/.test(message)) return "未配置 API Key";
+  return message;
+}
+
+function formatBalance(amount: string | undefined, currency: string | undefined): string {
+  const value = amount?.trim() || "—";
+  return currency ? `${value} ${currency}` : value;
 }
 
 function quotaBarWidth(percentage: number | undefined): number {
@@ -90,6 +102,8 @@ export const MuseProviderSettings = forwardRef<
   const [draftProviderId, setDraftProviderId] = useState("");
   const [quota, setQuota] = useState<MuseCodeMakerQuota | null>(null);
   const [quotaError, setQuotaError] = useState<string | null>(null);
+  const [deepseekBalance, setDeepseekBalance] = useState<MuseDeepSeekBalance | null>(null);
+  const [deepseekQuotaError, setDeepseekQuotaError] = useState<string | null>(null);
   const [openaiCfg, setOpenaiCfg] = useState<MuseOpenAiCompatibleConfig | null>(
     null,
   );
@@ -137,7 +151,24 @@ export const MuseProviderSettings = forwardRef<
       } catch (err) {
         if (gen !== loadGenRef.current) return;
         setQuota(null);
-        setQuotaError(err instanceof Error ? err.message : String(err));
+        setQuotaError(quotaFailureText(err));
+      }
+    },
+    [client],
+  );
+
+  const loadDeepSeekQuota = useCallback(
+    async (gen: number) => {
+      setDeepseekBalance(null);
+      setDeepseekQuotaError(null);
+      try {
+        const body = await client.getDeepSeekQuota();
+        if (gen !== loadGenRef.current) return;
+        setDeepseekBalance(body);
+      } catch (err) {
+        if (gen !== loadGenRef.current) return;
+        setDeepseekBalance(null);
+        setDeepseekQuotaError(quotaFailureText(err));
       }
     },
     [client],
@@ -171,14 +202,28 @@ export const MuseProviderSettings = forwardRef<
       const gen = ++loadGenRef.current;
       if (providerId === "codemaker") {
         setOpenaiCfg(null);
+        setDeepseekBalance(null);
+        setDeepseekQuotaError(null);
         await loadQuota(gen);
+      } else if (providerId === "deepseek") {
+        setOpenaiCfg(null);
+        setQuota(null);
+        setQuotaError(null);
+        await loadDeepSeekQuota(gen);
       } else if (providerId === "openai-compatible") {
         setQuota(null);
         setQuotaError(null);
+        setDeepseekBalance(null);
+        setDeepseekQuotaError(null);
         await loadOpenai(gen);
+      } else {
+        setQuota(null);
+        setQuotaError(null);
+        setDeepseekBalance(null);
+        setDeepseekQuotaError(null);
       }
     },
-    [loadQuota, loadOpenai],
+    [loadQuota, loadDeepSeekQuota, loadOpenai],
   );
 
   useEffect(() => {
@@ -377,6 +422,47 @@ export const MuseProviderSettings = forwardRef<
                   aria-label="本月额度使用百分比"
                 />
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {draftProviderId === "deepseek" && (
+        <div data-testid="muse-deepseek-quota">
+          <div className="muse-quota-header">
+            <label>账户余额</label>
+            {deepseekBalance ? (
+              <span className="muse-quota-user">
+                {deepseekBalance.is_available ? "可用" : "不可用"}
+              </span>
+            ) : null}
+          </div>
+          {deepseekQuotaError ? (
+            <div className="config-model-hint">
+              <span>{deepseekQuotaError}</span>
+            </div>
+          ) : !deepseekBalance ? (
+            <div className="config-model-hint">
+              <span>加载中…</span>
+            </div>
+          ) : (
+            <div className="muse-quota-grid">
+              {deepseekBalance.balance_infos.map((info, index) => (
+                <React.Fragment key={`${info.currency ?? "balance"}-${index}`}>
+                  <div className="muse-quota-row">
+                    <span className="muse-quota-label">总余额</span>
+                    <span>{formatBalance(info.total_balance, info.currency)}</span>
+                  </div>
+                  <div className="muse-quota-row">
+                    <span className="muse-quota-label">赠送余额</span>
+                    <span>{formatBalance(info.granted_balance, info.currency)}</span>
+                  </div>
+                  <div className="muse-quota-row">
+                    <span className="muse-quota-label">充值余额</span>
+                    <span>{formatBalance(info.topped_up_balance, info.currency)}</span>
+                  </div>
+                </React.Fragment>
+              ))}
             </div>
           )}
         </div>

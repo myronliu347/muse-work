@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import type { Server } from "node:http";
 import {
   createProviderRegistry,
@@ -23,8 +23,15 @@ import { createAutomationRuntime } from "../src/services/automationRuntime.js";
 describe("providers + auth routes", () => {
   let server: Server | undefined;
   let home: string | undefined;
+  const savedDeepSeekKey = process.env.DEEPSEEK_API_KEY;
+
+  beforeEach(() => {
+    delete process.env.DEEPSEEK_API_KEY;
+  });
 
   afterEach(async () => {
+    if (savedDeepSeekKey === undefined) delete process.env.DEEPSEEK_API_KEY;
+    else process.env.DEEPSEEK_API_KEY = savedDeepSeekKey;
     if (server) {
       await closeTestApp(server, home);
       server = undefined;
@@ -48,10 +55,10 @@ describe("providers + auth routes", () => {
       active: { providerId: string; modelId?: string };
     };
 
-    expect(body.active.providerId).toBe("codemaker");
+    expect(body.active.providerId).toBe("deepseek");
     expect(body.providers.map((p) => p.id).sort()).toEqual([
-      "codemaker",
       "codex",
+      "deepseek",
       "openai-compatible",
     ]);
     const openai = body.providers.find((p) => p.id === "openai-compatible");
@@ -149,13 +156,42 @@ describe("providers + auth routes", () => {
     ]);
   });
 
-  it("GET /providers/codemaker/quota returns 401 when unauthenticated", async () => {
+  it("GET /providers/codemaker/quota is missing without the netease plugin", async () => {
     const app = await listenTestApp();
     server = app.server;
     home = app.home;
 
     const res = await fetch(`${app.baseUrl}/providers/codemaker/quota`);
+    expect(res.status).toBe(404);
+  });
+
+  it("GET /providers/deepseek/quota is unauthenticated without a key", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const res = await fetch(`${app.baseUrl}/providers/deepseek/quota`);
     expect(res.status).toBe(401);
+  });
+
+  it("POST /providers/deepseek/api-key stores DEEPSEEK_API_KEY", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const res = await fetch(`${app.baseUrl}/providers/deepseek/api-key`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ apiKey: "test-key" }),
+    });
+    expect(res.status).toBe(200);
+    expect(process.env.DEEPSEEK_API_KEY).toBe("test-key");
+  });
+
+  it("GET /providers/:id/quota returns 404 when the provider has no quota", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const res = await fetch(`${app.baseUrl}/providers/openai-compatible/quota`);
+    expect(res.status).toBe(404);
   });
 
   it("GET /providers/:id/models returns model list", async () => {
@@ -177,8 +213,8 @@ describe("providers + auth routes", () => {
     const res = await fetch(`${app.baseUrl}/auth/status`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as AuthStatus;
-    expect(body.providerId).toBe("codemaker");
-    expect(body.state).toBe("unauthenticated");
+    expect(body.providerId).toBe("deepseek");
+    expect(body.state).toBe("needs_config");
   });
 
   it("POST /auth/login returns authUrl without opening browser", async () => {
