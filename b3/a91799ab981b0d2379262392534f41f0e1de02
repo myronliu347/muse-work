@@ -1,0 +1,60 @@
+packages/webview/tests/components/UserMessageNav.test.tsx
+  65e0162bd9081307 50,52-55,58
+packages/webview/src/components/message/UserMessageNav.tsx
+  65e0162bd9081307 24-25,31-33,36
+packages/webview/tests/webview/stickyUserMessage.test.tsx
+  65e0162bd9081307 195-257
+packages/webview/src/components/chat/MessageList.tsx
+  65e0162bd9081307 502,505-520,588-591
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b3a91799ab981b0d2379262392534f41f0e1de02",
+  "prompts": {
+    "65e0162bd9081307": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "634930ac-3945-4b6c-9989-0bc5f41807d3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 186,
+      "total_deletions": 60,
+      "accepted_lines": 168,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 26,
+          "deletions": 10,
+          "accepted_lines": 21
+        },
+        "packages/webview/src/components/message/UserMessageNav.tsx": {
+          "additions": 7,
+          "deletions": 4,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 37,
+          "deletions": 18,
+          "accepted_lines": 26
+        },
+        "packages/webview/tests/components/UserMessageNav.test.tsx": {
+          "additions": 6,
+          "deletions": 3,
+          "accepted_lines": 6
+        },
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "additions": 47,
+          "deletions": 25,
+          "accepted_lines": 46
+        },
+        "packages/webview/tests/webview/stickyUserMessage.test.tsx": {
+          "additions": 63,
+          "accepted_lines": 63
+        }
+      }
+    }
+  }
+}
