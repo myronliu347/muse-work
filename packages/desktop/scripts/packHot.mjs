@@ -9,6 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resourceVersion, shellVersion } from "./hotRelease.mjs";
+import { copyTree, makeTreePortable } from "./portableNodeModules.mjs";
 
 const desktopRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const webviewDir = path.join(desktopRoot, "webview");
@@ -33,7 +34,8 @@ const manifestPath = path.join(releaseDir, "muse-hot.json");
 
 try {
   fs.cpSync(webviewDir, path.join(stage, "webview"), { recursive: true, dereference: true });
-  fs.cpSync(serverDir, path.join(stage, "muse-server"), { recursive: true, dereference: true });
+  makeTreePortable(serverDir);
+  copyTree(serverDir, path.join(stage, "muse-server"));
   fs.mkdirSync(releaseDir, { recursive: true });
   fs.rmSync(zipPath, { force: true });
   const zipped = spawnSync("zip", ["-r", "-q", "-X", zipPath, "webview", "muse-server"], {

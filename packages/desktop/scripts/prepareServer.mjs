@@ -4,14 +4,16 @@
  * for electron-builder extraResources (includes node_modules + ripgrep binary).
  *
  * electron-builder skips nested `node_modules` when `from` is a parent dir,
- * so we also emit a dereferenced copy and package.json points extraResources
- * at `node_modules` as a top-level `from`.
+ * so package.json points extraResources at `node_modules` as its own `from`.
+ * pnpm's absolute symlinks are rewritten to relative ones before that copy,
+ * so the dmg does not point back at the machine that built it.
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureServerPlugins } from "./ensureServerPlugins.mjs";
+import { makeTreePortable } from "./portableNodeModules.mjs";
 
 const desktopRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const workspaceRoot = path.resolve(desktopRoot, "../..");
@@ -35,7 +37,7 @@ for (const filter of ["@muse-work/agent", "@muse-work/provider", "@muse-work/plu
 
 fs.rmSync(out, { recursive: true, force: true });
 // pnpm 10 refuses deploy unless the workspace injects its packages.
-// This tree is built for the symlink layout (flatten + dereference below).
+// --legacy keeps the isolated store. Absolute links are rewritten below.
 run("pnpm", ["--filter", "@muse-work/server", "deploy", "--legacy", "--prod", out]);
 
 for (const name of ["src", "tests", "vitest.config.ts", "tsconfig.json"]) {
@@ -46,23 +48,11 @@ for (const name of ["src", "tests", "vitest.config.ts", "tsconfig.json"]) {
 const escapeLink = path.join(out, "node_modules/.pnpm/node_modules/@muse-work/server");
 fs.rmSync(escapeLink, { recursive: true, force: true });
 
-// Dereference symlinks so the packaged app is self-contained on disk.
 const nm = path.join(out, "node_modules");
-const nmFlat = path.join(out, "node_modules.flat");
-fs.rmSync(nmFlat, { recursive: true, force: true });
-fs.cpSync(nm, nmFlat, { recursive: true, dereference: true });
-fs.rmSync(nm, { recursive: true, force: true });
-fs.renameSync(nmFlat, nm);
 
 const entry = path.join(out, "dist", "index.js");
 if (!fs.existsSync(entry)) {
   console.error("[prepareServer] missing entry:", entry);
-  process.exit(1);
-}
-
-const providerPkg = path.join(nm, "@muse-work/provider/package.json");
-if (!fs.existsSync(providerPkg)) {
-  console.error("[prepareServer] missing provider after flatten:", providerPkg);
   process.exit(1);
 }
 
@@ -72,6 +62,19 @@ try {
   ensureServerPlugins(pluginsSrc, pluginsDest, { force: true });
 } catch (err) {
   console.error(err instanceof Error ? err.message : String(err));
+  process.exit(1);
+}
+
+try {
+  makeTreePortable(out);
+} catch (err) {
+  console.error(err instanceof Error ? err.message : String(err));
+  process.exit(1);
+}
+
+const providerPkg = path.join(nm, "@muse-work/provider/package.json");
+if (!fs.existsSync(providerPkg)) {
+  console.error("[prepareServer] missing provider after making node_modules portable:", providerPkg);
   process.exit(1);
 }
 
