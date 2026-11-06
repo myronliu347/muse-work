@@ -1,0 +1,182 @@
+packages/desktop/package.json
+  77f2456c8992f900 35-38,56
+packages/desktop/src/main/index.ts
+  77f2456c8992f900 8,11-19,121-124,131,251-324,339-351,359-374,376,378,393,395-396,398-412,415-423,427
+packages/webview/package.json
+  77f2456c8992f900 8
+packages/webview/src/styles/DesktopApp.css
+  77f2456c8992f900 239-288,315-320
+packages/webview/src/components/dialogs/ConfigDialog.tsx
+  77f2456c8992f900 23,255
+packages/desktop/tests/hotUpdate.test.ts
+  77f2456c8992f900 1-264
+scripts/release.test.mjs
+  77f2456c8992f900 1-48
+packages/desktop/tests/updateCheck.test.ts
+  77f2456c8992f900 1-70
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  77f2456c8992f900 18,223,225-227,302-314
+packages/desktop/scripts/hotRelease.mjs
+  77f2456c8992f900 1-27
+packages/desktop/tests/packaging.test.ts
+  77f2456c8992f900 29-32
+packages/desktop/scripts/packMac.mjs
+  77f2456c8992f900 11,46-49
+scripts/release.mjs
+  77f2456c8992f900 1-219
+packages/desktop/src/main/hotUpdate.ts
+  77f2456c8992f900 1-306
+packages/desktop/scripts/packHot.mjs
+  77f2456c8992f900 1-58
+packages/desktop/src/main/updateCheck.ts
+  77f2456c8992f900 1-96
+README.md
+  77f2456c8992f900 31,102-104,107-108
+packages/webview/tests/components/updateStatus.test.tsx
+  77f2456c8992f900 1-17,20-89
+packages/webview/src/desktop/updateStatus.ts
+  77f2456c8992f900 1-109
+packages/agent/package.json
+  77f2456c8992f900 71
+packages/webview/src/components/desktop/DesktopUpdateChrome.tsx
+  77f2456c8992f900 1-50
+package.json
+  77f2456c8992f900 4,11-12,15
+.github/workflows/release.yml
+  77f2456c8992f900 1-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "9a88d6b1c45e091bf8c321c21471ed98cef6c6ba",
+  "prompts": {
+    "77f2456c8992f900": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e32ef64-7567-4b85-9961-7e1fc15ed467",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 2110,
+      "total_deletions": 456,
+      "accepted_lines": 1637,
+      "overriden_lines": 2,
+      "per_file_stats": {
+        "packages/desktop/scripts/packMac.mjs": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 36,
+          "deletions": 18,
+          "accepted_lines": 18
+        },
+        "packages/webview/src/desktop/updateStatus.ts": {
+          "additions": 118,
+          "deletions": 9,
+          "accepted_lines": 109
+        },
+        "package.json": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        "packages/desktop/tests/updateCheck.test.ts": {
+          "additions": 70,
+          "accepted_lines": 70
+        },
+        "packages/desktop/package.json": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/agent/package.json": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/src/main/updateCheck.ts": {
+          "additions": 96,
+          "accepted_lines": 96
+        },
+        "packages/desktop/tests/packaging.test.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 126,
+          "deletions": 68,
+          "accepted_lines": 59
+        },
+        "packages/webview/tests/components/updateStatus.test.tsx": {
+          "additions": 134,
+          "deletions": 29,
+          "accepted_lines": 87,
+          "overriden_lines": 2
+        },
+        "packages/webview/package.json": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/scripts/hotRelease.mjs": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "packages/webview/src/components/dialogs/ConfigDialog.tsx": {
+          "additions": 11,
+          "deletions": 9,
+          "accepted_lines": 3
+        },
+        "packages/desktop/src/main/hotUpdate.ts": {
+          "additions": 308,
+          "deletions": 2,
+          "accepted_lines": 306
+        },
+        "packages/webview/src/components/desktop/DesktopUpdateChrome.tsx": {
+          "additions": 88,
+          "deletions": 38,
+          "accepted_lines": 50
+        },
+        ".github/workflows/release.yml": {
+          "additions": 46,
+          "deletions": 2,
+          "accepted_lines": 44
+        },
+        "packages/desktop/scripts/packHot.mjs": {
+          "additions": 58,
+          "accepted_lines": 58
+        },
+        "README.md": {
+          "additions": 21,
+          "deletions": 15,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/components/settings/UpdateSettings.tsx": {
+          "additions": 25
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 292,
+          "deletions": 157,
+          "accepted_lines": 151
+        },
+        "packages/desktop/tests/hotUpdate.test.ts": {
+          "additions": 274,
+          "deletions": 10,
+          "accepted_lines": 264
+        },
+        "scripts/release.test.mjs": {
+          "additions": 69,
+          "deletions": 21,
+          "accepted_lines": 48
+        },
+        "scripts/release.mjs": {
+          "additions": 291,
+          "deletions": 72,
+          "accepted_lines": 219
+        }
+      }
+    }
+  }
+}
