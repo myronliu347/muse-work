@@ -29,7 +29,7 @@ function run(cmd, args, cwd = workspaceRoot) {
   }
 }
 
-for (const filter of ["@muse-work/agent", "@muse-work/provider", "@muse-work/server"]) {
+for (const filter of ["@muse-work/agent", "@muse-work/provider", "@muse-work/plugin-sdk", "@muse-work/server"]) {
   run("pnpm", ["-F", filter, "build"]);
 }
 
