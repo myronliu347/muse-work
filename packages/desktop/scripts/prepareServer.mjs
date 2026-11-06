@@ -34,7 +34,9 @@ for (const filter of ["@muse-work/agent", "@muse-work/provider", "@muse-work/plu
 }
 
 fs.rmSync(out, { recursive: true, force: true });
-run("pnpm", ["--filter", "@muse-work/server", "deploy", "--prod", out]);
+// pnpm 10 refuses deploy unless the workspace injects its packages.
+// This tree is built for the symlink layout (flatten + dereference below).
+run("pnpm", ["--filter", "@muse-work/server", "deploy", "--legacy", "--prod", out]);
 
 for (const name of ["src", "tests", "vitest.config.ts", "tsconfig.json"]) {
   fs.rmSync(path.join(out, name), { recursive: true, force: true });
