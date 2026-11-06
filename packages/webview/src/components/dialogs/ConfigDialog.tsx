@@ -20,6 +20,7 @@ import {
   type MuseProviderSettingsHandle,
 } from "../settings/MuseProviderSettings";
 import { AppearanceSettings } from "../settings/AppearanceSettings";
+import { DesktopUpdateChrome } from "../desktop/DesktopUpdateChrome";
 import { HostPluginPanel } from "../settings/HostPluginPanel";
 import {
   AgentSettings,
@@ -251,6 +252,7 @@ const ConfigDialog = forwardRef<
         <div className="configuration-dialog-header config-dialog-header">
           <h3 id="config-dialog-title">设置</h3>
           {page ? settingsTabs : null}
+          <DesktopUpdateChrome />
           {page ? (
             isAuthenticated === false && onLogin ? (
               <button

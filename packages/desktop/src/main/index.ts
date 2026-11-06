@@ -5,9 +5,18 @@
  * server base URL injected via preload (`window.museServerBaseUrl`).
  */
 
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, powerMonitor, webContents } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, powerMonitor, shell, webContents } from "electron";
 import { execFileSync } from "child_process";
 import * as path from "path";
+import {
+  checkForHotUpdate,
+  discardActiveHot,
+  HOT_REPO,
+  readBundledHotVersion,
+  resolveLaunchResources,
+  type LaunchResources,
+} from "./hotUpdate";
+import { createUpdateMonitor, type UpdateOffer, type UpdateStatus } from "./updateCheck";
 import { museServerBaseUrl, startMuseServer } from "./serverProcess";
 import { installThemeHost } from "./themeHost";
 import { windowBackgroundFor } from "./uiPrefs";
@@ -109,14 +118,17 @@ function installAppMenu(getWindow: () => BrowserWindow | null): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-function openMainWindow(quitGate: ReturnType<typeof createQuitGate>): void {
+function openMainWindow(
+  quitGate: ReturnType<typeof createQuitGate>,
+  webviewHtmlPath: string,
+): void {
   if (!serverBaseUrl || !themeHost) return;
   const paths = resolveDesktopPaths();
   mainWindow = createMainWindow({
     serverBaseUrl,
     backgroundColor: windowBackgroundFor(themeHost.effective),
     preloadPath: paths.preloadPath,
-    webviewHtmlPath: paths.webviewHtmlPath,
+    webviewHtmlPath,
     title: APP_DISPLAY_NAME,
   });
   mainWindow.on("close", (event) => {
@@ -236,6 +248,80 @@ if (!gotLock) {
     });
 
     installAppMenu(() => mainWindow);
+
+    const publishUpdate = (status: UpdateStatus): void => {
+      const win = mainWindow;
+      if (!win || win.isDestroyed()) return;
+      win.webContents.send(TO_WEBVIEW, {
+        command: "desktopUpdateStatus",
+        phase: status.phase,
+        offer: status.offer
+          ? { kind: status.offer.kind, version: status.offer.version }
+          : null,
+        detail: status.detail,
+      });
+    };
+    const updateMonitor = createUpdateMonitor({
+      check: () =>
+        checkForHotUpdate({
+          hotRoot: path.join(app.getPath("userData"), "hot"),
+          shellVersion: app.getVersion(),
+          bundledVersion:
+            (app.isPackaged ? readBundledHotVersion(process.resourcesPath) : null) ??
+            app.getVersion(),
+          repo: HOT_REPO,
+        }),
+      publish: publishUpdate,
+    });
+    const showUpdateDialog = (offer: UpdateOffer): void => {
+      const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+      if (offer.kind === "installer") {
+        const prompt = {
+          type: "info" as const,
+          buttons: ["下载安装包", "稍后"],
+          defaultId: 0,
+          cancelId: 1,
+          title: "需要重新安装",
+          message: "这一版要换桌面程序",
+          detail:
+            "热更新带不上这次改动。安装包会下到「下载」文件夹。打开后，把 Muse 拖进「应用程序」（/Applications），覆盖原来的那个。",
+        };
+        const box = win ? dialog.showMessageBox(win, prompt) : dialog.showMessageBox(prompt);
+        void box
+          .then(({ response }) => {
+            if (response !== 0 || !offer.url) return;
+            return shell.openExternal(offer.url);
+          })
+          .catch((err) => {
+            console.error("[muse-desktop] installer prompt failed:", err);
+          });
+        return;
+      }
+      const busy = quitGate.isAgentBusy();
+      const prompt = {
+        type: "info" as const,
+        buttons: busy ? ["稍后", "重启并中断"] : ["立即重启", "稍后"],
+        defaultId: 0,
+        cancelId: busy ? 0 : 1,
+        title: "有新版本",
+        message: "界面和服务已更新",
+        detail: busy ? "重启后即可使用。当前有任务在运行，重启会中断它。" : "重启后即可使用。",
+      };
+      const box = win ? dialog.showMessageBox(win, prompt) : dialog.showMessageBox(prompt);
+      void box
+        .then(({ response }) => {
+          const restart = busy ? response === 1 : response === 0;
+          if (!restart) return;
+          return stopServer?.().finally(() => {
+            app.relaunch();
+            app.exit(0);
+          });
+        })
+        .catch((err) => {
+          console.error("[muse-desktop] update prompt failed:", err);
+        });
+    };
+
     ipcMain.on(FROM_WEBVIEW, (_event, raw: unknown) => {
       const msg = raw as { command?: string } | null;
       if (msg?.command === "previewClearCache") {
@@ -250,6 +336,19 @@ if (!gotLock) {
         applyPreviewViewport(msg, (id) => webContents.fromId(id) ?? undefined);
         return;
       }
+      if (msg?.command === "desktopUpdateQuery" || msg?.command === "desktopCheckForUpdate") {
+        if (msg.command === "desktopCheckForUpdate") {
+          void updateMonitor.checkNow();
+          return;
+        }
+        publishUpdate(updateMonitor.status());
+        return;
+      }
+      if (msg?.command === "desktopApplyUpdate") {
+        const offer = updateMonitor.offer();
+        if (offer) showUpdateDialog(offer);
+        return;
+      }
       if (msg?.command !== "desktopCloseWindow") return;
       const win = mainWindow;
       if (!win || win.isDestroyed()) return;
@@ -257,10 +356,26 @@ if (!gotLock) {
     });
 
     const paths = resolveDesktopPaths();
+    const hotRoot = path.join(app.getPath("userData"), "hot");
+    const bundledVersion =
+      (app.isPackaged ? readBundledHotVersion(process.resourcesPath) : null) ??
+      app.getVersion();
+    const bundledLaunch: LaunchResources = {
+      webviewHtmlPath: paths.webviewHtmlPath,
+      serverEntry: paths.serverEntry,
+      source: "bundled",
+      version: bundledVersion,
+    };
+    let launch = app.isPackaged
+      ? resolveLaunchResources({
+          hotRoot,
+          bundled: bundledLaunch,
+        })
+      : bundledLaunch;
 
-    try {
+    const boot = async (entry: string): Promise<void> => {
       const server = await startMuseServer({
-        entry: paths.serverEntry,
+        entry,
         // MUSE_HOME_DIR was set in the dev block above (and inherited here via
         // process.env merge), so the server keeps ALL state (db/settings/
         // providers/sessions/auth + logs) under ~/.dev-muse-work instead
@@ -275,21 +390,41 @@ if (!gotLock) {
       stopServer = server.stop;
       serverHandle = server;
       serverBaseUrl = museServerBaseUrl(server.port, server.host);
-      console.log(`[muse-desktop] server ready at ${serverBaseUrl}`);
-      openMainWindow(quitGate);
+    };
 
-      powerMonitor.on("resume", () => {
-        void recoverAfterResume();
-      });
+    try {
+      await boot(launch.serverEntry);
     } catch (err) {
-      console.error("[muse-desktop] failed to start:", err);
-      app.quit();
-      return;
+      if (launch.source !== "hot") {
+        console.error("[muse-desktop] failed to start:", err);
+        app.quit();
+        return;
+      }
+      console.error("[muse-desktop] hot resources failed, using bundled copy:", err);
+      discardActiveHot(hotRoot);
+      launch = bundledLaunch;
+      try {
+        await boot(launch.serverEntry);
+      } catch (fallbackErr) {
+        console.error("[muse-desktop] failed to start:", fallbackErr);
+        app.quit();
+        return;
+      }
     }
+
+    console.log(
+      `[muse-desktop] server ready at ${serverBaseUrl} (${launch.source} ${launch.version})`,
+    );
+    openMainWindow(quitGate, launch.webviewHtmlPath);
+    if (app.isPackaged) updateMonitor.start();
+
+    powerMonitor.on("resume", () => {
+      void recoverAfterResume();
+    });
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        openMainWindow(quitGate);
+        openMainWindow(quitGate, launch.webviewHtmlPath);
       }
     });
 

@@ -15,6 +15,7 @@ import type {
 } from "../../types";
 import type { ShellSurface } from "./shellSurface";
 import { Tooltip } from "../shared/Tooltip";
+import { postDesktopCommand, useDesktopUpdateStatus } from "../../desktop/updateStatus";
 import "../../styles/DesktopApp.css";
 
 export {
@@ -219,7 +220,11 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onOpenAssistant,
   sidebarAccessHidden = false,
 }) => {
+  const update = useDesktopUpdateStatus();
   const [assistantUnread, setAssistantUnread] = useState(false);
+  useEffect(() => {
+    postDesktopCommand("desktopUpdateQuery");
+  }, []);
   useEffect(() => {
     if (activeMenu === "assistant") setAssistantUnread(false);
   }, [activeMenu]);
@@ -294,6 +299,19 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             <SkillsIcon />
           </button>
         </Tooltip>
+        {update.offer ? (
+          <Tooltip text={`有新版本 ${update.offer.version}`} position="right" wrap={false}>
+            <button
+              type="button"
+              className="desktop-rail-btn desktop-rail-update"
+              onClick={() => postDesktopCommand("desktopApplyUpdate")}
+              aria-label={`更新 ${update.offer.version}`}
+              data-testid="desktop-update-btn"
+            >
+              更新
+            </button>
+          </Tooltip>
+        ) : null}
         <Tooltip text="设置" position="right" wrap={false}>
           <button
             type="button"

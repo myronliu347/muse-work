@@ -8,6 +8,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureNodePty } from "./ensureNodePty.mjs";
+import { writeBundledHot } from "./hotRelease.mjs";
 import { materializeNodePty, restoreNodePty } from "./nodePtyPackaging.mjs";
 
 const desktopRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -42,6 +43,10 @@ process.on("SIGINT", onSignal);
 process.on("SIGTERM", onSignal);
 
 try {
+  const bundled = writeBundledHot(desktopRoot);
+  console.log(
+    `[packMac] bundled hot version ${bundled.version} shell ${bundled.shell}`,
+  );
   await ensureNodePty();
   if (materializeNodePty(desktopRoot)) {
     console.log(

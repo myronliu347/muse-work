@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Package dmg and hot resources
+        env:
+          HOT_VERSION: ${{ github.ref_name }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          pnpm dist:mac
+          node packages/desktop/scripts/packHot.mjs
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            packages/desktop/release/*.dmg
+            packages/desktop/release/muse-hot.zip
+            packages/desktop/release/muse-hot.json
+          generate_release_notes: true

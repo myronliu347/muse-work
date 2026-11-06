@@ -236,6 +236,58 @@
   margin-top: auto;
 }
 
+.desktop-settings-update {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  -webkit-app-region: no-drag;
+}
+
+.desktop-settings-update-status {
+  color: var(--gray-11);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.desktop-settings-update-check {
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--gray-7);
+  border-radius: var(--radius-1);
+  background: transparent;
+  color: var(--gray-12);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.desktop-settings-update-check:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.desktop-layout > .desktop-settings-page .desktop-settings-update + .desktop-sidebar-icon-btn {
+  margin-left: 0;
+}
+
+.desktop-rail-btn.desktop-rail-update {
+  margin-top: auto;
+  background: var(--accent-9);
+  color: var(--accent-contrast);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.desktop-rail-btn.desktop-rail-update + .desktop-rail-btn.desktop-rail-settings {
+  margin-top: 0;
+}
+
 .desktop-rail-btn {
   position: relative;
   display: flex;
@@ -258,6 +310,12 @@
 
 .desktop-rail-btn:hover:not(.active) {
   background: var(--gray-4);
+}
+
+.desktop-rail-btn.desktop-rail-update:hover,
+.desktop-rail-btn.desktop-rail-update:hover:not(.active) {
+  background: var(--accent-10);
+  color: var(--accent-contrast);
 }
 
 .desktop-rail-btn.active {

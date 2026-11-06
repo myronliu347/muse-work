@@ -26,6 +26,10 @@ describe("electron-builder extraResources", () => {
           from: "dist/muse-server/node_modules",
           to: "muse-server/node_modules",
         }),
+        expect.objectContaining({
+          from: "dist/bundled-hot.json",
+          to: "bundled-hot.json",
+        }),
       ]),
     );
   });

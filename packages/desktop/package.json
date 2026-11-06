@@ -32,6 +32,10 @@
       {
         "from": "dist/muse-server/node_modules",
         "to": "muse-server/node_modules"
+      },
+      {
+        "from": "dist/bundled-hot.json",
+        "to": "bundled-hot.json"
       }
     ],
     "afterPack": "./scripts/afterPack.cjs",
@@ -49,7 +53,7 @@
   "type": "module",
   "main": "./dist/main/index.cjs",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=24"
   },
   "scripts": {
     "build": "pnpm run compile",
