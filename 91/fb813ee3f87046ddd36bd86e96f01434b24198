@@ -1,0 +1,50 @@
+packages/desktop/scripts/packHot.mjs
+  143edf4081453634 12,37-38
+packages/desktop/scripts/portableNodeModules.mjs
+  143edf4081453634 1-106
+packages/desktop/tests/portableNodeModules.test.ts
+  143edf4081453634 1-59
+packages/desktop/scripts/prepareServer.mjs
+  143edf4081453634 7-9,16,40,68-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "91fb813ee3f87046ddd36bd86e96f01434b24198",
+  "prompts": {
+    "143edf4081453634": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "09e3a269-6b3e-42fb-94ee-d5af077cac99",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 198,
+      "total_deletions": 28,
+      "accepted_lines": 186,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/scripts/packHot.mjs": {
+          "additions": 6,
+          "deletions": 4,
+          "accepted_lines": 3
+        },
+        "packages/desktop/scripts/prepareServer.mjs": {
+          "additions": 18,
+          "deletions": 15,
+          "accepted_lines": 18
+        },
+        "packages/desktop/scripts/portableNodeModules.mjs": {
+          "additions": 106,
+          "accepted_lines": 106
+        },
+        "packages/desktop/tests/portableNodeModules.test.ts": {
+          "additions": 68,
+          "deletions": 9,
+          "accepted_lines": 59
+        }
+      }
+    }
+  }
+}
