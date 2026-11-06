@@ -12,3 +12,5 @@ packages/desktop/webview/
 .tmp-desktop-tests/
 test-results/
 .superpowers/
+.scratch/
+GLOSSARY.md
