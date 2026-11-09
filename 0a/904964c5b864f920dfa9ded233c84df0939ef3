@@ -1,0 +1,99 @@
+packages/server/src/services/assistant/events.ts
+  77f2456c8992f900 26-27,219
+packages/server/src/services/assistant/userPresent.ts
+  77f2456c8992f900 1-79
+packages/server/src/services/sessionRunner/ctx.ts
+  77f2456c8992f900 156-158,164,360
+packages/server/src/services/sessionRunner/agent.ts
+  77f2456c8992f900 30,1017,1095
+packages/server/src/services/assistant/observe.ts
+  77f2456c8992f900 9,33,43
+packages/server/tests/assistantQueue.test.ts
+  77f2456c8992f900 59-60
+packages/server/src/services/assistant/prompt.ts
+  77f2456c8992f900 68
+packages/server/src/routes/sessions.ts
+  77f2456c8992f900 320,330,337
+packages/server/tests/assistantSession.test.ts
+  77f2456c8992f900 57-58
+packages/server/tests/assistantWiring.test.ts
+  77f2456c8992f900 8,236-291
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "0a904964c5b864f920dfa9ded233c84df0939ef3",
+  "prompts": {
+    "77f2456c8992f900": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e32ef64-7567-4b85-9961-7e1fc15ed467",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 164,
+      "total_deletions": 5,
+      "accepted_lines": 173,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/userPresent.ts": {
+          "additions": 79,
+          "accepted_lines": 79
+        },
+        "packages/server/tests/assistantWiring.test.ts": {
+          "additions": 57,
+          "accepted_lines": 57
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/server/src/services/sessionRunner/ctx.ts": {
+          "additions": 5,
+          "deletions": 2,
+          "accepted_lines": 5
+        },
+        "packages/server/src/utils/logger.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/src/plugins/hostPlugins.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/index.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/server/tests/assistantQueue.test.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/hostPlugins.test.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/assistant/observe.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/assistant/events.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
