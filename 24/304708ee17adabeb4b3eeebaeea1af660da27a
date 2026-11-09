@@ -1,0 +1,46 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "24304708ee17adabeb4b3eeebaeea1af660da27a",
+  "prompts": {
+    "77f2456c8992f900": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e32ef64-7567-4b85-9961-7e1fc15ed467",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 85,
+      "total_deletions": 9,
+      "accepted_lines": 2,
+      "overriden_lines": 7,
+      "per_file_stats": {
+        "packages/server/src/utils/logger.ts": {
+          "additions": 20,
+          "deletions": 3,
+          "overriden_lines": 3
+        },
+        "packages/server/tests/logger.test.ts": {
+          "additions": 15,
+          "deletions": 1
+        },
+        "packages/server/src/index.ts": {
+          "additions": 6,
+          "deletions": 4,
+          "overriden_lines": 3
+        },
+        "packages/server/src/plugins/hostPlugins.ts": {
+          "additions": 14,
+          "deletions": 1,
+          "overriden_lines": 1
+        },
+        "packages/server/tests/hostPlugins.test.ts": {
+          "additions": 30,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
