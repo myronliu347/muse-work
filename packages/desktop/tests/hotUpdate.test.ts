@@ -107,16 +107,10 @@ describe("hot update", () => {
       asset: HOT_ZIP_NAME,
     };
     const fetchImpl = (async (url: string) => {
-      if (String(url).includes("/releases/latest")) {
-        return Response.json({
-          assets: [
-            { name: HOT_MANIFEST_NAME, browser_download_url: "https://example.test/muse-hot.json" },
-            { name: HOT_ZIP_NAME, browser_download_url: "https://example.test/muse-hot.zip" },
-          ],
-        });
-      }
-      if (String(url).endsWith(".json")) return Response.json(manifest);
-      return new Response(zipBody);
+      const href = String(url);
+      if (href.endsWith(`/${HOT_MANIFEST_NAME}`)) return Response.json(manifest);
+      if (href.endsWith(`/${HOT_ZIP_NAME}`)) return new Response(zipBody);
+      return new Response("missing", { status: 404 });
     }) as typeof fetch;
 
     const updated = await checkForHotUpdate({
@@ -152,26 +146,13 @@ describe("hot update", () => {
       shellVersion: "0.1.0",
       bundledVersion: "0.1.0",
       arch: "arm64",
-      fetch: (async (url: string) => {
-        if (String(url).includes("/releases/latest")) {
-          return Response.json({
-            html_url: "https://example.test/release",
-            assets: [
-              { name: HOT_MANIFEST_NAME, browser_download_url: "https://example.test/muse-hot.json" },
-              { name: HOT_ZIP_NAME, browser_download_url: "https://example.test/muse-hot.zip" },
-              { name: "Muse-0.9.0-arm64.dmg", browser_download_url: "https://example.test/arm.dmg" },
-              { name: "Muse-0.9.0-x64.dmg", browser_download_url: "https://example.test/x64.dmg" },
-            ],
-          });
-        }
-        return Response.json({ ...manifest, shell: "0.9.0" });
-      }) as typeof fetch,
+      fetch: (async () => Response.json({ ...manifest, shell: "0.9.0" })) as typeof fetch,
     });
     expect(skipped).toEqual({
       status: "installer",
       version: "0.3.0",
       shell: "0.9.0",
-      url: "https://example.test/arm.dmg",
+      url: `https://github.com/${HOT_REPO}/releases/latest/download/Muse-0.9.0-arm64.dmg`,
     });
   });
 
@@ -199,22 +180,13 @@ describe("hot update", () => {
       hotRoot: tempRoot(),
       shellVersion: "0.2.0",
       bundledVersion: "0.2.0",
-      fetch: (async (url: string) => {
-        if (String(url).includes("/releases/latest")) {
-          return Response.json({
-            assets: [
-              { name: HOT_MANIFEST_NAME, browser_download_url: "https://example.test/muse-hot.json" },
-              { name: HOT_ZIP_NAME, browser_download_url: "https://example.test/muse-hot.zip" },
-            ],
-          });
-        }
-        return Response.json({
+      fetch: (async () =>
+        Response.json({
           version: "0.1.5",
           shell: "0.1.0",
           sha256: "a".repeat(64),
           asset: HOT_ZIP_NAME,
-        });
-      }) as typeof fetch,
+        })) as typeof fetch,
     });
     expect(result).toEqual({ status: "skipped", reason: "shell mismatch" });
   });
@@ -222,15 +194,7 @@ describe("hot update", () => {
   it("refuses a zip whose checksum does not match the manifest", async () => {
     const hotRoot = tempRoot();
     const fetchImpl = (async (url: string) => {
-      if (String(url).includes("/releases/latest")) {
-        return Response.json({
-          assets: [
-            { name: HOT_MANIFEST_NAME, browser_download_url: "https://example.test/muse-hot.json" },
-            { name: HOT_ZIP_NAME, browser_download_url: "https://example.test/muse-hot.zip" },
-          ],
-        });
-      }
-      if (String(url).endsWith(".json")) {
+      if (String(url).endsWith(`/${HOT_MANIFEST_NAME}`)) {
         return Response.json({
           version: "0.3.0",
           shell: "0.1.0",

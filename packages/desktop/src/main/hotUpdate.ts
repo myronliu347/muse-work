@@ -11,6 +11,15 @@ export const HOT_REPO = "myronliu347/muse-work";
 export const HOT_MANIFEST_NAME = "muse-hot.json";
 export const HOT_ZIP_NAME = "muse-hot.zip";
 
+/** Release files, not api.github.com. The anonymous REST quota is 60/hour per IP. */
+export function releaseAssetUrl(repo: string, name: string): string {
+  return `https://github.com/${repo}/releases/latest/download/${name}`;
+}
+
+export function installerAssetName(shell: string, arch: string): string {
+  return `Muse-${normalizeVersion(shell)}-${arch}.dmg`;
+}
+
 export type HotManifest = {
   version: string;
   shell: string;
@@ -196,11 +205,6 @@ async function readJson(response: Response): Promise<unknown> {
   return response.json() as Promise<unknown>;
 }
 
-function assetUrl(release: ReleaseResponse, name: string): string | null {
-  const asset = release.assets?.find((item) => item.name === name);
-  return typeof asset?.browser_download_url === "string" ? asset.browser_download_url : null;
-}
-
 function writeCurrent(hotRoot: string, version: string): void {
   fs.mkdirSync(hotRoot, { recursive: true });
   fs.writeFileSync(currentFile(hotRoot), `${JSON.stringify({ version })}\n`);
@@ -233,30 +237,16 @@ export async function checkForHotUpdate(opts: {
       ? applied
       : normalizeVersion(opts.bundledVersion);
 
-  let release: ReleaseResponse;
-  try {
-    const response = await fetchImpl(
-      `https://api.github.com/repos/${repo}/releases/latest`,
-      {
-        headers: {
-          Accept: "application/vnd.github+json",
-          "User-Agent": "muse-work",
-        },
-        signal: AbortSignal.timeout(20_000),
-      },
-    );
-    release = (await readJson(response)) as ReleaseResponse;
-  } catch (err) {
-    return { status: "skipped", reason: err instanceof Error ? err.message : String(err) };
-  }
-
-  const manifestUrl = assetUrl(release, HOT_MANIFEST_NAME);
-  const zipUrl = assetUrl(release, HOT_ZIP_NAME);
-  if (!manifestUrl || !zipUrl) return { status: "skipped", reason: "release has no hot assets" };
+  const manifestUrl = releaseAssetUrl(repo, HOT_MANIFEST_NAME);
+  const zipUrl = releaseAssetUrl(repo, HOT_ZIP_NAME);
+  const headers = { "User-Agent": "muse-work" };
 
   let manifest: HotManifest | null;
   try {
-    const response = await fetchImpl(manifestUrl, { signal: AbortSignal.timeout(20_000) });
+    const response = await fetchImpl(manifestUrl, {
+      headers,
+      signal: AbortSignal.timeout(20_000),
+    });
     manifest = parseHotManifest(await readJson(response));
   } catch (err) {
     return { status: "skipped", reason: err instanceof Error ? err.message : String(err) };
@@ -266,12 +256,14 @@ export async function checkForHotUpdate(opts: {
     if (compareVersions(manifest.shell, opts.shellVersion) <= 0) {
       return { status: "skipped", reason: "shell mismatch" };
     }
-    const fallback = `https://github.com/${repo}/releases/latest`;
     return {
       status: "installer",
       version: manifest.version,
       shell: manifest.shell,
-      url: pickInstallerUrl(release, opts.arch ?? process.arch, fallback),
+      url: releaseAssetUrl(
+        repo,
+        installerAssetName(manifest.shell, opts.arch ?? process.arch),
+      ),
     };
   }
   if (compareVersions(manifest.version, floor) <= 0) return { status: "current" };
@@ -281,7 +273,10 @@ export async function checkForHotUpdate(opts: {
   const zipPath = path.join(tmp, HOT_ZIP_NAME);
   const staging = path.join(tmp, "staging");
   try {
-    const response = await fetchImpl(zipUrl, { signal: AbortSignal.timeout(120_000) });
+    const response = await fetchImpl(zipUrl, {
+      headers,
+      signal: AbortSignal.timeout(120_000),
+    });
     if (!response.ok) return { status: "skipped", reason: `HTTP ${response.status}` };
     const bytes = Buffer.from(await response.arrayBuffer());
     fs.mkdirSync(tmp, { recursive: true });
