@@ -14,6 +14,7 @@ import {
   resolveAgentForScenario,
   resolvePermission,
 } from "../services/agentConfig.js";
+import type { SessionMessageSource } from "../services/sessionRunner/ctx.js";
 
 export const sessionsRoutes = new Hono<HonoEnv>();
 
@@ -317,7 +318,7 @@ session.post("/messages", async (c) => {
   if (!content.trim() && images.length === 0) {
     return c.json({ error: "content or images is required" }, 400);
   }
-  let sendSource = source;
+  let sendSource: SessionMessageSource = source;
   if (source === "user") {
     const issue = ctx.issueStore.getBySession(sessionId);
     if (issue?.status === "completed" || issue?.status === "cancelled") {
