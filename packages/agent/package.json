@@ -1,6 +1,6 @@
 {
   "name": "@muse-work/agent",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "Muse Agent runtime (forked from wave-agent-sdk)",
   "keywords": [
