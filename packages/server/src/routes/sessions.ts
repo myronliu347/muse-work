@@ -317,6 +317,7 @@ session.post("/messages", async (c) => {
   if (!content.trim() && images.length === 0) {
     return c.json({ error: "content or images is required" }, 400);
   }
+  let sendSource = source;
   if (source === "user") {
     const issue = ctx.issueStore.getBySession(sessionId);
     if (issue?.status === "completed" || issue?.status === "cancelled") {
@@ -326,13 +327,14 @@ session.post("/messages", async (c) => {
       ctx.issueStore.resume(issue.id);
       ctx.hub.broadcastAll({ type: "issue:changed" });
     }
+    if (issue?.planningSessionId === sessionId) sendSource = "user-present";
   }
   try {
     const result = await ctx.runner.sendMessage(
       sessionId,
       content,
       images.length > 0 ? images : undefined,
-      source,
+      sendSource,
     );
     getLogger().info("message accepted", {
       sessionId,

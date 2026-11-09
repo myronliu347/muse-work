@@ -56,6 +56,14 @@ describe("assistant events and queue", () => {
       title: "登录",
       workdir: "/repo",
       summary: "已经修好",
+      userPresent: true,
+    })).toContain("userPresent: true");
+    expect(formatAssistantEvent({
+      type: "issue",
+      issueId: "i1",
+      title: "登录",
+      workdir: "/repo",
+      summary: "已经修好",
     })).not.toContain("summaryNote");
     expect(formatAssistantEvent({
       type: "automation",

@@ -23,6 +23,8 @@ export type AssistantIssueEvent = {
   summary: string;
   /** 这一轮结束了，还没决定要不要告诉用户。 */
   replyPending?: true;
+  /** 这一轮是用户自己在这个会话里发的，他正在看。 */
+  userPresent?: true;
   /** 派活时留下的交代。 */
   replyNote?: string;
   /** 事件触发时的毫秒时间戳。 */
@@ -214,6 +216,7 @@ export function formatAssistantEvent(event: AssistantEvent): string {
       ["request", event.request],
       ["summary", event.summary],
       ["replyPending", event.replyPending ? "true" : undefined],
+      ["userPresent", event.userPresent ? "true" : undefined],
       ["replyNote", event.replyNote],
     ]);
   } else if (event.type === "permission") {

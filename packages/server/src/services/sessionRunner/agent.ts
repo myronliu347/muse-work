@@ -27,6 +27,7 @@ import {
   toBackgroundTaskSummary,
   toSerializableWorkflowRuns,
 } from "./serialization.js";
+import { markIssueUserPresent } from "../assistant/userPresent.js";
 import { publishCompaction, wrapSystemInject } from "./ctx.js";
 import type {
   AgentLayer,
@@ -1013,7 +1014,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     sessionId: string,
     content: string,
     images?: SessionImage[],
-    source?: "user" | "system-inject",
+    source?: "user" | "system-inject" | "user-present",
   ): Promise<void> {
     const session = store.get(sessionId);
     if (!session || disposed.has(sessionId)) {
@@ -1091,6 +1092,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       // 系统注入消息包上标记：落盘 + 广播自然携带，webview 据此以独立样式渲染
       const finalContent =
         source === "system-inject" ? wrapSystemInject(contentWithSources) : contentWithSources;
+      if (source === "user-present") markIssueUserPresent(sessionId, finalContent);
       if (queued) holdSendDepth();
       try {
         await agent.sendMessage(finalContent, images);

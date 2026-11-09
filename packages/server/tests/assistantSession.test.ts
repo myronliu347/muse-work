@@ -54,6 +54,8 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("用第一人称");
     expect(first.systemPrompt).toContain("最近的动作停了或在重复，就说卡住了");
     expect(first.systemPrompt).toContain("replyPending");
+    expect(first.systemPrompt).toContain("`userPresent` 为 true");
+    expect(first.systemPrompt).toContain("他正在看");
     expect(first.systemPrompt).toContain("SendMessage` 带上 `issueId`");
     expect(first.systemPrompt).toContain("完全做完再告诉我");
     expect(first.systemPrompt).toContain("这轮不用告诉用户");

@@ -6,6 +6,7 @@ import {
   ASSISTANT_DESCRIPTION_NOTE,
   type AssistantEvent,
 } from "./events.js";
+import { takeIssueUserPresent } from "./userPresent.js";
 
 export async function enqueueIssueSessionTurn(args: {
   issues: IssueStore;
@@ -29,6 +30,7 @@ export async function enqueueIssueSessionTurn(args: {
     messages = [];
   }
   const request = turnUserRequest(messages);
+  const userPresent = takeIssueUserPresent(args.sessionId, messages);
   const pending = args.issues.markReplyPending(issue.id) ?? issue;
   args.enqueue({
     type: "issue",
@@ -38,6 +40,7 @@ export async function enqueueIssueSessionTurn(args: {
     ...(request ? { request } : {}),
     summary: lastAssistantText(messages),
     replyPending: true,
+    ...(userPresent ? { userPresent: true as const } : {}),
     ...(pending.replyNote ? { replyNote: pending.replyNote } : {}),
   });
 }

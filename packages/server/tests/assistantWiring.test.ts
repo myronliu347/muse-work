@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createHonoApp } from "../src/app.js";
 import { createAssistantMessageLog } from "../src/services/assistant/messages.js";
 import { enqueueIssuePermission, enqueueIssueSessionTurn } from "../src/services/assistant/observe.js";
+import { markIssueUserPresent } from "../src/services/assistant/userPresent.js";
 import type { AssistantEvent } from "../src/services/assistant/events.js";
 import { createIssueStore } from "../src/services/issueStore.js";
 import type { AppContext } from "../src/services/appContext.js";
@@ -230,6 +231,62 @@ describe("assistant wiring", () => {
       replyNote: "做完发到群里",
     });
     expect(issues.get(issue.id)?.replyNote).toBe("做完发到群里");
+  });
+
+  it("marks the issue event when this turn was sent from the session", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-assistant-present-"));
+    homes.push(home);
+    const issues = createIssueStore({ home });
+    const issue = issues.create({ title: "修登录" });
+    issues.setPlanning(issue.id, {
+      planningSessionId: "sess-present",
+      workdir: "/tmp/repo",
+      worktreeEnabled: false,
+    });
+    const events: AssistantEvent[] = [];
+    const sentAt = new Date().toISOString();
+    markIssueUserPresent("sess-present", "我在看");
+    await enqueueIssueSessionTurn({
+      issues,
+      runner: {
+        getMessages: async () => [
+          {
+            role: "user",
+            timestamp: "2020-01-01T00:00:00.000Z",
+            blocks: [{ type: "text", content: "我在看" }],
+          },
+          { role: "assistant", blocks: [{ type: "text", content: "上一轮" }] },
+        ],
+      },
+      enqueue: (event) => events.push(event),
+      sessionId: "sess-present",
+    });
+    expect(events[0]).not.toHaveProperty("userPresent");
+    await enqueueIssueSessionTurn({
+      issues,
+      runner: {
+        getMessages: async () => [
+          { role: "assistant", blocks: [{ type: "text", content: "上一轮" }] },
+          {
+            role: "user",
+            timestamp: sentAt,
+            blocks: [{ type: "text", content: "<system-inject>系统</system-inject>" }],
+          },
+          {
+            role: "user",
+            timestamp: sentAt,
+            blocks: [{ type: "text", content: "我在看\n\n[Image source: /tmp/a.png]" }],
+          },
+          { role: "assistant", blocks: [{ type: "text", content: "好" }] },
+        ],
+      },
+      enqueue: (event) => events.push(event),
+      sessionId: "sess-present",
+    });
+    expect(events[1]).toMatchObject({
+      request: expect.stringContaining("我在看"),
+      userPresent: true,
+    });
   });
 
   it("enqueues a permission event only for an issue session", () => {

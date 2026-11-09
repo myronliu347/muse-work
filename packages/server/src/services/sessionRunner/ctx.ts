@@ -153,12 +153,15 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
 
 export type OutboundImage = { data: string; mediaType: string };
 
+/** user-present：用户正在这个 Issue 会话里自己发出的。 */
+export type SessionMessageSource = "user" | "system-inject" | "user-present";
+
 export interface SessionRunner {
   sendMessage(
     sessionId: string,
     content: string,
     images?: OutboundImage[],
-    source?: "user" | "system-inject",
+    source?: SessionMessageSource,
   ): Promise<{ accepted: true }>;
   /** Persist a system note on the session transcript without starting a model turn. */
   appendSystemNote(sessionId: string, content: string): Promise<void>;
@@ -354,7 +357,7 @@ export interface AgentLayer {
     sessionId: string,
     content: string,
     images?: SessionImage[],
-    source?: "user" | "system-inject",
+    source?: SessionMessageSource,
   ): Promise<void>;
   attachNestedMessages(
     sessionId: string,
