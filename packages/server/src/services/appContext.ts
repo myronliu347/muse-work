@@ -14,10 +14,12 @@ import type { AssistantBridge } from "../plugins/hostPlugins.js";
 import {
   loadHostPlugins,
   prepareHostPlugins,
+  resolveHostPluginSpecs,
   startPreparedPlugins,
   createAssistantBridge,
   type PreparedPlugin,
 } from "../plugins/hostPlugins.js";
+import { selectCodeMakerProvider, syncNeteasePlugin } from "../plugins/neteaseInstall.js";
 import { getLogger } from "../utils/logger.js";
 import { resolveHome } from "../utils/paths.js";
 import {
@@ -350,9 +352,15 @@ export async function openHostedAppContext(
 ): Promise<AppContext> {
   const home = resolveHome(options?.home);
   const logger = getLogger();
+  if (process.env.MUSE_NETEASE_PLUGIN !== "0" && resolveHostPluginSpecs(home) !== "none") {
+    await syncNeteasePlugin({ home, logger });
+  }
   const bridge = createAssistantBridge();
   const plugins = await loadHostPlugins(home, logger);
   const prepared = await prepareHostPlugins({ home, plugins, logger, bridge });
+  if (prepared.prepared.some((slot) => slot.plugin.id === "netease")) {
+    selectCodeMakerProvider(home);
+  }
   return createAppContext({
     ...options,
     home,
