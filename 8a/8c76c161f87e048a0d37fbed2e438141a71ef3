@@ -1,0 +1,56 @@
+README.md
+  77f2456c8992f900 107
+packages/desktop/src/main/updateCheck.ts
+  77f2456c8992f900 3
+packages/desktop/tests/updateCheck.test.ts
+  77f2456c8992f900 47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "8a8c76c161f87e048a0d37fbed2e438141a71ef3",
+  "prompts": {
+    "77f2456c8992f900": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e32ef64-7567-4b85-9961-7e1fc15ed467",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 3,
+      "accepted_lines": 12,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/utils/logger.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/src/index.ts": {
+          "accepted_lines": 3
+        },
+        "packages/desktop/src/main/updateCheck.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/tests/updateCheck.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/plugins/hostPlugins.ts": {
+          "accepted_lines": 1
+        },
+        "README.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/hostPlugins.test.ts": {
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
