@@ -44,7 +44,7 @@ describe("statusAfterCheck", () => {
 });
 
 describe("createUpdateMonitor", () => {
-  it("checks once at start and again every six hours", async () => {
+  it("checks once at start and again every thirty minutes", async () => {
     const ticks: Array<() => void> = [];
     let checks = 0;
     const monitor = createUpdateMonitor({
