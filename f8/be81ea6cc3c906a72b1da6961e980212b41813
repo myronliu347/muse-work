@@ -1,0 +1,55 @@
+packages/webview/src/components/desktop/DockDetail.tsx
+  77f2456c8992f900 419-467,500
+packages/webview/src/styles/DesktopPanelDock.css
+  77f2456c8992f900 851-874
+packages/webview/tests/components/dockDetail.test.tsx
+  77f2456c8992f900 477-507
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f8be81ea6cc3c906a72b1da6961e980212b41813",
+  "prompts": {
+    "77f2456c8992f900": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e32ef64-7567-4b85-9961-7e1fc15ed467",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 105,
+      "total_deletions": 10,
+      "accepted_lines": 114,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/index.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 24,
+          "deletions": 4,
+          "accepted_lines": 24
+        },
+        "packages/server/src/utils/logger.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/tests/hostPlugins.test.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/plugins/hostPlugins.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 31,
+          "accepted_lines": 31
+        },
+        "packages/webview/src/components/desktop/DockDetail.tsx": {
+          "additions": 50,
+          "deletions": 6,
+          "accepted_lines": 50
+        }
+      }
+    }
+  }
+}
