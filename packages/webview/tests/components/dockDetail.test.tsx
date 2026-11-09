@@ -474,6 +474,37 @@ describe("dock detail tab", () => {
     expect(checklist.querySelector("strong")).toHaveTextContent("token");
   });
 
+  it("shows two lines of a checklist item until 查看 is clicked", async () => {
+    const user = userEvent.setup();
+    const scrollHeight = vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(80);
+    const clientHeight = vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(32);
+    const radii = issue({
+      issueId: "radii",
+      title: RADII,
+      priority: "p1",
+      items: [{ id: "long", content: "第一行\n\n第二行后面还有很多说明", status: "done" }],
+    });
+    render(
+      <DockDetail
+        selection={{ kind: "issue", issue: radii }}
+        actionLabel={null}
+        onOpenSession={vi.fn()}
+      />,
+    );
+
+    const checklist = screen.getByTestId("dock-detail-checklist");
+    const row = checklist.querySelector(".dock-detail-check-list li");
+    expect(row?.querySelector(".dock-detail-check-body")).toHaveClass("is-collapsed");
+    await user.click(within(checklist).getByRole("button", { name: "查看" }));
+    expect(within(checklist).getByRole("button", { name: "收起" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(row?.querySelector(".dock-detail-check-body")).not.toHaveClass("is-collapsed");
+    scrollHeight.mockRestore();
+    clientHeight.mockRestore();
+  });
+
   it("shows a queue item's type, title, and body without an open button", () => {
     render(
       <DockDetail

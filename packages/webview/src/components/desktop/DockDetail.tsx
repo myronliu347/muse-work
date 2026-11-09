@@ -416,6 +416,55 @@ export function DockDetail({
   );
 }
 
+function CheckItem({
+  item,
+}: {
+  item: DesktopIssueGroup["items"][number];
+}) {
+  const [open, setOpen] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    if (!el || open) return;
+    const measure = () => {
+      setOverflows(el.scrollHeight > el.clientHeight + 1);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [item.content, open]);
+
+  return (
+    <li data-status={item.status} data-expanded={open ? "true" : "false"}>
+      <span className="dock-detail-check-badge">
+        {CHECK_STATUS_LABEL[item.status] ?? item.status}
+      </span>
+      <div
+        ref={bodyRef}
+        className={open ? "dock-detail-check-body" : "dock-detail-check-body is-collapsed"}
+        onClick={() => {
+          if (!open && overflows) setOpen(true);
+        }}
+      >
+        <DetailMarkdown text={item.content} />
+      </div>
+      {overflows ? (
+        <button
+          type="button"
+          className="dock-detail-check-more"
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+        >
+          {open ? "收起" : "查看"}
+        </button>
+      ) : null}
+    </li>
+  );
+}
+
 function Checklist({
   items,
 }: {
@@ -448,12 +497,7 @@ function Checklist({
       </div>
       <ol className="dock-detail-check-list">
         {ranked.map((item) => (
-          <li key={item.id} data-status={item.status}>
-            <span className="dock-detail-check-badge">
-              {CHECK_STATUS_LABEL[item.status] ?? item.status}
-            </span>
-            <DetailMarkdown text={item.content} />
-          </li>
+          <CheckItem key={item.id} item={item} />
         ))}
       </ol>
     </section>

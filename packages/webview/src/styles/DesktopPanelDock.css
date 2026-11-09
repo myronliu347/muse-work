@@ -817,10 +817,6 @@
 }
 
 .dock-detail-check-list li {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 8px;
-  align-items: start;
   padding: 8px 10px;
   border: 1px solid var(--gray-5);
   border-radius: 8px;
@@ -850,6 +846,30 @@
 
 .dock-detail-check-list li[data-status="done"] .dock-detail-check-badge {
   color: var(--green-11, #18794e);
+}
+
+.dock-detail-check-body.is-collapsed {
+  max-height: calc(1.55em * 2);
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.55;
+  cursor: pointer;
+}
+
+.dock-detail-check-body.is-collapsed .dock-detail-md > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.dock-detail-check-more {
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-11);
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
 }
 
 .dock-detail-fields {
