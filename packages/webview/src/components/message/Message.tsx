@@ -39,6 +39,7 @@ import {
   ToolLine,
 } from "./ToolActivityGroup";
 import {
+  activityGroupDefaultOpen,
   bangLineLabel,
   segmentAssistantBlocks,
   summarizeActivity,
@@ -933,7 +934,13 @@ export const Message: React.FC<MessageProps> = React.memo(
             label={summary.label}
             additions={summary.additions}
             deletions={summary.deletions}
-            defaultOpen={false}
+            defaultOpen={activityGroupDefaultOpen(
+              [{ blocks }],
+              segment.indexes.map((blockIndex) => ({
+                messageIndex: 0,
+                blockIndex,
+              })),
+            )}
           >
             {segment.indexes.map((index) =>
               renderActivityItem(blocks[index], index),

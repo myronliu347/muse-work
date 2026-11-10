@@ -395,6 +395,24 @@ export function segmentAssistantTurn(
   return segments;
 }
 
+/** The run stays open while it is the live tail. A later text block folds it. */
+export function activityGroupDefaultOpen(
+  messages: Array<{ blocks?: MessageBlock[] }>,
+  refs: ActivityRef[],
+): boolean {
+  const last = refs[refs.length - 1];
+  if (!last) return false;
+  for (let mi = last.messageIndex; mi < messages.length; mi++) {
+    const blocks = messages[mi]?.blocks ?? [];
+    const start = mi === last.messageIndex ? last.blockIndex + 1 : 0;
+    for (let bi = start; bi < blocks.length; bi++) {
+      const block = blocks[bi];
+      if (block?.type === "text" && block.content?.trim()) return false;
+    }
+  }
+  return true;
+}
+
 export function segmentAssistantBlocks(
   blocks: MessageBlock[],
 ): AssistantSegment[] {

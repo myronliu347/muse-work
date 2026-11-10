@@ -22,8 +22,7 @@ export function ToolActivityGroup({
   const wasDefaultOpen = useRef(defaultOpen);
   const holdScroll = useHoldTranscriptScroll();
 
-  // Callers start the group folded. If one later stops asking for it to
-  // start open, fold it back up.
+  // A live run starts open. Once a later text block arrives, fold it.
   useEffect(() => {
     if (wasDefaultOpen.current && !defaultOpen) setOpen(false);
     wasDefaultOpen.current = defaultOpen;

@@ -22,6 +22,7 @@ import {
 } from "../message/AssistantWorkSummary";
 import { ToolActivityGroup } from "../message/ToolActivityGroup";
 import {
+  activityGroupDefaultOpen,
   currentStatusLabel,
   segmentAssistantTurn,
   summarizeRefs,
@@ -937,7 +938,7 @@ export const MessageList = forwardRef<
           label={summary.label}
           additions={summary.additions}
           deletions={summary.deletions}
-          defaultOpen={false}
+          defaultOpen={activityGroupDefaultOpen(turnMessages, segment.refs)}
         >
           {segment.refs.map((ref) =>
             renderMessage(turnMessages[ref.messageIndex], {

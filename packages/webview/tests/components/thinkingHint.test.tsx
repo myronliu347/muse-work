@@ -119,7 +119,7 @@ describe("thinking hint", () => {
     expect(screen.queryByTestId("thinking-hint")).toBeNull();
   });
 
-  it("keeps the activity summary collapsed while the turn is running", () => {
+  it("opens the activity summary while the turn is still on that run", () => {
     render(
       <MuseTheme>
         <MessageList
@@ -153,8 +153,62 @@ describe("thinking hint", () => {
     );
     expect(screen.getByTestId("activity-summary")).toHaveAttribute(
       "aria-expanded",
+      "true",
+    );
+    expect(screen.getAllByTestId("tool-line").length).toBeGreaterThan(0);
+  });
+
+  it("folds the activity summary once a later text block arrives", () => {
+    const commands = [
+      {
+        type: "tool" as const,
+        name: BASH_TOOL_NAME,
+        stage: "end" as const,
+        parameters: JSON.stringify({ command: "ls", description: "列目录" }),
+        id: "t1",
+      },
+    ];
+    const { rerender } = render(
+      <MuseTheme>
+        <MessageList
+          messages={[
+            {
+              id: "a1",
+              role: "assistant",
+              timestamp: "2024-01-01T00:00:00.000Z",
+              blocks: commands,
+            },
+          ]}
+          isStreaming
+          vscode={vscode}
+        />
+      </MuseTheme>,
+    );
+    expect(screen.getByTestId("activity-summary")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+
+    rerender(
+      <MuseTheme>
+        <MessageList
+          messages={[
+            {
+              id: "a1",
+              role: "assistant",
+              timestamp: "2024-01-01T00:00:00.000Z",
+              blocks: [...commands, { type: "text", content: "查完了" }],
+            },
+          ]}
+          isStreaming
+          vscode={vscode}
+        />
+      </MuseTheme>,
+    );
+    expect(screen.getByTestId("activity-summary")).toHaveAttribute(
+      "aria-expanded",
       "false",
     );
-    expect(screen.queryByTestId("tool-line")).toBeNull();
+    expect(screen.getByText("查完了")).toBeTruthy();
   });
 });

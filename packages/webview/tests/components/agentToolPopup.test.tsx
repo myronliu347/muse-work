@@ -47,7 +47,8 @@ describe("Agent tool transcript", () => {
       </MuseTheme>,
     );
 
-    fireEvent.click(screen.getByTestId("activity-summary"));
+    const summary = screen.getByTestId("activity-summary");
+    if (summary.getAttribute("aria-expanded") !== "true") fireEvent.click(summary);
     fireEvent.click(screen.getByTestId("agent-tool-row"));
     expect(onOpenAgentTranscript).toHaveBeenCalledWith(
       expect.objectContaining({ id: "sa1", name: AGENT_TOOL_NAME }),
@@ -80,7 +81,8 @@ describe("Agent tool transcript", () => {
       </MuseTheme>,
     );
 
-    fireEvent.click(screen.getByTestId("activity-summary"));
+    const summary = screen.getByTestId("activity-summary");
+    if (summary.getAttribute("aria-expanded") !== "true") fireEvent.click(summary);
     const name = screen.getByTestId("tool-name");
     expect(name).toHaveTextContent("运行 列出目录");
     expect(name.className).toContain("text-shimmer");
