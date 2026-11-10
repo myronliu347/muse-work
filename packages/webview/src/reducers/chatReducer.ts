@@ -1,4 +1,8 @@
 import type { ChatState, ChatAction } from "../types";
+import {
+  evictTranscriptCache,
+  slimMessagesForTranscriptCache,
+} from "../utils/messageImages";
 import { reduceDialogs } from "./chat/dialogs";
 import { reduceSession } from "./chat/session";
 import { reduceSubagent } from "./chat/subagent";
@@ -115,13 +119,19 @@ function withTranscriptMemory(prev: ChatState, next: ChatState): ChatState {
     return next;
   }
   const book = next.transcriptsBySession ?? {};
-  if (book[id] === next.messages) return next;
+  // Slim copy: never pin data:/blob: image payloads in the session book.
+  // Old ChatState closures must not retain hundreds of base64 duplicates.
+  const slim = slimMessagesForTranscriptCache(next.messages);
+  if (book[id] === slim) return next;
   return {
     ...next,
-    transcriptsBySession: {
-      ...book,
-      [id]: next.messages,
-    },
+    transcriptsBySession: evictTranscriptCache(
+      {
+        ...book,
+        [id]: slim,
+      },
+      id,
+    ),
   };
 }
 

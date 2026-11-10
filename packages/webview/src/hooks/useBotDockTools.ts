@@ -119,7 +119,39 @@ export function useBotDockTools({
       ? DOCK_TAB_DETAIL_KEY
       : (currentToolKey ?? currentFileKey ?? (visibleKind ? kindTabKey(visibleKind) : null)),
   };
-  const placeDockTab = (newKey: string) => {
+
+  // Stable action bag: callers keep the same function identity across renders so
+  // React fibers / effects do not retain a fresh closure (and its ChatState
+  // sibling scope) on every dock interaction.
+  const onSessionsSurfaceRef = useRef(onSessionsSurface);
+  onSessionsSurfaceRef.current = onSessionsSurface;
+  const setAssistantDockOpenRef = useRef(setAssistantDockOpen);
+  setAssistantDockOpenRef.current = setAssistantDockOpen;
+  const assistantVisibleForForwardRef = useRef(assistantVisible);
+  assistantVisibleForForwardRef.current = assistantVisible;
+
+  const placeForwardRef = useRef<
+    ((fwd: NonNullable<PanelGroupState["forward"]>) => void) | null
+  >(null);
+  const focusOrOpenBotPreviewRef = useRef<() => boolean>(() => false);
+  const handleAddPanelRef = useRef<(kind: DesktopPanelKind) => void>(() => {});
+  const tryOpenPanelRef = useRef<(kind: DesktopPanelKind) => boolean>(() => false);
+
+  const actionsRef = useRef({
+    readAssistantTools: () => {
+      const store = usePanelGroupStore.getState();
+      const group = resolvePanelGroup(store.groups, ASSISTANT_PANEL_GROUP_KEY);
+      return { store, group, tools: group.tools ?? EMPTY_DOCK_TOOLS };
+    },
+    placeDockTab: (_newKey: string) => {},
+    focusBotTool: (_id: string) => {},
+    openBotTerminal: (): boolean => false,
+    openBotPreview: (): boolean => false,
+    focusOrOpenBotPreview: (): boolean => false,
+    closeBotTool: (_id: string) => {},
+  });
+
+  actionsRef.current.placeDockTab = (newKey: string) => {
     const placed = dockTabPlaceRef.current;
     if (!placed.orderKey) return;
     const store = usePanelGroupStore.getState();
@@ -132,24 +164,14 @@ export function useBotDockTools({
       ),
     });
   };
-  placeKindRef.current = (kind) => placeDockTab(kindTabKey(kind));
-  const placeForwardRef = useRef<
-    ((fwd: NonNullable<PanelGroupState["forward"]>) => void) | null
-  >(null);
-  const focusOrOpenBotPreviewRef = useRef<() => boolean>(() => false);
-  const readAssistantTools = () => {
-    const store = usePanelGroupStore.getState();
-    const group = resolvePanelGroup(store.groups, ASSISTANT_PANEL_GROUP_KEY);
-    return { store, group, tools: group.tools ?? EMPTY_DOCK_TOOLS };
-  };
-  const focusBotTool = (id: string) => {
-    const { store, tools } = readAssistantTools();
+  actionsRef.current.focusBotTool = (id: string) => {
+    const { store, tools } = actionsRef.current.readAssistantTools();
     const tool = tools.find((item) => item.id === id);
     if (!tool) return;
     store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, { activeToolId: id });
     selectDockRef.current(tool.kind);
   };
-  const openBotTerminal = (): boolean => {
+  actionsRef.current.openBotTerminal = (): boolean => {
     const cwd = dockWorkdirRef.current?.trim();
     if (!cwd) return false;
     const tool: DockToolInstance = {
@@ -157,7 +179,7 @@ export function useBotDockTools({
       kind: "terminal",
       workdir: cwd,
     };
-    const { store, group, tools } = readAssistantTools();
+    const { store, group, tools } = actionsRef.current.readAssistantTools();
     const placed = dockTabPlaceRef.current;
     store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
       tools: appendDockTool(tools, tool),
@@ -172,7 +194,7 @@ export function useBotDockTools({
     selectDockRef.current("terminal");
     return true;
   };
-  const openBotPreview = (): boolean => {
+  actionsRef.current.openBotPreview = (): boolean => {
     const tool: DockToolInstance = {
       id: createDockToolId("preview"),
       kind: "preview",
@@ -181,7 +203,7 @@ export function useBotDockTools({
       forwardError: null,
       epoch: 0,
     };
-    const { store, group, tools } = readAssistantTools();
+    const { store, group, tools } = actionsRef.current.readAssistantTools();
     const placed = dockTabPlaceRef.current;
     store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
       tools: appendDockTool(tools, tool),
@@ -196,18 +218,17 @@ export function useBotDockTools({
     selectDockRef.current("preview");
     return true;
   };
-  const focusOrOpenBotPreview = (): boolean => {
-    const { tools, group } = readAssistantTools();
+  actionsRef.current.focusOrOpenBotPreview = (): boolean => {
+    const { tools, group } = actionsRef.current.readAssistantTools();
     const existing = activePreviewTool(tools, group.activeToolId);
     if (existing) {
-      focusBotTool(existing.id);
+      actionsRef.current.focusBotTool(existing.id);
       return true;
     }
-    return openBotPreview();
+    return actionsRef.current.openBotPreview();
   };
-  focusOrOpenBotPreviewRef.current = focusOrOpenBotPreview;
-  const closeBotTool = (id: string) => {
-    const { store, tools, group } = readAssistantTools();
+  actionsRef.current.closeBotTool = (id: string) => {
+    const { store, tools, group } = actionsRef.current.readAssistantTools();
     const closed = tools.find((tool) => tool.id === id);
     if (!closed) return;
     if (closed.kind === "terminal") {
@@ -227,71 +248,74 @@ export function useBotDockTools({
     const next = nextTools.find((tool) => tool.id === nextId);
     selectDockRef.current(next ? next.kind : DOCK_DETAIL_TAB);
   };
+
+  placeKindRef.current = (kind) =>
+    actionsRef.current.placeDockTab(kindTabKey(kind));
+  focusOrOpenBotPreviewRef.current = () =>
+    actionsRef.current.focusOrOpenBotPreview();
   beforeToggleRef.current = (kind) => {
     if (!assistantVisibleRef.current) return false;
     if (kind !== "terminal" && kind !== "preview") return false;
-    const { tools, group } = readAssistantTools();
+    const { tools, group } = actionsRef.current.readAssistantTools();
     const ofKind = tools.filter((tool) => tool.kind === kind);
     if (ofKind.length === 0) {
       if (!dockIssueIdRef.current && group.checked.includes(kind)) return false;
       if (kind === "terminal") {
-        openBotTerminal();
+        actionsRef.current.openBotTerminal();
         return true;
       }
-      openBotPreview();
+      actionsRef.current.openBotPreview();
       return true;
     }
     const active =
       ofKind.find((tool) => tool.id === group.activeToolId) ?? ofKind[ofKind.length - 1];
     if (dockChromeRef.current === kind && group.activeToolId === active.id) {
-      closeBotTool(active.id);
+      actionsRef.current.closeBotTool(active.id);
       return true;
     }
-    focusBotTool(active.id);
+    actionsRef.current.focusBotTool(active.id);
     return true;
   };
-  const handleAddPanelRef = useRef<(kind: DesktopPanelKind) => void>(() => {});
   panelShortcutRef.current = (kind) => {
     if (!assistantVisibleRef.current) {
       // 会话页的选中项和 Muse Bot 共用。快捷键只改目录里的 active 时，
       // 开过浏览器之后界面仍停在原来的那种面板上。
-      if (onSessionsSurface) selectDockRef.current(kind);
+      if (onSessionsSurfaceRef.current) selectDockRef.current(kind);
       return false;
     }
     if (kind === "terminal" || kind === "preview") {
-      const { tools, group } = readAssistantTools();
+      const { tools, group } = actionsRef.current.readAssistantTools();
       const ofKind = tools.filter((tool) => tool.kind === kind);
       if (ofKind.length === 0) {
         if (!dockIssueIdRef.current && group.checked.includes(kind)) return false;
-        setAssistantDockOpen(true);
-        if (kind === "terminal") openBotTerminal();
-        else openBotPreview();
+        setAssistantDockOpenRef.current(true);
+        if (kind === "terminal") actionsRef.current.openBotTerminal();
+        else actionsRef.current.openBotPreview();
         return true;
       }
       const active =
         ofKind.find((tool) => tool.id === group.activeToolId) ?? ofKind[ofKind.length - 1];
-      setAssistantDockOpen(true);
-      focusBotTool(active.id);
+      setAssistantDockOpenRef.current(true);
+      actionsRef.current.focusBotTool(active.id);
       return true;
     }
     handleAddPanelRef.current(kind);
     const key = groupKeyRef.current;
     const group = key ? usePanelGroupStore.getState().groups[key] : undefined;
     if (!group?.checked.includes(kind) && group?.active !== kind) return true;
-    setAssistantDockOpen(true);
+    setAssistantDockOpenRef.current(true);
     selectDockRef.current(kind);
     return true;
   };
-  const tryOpenPanelRef = useRef<(kind: DesktopPanelKind) => boolean>(() => false);
   const tryOpenForPreview = useCallback((kind: DesktopPanelKind) => {
     if (assistantVisibleRef.current && kind === "preview") {
       return focusOrOpenBotPreviewRef.current();
     }
     return tryOpenPanelRef.current(kind);
   }, []);
-  placeForwardRef.current = assistantVisibleRef.current
+  placeForwardRef.current = assistantVisibleForForwardRef.current
     ? (fwd) => {
-        const { store, tools, group } = readAssistantTools();
+        const { store, tools, group } = actionsRef.current.readAssistantTools();
         const target = activePreviewTool(tools, group.activeToolId);
         if (!target) return;
         store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
@@ -303,6 +327,27 @@ export function useBotDockTools({
         });
       }
     : null;
+
+  const openBotTerminal = useCallback(
+    () => actionsRef.current.openBotTerminal(),
+    [],
+  );
+  const openBotPreview = useCallback(
+    () => actionsRef.current.openBotPreview(),
+    [],
+  );
+  const focusBotTool = useCallback(
+    (id: string) => actionsRef.current.focusBotTool(id),
+    [],
+  );
+  const closeBotTool = useCallback(
+    (id: string) => actionsRef.current.closeBotTool(id),
+    [],
+  );
+  const readAssistantTools = useCallback(
+    () => actionsRef.current.readAssistantTools(),
+    [],
+  );
 
   return {
     beforeToggleRef,

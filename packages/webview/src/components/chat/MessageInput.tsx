@@ -87,6 +87,8 @@ function writeEditableText(el: HTMLElement, text: string) {
 // The desktop host never stores drafts, so this is the copy that comes back.
 const sessionInputDrafts = new Map<string, string>();
 const sessionImageDrafts = new Map<string, AttachedImage[]>();
+/** Cap image drafts so abandoned sessions cannot pin multi-MB base64 forever. */
+const SESSION_IMAGE_DRAFT_MAX = 3;
 
 export function clearSessionInputDraftsForTests(): void {
   sessionInputDrafts.clear();
@@ -388,8 +390,18 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     const saveImageDraft = useCallback(
       (session: string | undefined, images: AttachedImage[]) => {
         if (!session) return;
-        if (images.length > 0) sessionImageDrafts.set(session, images);
-        else sessionImageDrafts.delete(session);
+        if (images.length > 0) {
+          sessionImageDrafts.set(session, images);
+          if (sessionImageDrafts.size > SESSION_IMAGE_DRAFT_MAX) {
+            for (const key of sessionImageDrafts.keys()) {
+              if (key === session) continue;
+              sessionImageDrafts.delete(key);
+              if (sessionImageDrafts.size <= SESSION_IMAGE_DRAFT_MAX) break;
+            }
+          }
+        } else {
+          sessionImageDrafts.delete(session);
+        }
       },
       [],
     );

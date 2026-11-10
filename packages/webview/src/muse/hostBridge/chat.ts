@@ -390,6 +390,8 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
         blocks.push({ type: "text", content: text });
       }
       if (images.length > 0) {
+        // Keep data URLs only for the optimistic bubble; the webview reducer
+        // converts them to blob: URLs so transcriptsBySession never pins base64.
         blocks.push({
           type: "image",
           imageUrls: images.map((img) => img.data),

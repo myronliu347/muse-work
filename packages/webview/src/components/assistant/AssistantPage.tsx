@@ -22,6 +22,7 @@ import { ContextTag } from "../shared/ContextTag";
 import { MarkdownView } from "../message/MarkdownView";
 import { linkifyFilePaths, parseMentions } from "../../utils/messageUtils";
 import { resolveWorkspaceFilePath } from "../../utils/filePathDisplay";
+import { materializeMessageImages } from "../../utils/messageImages";
 import { pathToFileUrl } from "../../utils/pathToFileUrl";
 import type { AttachedImage, VsCodeApi } from "../../types";
 import {
@@ -865,12 +866,11 @@ export const AssistantPage: React.FC<{
           if (cancelled) return;
           if (typeof info.compacting === "boolean") setCompacting(info.compacting);
           setAgentWorkdir(info.workdir);
+          const incoming = materializeMessageImages(
+            page.messages as AgentMessage[],
+          ) as AgentMessage[];
           setAgentMessages((prev) =>
-            mergeTranscriptTail(
-              prev,
-              page.messages as AgentMessage[],
-              olderLoadedRef.current,
-            ),
+            mergeTranscriptTail(prev, incoming, olderLoadedRef.current),
           );
           if (!olderLoadedRef.current) {
             const hasMore = Boolean(page.hasMore);
@@ -908,7 +908,9 @@ export const AssistantPage: React.FC<{
     loadingAgentOlder.current = true;
     try {
       const page = await api.getMessages(sessionId, { before, limit: 40 });
-      const older = page.messages as AgentMessage[];
+      const older = materializeMessageImages(
+        page.messages as AgentMessage[],
+      ) as AgentMessage[];
       olderLoadedRef.current = true;
       const hasMore = Boolean(page.hasMore);
       agentHasMoreRef.current = hasMore;

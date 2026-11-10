@@ -1,4 +1,5 @@
 import type { ChatState, ChatAction } from "../../types";
+import { materializeMessageImages } from "../../utils/messageImages";
 import { DRAFT_SESSION_ID, pinSessionTitle } from "../../utils/session";
 import { dialogAfterSessionSwitch, nestedMessagesFromLoaded } from "./shared";
 
@@ -99,10 +100,11 @@ export function reduceSession(state: ChatState, action: Action): ChatState {
         ...state,
         sessionsLoading: action.payload,
       };
-    case "SET_INITIAL_STATE":
+    case "SET_INITIAL_STATE": {
+      const messages = materializeMessageImages(action.payload.messages || []);
       return {
         ...state,
-        messages: action.payload.messages,
+        messages,
         tasks: action.payload.tasks || [],
         isTaskListCollapsed:
           action.payload.isTaskListCollapsed !== undefined
@@ -125,7 +127,7 @@ export function reduceSession(state: ChatState, action: Action): ChatState {
         // object without firstMessage on pane/webview re-init.
         currentSession: pinSessionTitle(
           action.payload.currentSession || state.currentSession,
-          action.payload.messages,
+          messages,
         ),
         configurationData:
           action.payload.configurationData || state.configurationData,
@@ -152,13 +154,12 @@ export function reduceSession(state: ChatState, action: Action): ChatState {
           action.payload.theme !== undefined
             ? action.payload.theme
             : state.theme,
-        subagentMessages: nestedMessagesFromLoaded(
-          action.payload.messages || [],
-        ),
+        subagentMessages: nestedMessagesFromLoaded(messages),
         agentToolSubagentIds: {},
         pendingAgentToolIds: [],
         unboundSubagentIds: [],
       };
+    }
     case "UPDATE_SELECTION":
       return {
         ...state,

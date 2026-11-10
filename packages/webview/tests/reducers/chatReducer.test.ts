@@ -714,6 +714,76 @@ describe("chatReducer", () => {
       expect(newState.messages[1].id).toBe("new-2");
     });
 
+    it("caches a slim transcript without data-URL image payloads", () => {
+      const tiny =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+      const currentSession: SessionMetadata = {
+        id: "s-img",
+        sessionType: "main",
+        workdir: "/w",
+        createdAt: new Date(0),
+        lastActiveAt: new Date(0),
+        latestTotalTokens: 0,
+      };
+      const state = { ...initialState, currentSession };
+      const newState = chatReducer(state, {
+        type: "SET_MESSAGES",
+        payload: [
+          {
+            id: "u1",
+            role: "user",
+            timestamp: "0",
+            blocks: [{ type: "image", imageUrls: [tiny] }],
+          },
+        ],
+      });
+      const live = newState.messages[0].blocks?.[0] as {
+        type: string;
+        imageUrls?: string[];
+      };
+      expect(live.imageUrls?.[0]?.startsWith("blob:") || live.imageUrls?.[0] === tiny).toBe(
+        true,
+      );
+      const cached = newState.transcriptsBySession["s-img"][0].blocks?.[0] as {
+        imageUrls?: string[];
+      };
+      expect(cached.imageUrls).toEqual([""]);
+    });
+
+    it("evicts old transcriptsBySession entries beyond the cache cap", () => {
+      let state = {
+        ...initialState,
+        transcriptsBySession: {
+          s1: [],
+          s2: [],
+          s3: [],
+        },
+      };
+      for (const id of ["s1", "s2", "s3", "s4"] as const) {
+        state = chatReducer(
+          {
+            ...state,
+            currentSession: {
+              id,
+              sessionType: "main",
+              workdir: "/w",
+              createdAt: new Date(0),
+              lastActiveAt: new Date(0),
+              latestTotalTokens: 0,
+            },
+          },
+          {
+            type: "SET_MESSAGES",
+            payload: [
+              { id: `m-${id}`, role: "user", timestamp: "0", blocks: [] },
+            ],
+          },
+        );
+      }
+      expect(Object.keys(state.transcriptsBySession).length).toBeLessThanOrEqual(3);
+      expect(state.transcriptsBySession.s4).toBeDefined();
+    });
+
     it("should pin currentSession.firstMessage from the first user message while it is still in the list", () => {
       const currentSession: SessionMetadata = {
         id: "s1",

@@ -4,6 +4,7 @@ import type { IssueViewTab } from "../components/issue/IssueSessionHeader";
 import type { MuseApiClient } from "../muse/apiClient";
 import type { DesktopHostProps, DesktopIssueGroup, Message } from "../types";
 import { resolveIssuePlanningSessionId } from "../utils/issueGroups";
+import { materializeMessageImages } from "../utils/messageImages";
 import { issueSessionBusy } from "../components/session/SessionStatusGlyph";
 import { issueTabSessionId } from "../components/desktop/botWorkspace";
 
@@ -110,7 +111,7 @@ export function useIssueTranscript({
         .getMessages(sessionId)
         .then((page) => {
           if (cancelled) return;
-          const incoming = page.messages as Message[];
+          const incoming = materializeMessageImages(page.messages as Message[]);
           const hasMore = Boolean(page.hasMore);
           setIssueTranscript((current) => {
             const ready =
@@ -204,7 +205,7 @@ export function useIssueTranscript({
     void museApi
       .getMessages(sessionId, { before: oldestId, limit: 40 })
       .then((page) => {
-        const older = page.messages as Message[];
+        const older = materializeMessageImages(page.messages as Message[]);
         setIssueTranscript((current) => {
           if (
             !current ||
