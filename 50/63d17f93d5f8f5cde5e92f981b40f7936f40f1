@@ -1,0 +1,90 @@
+packages/webview/src/components/ChatApp.tsx
+  29f1f9f0dc9fa211 1581,1583-1584,1597
+packages/webview/tests/muse/fileTabs.test.ts
+  29f1f9f0dc9fa211 25,71,79,84-108,135,261,274-296
+packages/webview/src/muse/fileTabs.ts
+  29f1f9f0dc9fa211 8-11,23-60,71,73,79-81,84,89,96,121-127,136-138,140-142,182-197,199-200,204-211
+packages/webview/src/types/index.ts
+  29f1f9f0dc9fa211 571-575
+packages/webview/tests/webview/filePanelTabs.test.tsx
+  29f1f9f0dc9fa211 173-252
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  29f1f9f0dc9fa211 43-46,150-152,210,218,230,238,263,268,345,632
+packages/webview/src/muse/messageRouter.ts
+  29f1f9f0dc9fa211 19,216-235
+packages/desktop/src/main/workdirHost.ts
+  29f1f9f0dc9fa211 684-686
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "5063d17f93d5f8f5cde5e92f981b40f7936f40f1",
+  "prompts": {
+    "29f1f9f0dc9fa211": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0afb3b8c-e4f0-46e0-b041-a786fefa3bd7",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 272,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/fileTabs.ts": {
+          "accepted_lines": 89
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/muse/fileTabs.test.ts": {
+          "accepted_lines": 55
+        },
+        "packages/webview/src/types/index.ts": {
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "accepted_lines": 4
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "accepted_lines": 21
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "accepted_lines": 15
+        },
+        "packages/webview/tests/webview/filePanelTabs.test.tsx": {
+          "accepted_lines": 80
+        }
+      }
+    },
+    "77f2456c8992f900": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e32ef64-7567-4b85-9961-7e1fc15ed467",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 9,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/hostPlugins.test.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/plugins/hostPlugins.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/utils/logger.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/src/index.ts": {
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
