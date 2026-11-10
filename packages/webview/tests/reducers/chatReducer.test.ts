@@ -747,7 +747,11 @@ describe("chatReducer", () => {
       const cached = newState.transcriptsBySession["s-img"][0].blocks?.[0] as {
         imageUrls?: string[];
       };
-      expect(cached.imageUrls).toEqual([""]);
+      // Cache keeps blob: handles so session-switch paint still shows thumbs.
+      expect(
+        cached.imageUrls?.[0]?.startsWith("blob:") ||
+          cached.imageUrls?.[0] === tiny,
+      ).toBe(true);
     });
 
     it("evicts old transcriptsBySession entries beyond the cache cap", () => {

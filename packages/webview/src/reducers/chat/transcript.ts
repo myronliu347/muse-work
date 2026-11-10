@@ -1,8 +1,5 @@
 import type { ChatState, ChatAction, Message, MessageBlock, TextBlock, ToolBlock, ErrorBlock, EnrichedFileSnapshot } from "../../types";
-import {
-  materializeMessageImages,
-  revokeUnusedMessageImageBlobs,
-} from "../../utils/messageImages";
+import { materializeMessageImages } from "../../utils/messageImages";
 import { pinSessionTitle } from "../../utils/session";
 import { AGENT_TOOL_NAME } from "@muse-work/agent/constants";
 import {
@@ -22,7 +19,6 @@ export function reduceTranscript(state: ChatState, action: Action): ChatState {
   switch (action.type) {
     case "SET_MESSAGES": {
       const messages = materializeMessageImages(action.payload);
-      revokeUnusedMessageImageBlobs(state.messages, messages);
       return {
         ...state,
         messages,

@@ -299,6 +299,7 @@ const renderImageBlock = (imageBlock: ImageBlock, index: number) => {
         data-testid="user-image-block"
       >
         {imageBlock.imageUrls.map((imageUrl, imgIndex) => {
+          if (!imageUrl) return null;
           const name = `图片 ${imgIndex + 1}`;
           return (
             <button

@@ -199,10 +199,15 @@ export function revokeBlobUrlsExcept(
 export function revokeUnusedMessageImageBlobs(
   previous: Message[],
   next: Message[],
+  keepExtra?: Set<string>,
 ): void {
   const prev = collectBlobUrlsFromMessages(previous);
   if (prev.size === 0) return;
-  revokeBlobUrlsExcept(collectBlobUrlsFromMessages(next), prev);
+  const keep = collectBlobUrlsFromMessages(next);
+  if (keepExtra) {
+    for (const url of keepExtra) keep.add(url);
+  }
+  revokeBlobUrlsExcept(keep, prev);
 }
 
 export function revokeUnusedAttachedImageBlobs(
@@ -216,25 +221,22 @@ export function revokeUnusedAttachedImageBlobs(
 
 function slimBlock(block: MessageBlock): MessageBlock {
   if (block.type === "image" && block.imageUrls?.length) {
-    if (
-      !block.imageUrls.some(
-        (url) => url.startsWith("data:") || url.startsWith("blob:"),
-      )
-    ) {
+    // Drop data: payloads only. blob: URLs are short handles and must stay so
+    // session-switch paint from transcriptsBySession still shows thumbnails.
+    if (!block.imageUrls.some((url) => url.startsWith("data:"))) {
       return block;
     }
-    // Keep slot count for layout hints; drop the heavy payloads from the cache.
     return {
       ...block,
-      imageUrls: block.imageUrls.map(() => ""),
+      imageUrls: block.imageUrls.map((url) =>
+        url.startsWith("data:") ? "" : url,
+      ),
     };
   }
   if (block.type === "tool" && block.images?.length) {
     if (
       !block.images.some(
-        (img) =>
-          typeof img.data === "string" &&
-          (img.data.startsWith("data:") || img.data.startsWith("blob:")),
+        (img) => typeof img.data === "string" && img.data.startsWith("data:"),
       )
     ) {
       return block;
@@ -242,8 +244,7 @@ function slimBlock(block: MessageBlock): MessageBlock {
     return {
       ...block,
       images: block.images.map((img) =>
-        typeof img.data === "string" &&
-        (img.data.startsWith("data:") || img.data.startsWith("blob:"))
+        typeof img.data === "string" && img.data.startsWith("data:")
           ? { ...img, data: "" }
           : img,
       ),
@@ -253,8 +254,8 @@ function slimBlock(block: MessageBlock): MessageBlock {
 }
 
 /**
- * Copy a transcript for transcriptsBySession without retaining base64 / blob
- * image payloads. Session switch still refetches the real page from the host.
+ * Copy a transcript for transcriptsBySession without retaining base64 payloads.
+ * blob: URLs are kept so switching back can paint thumbs before refetch.
  */
 export function slimMessagesForTranscriptCache(
   messages: Message[],
@@ -274,6 +275,18 @@ export function slimMessagesForTranscriptCache(
     return { ...message, blocks: nextBlocks };
   });
   return listChanged ? next : messages;
+}
+
+/** Blobs still referenced by the live transcript or the session switch book. */
+export function collectBlobUrlsFromTranscriptBook(
+  book: Record<string, Message[]> | undefined,
+): Set<string> {
+  const urls = new Set<string>();
+  if (!book) return urls;
+  for (const messages of Object.values(book)) {
+    for (const url of collectBlobUrlsFromMessages(messages)) urls.add(url);
+  }
+  return urls;
 }
 
 /** Drop oldest session entries until the book fits the size cap. */

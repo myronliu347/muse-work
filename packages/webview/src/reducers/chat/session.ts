@@ -1,8 +1,5 @@
 import type { ChatState, ChatAction } from "../../types";
-import {
-  materializeMessageImages,
-  revokeUnusedMessageImageBlobs,
-} from "../../utils/messageImages";
+import { materializeMessageImages } from "../../utils/messageImages";
 import { DRAFT_SESSION_ID, pinSessionTitle } from "../../utils/session";
 import { dialogAfterSessionSwitch, nestedMessagesFromLoaded } from "./shared";
 
@@ -19,7 +16,6 @@ export function reduceSession(state: ChatState, action: Action): ChatState {
     case "SET_CURRENT_SESSION": {
       const session = action.payload;
       if (!session) {
-        revokeUnusedMessageImageBlobs(state.messages, []);
         return {
           ...state,
           currentSession: undefined,
@@ -58,13 +54,6 @@ export function reduceSession(state: ChatState, action: Action): ChatState {
         state.currentSession?.id === DRAFT_SESSION_ID &&
         realId != null &&
         cached === undefined;
-      const nextMessages =
-        switched && realId && !promotingDraft ? (cached ?? []) : undefined;
-      if (nextMessages) {
-        revokeUnusedMessageImageBlobs(state.messages, nextMessages);
-      } else if (switched && !realId) {
-        revokeUnusedMessageImageBlobs(state.messages, []);
-      }
       return {
         ...state,
         currentSession,
@@ -97,7 +86,7 @@ export function reduceSession(state: ChatState, action: Action): ChatState {
                       hasOlderMessages: false,
                     }
                   : {
-                      messages: nextMessages ?? [],
+                      messages: cached ?? [],
                       transcriptPending: cached === undefined,
                       hasOlderMessages: false,
                     }
@@ -113,7 +102,6 @@ export function reduceSession(state: ChatState, action: Action): ChatState {
       };
     case "SET_INITIAL_STATE": {
       const messages = materializeMessageImages(action.payload.messages || []);
-      revokeUnusedMessageImageBlobs(state.messages, messages);
       return {
         ...state,
         messages,

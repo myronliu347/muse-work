@@ -1,6 +1,9 @@
 import type { ChatState, ChatAction } from "../types";
 import {
+  collectBlobUrlsFromMessages,
+  collectBlobUrlsFromTranscriptBook,
   evictTranscriptCache,
+  revokeBlobUrlsExcept,
   slimMessagesForTranscriptCache,
 } from "../utils/messageImages";
 import { reduceDialogs } from "./chat/dialogs";
@@ -109,30 +112,52 @@ function reduceChat(state: ChatState, action: ChatAction): ChatState {
 }
 
 function withTranscriptMemory(prev: ChatState, next: ChatState): ChatState {
-  if (next === prev || next.transcriptPending) return next;
-  const id = next.currentSession?.id;
-  if (!id || id === "__draft__") return next;
-  if (
-    next.messages === prev.messages &&
-    id === prev.currentSession?.id
-  ) {
-    return next;
+  let result = next;
+  if (next !== prev && !next.transcriptPending) {
+    const id = next.currentSession?.id;
+    if (
+      id &&
+      id !== "__draft__" &&
+      !(next.messages === prev.messages && id === prev.currentSession?.id)
+    ) {
+      const book = next.transcriptsBySession ?? {};
+      // Slim copy: drop data: payloads only. Keep blob: so switch-back paint
+      // still shows thumbs; old ChatState closures must not retain base64.
+      const slim = slimMessagesForTranscriptCache(next.messages);
+      if (book[id] !== slim) {
+        result = {
+          ...next,
+          transcriptsBySession: evictTranscriptCache(
+            {
+              ...book,
+              [id]: slim,
+            },
+            id,
+          ),
+        };
+      }
+    }
   }
-  const book = next.transcriptsBySession ?? {};
-  // Slim copy: never pin data:/blob: image payloads in the session book.
-  // Old ChatState closures must not retain hundreds of base64 duplicates.
-  const slim = slimMessagesForTranscriptCache(next.messages);
-  if (book[id] === slim) return next;
-  return {
-    ...next,
-    transcriptsBySession: evictTranscriptCache(
-      {
-        ...book,
-        [id]: slim,
-      },
-      id,
-    ),
-  };
+
+  // Revoke only blobs that left both the live transcript and the session book.
+  // Revoking against a slim cache of "" was wiping thumbs still on screen.
+  if (result !== prev) {
+    const keep = collectBlobUrlsFromMessages(result.messages);
+    for (const url of collectBlobUrlsFromTranscriptBook(
+      result.transcriptsBySession,
+    )) {
+      keep.add(url);
+    }
+    const candidates = collectBlobUrlsFromMessages(prev.messages);
+    for (const url of collectBlobUrlsFromTranscriptBook(
+      prev.transcriptsBySession,
+    )) {
+      candidates.add(url);
+    }
+    if (candidates.size > 0) revokeBlobUrlsExcept(keep, candidates);
+  }
+
+  return result;
 }
 
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {

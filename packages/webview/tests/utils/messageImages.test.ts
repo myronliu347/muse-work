@@ -66,13 +66,20 @@ describe("messageImages", () => {
     expect(materializeMessageImages(messages)).toBe(messages);
   });
 
-  it("slimMessagesForTranscriptCache strips data and blob image payloads", () => {
-    const messages = materializeMessageImages([
+  it("slimMessagesForTranscriptCache strips data URLs but keeps blob URLs", () => {
+    const withData = slimMessagesForTranscriptCache([
       imageMessage("a", [TINY_PNG]),
     ]);
-    const slim = slimMessagesForTranscriptCache(messages);
+    expect(
+      (withData[0].blocks?.[0] as { imageUrls: string[] }).imageUrls,
+    ).toEqual([""]);
+
+    const materialized = materializeMessageImages([
+      imageMessage("b", [TINY_PNG]),
+    ]);
+    const slim = slimMessagesForTranscriptCache(materialized);
     const urls = (slim[0].blocks?.[0] as { imageUrls: string[] }).imageUrls;
-    expect(urls).toEqual([""]);
+    expect(urls[0]).toMatch(/^blob:/);
   });
 
   it("evictTranscriptCache keeps the active session and caps size", () => {

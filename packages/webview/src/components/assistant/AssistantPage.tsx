@@ -900,15 +900,9 @@ export const AssistantPage: React.FC<{
           const incoming = materializeMessageImages(
             page.messages as AgentMessage[],
           ) as AgentMessage[];
-          setAgentMessages((prev) => {
-            const merged = mergeTranscriptTail(
-              prev,
-              incoming,
-              olderLoadedRef.current,
-            );
-            revokeUnusedMessageImageBlobs(prev, merged);
-            return merged;
-          });
+          setAgentMessages((prev) =>
+            mergeTranscriptTail(prev, incoming, olderLoadedRef.current),
+          );
           if (!olderLoadedRef.current) {
             const hasMore = Boolean(page.hasMore);
             agentHasMoreRef.current = hasMore;
