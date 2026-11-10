@@ -1993,11 +1993,14 @@ describe("issue tab", () => {
     });
 
     expect(
-      usePanelGroupStore.getState().groups["/work/radii"]?.fileTabs?.map((tab) => tab.path),
+      usePanelGroupStore.getState().groups["issue:radii"]?.fileTabs?.map((tab) => tab.path),
     ).toEqual(["/work/radii/App.tsx"]);
     expect(
-      usePanelGroupStore.getState().groups["/work/radii"]?.activeFilePath,
+      usePanelGroupStore.getState().groups["issue:radii"]?.activeFilePath,
     ).toBe("/work/radii/App.tsx");
+    expect(
+      usePanelGroupStore.getState().groups["/work/radii"]?.fileTabs ?? [],
+    ).toEqual([]);
   });
 
   it("closes the last file tab and leaves the directory's other kinds", async () => {
@@ -2388,8 +2391,11 @@ describe("issue tab", () => {
     expect(fileTab).toHaveAttribute("data-active", "true");
     expect(fileTab.className).not.toContain("file-tab--preview");
     expect(
-      usePanelGroupStore.getState().groups["/work/radii"]?.fileTabs?.map((tab) => tab.path),
+      usePanelGroupStore.getState().groups["issue:radii"]?.fileTabs?.map((tab) => tab.path),
     ).toEqual(["src/App.tsx"]);
+    expect(
+      usePanelGroupStore.getState().groups["/work/radii"]?.fileTabs ?? [],
+    ).toEqual([]);
     expect(
       usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? [],
     ).toEqual([]);
@@ -2408,6 +2414,64 @@ describe("issue tab", () => {
       "desktop-panel-tab--active",
     );
     expect(within(dock).getByTestId("file-tab")).toHaveAttribute("data-active", "true");
+  });
+
+  it("hides another page's file tabs after leaving the issue", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    usePanelGroupStore.getState().patchGroup("/work/radii", {
+      fileTabs: [
+        {
+          path: "/work/radii/src/prototype/skeletons/prototype-html.ts",
+          host: "local",
+          pinned: true,
+        },
+      ],
+      activeFilePath: "/work/radii/src/prototype/skeletons/prototype-html.ts",
+      checked: ["file"],
+      mounted: ["file"],
+      active: "file",
+    });
+    vi.spyOn(MuseApiClient.prototype, "getMessages").mockImplementation(async (id) => {
+      if (id !== "plan-radii") return { messages: [], hasMore: false };
+      return {
+        messages: [
+          {
+            id: "radii-file",
+            role: "assistant" as const,
+            timestamp: "2026-10-22T00:00:00.000Z",
+            blocks: [{ type: "text" as const, content: "改一下 src/App.tsx" }],
+          },
+        ],
+        hasMore: false,
+      };
+    });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [RADII_ISSUE, A11Y_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    expect(within(dock).queryByTestId("file-tab")).toBeNull();
+
+    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+    await user.click(await within(frame).findByRole("link", { name: "src/App.tsx" }));
+    expect(await within(dock).findByTestId("file-tab")).toHaveAttribute(
+      "data-path",
+      "src/App.tsx",
+    );
+
+    await user.click(within(frame).getByRole("button", { name: "灵光" }));
+    expect(within(dock).queryByTestId("file-tab")).toBeNull();
   });
 
   it("clears unread when the issue list or tab is chosen", async () => {

@@ -42,6 +42,25 @@ function fileMatchScore(candidate: string, requested: string): number {
   return 0;
 }
 
+export function filesReferToSame(
+  a: { path: string; tabKey?: string },
+  b: { path: string; tabKey?: string },
+): boolean {
+  const left = [a.path, a.tabKey].filter((value): value is string => Boolean(value));
+  const right = [b.path, b.tabKey].filter((value): value is string => Boolean(value));
+  return left.some((one) => right.some((other) => fileMatchScore(one, other) > 0));
+}
+
+/** First tab wins when two entries are the same file under different paths. */
+export function uniqueFileTabs(tabs: FileViewState[]): FileViewState[] {
+  const out: FileViewState[] = [];
+  for (const tab of tabs) {
+    if (out.some((item) => filesReferToSame(item, tab))) continue;
+    out.push(tab);
+  }
+  return out;
+}
+
 function findFileTabIndex(tabs: FileViewState[], requested: string): number {
   let best = -1;
   let bestScore = 0;
@@ -62,6 +81,25 @@ function findFileTabIndex(tabs: FileViewState[], requested: string): number {
  * preview tab — replacing the current preview tab in place, or appending.
  * With `pinned`, a new file opens straight into a permanent tab (appended,
  * never occupying the preview slot) and an already-open file gets pinned. */
+function sameFileTab(a: FileViewState, b: FileViewState): boolean {
+  return (
+    a.path === b.path &&
+    a.host === b.host &&
+    a.tabKey === b.tabKey &&
+    a.loading === b.loading &&
+    a.error === b.error &&
+    a.unsupported === b.unsupported &&
+    a.sizeBytes === b.sizeBytes &&
+    a.content === b.content &&
+    a.startLine === b.startLine &&
+    a.endLine === b.endLine &&
+    a.truncated === b.truncated &&
+    a.totalLines === b.totalLines &&
+    a.imageBase64 === b.imageBase64 &&
+    a.pinned === b.pinned
+  );
+}
+
 export function openFileTab(
   state: FileTabsState,
   path: string,
@@ -71,21 +109,24 @@ export function openFileTab(
   const existingIdx = findFileTabIndex(state.fileTabs, path);
   if (existingIdx >= 0) {
     const current = state.fileTabs[existingIdx];
+    const nextTab: FileViewState = {
+      ...current,
+      // Keep the loaded body. Clearing it for a soft refresh is what
+      // makes the tab flash when a link is clicked again.
+      loading: current.content === undefined && !current.imageBase64 && !current.error,
+      startLine: opts?.startLine,
+      endLine: opts?.endLine,
+      tabKey: current.tabKey ?? current.path,
+      ...(opts?.pinned ? { pinned: true } : {}),
+    };
+    // A repeat open of the visible file must not allocate a new tab list.
+    // An effect that opens whenever the list identity changes would otherwise
+    // setState forever.
+    if (state.activeFilePath === current.path && sameFileTab(current, nextTab)) {
+      return state;
+    }
     return {
-      fileTabs: state.fileTabs.map((t, i) =>
-        i === existingIdx
-          ? {
-              ...t,
-              // Keep the loaded body. Clearing it for a soft refresh is what
-              // makes the tab flash when a link is clicked again.
-              loading: t.content === undefined && !t.imageBase64 && !t.error,
-              startLine: opts?.startLine,
-              endLine: opts?.endLine,
-              tabKey: t.tabKey ?? t.path,
-              ...(opts?.pinned ? { pinned: true } : {}),
-            }
-          : t,
-      ),
+      fileTabs: state.fileTabs.map((t, i) => (i === existingIdx ? nextTab : t)),
       activeFilePath: current.path,
     };
   }
@@ -173,11 +214,9 @@ export function upsertFileContentTab(
   incoming: FileViewState,
   requestedPath?: string,
 ): FileTabsState {
-  const matchPath =
-    requestedPath && state.fileTabs.some((t) => t.path === requestedPath)
-      ? requestedPath
-      : incoming.path;
-  const idx = state.fileTabs.findIndex((t) => t.path === matchPath);
+  const byRequest = requestedPath ? findFileTabIndex(state.fileTabs, requestedPath) : -1;
+  const byIncoming = findFileTabIndex(state.fileTabs, incoming.path);
+  const idx = byRequest >= 0 ? byRequest : byIncoming;
   if (idx >= 0) {
     const prev = state.fileTabs[idx];
     const nextTab: FileViewState = {
@@ -187,17 +226,27 @@ export function upsertFileContentTab(
     };
     const replaced = state.fileTabs.map((t, i) => (i === idx ? nextTab : t));
     // A link opened against an already-absolute tab must not leave a second
-    // copy once the host resolves the same file.
+    // copy once the host resolves the same file. A relative stub and the
+    // absolute reply are the same file even when the reply omits requestedPath.
     const fileTabs = replaced.filter(
-      (t) => t === nextTab || t.path !== nextTab.path,
+      (t) => t === nextTab || !filesReferToSame(t, nextTab),
     );
     const wasActive =
-      state.activeFilePath === matchPath ||
+      state.activeFilePath === requestedPath ||
       state.activeFilePath === prev.path ||
+      state.activeFilePath === prev.tabKey ||
       state.activeFilePath === nextTab.path;
+    const activeFilePath = wasActive ? nextTab.path : state.activeFilePath;
+    if (
+      fileTabs.length === state.fileTabs.length &&
+      activeFilePath === state.activeFilePath &&
+      sameFileTab(prev, nextTab)
+    ) {
+      return state;
+    }
     return {
       fileTabs,
-      activeFilePath: wasActive ? nextTab.path : state.activeFilePath,
+      activeFilePath,
     };
   }
   return {

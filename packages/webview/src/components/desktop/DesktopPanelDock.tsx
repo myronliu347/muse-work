@@ -40,6 +40,10 @@ export interface DockToolTab {
  * strip scrolls horizontally, so a tab past the edge is otherwise only partly
  * reachable. Nearest alignment — no centering. scroll-behavior on the strip
  * eases the move. */
+const EMPTY_FILE_TABS: FileViewState[] = [];
+const EMPTY_TOOL_TABS: DockToolTab[] = [];
+const EMPTY_DISABLED: DesktopPanelKind[] = [];
+
 function fileDockId(tab: { path: string; tabKey?: string }): string {
   return tab.tabKey ?? tab.path;
 }
@@ -110,7 +114,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   onSelect,
   onCloseTab,
   onAddPanel,
-  disabledPanels = [],
+  disabledPanels = EMPTY_DISABLED,
   panelToggle,
   onCloseDock,
   fullscreen,
@@ -118,7 +122,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   width,
   onWidthChange,
   maxWidth,
-  fileTabs = [],
+  fileTabs = EMPTY_FILE_TABS,
   activeFilePath = null,
   onSelectFileTab,
   onCloseFileTab,
@@ -131,7 +135,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   detailPresence,
   detail,
   previewLabel,
-  toolTabs = [],
+  toolTabs = EMPTY_TOOL_TABS,
   activeToolId = null,
   onSelectTool,
   onCloseTool,
@@ -147,9 +151,30 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
     const id = window.setTimeout(() => setEntering(false), PANEL_MOTION_MS + 50);
     return () => window.clearTimeout(id);
   }, []);
+  const checkedKey = checked.join("\0");
+  const stableChecked = React.useMemo(
+    () => checked,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [checkedKey],
+  );
   const activeFileTab = fileTabs.find((tab) => tab.path === activeFilePath);
   const activeFileId = activeFileTab ? fileDockId(activeFileTab) : activeFilePath;
-  const fileDockIds = fileTabs.map(fileDockId);
+  const fileDockKey = fileTabs.map(fileDockId).join("\0");
+  const fileDockIds = React.useMemo(
+    () => fileTabs.map(fileDockId),
+    // The key is the tab identity. A new array with the same ids must not
+    // retrigger the shortcut effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [fileDockKey],
+  );
+  const toolTabKey = toolTabs
+    .map((tab) => `${tab.id}\0${tab.kind}\0${tab.label}\0${tab.title}`)
+    .join("\n");
+  const stableToolTabs = React.useMemo(
+    () => toolTabs,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [toolTabKey],
+  );
   const suppressDrag = React.useRef(false);
   const [tabMenu, setTabMenu] = React.useState<{
     key: string;
@@ -206,9 +231,9 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
           tabOrder,
           defaultDockTabKeys({
             detail: Boolean(onSelectDetail),
-            checked,
+            checked: stableChecked,
             filePaths: fileDockIds,
-            tools: toolTabs,
+            tools: stableToolTabs,
           }),
         );
         const current = activeDockTabKey({
@@ -226,9 +251,9 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
           tabOrder,
           defaultDockTabKeys({
             detail: Boolean(onSelectDetail),
-            checked,
+            checked: stableChecked,
             filePaths: fileDockIds,
-            tools: toolTabs,
+            tools: stableToolTabs,
           }),
         );
         const current = activeDockTabKey({
@@ -263,17 +288,16 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
     activeFileId,
     activeFilePath,
     activeToolId,
-    checked,
+    stableChecked,
     detailActive,
     fileDockIds,
-    fileTabs,
     onCloseFileTab,
     onCloseTab,
     onCloseTool,
     onSelectDetail,
     selectTab,
     tabOrder,
-    toolTabs,
+    stableToolTabs,
   ]);
 
   React.useEffect(() => {
@@ -312,7 +336,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
     );
     if (!container || !tab) return;
     scrollDockTabIntoView(container, tab);
-  }, [active, activeFilePath, activeToolId, checked, detailActive, fileTabs, tabOrder, toolTabs]);
+  }, [active, activeFilePath, activeToolId, stableChecked, detailActive, fileDockIds, tabOrder, stableToolTabs]);
 
   const onDragStart = (e: React.MouseEvent) => {
     if (fullscreen) return;
@@ -341,9 +365,9 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   // active. Their place in the bar follows the saved order, not the kind list.
   const presentKeys = defaultDockTabKeys({
     detail: Boolean(onSelectDetail),
-    checked,
+    checked: stableChecked,
     filePaths: fileDockIds,
-    tools: toolTabs,
+    tools: stableToolTabs,
   });
   const orderedKeys = reconcileTabOrder(tabOrder, presentKeys);
   const openTabMenu = (event: React.MouseEvent, key: string) => {
@@ -577,7 +601,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
             }
             const toolId = toolIdFromTabKey(key);
             if (toolId) {
-              const tool = toolTabs.find((item) => item.id === toolId);
+              const tool = stableToolTabs.find((item) => item.id === toolId);
               if (!tool) return null;
               const selected =
                 !detailActive && tool.id === activeToolId && tool.kind === active;

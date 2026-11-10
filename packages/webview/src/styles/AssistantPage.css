@@ -298,8 +298,10 @@
   min-width: 0;
   max-width: 100%;
   max-height: 100px;
-  overflow: auto;
-  white-space: pre;
+  overflow-x: hidden;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .assistant-user-images {

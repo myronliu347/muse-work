@@ -199,6 +199,11 @@ export function workdirTermId(workdir: string): string {
 /** Assistant dock is not a workdir, so session-tree pruning must keep this key. */
 export const ASSISTANT_PANEL_GROUP_KEY = "assistant";
 
+/** File tabs opened from one issue. Not the directory group sessions share. */
+export function issueFileGroupKey(issueId: string): string {
+  return `issue:${issueId}`;
+}
+
 export function isDraftGroupKey(groupKey: string | undefined): boolean {
   if (!groupKey) return true;
   return groupKey === "__draft__" || groupKey.startsWith("new:");
@@ -270,6 +275,12 @@ function seedRestoredGroups(): Record<string, PanelGroupState> {
   return groups;
 }
 
+function samePanelGroup(a: PanelGroupState, b: PanelGroupState): boolean {
+  const keys = Object.keys(a) as (keyof PanelGroupState)[];
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((key) => Object.is(a[key], b[key]));
+}
+
 export const usePanelGroupStore = create<PanelGroupStore>((set, get) => ({
   groups: seedRestoredGroups(),
   previewEpochs: {},
@@ -284,10 +295,14 @@ export const usePanelGroupStore = create<PanelGroupStore>((set, get) => ({
 
   patchGroup: (key, patch) => {
     set((s) => {
-      const current = s.groups[key] ?? emptyPanelGroup();
-      const nextPatch = typeof patch === "function" ? patch(current) : patch;
+      const current = s.groups[key];
+      const base = current ?? emptyPanelGroup();
+      const nextPatch = typeof patch === "function" ? patch(base) : patch;
+      const next = { ...base, ...nextPatch };
+      if (current && samePanelGroup(current, next)) return s;
+      if (!current && Object.keys(nextPatch).length === 0) return s;
       return {
-        groups: { ...s.groups, [key]: { ...current, ...nextPatch } },
+        groups: { ...s.groups, [key]: next },
       };
     });
   },

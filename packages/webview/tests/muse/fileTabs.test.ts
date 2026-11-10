@@ -294,6 +294,29 @@ describe("upsertFileContentTab", () => {
     expect(next.activeFilePath).toBe(next.fileTabs[0].path);
   });
 
+  it("collapses a relative stub when the reply omits the requested path", () => {
+    const state = openFileTab(
+      emptyFileTabsState(),
+      "apps/spec-server/src/prototype/skeletons/prototype-html.ts",
+      "local",
+      { pinned: true },
+    );
+    const next = upsertFileContentTab(
+      state,
+      tab("/work/radii/apps/spec-server/src/prototype/skeletons/prototype-html.ts", {
+        content: "export {}\n",
+      }),
+    );
+    expect(next.fileTabs).toHaveLength(1);
+    expect(next.fileTabs[0].path).toBe(
+      "/work/radii/apps/spec-server/src/prototype/skeletons/prototype-html.ts",
+    );
+    expect(next.fileTabs[0].tabKey).toBe(
+      "apps/spec-server/src/prototype/skeletons/prototype-html.ts",
+    );
+    expect(next.fileTabs[0].pinned).toBe(true);
+  });
+
   it("replaces a requested-path stub with the resolved file path", () => {
     const state = openFileTab(emptyFileTabsState(), "hello.ts", "local");
     const next = upsertFileContentTab(

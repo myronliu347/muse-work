@@ -90,7 +90,9 @@
 
 .desktop-panel-dock-tabs {
   /* Shrink to the tabs so the header's empty stretch stays a drag region.
-     overflow on this box would swallow that stretch. */
+     overflow on this box would swallow that stretch.
+     The strip itself is no-drag: a drag ancestor keeps a stale bitmap when
+     the tabs change, which shows up as leftover labels after a sidebar switch. */
   flex: 0 1 auto;
   min-width: 0;
   display: flex;
@@ -98,6 +100,7 @@
   gap: var(--space-1);
   overflow-x: auto;
   overflow-y: hidden;
+  -webkit-app-region: no-drag;
   /* Clicking a tab outside the viewport assigns scrollLeft; this eases it in. */
   scroll-behavior: smooth;
   /* Keep overflow scroll for trackpad/wheel; the 38px header cannot spare a
@@ -172,6 +175,11 @@
   text-align: left;
   overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.desktop-panel-tab:hover .desktop-panel-tab-text,
+.desktop-panel-tab--active .desktop-panel-tab-text {
   text-overflow: clip;
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
   mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
@@ -247,6 +255,7 @@
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .file-tab:hover,
@@ -264,6 +273,11 @@
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.file-tab:hover .file-tab-label,
+.file-tab--active .file-tab-label {
   text-overflow: clip;
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
   mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);

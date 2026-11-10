@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { ChatApp } from "./ChatApp";
 import { VsCodeApi, OpenPaneOptions } from "../types";
 import { useDesktopShell } from "../stores/desktopStore";
 import {
   ASSISTANT_PANEL_GROUP_KEY,
+  issueFileGroupKey,
   prunePanelGroupCache,
   workdirTermId,
 } from "../stores/panelGroupStore";
@@ -53,6 +54,7 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
       // 还开着的 Issue 目录要留着。已经关闭的 Issue 不占右侧面板，
       // 除非这个目录仍是当前工作区或别的会话在用。
       for (const g of issueGroupsRef.current) {
+        keep.add(issueFileGroupKey(g.issueId));
         for (const s of g.sessions) {
           if (s.workdir) keep.add(s.workdir);
         }
@@ -167,40 +169,60 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
     [vscode],
   );
 
+  const workdir = workdirState?.workdir;
+  const recentWorkdirs = workdirState?.recentWorkdirs;
+  const host = workdirState?.host;
+  const desktopHost = useMemo(
+    () => ({
+      type: "desktop" as const,
+      host,
+      workdir,
+      recentWorkdirs,
+      onSelectWorkdir: handleSelectWorkdir,
+      onSelectRecentWorkdir: handleSelectRecentWorkdir,
+      onRemoveRecentWorkdir: handleRemoveRecentWorkdir,
+      sessionTree,
+      issueGroups,
+      closedIssueGroups,
+      onSelectSession: handleSelectSession,
+      onDeleteSession: handleDeleteSession,
+      onTogglePin: handleTogglePin,
+      onRenameSession: handleRenameSession,
+      onOpenPane: handleOpenPane,
+      panes,
+      rowHeights,
+      focusedPaneId,
+      homeDir: workdirState?.homeDir,
+    }),
+    [
+      host,
+      workdir,
+      recentWorkdirs,
+      handleSelectWorkdir,
+      handleSelectRecentWorkdir,
+      handleRemoveRecentWorkdir,
+      sessionTree,
+      issueGroups,
+      closedIssueGroups,
+      handleSelectSession,
+      handleDeleteSession,
+      handleTogglePin,
+      handleRenameSession,
+      handleOpenPane,
+      panes,
+      rowHeights,
+      focusedPaneId,
+      workdirState?.homeDir,
+    ],
+  );
+
   if (workdirState === null) {
     return (
       <div className="desktop-loading" data-testid="desktop-loading"></div>
     );
   }
 
-  const { workdir, recentWorkdirs, host } = workdirState;
-
-  return (
-    <ChatApp
-      vscode={vscode}
-      host={{
-        type: "desktop",
-        host,
-        workdir,
-        recentWorkdirs,
-        onSelectWorkdir: handleSelectWorkdir,
-        onSelectRecentWorkdir: handleSelectRecentWorkdir,
-        onRemoveRecentWorkdir: handleRemoveRecentWorkdir,
-        sessionTree,
-        issueGroups,
-        closedIssueGroups,
-        onSelectSession: handleSelectSession,
-        onDeleteSession: handleDeleteSession,
-        onTogglePin: handleTogglePin,
-        onRenameSession: handleRenameSession,
-        onOpenPane: handleOpenPane,
-        panes,
-        rowHeights,
-        focusedPaneId,
-        homeDir: workdirState.homeDir,
-      }}
-    />
-  );
+  return <ChatApp vscode={vscode} host={desktopHost} />;
 };
 
 export default DesktopApp;

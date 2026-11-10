@@ -36,12 +36,30 @@ export function selectPanel(
     state.active !== "bot" &&
     panel.kind === "issue" &&
     state.openIssueIds.includes(panel.issueId);
+  const active = followTab ? panel.issueId : state.active;
+  const lastIssueId = panel.kind === "issue" ? panel.issueId : state.lastIssueId;
+  const samePanel =
+    state.panel.kind === panel.kind &&
+    ((state.panel.kind === "issue" &&
+      panel.kind === "issue" &&
+      state.panel.issueId === panel.issueId) ||
+      (state.panel.kind === "queue" &&
+        panel.kind === "queue" &&
+        state.panel.id === panel.id));
+  if (
+    samePanel &&
+    state.active === active &&
+    state.dock === "detail" &&
+    state.lastIssueId === lastIssueId
+  ) {
+    return state;
+  }
   return {
     ...state,
-    active: followTab ? panel.issueId : state.active,
+    active,
     panel,
     dock: "detail",
-    lastIssueId: panel.kind === "issue" ? panel.issueId : state.lastIssueId,
+    lastIssueId,
   };
 }
 
@@ -57,7 +75,18 @@ export function openIssueSession(state: BotWorkspaceState, issueId: string): Bot
 
 export function focusTab(state: BotWorkspaceState, tab: "bot" | string): BotWorkspaceState {
   if (tab !== "bot" && !state.openIssueIds.includes(tab)) return state;
-  if (tab === "bot") return { ...state, active: tab };
+  if (tab === "bot") {
+    if (state.active === "bot") return state;
+    return { ...state, active: tab };
+  }
+  if (
+    state.active === tab &&
+    state.panel.kind === "issue" &&
+    state.panel.issueId === tab &&
+    state.lastIssueId === tab
+  ) {
+    return state;
+  }
   return {
     ...state,
     active: tab,
@@ -88,6 +117,7 @@ export function closeIssueTab(state: BotWorkspaceState, issueId: string): BotWor
 }
 
 export function selectDock(state: BotWorkspaceState, dock: DockChrome): BotWorkspaceState {
+  if (state.dock === dock) return state;
   return { ...state, dock };
 }
 

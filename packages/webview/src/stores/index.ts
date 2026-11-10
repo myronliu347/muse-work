@@ -3,6 +3,7 @@ export {
   usePanelGroupStore,
   usePanelGroup,
   ASSISTANT_PANEL_GROUP_KEY,
+  issueFileGroupKey,
   prunePanelGroupCache,
   workdirTermId,
   emptyPanelGroup,

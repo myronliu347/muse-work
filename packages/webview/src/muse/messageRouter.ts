@@ -39,6 +39,7 @@ export interface MessageRouterRefs {
   previewUrlRef: React.MutableRefObject<string | null>;
   groupKeyRef: React.MutableRefObject<string | undefined>;
   previewGroupKeyRef: React.MutableRefObject<string | undefined>;
+  fileContentGroupKeyRef?: React.MutableRefObject<string | undefined>;
   openQuickOpenRef: React.MutableRefObject<(query: string) => void>;
   hostRef: React.MutableRefObject<DesktopHostProps | undefined>;
 }
@@ -72,6 +73,7 @@ export function createMessageHandler({
     previewUrlRef,
     groupKeyRef,
     previewGroupKeyRef,
+    fileContentGroupKeyRef,
     openQuickOpenRef,
     hostRef,
   } = refs;
@@ -206,7 +208,11 @@ export function createMessageHandler({
             typeof message.fileGroupKey === "string" && message.fileGroupKey
               ? message.fileGroupKey
               : undefined;
-          const key = routed || previewGroupKeyRef.current || groupKeyRef.current;
+          const key =
+            routed ||
+            fileContentGroupKeyRef?.current ||
+            previewGroupKeyRef.current ||
+            groupKeyRef.current;
           if (key) {
             const incoming = message.fileView as FileViewState;
             const requestedPath =
@@ -253,7 +259,11 @@ export function createMessageHandler({
             typeof message.fileGroupKey === "string" && message.fileGroupKey
               ? message.fileGroupKey
               : undefined;
-          const key = routed || previewGroupKeyRef.current || groupKeyRef.current;
+          const key =
+            routed ||
+            fileContentGroupKeyRef?.current ||
+            previewGroupKeyRef.current ||
+            groupKeyRef.current;
           const closePath = typeof message.path === "string" ? message.path : "";
           if (key && closePath) {
             usePanelGroupStore.getState().patchGroup(key, (group) =>
