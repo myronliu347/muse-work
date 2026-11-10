@@ -40,6 +40,10 @@ export interface DockToolTab {
  * strip scrolls horizontally, so a tab past the edge is otherwise only partly
  * reachable. Nearest alignment — no centering. scroll-behavior on the strip
  * eases the move. */
+function fileDockId(tab: { path: string; tabKey?: string }): string {
+  return tab.tabKey ?? tab.path;
+}
+
 function scrollDockTabIntoView(container: HTMLElement, tab: HTMLElement) {
   const { scrollLeft, clientWidth } = container;
   const left = tab.offsetLeft;
@@ -143,6 +147,9 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
     const id = window.setTimeout(() => setEntering(false), PANEL_MOTION_MS + 50);
     return () => window.clearTimeout(id);
   }, []);
+  const activeFileTab = fileTabs.find((tab) => tab.path === activeFilePath);
+  const activeFileId = activeFileTab ? fileDockId(activeFileTab) : activeFilePath;
+  const fileDockIds = fileTabs.map(fileDockId);
   const suppressDrag = React.useRef(false);
   const [tabMenu, setTabMenu] = React.useState<{
     key: string;
@@ -200,7 +207,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
           defaultDockTabKeys({
             detail: Boolean(onSelectDetail),
             checked,
-            filePaths: fileTabs.map((tab) => tab.path),
+            filePaths: fileDockIds,
             tools: toolTabs,
           }),
         );
@@ -208,7 +215,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
           orderedKeys: keys,
           detailActive,
           activeKind: active,
-          activeFilePath,
+          activeFilePath: activeFileId,
           activeToolId,
         });
         const next = stepTab(keys, current, direction);
@@ -220,7 +227,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
           defaultDockTabKeys({
             detail: Boolean(onSelectDetail),
             checked,
-            filePaths: fileTabs.map((tab) => tab.path),
+            filePaths: fileDockIds,
             tools: toolTabs,
           }),
         );
@@ -228,7 +235,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
           orderedKeys: keys,
           detailActive,
           activeKind: active,
-          activeFilePath,
+          activeFilePath: activeFileId,
           activeToolId,
         });
         if (!current || current === DOCK_TAB_DETAIL_KEY) return false;
@@ -253,10 +260,12 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
     );
   }, [
     active,
+    activeFileId,
     activeFilePath,
     activeToolId,
     checked,
     detailActive,
+    fileDockIds,
     fileTabs,
     onCloseFileTab,
     onCloseTab,
@@ -333,7 +342,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   const presentKeys = defaultDockTabKeys({
     detail: Boolean(onSelectDetail),
     checked,
-    filePaths: fileTabs.map((tab) => tab.path),
+    filePaths: fileDockIds,
     tools: toolTabs,
   });
   const orderedKeys = reconcileTabOrder(tabOrder, presentKeys);
@@ -620,7 +629,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
             }
             const path = filePathFromTabKey(key);
             if (path) {
-              const tab = fileTabs.find((item) => item.path === path);
+              const tab = fileTabs.find((item) => fileDockId(item) === path);
               if (!tab) return null;
               const isActive =
                 !detailActive && active === "file" && tab.path === activeFilePath;

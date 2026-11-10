@@ -568,6 +568,11 @@ export type DesktopPanelKind = "preview" | "diff" | "terminal" | "file";
 export interface FileViewState {
   /** Absolute path of the file being viewed. */
   path: string;
+  /**
+   * Dock identity, fixed when the tab opens. `path` may later be rewritten to
+   * the canonical absolute path; the tab keeps this key so it does not remount.
+   */
+  tabKey?: string;
   /** 'local' or the SSH host name the file lives on. */
   host: string;
   /** True while the host is reading the file (nothing loaded yet). */

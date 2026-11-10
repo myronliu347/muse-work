@@ -170,4 +170,84 @@ describe("desktopFileContent multi-tab routing (messageRouter)", () => {
     expect(screen.getByTestId("quick-open")).toBeInTheDocument();
     expect(screen.getByTestId("quick-open-input")).toHaveValue("hello.ts");
   });
+
+  it("drops a loading tab when the file does not exist and keeps the others", async () => {
+    renderChatApp(createMockVscode());
+    usePanelGroupStore.getState().patchGroup("/mock/workdir", {
+      checked: ["file"],
+      active: "file",
+      fileTabs: [
+        { path: "/mock/workdir/keep.ts", host: "local", content: "keep", pinned: true },
+        { path: "missing.html", host: "local", loading: true },
+      ],
+      activeFilePath: "missing.html",
+    });
+
+    await act(async () => {
+      sendExtensionMessage({
+        command: "desktopFileContent",
+        requestedPath: "missing.html",
+        fileView: {
+          path: "missing.html",
+          host: "local",
+          error: "文件不存在：/mock/workdir/missing.html",
+        },
+      });
+    });
+
+    const group = groupState();
+    expect(group.fileTabs.map((t) => t.path)).toEqual(["/mock/workdir/keep.ts"]);
+    expect(group.activeFilePath).toBe("/mock/workdir/keep.ts");
+    expect(group.checked).toContain("file");
+    expect(group.fileTabs.some((t) => t.error)).toBe(false);
+  });
+
+  it("does not create a tab when a missing file was never opened", async () => {
+    renderChatApp(createMockVscode());
+    usePanelGroupStore.getState().patchGroup("/mock/workdir", {
+      fileTabs: [],
+      activeFilePath: null,
+    });
+
+    await act(async () => {
+      sendExtensionMessage({
+        command: "desktopFileContent",
+        fileView: {
+          path: "missing.html",
+          host: "local",
+          error: "文件不存在：/tmp/missing.html",
+        },
+      });
+    });
+
+    expect(groupState().fileTabs).toEqual([]);
+    expect(groupState().activeFilePath).toBeNull();
+  });
+
+  it("closes the file panel when the missing file was the only tab", async () => {
+    renderChatApp(createMockVscode());
+    usePanelGroupStore.getState().patchGroup("/mock/workdir", {
+      checked: ["preview", "file"],
+      active: "file",
+      fileTabs: [{ path: "missing.html", host: "local", loading: true }],
+      activeFilePath: "missing.html",
+    });
+
+    await act(async () => {
+      sendExtensionMessage({
+        command: "desktopFileContent",
+        requestedPath: "gone.html",
+        fileView: {
+          path: "missing.html",
+          host: "local",
+          error: "文件不存在：/mock/workdir/missing.html",
+        },
+      });
+    });
+
+    const group = groupState();
+    expect(group.fileTabs).toEqual([]);
+    expect(group.checked).toEqual(["preview"]);
+    expect(group.active).toBe("preview");
+  });
 });

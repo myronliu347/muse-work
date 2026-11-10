@@ -16,6 +16,7 @@ import { openDesktopSettingsPage } from "./desktopSettingsNav";
 import { acceptDesktopContentSearchResult } from "./contentSearchRequests";
 import { acceptDesktopListDirResult } from "./listDirRequests";
 import { emptyFileTreeState, patchPaneUi, usePanelGroupStore } from "../stores";
+import { applyCloseFileTab } from "../stores/panelGroupStore";
 import { patchDockTool } from "./dockTools";
 import { upsertFileContentTab, closeFileTab } from "./fileTabs";
 import { stripImageSourceMarkers, normalizeUserTextForDedupe } from "../utils/messageUtils";
@@ -212,6 +213,26 @@ export function createMessageHandler({
               typeof message.requestedPath === "string"
                 ? message.requestedPath
                 : undefined;
+            // A click opens a loading tab before the host can stat the path.
+            // When the file is not on disk, drop that tab (and the file panel
+            // if it was the only one). The host toast is the only feedback.
+            if (
+              typeof incoming?.error === "string" &&
+              incoming.error.includes("文件不存在")
+            ) {
+              const paths = [requestedPath, incoming.path].filter(
+                (p): p is string => typeof p === "string" && p.length > 0,
+              );
+              usePanelGroupStore.getState().patchGroup(key, (group) => {
+                const tabs = group.fileTabs ?? [];
+                const hit = paths.find((p) =>
+                  tabs.some((t) => t.path === p || t.tabKey === p),
+                );
+                if (!hit) return {};
+                return applyCloseFileTab(group, hit);
+              });
+              break;
+            }
             usePanelGroupStore.getState().patchGroup(key, (group) =>
               upsertFileContentTab(
                 {

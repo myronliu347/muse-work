@@ -1578,11 +1578,10 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       : workspace.dock !== DOCK_DETAIL_TAB && chromeChecked.includes(workspace.dock)
         ? workspace.dock
         : activePanel;
+  const activeShownFile = shownFileTabs.find((tab) => tab.path === shownActiveFilePath);
   const currentFileKey =
-    visibleKind === "file" &&
-    shownActiveFilePath &&
-    shownFileTabs.some((tab) => tab.path === shownActiveFilePath)
-      ? fileTabKey(shownActiveFilePath)
+    visibleKind === "file" && activeShownFile
+      ? fileTabKey(activeShownFile.tabKey ?? activeShownFile.path)
       : null;
   const currentToolKey =
     assistantVisible &&
@@ -1595,7 +1594,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     present: defaultDockTabKeys({
       detail: assistantVisible,
       checked: slotCheckedWithFile,
-      filePaths: shownFileTabs.map((tab) => tab.path),
+      filePaths: shownFileTabs.map((tab) => tab.tabKey ?? tab.path),
       tools: assistantVisible ? assistantTools : [],
     }),
     current: showingDetail

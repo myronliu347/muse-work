@@ -681,6 +681,9 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
         command: "showToast",
         toast: { id: "muse-server", message: error },
       });
+      // The webview already opened a loading tab on click. This reply tells
+      // it to close that tab instead of rendering the missing file. The toast
+      // above is what the user sees.
       pushToWebview(win, {
         command: "desktopFileContent",
         paneId: msg.paneId,

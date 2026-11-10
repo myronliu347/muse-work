@@ -5,9 +5,10 @@ import type { FileViewState } from "../types";
  * - At most one unpinned (preview) tab exists at any time.
  * - Opening a file that is not open replaces the existing preview tab in
  *   place (keeping its position) or appends one when no preview exists.
- * - Opening a file that is already open activates it; re-clicking the same
- *   path keeps the soft-refresh semantics (loading set, old content kept
- *   until the host reply lands).
+ * - Opening a file that is already open activates it. A relative link matches
+ *   the absolute tab of the same file instead of inserting a second one.
+ *   Content that is already on screen stays put, so the tab does not flash
+ *   back through the loading placeholder.
  */
 
 export interface FileTabsState {
@@ -17,6 +18,44 @@ export interface FileTabsState {
 
 export function emptyFileTabsState(): FileTabsState {
   return { fileTabs: [], activeFilePath: null };
+}
+
+/** Identity used as the dock tab key. Stable across path canonicalization. */
+export function fileTabIdentity(tab: { path: string; tabKey?: string }): string {
+  return tab.tabKey ?? tab.path;
+}
+
+const normalizePath = (p: string) => p.replace(/\\/g, "/");
+
+/**
+ * Higher is a better match. Exact wins. A relative link matches an open
+ * absolute tab only when the relative path is a directory suffix, so
+ * `src/App.tsx` hits `/work/src/App.tsx` and not every `App.tsx`.
+ */
+function fileMatchScore(candidate: string, requested: string): number {
+  const a = normalizePath(candidate);
+  const b = normalizePath(requested);
+  if (!a || !b) return 0;
+  if (a === b) return 1_000_000 + a.length;
+  const [longer, shorter] = a.length >= b.length ? [a, b] : [b, a];
+  if (shorter.includes("/") && longer.endsWith(`/${shorter}`)) return shorter.length;
+  return 0;
+}
+
+function findFileTabIndex(tabs: FileViewState[], requested: string): number {
+  let best = -1;
+  let bestScore = 0;
+  tabs.forEach((tab, index) => {
+    const score = Math.max(
+      fileMatchScore(tab.path, requested),
+      tab.tabKey ? fileMatchScore(tab.tabKey, requested) : 0,
+    );
+    if (score > bestScore) {
+      bestScore = score;
+      best = index;
+    }
+  });
+  return best;
 }
 
 /** Open `path`: activate if already open (soft refresh), else enter a
@@ -29,27 +68,32 @@ export function openFileTab(
   host: string,
   opts?: { startLine?: number; endLine?: number; pinned?: boolean },
 ): FileTabsState {
-  const existingIdx = state.fileTabs.findIndex((t) => t.path === path);
+  const existingIdx = findFileTabIndex(state.fileTabs, path);
   if (existingIdx >= 0) {
+    const current = state.fileTabs[existingIdx];
     return {
       fileTabs: state.fileTabs.map((t, i) =>
         i === existingIdx
           ? {
               ...t,
-              loading: true,
+              // Keep the loaded body. Clearing it for a soft refresh is what
+              // makes the tab flash when a link is clicked again.
+              loading: t.content === undefined && !t.imageBase64 && !t.error,
               startLine: opts?.startLine,
               endLine: opts?.endLine,
+              tabKey: t.tabKey ?? t.path,
               ...(opts?.pinned ? { pinned: true } : {}),
             }
           : t,
       ),
-      activeFilePath: path,
+      activeFilePath: current.path,
     };
   }
   const newTab: FileViewState = {
     path,
     host,
     loading: true,
+    tabKey: path,
     startLine: opts?.startLine,
     endLine: opts?.endLine,
     ...(opts?.pinned ? { pinned: true } : {}),
@@ -74,9 +118,13 @@ export function selectFileTab(
   state: FileTabsState,
   path: string,
 ): FileTabsState {
-  if (state.activeFilePath === path) return state;
-  if (!state.fileTabs.some((t) => t.path === path)) return state;
-  return { ...state, activeFilePath: path };
+  const idx = state.fileTabs.findIndex(
+    (t) => t.path === path || t.tabKey === path,
+  );
+  if (idx < 0) return state;
+  const resolved = state.fileTabs[idx].path;
+  if (state.activeFilePath === resolved) return state;
+  return { ...state, activeFilePath: resolved };
 }
 
 /** Close a tab; closing the active one activates the left neighbor, else the
@@ -85,10 +133,13 @@ export function closeFileTab(
   state: FileTabsState,
   path: string,
 ): FileTabsState {
-  const idx = state.fileTabs.findIndex((t) => t.path === path);
+  const idx = state.fileTabs.findIndex(
+    (t) => t.path === path || t.tabKey === path,
+  );
   if (idx < 0) return state;
-  const nextTabs = state.fileTabs.filter((t) => t.path !== path);
-  if (state.activeFilePath !== path) {
+  const resolved = state.fileTabs[idx].path;
+  const nextTabs = state.fileTabs.filter((t) => t.path !== resolved);
+  if (state.activeFilePath !== resolved) {
     return { fileTabs: nextTabs, activeFilePath: state.activeFilePath };
   }
   const nextActive = nextTabs[idx - 1]?.path ?? nextTabs[idx]?.path ?? null;
@@ -128,18 +179,36 @@ export function upsertFileContentTab(
       : incoming.path;
   const idx = state.fileTabs.findIndex((t) => t.path === matchPath);
   if (idx >= 0) {
+    const prev = state.fileTabs[idx];
+    const nextTab: FileViewState = {
+      ...incoming,
+      pinned: prev.pinned,
+      tabKey: prev.tabKey ?? prev.path,
+    };
+    const replaced = state.fileTabs.map((t, i) => (i === idx ? nextTab : t));
+    // A link opened against an already-absolute tab must not leave a second
+    // copy once the host resolves the same file.
+    const fileTabs = replaced.filter(
+      (t) => t === nextTab || t.path !== nextTab.path,
+    );
+    const wasActive =
+      state.activeFilePath === matchPath ||
+      state.activeFilePath === prev.path ||
+      state.activeFilePath === nextTab.path;
     return {
-      fileTabs: state.fileTabs.map((t, i) =>
-        i === idx ? { ...incoming, pinned: t.pinned } : t,
-      ),
-      activeFilePath:
-        state.activeFilePath === matchPath
-          ? incoming.path
-          : state.activeFilePath,
+      fileTabs,
+      activeFilePath: wasActive ? nextTab.path : state.activeFilePath,
     };
   }
   return {
-    fileTabs: [...state.fileTabs, { ...incoming, pinned: false }],
+    fileTabs: [
+      ...state.fileTabs,
+      {
+        ...incoming,
+        pinned: false,
+        tabKey: requestedPath ?? incoming.path,
+      },
+    ],
     activeFilePath: incoming.path,
   };
 }

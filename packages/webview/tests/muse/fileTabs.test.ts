@@ -22,6 +22,7 @@ describe("openFileTab", () => {
       path: "/w/a.ts",
       host: "local",
       loading: true,
+      tabKey: "/w/a.ts",
     });
   });
 
@@ -67,7 +68,7 @@ describe("openFileTab", () => {
     expect(next.activeFilePath).toBe("/w/a.ts");
   });
 
-  it("soft-refreshes an already-open tab (keeps content, sets loading)", () => {
+  it("re-activates an already-open tab without clearing its content", () => {
     const state = {
       fileTabs: [tab("/w/a.ts", { pinned: true, content: "old" })],
       activeFilePath: "/w/a.ts",
@@ -75,9 +76,36 @@ describe("openFileTab", () => {
     const next = openFileTab(state, "/w/a.ts", "local", { startLine: 3 });
     expect(next.fileTabs).toHaveLength(1);
     expect(next.fileTabs[0].content).toBe("old");
-    expect(next.fileTabs[0].loading).toBe(true);
+    expect(next.fileTabs[0].loading).toBe(false);
     expect(next.fileTabs[0].startLine).toBe(3);
     expect(next.fileTabs[0].pinned).toBe(true);
+  });
+
+  it("reuses the open absolute tab when a relative link names the same file", () => {
+    const state = {
+      fileTabs: [
+        tab("/work/radii/apps/spec-server/src/prototype/skeletons/prototype-html.ts", {
+          pinned: true,
+          content: "export {}",
+          tabKey: "apps/spec-server/src/prototype/skeletons/prototype-html.ts",
+        }),
+      ],
+      activeFilePath: "/work/other.ts",
+    };
+    const next = openFileTab(
+      state,
+      "apps/spec-server/src/prototype/skeletons/prototype-html.ts",
+      "local",
+      { pinned: true },
+    );
+    expect(next.fileTabs).toHaveLength(1);
+    expect(next.fileTabs[0].content).toBe("export {}");
+    expect(next.fileTabs[0].tabKey).toBe(
+      "apps/spec-server/src/prototype/skeletons/prototype-html.ts",
+    );
+    expect(next.activeFilePath).toBe(
+      "/work/radii/apps/spec-server/src/prototype/skeletons/prototype-html.ts",
+    );
   });
 
   it("opens pinned files as permanent tabs without consuming the preview slot", () => {
@@ -104,7 +132,7 @@ describe("openFileTab", () => {
     const next = openFileTab(state, "/w/a.ts", "local", { pinned: true });
     expect(next.fileTabs).toHaveLength(1);
     expect(next.fileTabs[0].pinned).toBe(true);
-    expect(next.fileTabs[0].loading).toBe(true);
+    expect(next.fileTabs[0].loading).toBe(false);
     expect(next.activeFilePath).toBe("/w/a.ts");
   });
 });
@@ -230,7 +258,7 @@ describe("upsertFileContentTab", () => {
     expect(next.fileTabs[0].pinned).toBe(false);
   });
 
-  it("replaces a loading stub with a not-found error on the same path", () => {
+  it("stores a not-found error when a caller fills the stub directly", () => {
     const state = openFileTab(emptyFileTabsState(), "missing.ts", "local");
     const next = upsertFileContentTab(state, {
       path: "missing.ts",
@@ -241,6 +269,29 @@ describe("upsertFileContentTab", () => {
     expect(next.fileTabs[0].loading).toBeUndefined();
     expect(next.fileTabs[0].error).toBe("文件不存在：/w/missing.ts");
     expect(next.activeFilePath).toBe("missing.ts");
+  });
+
+  it("keeps the dock identity when a relative stub is resolved", () => {
+    const state = openFileTab(
+      emptyFileTabsState(),
+      "apps/spec-server/src/prototype/skeletons/prototype-html.ts",
+      "local",
+    );
+    const next = upsertFileContentTab(
+      state,
+      tab("/work/radii/apps/spec-server/src/prototype/skeletons/prototype-html.ts", {
+        content: "export {}\n",
+      }),
+      "apps/spec-server/src/prototype/skeletons/prototype-html.ts",
+    );
+    expect(next.fileTabs).toHaveLength(1);
+    expect(next.fileTabs[0].path).toBe(
+      "/work/radii/apps/spec-server/src/prototype/skeletons/prototype-html.ts",
+    );
+    expect(next.fileTabs[0].tabKey).toBe(
+      "apps/spec-server/src/prototype/skeletons/prototype-html.ts",
+    );
+    expect(next.activeFilePath).toBe(next.fileTabs[0].path);
   });
 
   it("replaces a requested-path stub with the resolved file path", () => {
