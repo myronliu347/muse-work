@@ -1,0 +1,66 @@
+packages/server/src/services/assistant/tools/messageTools.ts
+  29f1f9f0dc9fa211 161
+packages/server/tests/assistantTools.test.ts
+  29f1f9f0dc9fa211 78-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "a28d96c83a4d94a9d76e84959590eb221a12b43b",
+  "prompts": {
+    "29f1f9f0dc9fa211": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0afb3b8c-e4f0-46e0-b041-a786fefa3bd7",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 3,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/prompt.ts": {
+          "deletions": 2
+        },
+        "packages/server/src/services/assistant/tools/messageTools.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        }
+      }
+    },
+    "77f2456c8992f900": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e32ef64-7567-4b85-9961-7e1fc15ed467",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 9,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/utils/logger.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/tests/hostPlugins.test.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/plugins/hostPlugins.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/index.ts": {
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
