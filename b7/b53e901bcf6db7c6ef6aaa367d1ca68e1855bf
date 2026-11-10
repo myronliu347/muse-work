@@ -1,0 +1,105 @@
+packages/webview/src/components/message/messageBlocks.tsx
+  16c15ca6b7b4db01 302
+packages/webview/tests/reducers/chatReducer.test.ts
+  16c15ca6b7b4db01 750-754
+packages/webview/tests/utils/messageImages.test.ts
+  16c15ca6b7b4db01 69-70,73-80,82
+packages/webview/src/reducers/chat/session.ts
+  16c15ca6b7b4db01 2,89
+packages/webview/src/components/assistant/AssistantPage.tsx
+  16c15ca6b7b4db01 903-905
+packages/webview/src/utils/messageImages.ts
+  16c15ca6b7b4db01 202,206-210,224-226,231-233,239,247,257-258,280-289
+packages/webview/src/reducers/chat/transcript.ts
+  16c15ca6b7b4db01 2
+packages/webview/src/reducers/chatReducer.ts
+  16c15ca6b7b4db01 3-4,6,115-139,141-160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b7b53e901bcf6db7c6ef6aaa367d1ca68e1855bf",
+  "prompts": {
+    "16c15ca6b7b4db01": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2b49bc5c-1355-439c-a919-462f92870da3",
+        "model": "default"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 99,
+      "total_deletions": 71,
+      "accepted_lines": 99,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/utils/messageImages.ts": {
+          "additions": 28,
+          "deletions": 15,
+          "accepted_lines": 28
+        },
+        "packages/webview/src/components/message/messageBlocks.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 48,
+          "deletions": 23,
+          "accepted_lines": 48
+        },
+        "packages/webview/src/reducers/chat/session.ts": {
+          "additions": 2,
+          "deletions": 14,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 3,
+          "deletions": 9,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/utils/messageImages.test.ts": {
+          "additions": 11,
+          "deletions": 4,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/reducers/chat/transcript.ts": {
+          "additions": 1,
+          "deletions": 5,
+          "accepted_lines": 1
+        }
+      }
+    },
+    "77f2456c8992f900": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e32ef64-7567-4b85-9961-7e1fc15ed467",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 9,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/utils/logger.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/src/index.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/tests/hostPlugins.test.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/plugins/hostPlugins.ts": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
