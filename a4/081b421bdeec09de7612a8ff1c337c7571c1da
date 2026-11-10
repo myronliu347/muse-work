@@ -1,0 +1,110 @@
+packages/webview/src/components/assistant/AssistantPage.tsx
+  16c15ca6b7b4db01 31-35,381,386-402,404
+packages/server/tests/sessionRunner.test.ts
+  16c15ca6b7b4db01 334-335,341-343
+packages/server/src/utils/imageSaver.ts
+  16c15ca6b7b4db01 17-25,35-38
+packages/webview/src/utils/resolveImageSrc.ts
+  16c15ca6b7b4db01 1-63
+packages/webview/src/components/message/messageBlocks.tsx
+  16c15ca6b7b4db01 11-14,17,22-67,357,359-364
+packages/server/tests/imageSaver.test.ts
+  16c15ca6b7b4db01 98-108
+packages/server/src/services/sessionRunner/agent.ts
+  16c15ca6b7b4db01 1114-1116,1121-1127,1138
+packages/webview/src/components/message/ResolvedImage.tsx
+  16c15ca6b7b4db01 1-89
+packages/webview/tests/utils/resolveImageSrc.test.ts
+  16c15ca6b7b4db01 1-50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "a4081b421bdeec09de7612a8ff1c337c7571c1da",
+  "prompts": {
+    "16c15ca6b7b4db01": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2b49bc5c-1355-439c-a919-462f92870da3",
+        "model": "default"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 339,
+      "total_deletions": 35,
+      "accepted_lines": 325,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 27,
+          "deletions": 5,
+          "accepted_lines": 24
+        },
+        "packages/server/tests/sessionRunner.test.ts": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "packages/server/tests/imageSaver.test.ts": {
+          "additions": 11,
+          "accepted_lines": 11
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 11,
+          "deletions": 4,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/components/message/ResolvedImage.tsx": {
+          "additions": 89,
+          "accepted_lines": 89
+        },
+        "packages/webview/src/utils/resolveImageSrc.ts": {
+          "additions": 71,
+          "deletions": 8,
+          "accepted_lines": 63
+        },
+        "packages/webview/tests/utils/resolveImageSrc.test.ts": {
+          "additions": 50,
+          "accepted_lines": 50
+        },
+        "packages/server/src/utils/imageSaver.ts": {
+          "additions": 13,
+          "deletions": 2,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/components/message/messageBlocks.tsx": {
+          "additions": 62,
+          "deletions": 11,
+          "accepted_lines": 59
+        }
+      }
+    },
+    "77f2456c8992f900": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e32ef64-7567-4b85-9961-7e1fc15ed467",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 9,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/hostPlugins.test.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/plugins/hostPlugins.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/index.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/src/utils/logger.ts": {
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
