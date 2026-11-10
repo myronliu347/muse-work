@@ -4,7 +4,9 @@ import {
   TRANSCRIPT_CACHE_MAX_SESSIONS,
   clearMessageImageBlobCacheForTests,
   evictTranscriptCache,
+  materializeAttachedImages,
   materializeMessageImages,
+  revokeUnusedMessageImageBlobs,
   slimMessagesForTranscriptCache,
 } from "../../src/utils/messageImages";
 
@@ -87,5 +89,25 @@ describe("messageImages", () => {
     );
     expect(Object.keys(next)).toHaveLength(TRANSCRIPT_CACHE_MAX_SESSIONS);
     expect(next.active).toBe(book.active);
+  });
+
+  it("materializeAttachedImages converts data URLs to blob URLs", () => {
+    const images = materializeAttachedImages([
+      { data: TINY_PNG, mediaType: "image/png" },
+      { data: TINY_PNG, mediaType: "image/png" },
+    ]);
+    expect(images?.[0].data).toMatch(/^blob:/);
+    expect(images?.[1].data).toBe(images?.[0].data);
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+  });
+
+  it("revokeUnusedMessageImageBlobs drops blobs that left the transcript", () => {
+    const first = materializeMessageImages([imageMessage("a", [TINY_PNG])]);
+    const blob = (first[0].blocks?.[0] as { imageUrls: string[] }).imageUrls[0];
+    revokeUnusedMessageImageBlobs(first, []);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith(blob);
+    // Same payload after revoke must create a fresh blob URL.
+    materializeMessageImages([imageMessage("b", [TINY_PNG])]);
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(2);
   });
 });

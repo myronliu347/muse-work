@@ -22,7 +22,12 @@ import { ContextTag } from "../shared/ContextTag";
 import { MarkdownView } from "../message/MarkdownView";
 import { linkifyFilePaths, parseMentions } from "../../utils/messageUtils";
 import { resolveWorkspaceFilePath } from "../../utils/filePathDisplay";
-import { materializeMessageImages } from "../../utils/messageImages";
+import {
+  materializeAttachedImages,
+  materializeMessageImages,
+  revokeUnusedAttachedImageBlobs,
+  revokeUnusedMessageImageBlobs,
+} from "../../utils/messageImages";
 import { pathToFileUrl } from "../../utils/pathToFileUrl";
 import type { AttachedImage, VsCodeApi } from "../../types";
 import {
@@ -215,27 +220,46 @@ function asLine(value: unknown): AssistantLine | undefined {
         : {}),
       ...(Array.isArray((line as { images?: unknown }).images)
         ? {
-            images: (
-              (line as { images: Array<{ data?: string; mediaType?: string }> })
-                .images
-            ).flatMap((img) =>
-              img && typeof img.data === "string" && img.data
-                ? [
-                    {
-                      data: img.data,
-                      mediaType:
-                        typeof img.mediaType === "string" && img.mediaType
-                          ? img.mediaType
-                          : "image/png",
-                    },
-                  ]
-                : [],
+            images: materializeAttachedImages(
+              (
+                (line as {
+                  images: Array<{ data?: string; mediaType?: string }>;
+                }).images
+              ).flatMap((img) =>
+                img && typeof img.data === "string" && img.data
+                  ? [
+                      {
+                        data: img.data,
+                        mediaType:
+                          typeof img.mediaType === "string" && img.mediaType
+                            ? img.mediaType
+                            : "image/png",
+                      },
+                    ]
+                  : [],
+              ),
             ),
           }
         : {}),
     };
   }
   return undefined;
+}
+
+function normalizeAssistantLines(values: unknown[]): AssistantLine[] {
+  return values.flatMap((value) => {
+    const line = asLine(value);
+    return line ? [line] : [];
+  });
+}
+
+function revokeAssistantLineImages(
+  previous: AssistantLine[],
+  next: AssistantLine[],
+): void {
+  const prevImages = previous.flatMap((line) => line.images ?? []);
+  const nextImages = next.flatMap((line) => line.images ?? []);
+  revokeUnusedAttachedImageBlobs(prevImages, nextImages);
 }
 
 function asQueueItem(value: unknown): AssistantQueueItem | undefined {
@@ -803,7 +827,10 @@ export const AssistantPage: React.FC<{
   }, [agentWorkdir, filePathKey, vscode]);
 
   const appendLine = useCallback((line: AssistantLine) => {
-    setLines((prev) => (prev.some((item) => item.id === line.id) ? prev : [...prev, line]));
+    setLines((prev) => {
+      if (prev.some((item) => item.id === line.id)) return prev;
+      return [...prev, line];
+    });
   }, []);
 
   useEffect(() => {
@@ -812,7 +839,11 @@ export const AssistantPage: React.FC<{
       .listAssistantMessages({ limit: 50 })
       .then((page) => {
         if (cancelled) return;
-        setLines(page.messages);
+        const next = normalizeAssistantLines(page.messages);
+        setLines((prev) => {
+          revokeAssistantLineImages(prev, next);
+          return next;
+        });
         setHasMore(page.hasMore);
         atTail.current = true;
       })
@@ -869,9 +900,15 @@ export const AssistantPage: React.FC<{
           const incoming = materializeMessageImages(
             page.messages as AgentMessage[],
           ) as AgentMessage[];
-          setAgentMessages((prev) =>
-            mergeTranscriptTail(prev, incoming, olderLoadedRef.current),
-          );
+          setAgentMessages((prev) => {
+            const merged = mergeTranscriptTail(
+              prev,
+              incoming,
+              olderLoadedRef.current,
+            );
+            revokeUnusedMessageImageBlobs(prev, merged);
+            return merged;
+          });
           if (!olderLoadedRef.current) {
             const hasMore = Boolean(page.hasMore);
             agentHasMoreRef.current = hasMore;
@@ -943,9 +980,15 @@ export const AssistantPage: React.FC<{
   const resetTranscript = useCallback(() => {
     olderLoadedRef.current = false;
     agentHasMoreRef.current = false;
-    setLines([]);
+    setLines((prev) => {
+      revokeAssistantLineImages(prev, []);
+      return [];
+    });
     setHasMore(false);
-    setAgentMessages([]);
+    setAgentMessages((prev) => {
+      revokeUnusedMessageImageBlobs(prev, []);
+      return [];
+    });
     setAgentHasMore(false);
     setError(null);
   }, []);
@@ -994,9 +1037,10 @@ export const AssistantPage: React.FC<{
       setHasMore(page.hasMore);
       // Line ids are the virtualizer keys, so inserting older rows keeps the
       // row that was on screen in place.
+      const older = normalizeAssistantLines(page.messages);
       setLines((prev) => {
         const ids = new Set(prev.map((line) => line.id));
-        return [...page.messages.filter((line) => !ids.has(line.id)), ...prev];
+        return [...older.filter((line) => !ids.has(line.id)), ...prev];
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

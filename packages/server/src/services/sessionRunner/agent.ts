@@ -1,10 +1,12 @@
 import {
+  generateSessionFilePath,
   listSkillMetadataForWorkdir,
   loadSessionFromJsonl,
   type PermissionDecision,
   type ToolPlugin,
 } from "@muse-work/agent";
 import type { GatewayResolution } from "@muse-work/provider";
+import { promises as fs } from "node:fs";
 import path from "node:path";
 import { AGENT_TOOL_NAME } from "@muse-work/agent/constants";
 import { resolveScenarioAgent } from "../agentConfig.js";
@@ -252,6 +254,13 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     return data?.messages?.length ? mapSdkMessages(data.messages) : null;
   };
 
+  /** Avoid re-parsing multi-MB jsonl on every UI poll when the file is unchanged. */
+  const mainSessionDiskCache = new Map<
+    string,
+    { fingerprint: string; data: { messages: unknown[] } }
+  >();
+  const MAIN_SESSION_DISK_CACHE_MAX = 5;
+
   async function loadMainSessionFromDisk(
     sessionId: string,
     workdir: string,
@@ -259,9 +268,33 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     return (
       options.loadMainSessionFromDisk ??
       (async (id: string, dir: string) => {
+        const cacheKey = `${id}\0${dir}`;
+        let fingerprint = "";
+        try {
+          const filePath = await generateSessionFilePath(id, dir, "main");
+          const st = await fs.stat(filePath);
+          fingerprint = `${st.size}:${st.mtimeMs}`;
+          const hit = mainSessionDiskCache.get(cacheKey);
+          if (hit && hit.fingerprint === fingerprint) return hit.data;
+        } catch {
+          // Missing path/stat — fall through to the jsonl loader.
+        }
         try {
           const data = await loadSessionFromJsonl(id, dir, "main");
-          return data?.messages?.length ? { messages: data.messages } : null;
+          if (!data?.messages?.length) {
+            mainSessionDiskCache.delete(cacheKey);
+            return null;
+          }
+          const payload = { messages: data.messages };
+          if (fingerprint) {
+            mainSessionDiskCache.set(cacheKey, { fingerprint, data: payload });
+            while (mainSessionDiskCache.size > MAIN_SESSION_DISK_CACHE_MAX) {
+              const oldest = mainSessionDiskCache.keys().next().value;
+              if (!oldest || oldest === cacheKey) break;
+              mainSessionDiskCache.delete(oldest);
+            }
+          }
+          return payload;
         } catch {
           // A missing/corrupt session file must not fail getMessages — the UI
           // shows an empty history instead of an error.

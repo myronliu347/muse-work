@@ -113,6 +113,107 @@ export function materializeMessageImages(
   return listChanged ? next : messages;
 }
 
+export type AttachedImageRef = { data: string; mediaType: string };
+
+/** Materialize assistant / composer attached images the same way as message blocks. */
+export function materializeAttachedImages(
+  images: AttachedImageRef[] | undefined,
+): AttachedImageRef[] | undefined {
+  if (!images?.length) return images;
+  let changed = false;
+  const next = images.map((img) => {
+    const data = materializeImageUrl(img.data);
+    if (data === img.data) return img;
+    changed = true;
+    return { ...img, data };
+  });
+  return changed ? next : images;
+}
+
+function collectBlobUrlsFromBlocks(blocks: MessageBlock[] | undefined, into: Set<string>): void {
+  if (!blocks?.length) return;
+  for (const block of blocks) {
+    if (block.type === "image" && block.imageUrls?.length) {
+      for (const url of block.imageUrls) {
+        if (url.startsWith("blob:")) into.add(url);
+      }
+    }
+    if (block.type === "tool" && block.images?.length) {
+      for (const img of block.images) {
+        if (typeof img.data === "string" && img.data.startsWith("blob:")) {
+          into.add(img.data);
+        }
+      }
+    }
+  }
+}
+
+/** Collect blob: URLs currently referenced by a transcript. */
+export function collectBlobUrlsFromMessages(messages: Message[]): Set<string> {
+  const urls = new Set<string>();
+  for (const message of messages) {
+    collectBlobUrlsFromBlocks(message.blocks, urls);
+  }
+  return urls;
+}
+
+export function collectBlobUrlsFromAttachedImages(
+  images: Array<{ data: string }> | undefined,
+  into: Set<string> = new Set(),
+): Set<string> {
+  if (!images?.length) return into;
+  for (const img of images) {
+    if (img.data.startsWith("blob:")) into.add(img.data);
+  }
+  return into;
+}
+
+function forgetFingerprint(blobUrl: string): void {
+  for (const [fingerprint, cached] of blobUrlByFingerprint) {
+    if (cached === blobUrl) {
+      blobUrlByFingerprint.delete(fingerprint);
+      return;
+    }
+  }
+}
+
+/** Revoke blob URLs that left the live transcript (session switch / replace). */
+export function revokeBlobUrlsExcept(
+  keep: Set<string>,
+  candidates: Iterable<string>,
+): void {
+  if (typeof URL === "undefined" || typeof URL.revokeObjectURL !== "function") {
+    return;
+  }
+  for (const url of candidates) {
+    if (!url.startsWith("blob:") || keep.has(url)) continue;
+    try {
+      URL.revokeObjectURL(url);
+    } catch {
+      // Ignore revoke failures; the URL may already be gone.
+    }
+    forgetFingerprint(url);
+  }
+}
+
+export function revokeUnusedMessageImageBlobs(
+  previous: Message[],
+  next: Message[],
+): void {
+  const prev = collectBlobUrlsFromMessages(previous);
+  if (prev.size === 0) return;
+  revokeBlobUrlsExcept(collectBlobUrlsFromMessages(next), prev);
+}
+
+export function revokeUnusedAttachedImageBlobs(
+  previous: Array<{ data: string }> | undefined,
+  next: Array<{ data: string }> | undefined,
+): void {
+  const prev = collectBlobUrlsFromAttachedImages(previous);
+  if (prev.size === 0) return;
+  revokeBlobUrlsExcept(collectBlobUrlsFromAttachedImages(next), prev);
+}
+
 function slimBlock(block: MessageBlock): MessageBlock {
   if (block.type === "image" && block.imageUrls?.length) {
     if (
