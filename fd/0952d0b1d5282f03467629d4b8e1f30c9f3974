@@ -1,0 +1,124 @@
+packages/webview/src/hooks/useIssueTranscript.ts
+  16c15ca6b7b4db01 7,114,208
+packages/webview/tests/utils/messageImages.test.ts
+  16c15ca6b7b4db01 1-91
+packages/webview/src/reducers/chat/transcript.ts
+  16c15ca6b7b4db01 2,21,24,28,31,37-40,54-57,82,86,90-91,98,105,121,124
+packages/webview/src/components/chat/MessageInput.tsx
+  16c15ca6b7b4db01 90-91,393-404
+packages/webview/tests/reducers/chatReducer.test.ts
+  16c15ca6b7b4db01 717-786
+packages/webview/src/muse/hostBridge/chat.ts
+  16c15ca6b7b4db01 393-394
+packages/webview/src/hooks/useBotDockTools.ts
+  16c15ca6b7b4db01 122-154,167-168,174,182,197,206,221-222,225,228,230-231,251-255,259,264,267,273,276,283,287,291-293,298-299,306,316,318,331-350
+packages/webview/src/utils/messageImages.ts
+  16c15ca6b7b4db01 1-193
+packages/webview/src/reducers/chatReducer.ts
+  16c15ca6b7b4db01 2-5,122-125,128-134
+packages/webview/src/reducers/chat/session.ts
+  16c15ca6b7b4db01 2,103-104,107,130,157,162
+packages/webview/src/components/assistant/AssistantPage.tsx
+  16c15ca6b7b4db01 25,869-871,873,911-913
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "fd0952d0b1d5282f03467629d4b8e1f30c9f3974",
+  "prompts": {
+    "16c15ca6b7b4db01": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2b49bc5c-1355-439c-a919-462f92870da3",
+        "model": "default"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 535,
+      "total_deletions": 101,
+      "accepted_lines": 510,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/utils/messageImages.ts": {
+          "additions": 218,
+          "deletions": 25,
+          "accepted_lines": 193
+        },
+        "packages/webview/src/hooks/useBotDockTools.ts": {
+          "additions": 86,
+          "deletions": 41,
+          "accepted_lines": 86
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 14,
+          "deletions": 2,
+          "accepted_lines": 14
+        },
+        "packages/webview/src/muse/hostBridge/chat.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/hooks/useIssueTranscript.ts": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/utils/messageImages.test.ts": {
+          "additions": 91,
+          "accepted_lines": 91
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 15,
+          "deletions": 5,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/reducers/chat/session.ts": {
+          "additions": 7,
+          "deletions": 6,
+          "accepted_lines": 7
+        },
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "additions": 70,
+          "accepted_lines": 70
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 8,
+          "deletions": 6,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/reducers/chat/transcript.ts": {
+          "additions": 21,
+          "deletions": 14,
+          "accepted_lines": 21
+        }
+      }
+    },
+    "77f2456c8992f900": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e32ef64-7567-4b85-9961-7e1fc15ed467",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 9,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/index.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/tests/hostPlugins.test.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/utils/logger.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/src/plugins/hostPlugins.ts": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
