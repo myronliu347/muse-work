@@ -1,0 +1,157 @@
+README.md
+  37fc47e4d53e6a87 102,107
+scripts/release.mjs
+  37fc47e4d53e6a87 4-8,95-108,135-165,188-189,230-231,248,253-258,266
+packages/desktop/package.json
+  37fc47e4d53e6a87 6
+packages/desktop/scripts/hotRelease.mjs
+  37fc47e4d53e6a87 3-7,14-16
+packages/desktop/tests/hotUpdate.test.ts
+  37fc47e4d53e6a87 15-16,157,223-236
+packages/desktop/src/main/index.ts
+  37fc47e4d53e6a87 15-16,265-269,274-275,364
+packages/desktop/src/main/hotUpdate.ts
+  37fc47e4d53e6a87 19-21,78-80,84,86-103,285
+scripts/release.test.mjs
+  37fc47e4d53e6a87 2,9,11,52-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e43fce077113332c5c6527796a8d4e3bac2699eb",
+  "prompts": {
+    "29f1f9f0dc9fa211": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0afb3b8c-e4f0-46e0-b041-a786fefa3bd7",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 273,
+      "total_deletions": 36,
+      "accepted_lines": 272,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 15,
+          "deletions": 6,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/muse/fileTabs.ts": {
+          "additions": 89,
+          "deletions": 20,
+          "accepted_lines": 89
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/muse/fileTabs.test.ts": {
+          "additions": 55,
+          "deletions": 4,
+          "accepted_lines": 55
+        },
+        "packages/webview/tests/webview/filePanelTabs.test.tsx": {
+          "additions": 80,
+          "accepted_lines": 80
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 4,
+          "deletions": 5,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 22,
+          "deletions": 1,
+          "accepted_lines": 21
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        }
+      }
+    },
+    "37fc47e4d53e6a87": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e63f2be3-332e-42e9-a774-2f8617e5d775",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 172,
+      "total_deletions": 50,
+      "accepted_lines": 148,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "scripts/release.test.mjs": {
+          "additions": 25,
+          "deletions": 8,
+          "accepted_lines": 19
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 10,
+          "deletions": 8,
+          "accepted_lines": 10
+        },
+        "packages/desktop/scripts/hotRelease.mjs": {
+          "additions": 11,
+          "deletions": 7,
+          "accepted_lines": 8
+        },
+        "scripts/release.mjs": {
+          "additions": 78,
+          "deletions": 16,
+          "accepted_lines": 65
+        },
+        "README.md": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 2
+        },
+        "packages/desktop/tests/hotUpdate.test.ts": {
+          "additions": 17,
+          "deletions": 1,
+          "accepted_lines": 17
+        },
+        "packages/desktop/src/main/hotUpdate.ts": {
+          "additions": 26,
+          "deletions": 6,
+          "accepted_lines": 26
+        },
+        "packages/desktop/package.json": {
+          "additions": 1,
+          "accepted_lines": 1
+        }
+      }
+    },
+    "77f2456c8992f900": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e32ef64-7567-4b85-9961-7e1fc15ed467",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 9,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/index.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/tests/hostPlugins.test.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/utils/logger.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/src/plugins/hostPlugins.ts": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
