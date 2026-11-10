@@ -8,77 +8,27 @@ import React, {
   useState,
 } from "react";
 import type { MessageInputHandle } from "./chat/MessageInput";
+import { useAssistantHomeVisible } from "./assistant/museBotNotice";
+import { ChatSessionColumn } from "./chat/ChatSessionColumn";
+import { buildChatDialogProps } from "./chat/chatDialogProps";
+import { useIssueComposer } from "./chat/useIssueComposer";
+import { AssistantFrame } from "./assistant/AssistantFrame";
+import { DesktopChatLayout } from "./desktop/DesktopChatLayout";
 import {
-  AssistantNotice,
-  useAssistantHomeVisible,
-} from "./assistant/museBotNotice";
-import {
-  DesktopSidebar,
-  resolveSidebarSessions,
-} from "./desktop/DesktopSidebar";
-import { DesktopSessionList } from "./desktop/DesktopSessionList";
-import { DesktopShell } from "./desktop/DesktopShell";
-import { ChatContainer } from "./chat/ChatContainer";
-import { AutomationsPage } from "./automation/AutomationsPage";
-import { SkillsPage } from "./skills/SkillsPage";
-import { AssistantPage } from "./assistant/AssistantPage";
-import { Tooltip } from "./shared/Tooltip";
-import {
-  BotTabs,
   useBotWorkspace,
   useBotWorkspaceController,
   type BotWorkspaceContextValue,
 } from "./desktop/BotTabs";
-import {
-  BOT_MESSAGE_COLUMN_MAX,
-  botListsColumnWidth,
-  botListsWideForPanel,
-  BotLists,
-  readBotQueue,
-  useBotListsWide,
-  type BotListQueueItem,
-} from "./desktop/BotLists";
-import {
-  issueTabSessionId,
-  sessionActionLabel,
-  type PanelSelection,
-} from "./desktop/botWorkspace";
-import { DockDetail } from "./desktop/DockDetail";
-import { ChatBody } from "./chat/ChatBody";
-import { ChatComposer } from "./chat/ChatComposer";
-import { PanelToggleControl } from "./panels/PanelToggleControl";
-import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
-import ConfigDialog, {
-  settingsPageLeaveBlocked,
-  type ConfigDialogHandle,
-} from "./dialogs/ConfigDialog";
+import { useBotListsWide } from "./desktop/BotLists";
+import { ChatDialogs } from "./dialogs/ChatDialogs";
+import type { ConfigDialogHandle } from "./dialogs/ConfigDialog";
 import {
   registerDesktopNewSessionOpener,
   subscribeFocusedPaneNewSession,
 } from "../muse/desktopNewSessionNav";
 import { registerDesktopSettingsOpener } from "../muse/desktopSettingsNav";
-import { NewIssueDialog } from "./issue/NewIssueDialog";
-import { OpenPlanningDialog } from "./issue/OpenPlanningDialog";
-import {
-  IssueSessionHeader,
-  type IssueViewTab,
-} from "./issue/IssueSessionHeader";
-import {
-  issueGroupActivity,
-  issueSessionBusy,
-} from "./session/SessionStatusGlyph";
-import {
-  findIssueGroupForSession,
-  isSplitIssueGroup,
-  issueGroupSessionWorkdir,
-  resolveIssuePlanningSessionId,
-} from "../utils/issueGroups";
 import { registerUnfocusedClose } from "../muse/sidePanelTabs";
-import { DRAFT_SESSION_ID, draftSessionMetadata } from "../utils/session";
-import {
-  DesktopPanelSlots,
-  type DesktopPanelSlotsProps,
-} from "./desktop/DesktopPanelSlots";
+import { draftSessionMetadata } from "../utils/session";
 import {
   useProvidedShellSurface,
   useShellSurface,
@@ -93,93 +43,20 @@ import {
   DESKTOP_SIDEBAR_WIDTH,
   SPLIT_ISSUE_MIN_WIDTH,
   chatMainMinWidth,
-  clampDockWidth,
-  clampSplitLeftWidth,
-  dockFlexGridColumns,
   paneHasSidebarInset,
 } from "../muse/layout";
 import { useDesktopSidebarCollapsed } from "../hooks/useDesktopSidebarCollapsed";
 import { useDesktopSessionListWidth } from "../hooks/useDesktopSidebarWidth";
-import { DesktopSidebarToggle } from "./desktop/DesktopSidebarToggle";
 import "../styles/WelcomeView.css";
-import type {
-  ChatAppProps,
-  DesktopPanelKind,
-  DiffViewState,
-  Message,
-} from "../types";
+import type { ChatAppProps, DesktopPanelKind } from "../types";
 import { chatReducer, initialState } from "../reducers/chatReducer";
-import { DOCK_DETAIL_TAB, PANEL_ADD_ORDER } from "../muse/panelTabs";
-import {
-  DOCK_TAB_DETAIL_KEY,
-  defaultDockTabKeys,
-  fileTabKey,
-  insertTabAfterCurrent,
-  kindTabKey,
-  toolTabKey,
-} from "../muse/dockTabOrder";
-import {
-  activePreviewTool,
-  appendDockTool,
-  botDockChromeChecked,
-  botToolTermId,
-  createDockToolId,
-  nextDockToolId,
-  patchDockTool,
-  removeDockTool,
-} from "../muse/dockTools";
-import {
-  filesReferToSame,
-  openFileTab,
-  pinFileTab,
-  selectFileTab,
-  uniqueFileTabs,
-} from "../muse/fileTabs";
-import { firstOpenDockWidths } from "../muse/panelFit";
-import { restoredDockAlreadyOpen, takeRestoredFileLoads } from "../muse/botPageState";
-import {
-  ASSISTANT_PANEL_GROUP_KEY,
-  issueFileGroupKey,
-  EMPTY_DOCK_TOOLS,
-  EMPTY_TAB_ORDER,
-  PANEL_DEFAULT_WIDTH,
-  emptyContentSearchState,
-  resolvePanelGroup,
-  usePanelGroup,
-  usePanelGroupStore,
-  usePaneUi,
-  type DockToolInstance,
-  type PanelGroupState,
-} from "../stores";
-import { applyCloseFileTab } from "../stores/panelGroupStore";
-import { messagesForDockIssue, recentTurnDiffFiles } from "../utils/fileHistorySnapshots";
-import { createMessageHandler } from "../muse/messageRouter";
-
-const EMPTY_LISTING_CACHE: PanelGroupState["fileTree"]["childrenCache"] = {};
-const EMPTY_LISTING_SEARCH = emptyContentSearchState();
-const EMPTY_FILE_TABS: PanelGroupState["fileTabs"] = [];
-const EMPTY_EXPANDED: string[] = [];
-const EMPTY_MESSAGES: Message[] = [];
-
-function applyNewestIssuePage(
-  current: Message[] | null,
-  currentHasMore: boolean,
-  incoming: Message[],
-  hasMore: boolean,
-): { messages: Message[]; hasMore: boolean } {
-  const anchor = incoming[0]?.id;
-  const anchorIndex =
-    current && anchor
-      ? current.findIndex((message) => message.id === anchor)
-      : -1;
-  if (current && anchorIndex > 0) {
-    return {
-      messages: [...current.slice(0, anchorIndex), ...incoming],
-      hasMore: currentHasMore,
-    };
-  }
-  return { messages: incoming, hasMore };
-}
+import { usePaneUi } from "../stores";
+import { useBotIssueBoard } from "../hooks/useBotIssueBoard";
+import { useHostStartupEffects } from "../hooks/useHostStartupEffects";
+import { useChatFrame } from "../hooks/useChatFrame";
+import { useChatDock } from "../hooks/useChatDock";
+import { useIssueSessionChrome } from "../hooks/useIssueSessionChrome";
+import { usePanelGroupWriters } from "../hooks/usePanelGroupWriters";
 import { useChatAppCore } from "../hooks/useChatAppCore";
 import { useChatSend } from "../hooks/useChatSend";
 import { usePanels } from "../hooks/usePanels";
@@ -187,19 +64,16 @@ import { useFilePanel } from "../hooks/useFilePanel";
 import { usePreview } from "../hooks/usePreview";
 import { useRewind } from "../hooks/useRewind";
 import { useDialogs } from "../hooks/useDialogs";
+import { useAssistantDockColumn } from "../hooks/useAssistantDockColumn";
+import { useBotDockTools } from "../hooks/useBotDockTools";
+import { useDockSurface } from "../hooks/useDockSurface";
+import { useSessionsPageSession } from "../hooks/useSessionsPageSession";
+import { useShownFileTabs } from "../hooks/useShownFileTabs";
+import { useIssueTranscript } from "../hooks/useIssueTranscript";
 import "../styles/ChatApp.css";
 
 export { prunePanelGroupCache } from "../stores";
 
-function AssistantWelcome() {
-  return (
-    <div className="assistant-welcome">
-      <h1 className="welcome-headline" data-testid="welcome-headline">
-        灵光一现 迎刃而解
-      </h1>
-    </div>
-  );
-}
 
 /** 主内容区视图：chat 需要结合当前会话（state.currentSession）渲染。 */
 export type MainView = "newChat" | "chat" | "automations" | "skills" | "assistant";
@@ -336,861 +210,136 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     };
   }, [assistantVisible, museApi]);
   const botListsWide = useBotListsWide();
-  const [botSwitchHost, setBotSwitchHost] = useState<HTMLDivElement | null>(null);
-  const [botMenu, setBotMenu] = useState<"queue" | "todo" | null>(null);
-  const [botQueue, setBotQueue] = useState<BotListQueueItem[]>([]);
-  useEffect(() => {
-    if (!assistantVisible) return;
-    let cancelled = false;
-    let sawPush = false;
-    const apply = (items: unknown) => {
-      if (!cancelled && Array.isArray(items)) setBotQueue(readBotQueue(items));
-    };
-    void museApi
-      .listAssistantQueue()
-      .then((page) => {
-        if (sawPush) return;
-        apply(page.items);
-      })
-      .catch(() => undefined);
-    const onMessage = (event: MessageEvent) => {
-      const data = event.data as { command?: string; items?: unknown };
-      if (data?.command !== "assistant:queue") return;
-      sawPush = true;
-      apply(data.items);
-    };
-    window.addEventListener("message", onMessage);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("message", onMessage);
-    };
-  }, [assistantVisible, museApi]);
-  const issueActivityById = new Map(
-    (host?.issueGroups ?? []).map((group) => [
-      group.issueId,
-      issueGroupActivity(group, {
-        currentSessionId: state.currentSession?.id,
-        isStreaming: state.isStreaming,
-      }),
-    ]),
-  );
-  const botIssues = (host?.issueGroups ?? []).map((group) => {
-    const activity = issueActivityById.get(group.issueId);
-    const presence = activity?.presence ?? null;
-    return {
-      issueId: group.issueId,
-      title: group.title,
-      priority: group.priority,
-      type: group.type,
-      presence:
-        presence === "unread" && !workspace.openIssueIds.includes(group.issueId)
-          ? null
-          : presence,
-      statusLabel: activity?.label,
-      openLabel: issueTabSessionId(group)
-        ? sessionActionLabel(workspace, group.issueId)
-        : null,
-    };
+  const board = useBotIssueBoard({
+    assistantVisible,
+    museApi,
+    host,
+    workspace,
+    state,
   });
-  const issueTabPresence: Record<string, ReturnType<typeof issueGroupActivity>["presence"]> = {};
-  for (const [issueId, activity] of issueActivityById) {
-    issueTabPresence[issueId] = activity.presence;
-  }
-  const clearIssueUnreadRef = useRef<(issueId: string) => void>(() => {});
-  useEffect(() => {
-    if (host?.type !== "desktop") return;
-    const closed = new Set(
-      (host.closedIssueGroups ?? []).map((group) => group.issueId),
-    );
-    if (closed.size === 0) return;
-    const bound = new Set(workspace.openIssueIds);
-    if (workspace.panel.kind === "issue") bound.add(workspace.panel.issueId);
-    if (workspace.lastIssueId) bound.add(workspace.lastIssueId);
-    for (const issueId of bound) {
-      if (closed.has(issueId)) workspace.closeIssueTab(issueId);
-    }
-  }, [host?.type, host?.closedIssueGroups, workspace]);
-  const selectBotPanel = useCallback(
-    (panel: Exclude<PanelSelection, { kind: "none" }>) => {
-      workspace.selectPanel(panel);
-      setBotMenu(null);
-      if (panel.kind === "issue") clearIssueUnreadRef.current(panel.issueId);
-    },
-    [workspace],
-  );
-  const [threeColumnsOn, setThreeColumnsOn] = useState(false);
-  // Pixel width of the Muse Bot column. Null until the user drags the split.
-  // The column is a fixed grid track, so a window resize changes the issue column.
-  const [splitLeftWidth, setSplitLeftWidth] = useState<number | null>(null);
-  useEffect(() => {
-    if (workspace.openIssueIds.length === 0) setThreeColumnsOn(false);
-  }, [workspace.openIssueIds.length]);
-  const openIssueGroup =
-    workspace.active === "bot"
-      ? undefined
-      : (host?.issueGroups ?? []).find((group) => group.issueId === workspace.active);
-  const splitIssueId = !threeColumnsOn
-    ? null
-    : workspace.active !== "bot" && workspace.openIssueIds.includes(workspace.active)
-      ? workspace.active
-      : workspace.lastIssueId && workspace.openIssueIds.includes(workspace.lastIssueId)
-        ? workspace.lastIssueId
-        : (workspace.openIssueIds[workspace.openIssueIds.length - 1] ?? null);
-  const splitIssueGroup = splitIssueId
-    ? (host?.issueGroups ?? []).find((group) => group.issueId === splitIssueId)
-    : undefined;
-  const threeColumns = Boolean(splitIssueGroup);
-  // 两栏时主栏只显示当前标签。三栏时中间固定是一条事项会话，即使焦点在 Muse Bot。
-  const shownIssueGroup = threeColumns ? splitIssueGroup : openIssueGroup;
-  // 分栏时中间会话和右侧当前事项可能不是同一条。输入框聚焦后，把当前事项切回这条会话。
-  const focusShownIssueFromSender = useCallback(() => {
-    if (!threeColumns || !shownIssueGroup) return;
-    const issueId = shownIssueGroup.issueId;
-    const panel = workspace.panel;
-    if (
-      workspace.active === issueId &&
-      panel.kind === "issue" &&
-      panel.issueId === issueId
-    ) {
-      return;
-    }
-    workspace.focusTab(issueId);
-    clearIssueUnreadRef.current(issueId);
-  }, [threeColumns, shownIssueGroup, workspace]);
-  const [issueTabChoice, setIssueTabChoice] = useState<{
-    issueId: string;
-    tab: IssueViewTab;
-  } | null>(null);
-  const openIssueViewTab: IssueViewTab =
-    shownIssueGroup && issueTabChoice?.issueId === shownIssueGroup.issueId
-      ? issueTabChoice.tab
-      : shownIssueGroup?.executionSessionId
-        ? "execution"
-        : "planning";
-  const openIssueSessionId = !shownIssueGroup
-    ? undefined
-    : openIssueViewTab === "execution"
-      ? (shownIssueGroup.executionSessionId ?? issueTabSessionId(shownIssueGroup))
-      : resolveIssuePlanningSessionId(shownIssueGroup);
-  const [issueTranscript, setIssueTranscript] = useState<
-    | {
-        sessionId: string;
-        status: "ready";
-        messages: Message[];
-        hasMore: boolean;
-      }
-    | { sessionId: string; status: "error" }
-    | null
-  >(null);
-  const [issueTranscriptAttempt, setIssueTranscriptAttempt] = useState(0);
-  const issueTranscriptRef = useRef(issueTranscript);
-  issueTranscriptRef.current = issueTranscript;
-  const requestedOlderIssueRef = useRef<string | undefined>(undefined);
-  // 左侧回到灵光时事项列会卸掉，但右侧当前事项还是这一条。继续拉它的记录，
-  // 最近一次修改才不会被清空。
-  const dockTranscriptSessionId = (() => {
-    if (!assistantVisible || !host || host.type !== "desktop") return undefined;
-    const issueId =
-      workspace.panel.kind === "issue"
-        ? workspace.panel.issueId
-        : workspace.lastIssueId;
-    if (!issueId) return undefined;
-    const group = (host.issueGroups ?? []).find((item) => item.issueId === issueId);
-    return group ? issueTabSessionId(group) : undefined;
-  })();
-  const loadedIssueSessionId = openIssueSessionId ?? dockTranscriptSessionId;
-  useEffect(() => {
-    requestedOlderIssueRef.current = undefined;
-  }, [openIssueSessionId]);
-  useEffect(() => {
-    if (!assistantVisible || !loadedIssueSessionId) return;
-    let cancelled = false;
-    const sessionId = loadedIssueSessionId;
-    const load = () => {
-      void museApi
-        .getMessages(sessionId)
-        .then((page) => {
-          if (cancelled) return;
-          const incoming = page.messages as Message[];
-          const hasMore = Boolean(page.hasMore);
-          setIssueTranscript((current) => {
-            const ready =
-              current?.sessionId === sessionId && current.status === "ready"
-                ? current
-                : null;
-            return {
-              sessionId,
-              status: "ready",
-              ...applyNewestIssuePage(
-                ready?.messages ?? null,
-                ready?.hasMore ?? hasMore,
-                incoming,
-                hasMore,
-              ),
-            };
-          });
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setIssueTranscript((current) => {
-            if (current?.sessionId === sessionId && current.status === "ready") {
-              return current;
-            }
-            return { sessionId, status: "error" };
-          });
-        });
-    };
-    load();
-    const interval = window.setInterval(load, 4000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [assistantVisible, loadedIssueSessionId, museApi, issueTranscriptAttempt]);
-  const openIssueTranscript =
-    issueTranscript && issueTranscript.sessionId === openIssueSessionId
-      ? issueTranscript
-      : null;
-  const issueSessionLive =
-    Boolean(openIssueSessionId) && state.currentSession?.id === openIssueSessionId;
-  const issueShowsLive = issueSessionLive && state.messages.length > 0;
-  const shownIssueMessages = issueShowsLive
-    ? state.messages
-    : openIssueTranscript?.status === "ready"
-      ? openIssueTranscript.messages
-      : EMPTY_MESSAGES;
-  const issueTranscriptReady = openIssueTranscript?.status === "ready";
-  const issueTranscriptFailed = openIssueTranscript?.status === "error";
-  const issueShowWelcome =
-    shownIssueMessages.length === 0 && (issueShowsLive || issueTranscriptReady);
-  const issueStreaming = issueShowsLive
-    ? state.isStreaming
-    : Boolean(
-        shownIssueGroup &&
-          issueSessionBusy(shownIssueGroup, openIssueSessionId, {
-            currentSessionId: state.currentSession?.id,
-            isStreaming: state.isStreaming,
-          }),
-      );
-  // 执行会话还是空的时候，停在执行标签上整页是黑的。用户没手动选过标签时，
-  // 退回有记录的规划会话。
-  useEffect(() => {
-    if (!shownIssueGroup) return;
-    if (issueTabChoice?.issueId === shownIssueGroup.issueId) return;
-    if (!shownIssueGroup.executionSessionId || openIssueViewTab !== "execution") return;
-    if (openIssueTranscript?.status !== "ready" || openIssueTranscript.messages.length > 0) {
-      return;
-    }
-    if (!resolveIssuePlanningSessionId(shownIssueGroup)) return;
-    setIssueTabChoice({ issueId: shownIssueGroup.issueId, tab: "planning" });
-  }, [shownIssueGroup, issueTabChoice, openIssueViewTab, openIssueTranscript]);
-  const loadOlderIssueMessages = () => {
-    if (issueShowsLive) {
-      const before = state.messages[0]?.id;
-      if (before) postToHost({ command: "loadOlderMessages", before });
-      return;
-    }
-    const transcript = issueTranscriptRef.current;
-    if (!openIssueSessionId || !transcript || transcript.status !== "ready") return;
-    if (transcript.sessionId !== openIssueSessionId || !transcript.hasMore) return;
-    const oldestId = transcript.messages[0]?.id;
-    if (!oldestId || requestedOlderIssueRef.current === oldestId) return;
-    requestedOlderIssueRef.current = oldestId;
-    window.setTimeout(() => {
-      if (requestedOlderIssueRef.current === oldestId) {
-        requestedOlderIssueRef.current = undefined;
-      }
-    }, 3000);
-    const sessionId = openIssueSessionId;
-    void museApi
-      .getMessages(sessionId, { before: oldestId, limit: 40 })
-      .then((page) => {
-        const older = page.messages as Message[];
-        setIssueTranscript((current) => {
-          if (
-            !current ||
-            current.sessionId !== sessionId ||
-            current.status !== "ready"
-          ) {
-            return current;
-          }
-          const seen = new Set(current.messages.map((message) => message.id));
-          const prepended = older.filter((message) => !seen.has(message.id));
-          return {
-            sessionId,
-            status: "ready",
-            messages: [...prepended, ...current.messages],
-            hasMore: Boolean(page.hasMore),
-          };
-        });
-      })
-      .catch(() => {
-        if (requestedOlderIssueRef.current === oldestId) {
-          requestedOlderIssueRef.current = undefined;
-        }
-      });
-  };
-  // Desktop only: panel group is keyed by absolute workdir (not session).
-  // Fall back to host.workdir so a draft with a selected folder still shares
-  // the same dock as sessions in that directory. On Muse Bot, 变更 follows
-  // the selected issue. 文件预览 opened on this page stays on the bot's own
-  // bar and survives an issue switch. A file opened from the issue transcript
-  // stays with that issue. The file tree still shows the current issue's
-  // directory. 终端 and 浏览器 are bot-level tabs: switching issues does not
-  // swap or close them, and each one can be opened more than once. A new
-  // terminal starts in the current issue workdir. 会话用这条会话自己的目录，
-  // 不沿用 Muse Bot 上次打开的事项。栏宽仍跟 Muse Bot 共用。
-  const dockIssueId = assistantVisible
-    ? workspace.panel.kind === "issue"
-      ? workspace.panel.issueId
-      : workspace.lastIssueId
-    : undefined;
-  const dockIssueGroup = dockIssueId
-    ? (host?.issueGroups ?? []).find((group) => group.issueId === dockIssueId)
-    : undefined;
-  const onSessionsSurface =
-    host?.type === "desktop" &&
-    (paneId !== undefined
-      ? providedShellSurface === "sessions"
-      : noPaneRail === "sessions");
-  // 会话页的目录以这条会话自己的 workdir 为准。state.workdir 还停留在上一页时，
-  // 不能拿它去画右侧面板。
-  const sessionOwnWorkdir =
-    state.currentSession?.id && state.currentSession.id !== "__draft__"
-      ? state.currentSession.workdir
-      : undefined;
-  const sessionPanelWorkdir =
-    sessionOwnWorkdir || effectiveWorkdir || host?.workdir || undefined;
-  const dockWorkdir = dockIssueGroup
-    ? issueGroupSessionWorkdir(
-        dockIssueGroup,
-        issueTabSessionId(dockIssueGroup) ?? "",
-        host?.workdir,
-      )
-    : onSessionsSurface
-      ? sessionPanelWorkdir
-      : assistantWorkdir;
-  const panelWorkdir = assistantVisible ? dockWorkdir : sessionPanelWorkdir;
-  const followIssueTools = assistantVisible || onSessionsSurface;
-  const groupKey =
-    dockIssueGroup && dockWorkdir
-      ? dockWorkdir
-      : assistantVisible
-        ? ASSISTANT_PANEL_GROUP_KEY
-        : panelWorkdir
-          ? panelWorkdir
-          : undefined;
-  const groupKeyRef = useRef(groupKey);
-  groupKeyRef.current = groupKey;
-  const assistantVisibleRef = useRef(assistantVisible);
-  assistantVisibleRef.current = assistantVisible;
-  const onSessionsSurfaceRef = useRef(onSessionsSurface);
-  onSessionsSurfaceRef.current = onSessionsSurface;
-  const dockWorkdirRef = useRef(dockWorkdir);
-  dockWorkdirRef.current = dockWorkdir;
-  const dockIssueIdRef = useRef(dockIssueId);
-  dockIssueIdRef.current = dockIssueId;
-  const shownIssueIdRef = useRef<string | undefined>(undefined);
-  shownIssueIdRef.current = shownIssueGroup?.issueId;
-  const vscodeRef = useRef(vscode);
-  vscodeRef.current = vscode;
-  const previewGroupKeyRef = useRef<string | undefined>(undefined);
-  previewGroupKeyRef.current =
-    followIssueTools && dockWorkdir ? dockWorkdir : groupKey;
-  // File replies follow the open issue, not the directory group the session
-  // page shares. Otherwise a sidebar switch paints those tabs on both pages.
-  const fileContentGroupKeyRef = useRef<string | undefined>(undefined);
-  fileContentGroupKeyRef.current =
-    assistantVisible && dockIssueId
-      ? issueFileGroupKey(dockIssueId)
-      : previewGroupKeyRef.current;
   const {
-    checked: checkedPanels,
-    mounted: mountedPanels,
-    active: activePanel,
-    widths: panelWidths,
-    dockFullscreen,
-    previewUrl,
-    fileTabs,
-    activeFilePath,
-    diffView,
-    fileTree,
-    fileSidebarMode,
-    contentSearch,
-    forward: currentForward,
-    forwardError: previewForwardError,
-    previewEpoch,
-    previewTitle,
-  } = usePanelGroup(groupKey);
-  const assistantTools = usePanelGroupStore(
-    (state) => state.groups[ASSISTANT_PANEL_GROUP_KEY]?.tools ?? EMPTY_DOCK_TOOLS,
-  );
-  const assistantFileTabs = usePanelGroupStore(
-    (state) => state.groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? EMPTY_FILE_TABS,
-  );
-  const assistantActiveFilePath = usePanelGroupStore(
-    (state) => state.groups[ASSISTANT_PANEL_GROUP_KEY]?.activeFilePath ?? null,
-  );
-  const assistantActiveToolId = usePanelGroupStore(
-    (state) => state.groups[ASSISTANT_PANEL_GROUP_KEY]?.activeToolId ?? null,
-  );
-  const assistantTabOrder = usePanelGroupStore(
-    (state) => state.groups[ASSISTANT_PANEL_GROUP_KEY]?.tabOrder ?? EMPTY_TAB_ORDER,
-  );
-  const groupTabOrder = usePanelGroupStore(
-    (state) => (groupKey ? state.groups[groupKey]?.tabOrder : undefined) ?? EMPTY_TAB_ORDER,
-  );
-  const dockTabOrder = assistantVisible ? assistantTabOrder : groupTabOrder;
-  // With an issue selected, terminal and browser are not that directory's tabs.
-  // Without one, those bot tools still have to count as open chrome, or a click
-  // leaves the dock on 详情.
-  const issueBoundDock = assistantVisible && Boolean(dockIssueGroup);
-  const residentFileOpen = assistantVisible && assistantFileTabs.length > 0;
-  const chromeChecked = useMemo(() => {
-    const kinds = assistantVisible
-      ? botDockChromeChecked(issueBoundDock, checkedPanels, assistantTools)
-      : checkedPanels;
-    if (!residentFileOpen || kinds.includes("file")) return kinds;
-    return [...kinds, "file"];
-  }, [
+    botSwitchHost,
+    setBotSwitchHost,
+    botMenu,
+    setBotMenu,
+    botQueue,
+    botIssues,
+    issueTabPresence,
+    clearIssueUnreadRef,
+    selectBotPanel,
+    setThreeColumnsOn,
+    splitLeftWidth,
+    setSplitLeftWidth,
+    threeColumns,
+    shownIssueGroup,
+    focusShownIssueFromSender,
+  } = board;
+
+  const surface = useDockSurface({
     assistantVisible,
-    issueBoundDock,
-    checkedPanels,
-    assistantTools,
-    residentFileOpen,
-  ]);
-  const chromeActive =
-    issueBoundDock && (activePanel === "terminal" || activePanel === "preview")
-      ? null
-      : activePanel;
-  const slotChecked = useMemo(
-    () =>
-      issueBoundDock
-        ? checkedPanels.filter((kind) => kind === "file" || kind === "diff")
-        : checkedPanels,
-    [issueBoundDock, checkedPanels],
-  );
-  const slotMounted = useMemo(
-    () =>
-      issueBoundDock
-        ? mountedPanels.filter((kind) => kind === "file" || kind === "diff")
-        : mountedPanels,
-    [issueBoundDock, mountedPanels],
-  );
-  const slotCheckedWithFile = useMemo(
-    () =>
-      residentFileOpen && !slotChecked.includes("file")
-        ? [...slotChecked, "file" as const]
-        : slotChecked,
-    [residentFileOpen, slotChecked],
-  );
-  const slotMountedWithFile = useMemo(
-    () =>
-      residentFileOpen && !slotMounted.includes("file")
-        ? [...slotMounted, "file" as const]
-        : slotMounted,
-    [residentFileOpen, slotMounted],
-  );
-  // Column width belongs to Muse Bot, not the directory whose tabs are showing.
-  const assistantWidths = usePanelGroupStore(
-    (state) => resolvePanelGroup(state.groups, ASSISTANT_PANEL_GROUP_KEY).widths,
-  );
-  const shownWidths = followIssueTools ? assistantWidths : panelWidths;
-  const dockPreviewUrl = usePanelGroupStore((state) =>
-    followIssueTools && dockWorkdir
-      ? (state.groups[dockWorkdir]?.previewUrl ?? null)
-      : null,
-  );
-  const dockForward = usePanelGroupStore((state) =>
-    followIssueTools && dockWorkdir
-      ? (state.groups[dockWorkdir]?.forward ?? null)
-      : null,
-  );
-  const dockForwardError = usePanelGroupStore((state) =>
-    followIssueTools && dockWorkdir
-      ? (state.groups[dockWorkdir]?.forwardError ?? null)
-      : null,
-  );
-  const dockPreviewEpoch = usePanelGroupStore((state) =>
-    followIssueTools && dockWorkdir
-      ? (state.previewEpochs[dockWorkdir] ?? 0)
-      : 0,
-  );
-  const usingIssuePreview = Boolean(followIssueTools && dockWorkdir);
-  const issueChildrenCache = usePanelGroupStore((state) =>
-    usingIssuePreview && dockWorkdir
-      ? (state.groups[dockWorkdir]?.fileTree?.childrenCache ??
-        EMPTY_LISTING_CACHE)
-      : undefined,
-  );
-  const issueContentSearch = usePanelGroupStore((state) =>
-    usingIssuePreview && dockWorkdir
-      ? (state.groups[dockWorkdir]?.contentSearch ?? EMPTY_LISTING_SEARCH)
-      : undefined,
-  );
-  const issueFileTabs = usePanelGroupStore((state) => {
-    if (!usingIssuePreview || !dockWorkdir) return undefined;
-    return state.groups[dockWorkdir]?.fileTabs ?? EMPTY_FILE_TABS;
-  });
-  const issueActiveFilePath = usePanelGroupStore((state) => {
-    if (!usingIssuePreview || !dockWorkdir) return undefined;
-    return state.groups[dockWorkdir]?.activeFilePath ?? null;
-  });
-  // Transcript files stay with that issue. The directory group is what the
-  // session page reads, so mixing them in paints the other page's tabs
-  // after a sidebar switch.
-  const shownIssueFileKey = shownIssueGroup
-    ? issueFileGroupKey(shownIssueGroup.issueId)
-    : undefined;
-  const shownIssueFileTabs = usePanelGroupStore((state) => {
-    if (!shownIssueFileKey) return EMPTY_FILE_TABS;
-    return state.groups[shownIssueFileKey]?.fileTabs ?? EMPTY_FILE_TABS;
-  });
-  const shownIssueFileActive = usePanelGroupStore((state) => {
-    if (!shownIssueFileKey) return null;
-    return state.groups[shownIssueFileKey]?.activeFilePath ?? null;
-  });
-  const issueExpanded = usePanelGroupStore((state) => {
-    if (!usingIssuePreview || !dockWorkdir) return undefined;
-    return state.groups[dockWorkdir]?.fileTree?.expanded ?? EMPTY_EXPANDED;
-  });
-  const issueSelected = usePanelGroupStore((state) => {
-    if (!usingIssuePreview || !dockWorkdir) return undefined;
-    return state.groups[dockWorkdir]?.fileTree?.selected;
-  });
-  const shownFileTabs = useMemo(() => {
-    if (!assistantVisible) return uniqueFileTabs(issueFileTabs ?? fileTabs);
-    const issueOnly = shownIssueFileTabs.filter(
-      (tab) => !assistantFileTabs.some((item) => filesReferToSame(item, tab)),
-    );
-    return uniqueFileTabs([...assistantFileTabs, ...issueOnly]);
-  }, [assistantVisible, assistantFileTabs, shownIssueFileTabs, issueFileTabs, fileTabs]);
-  const shownActiveFilePath = useMemo(() => {
-    if (!assistantVisible) {
-      return issueActiveFilePath !== undefined ? issueActiveFilePath : activeFilePath;
-    }
-    const issueOnly = shownIssueFileTabs.filter(
-      (tab) => !assistantFileTabs.some((item) => filesReferToSame(item, tab)),
-    );
-    if (
-      shownIssueFileActive &&
-      issueOnly.some((tab) => tab.path === shownIssueFileActive)
-    ) {
-      return shownIssueFileActive;
-    }
-    if (
-      assistantActiveFilePath &&
-      assistantFileTabs.some((tab) => tab.path === assistantActiveFilePath)
-    ) {
-      return assistantActiveFilePath;
-    }
-    return null;
-  }, [
-    assistantVisible,
-    assistantFileTabs,
-    assistantActiveFilePath,
-    shownIssueFileTabs,
-    shownIssueFileActive,
-    issueActiveFilePath,
-    activeFilePath,
-  ]);
-  const shownFileTree =
-    issueChildrenCache !== undefined
-      ? {
-          ...fileTree,
-          expanded: issueExpanded ?? EMPTY_EXPANDED,
-          selected: issueSelected,
-          childrenCache: issueChildrenCache,
-        }
-      : fileTree;
-  const shownContentSearch = issueContentSearch ?? contentSearch;
-  const shownPreviewUrl = usingIssuePreview ? dockPreviewUrl : previewUrl;
-  const shownForward = usingIssuePreview ? dockForward : currentForward;
-  const shownForwardError = usingIssuePreview
-    ? dockForwardError
-    : previewForwardError;
-  const shownPreviewEpoch = usingIssuePreview ? dockPreviewEpoch : previewEpoch;
-  // Opening a kind from a shortcut, the dock toggle, or the add menu also
-  // leaves 详情. List clicks only call selectPanel, so a stale active kind
-  // must not pull the dock back off 详情. Closing the kind that was active
-  // while 详情 is showing must not follow the next kind either. Each
-  // directory has its own dock. Muse Bot shows the selected issue's directory.
-  // 会话 shows the open session's directory. 设置, 自动化, and the draft page do not
-  // mount it, so those groupKey changes must not call selectDock. On a dock
-  // surface a group switch keeps the chrome kind, unless this group does not
-  // have it checked — then the chrome returns to 详情 instead of adopting the
-  // other group's active kind. Inside one group, if that close leaves active
-  // unchanged and another kind is still checked, select the first remaining
-  // kind in PANEL_ADD_ORDER; select 详情 only when none remain. With panes,
-  // this outer instance only mounts DesktopShell and never paints the dock.
-  // DesktopShell does not update noPaneRail, so a session here must not make
-  // dockOnScreen true. Every pane shares one chrome tab. Only the no-pane
-  // ChatApp, or the focused pane, may call selectDock from this effect. An
-  // unfocused pane, and the outer ChatApp that only renders DesktopShell,
-  // return without writing. When focusedPaneId is missing, a pane writes only
-  // if it is the sole pane. The effect reads the chrome tab from a ref and
-  // does not depend on the workspace object. If this instance's checked set,
-  // active kind, and group did not change, it does not retarget the chrome
-  // just because another pane wrote it. Gaining write permission is different:
-  // this pane's snapshot can be unchanged while it becomes the only writer.
-  // If the chrome kind is not checked here, return to 详情. Do not adopt this
-  // group's active kind. If the chrome kind is checked here, leave it.
-  const seenPanelKind = useRef(chromeActive);
-  const seenPanelGroupKey = useRef(groupKey);
-  const seenCheckedPanels = useRef(chromeChecked);
-  const dockChromeRef = useRef(workspace.dock);
-  dockChromeRef.current = workspace.dock;
-  const selectDockRef = useRef(workspace.selectDock);
-  selectDockRef.current = workspace.selectDock;
-  const shellHostWithoutDock =
-    paneId === undefined && (host?.panes?.length ?? 0) > 0;
-  const dockOnScreen =
-    !shellHostWithoutDock &&
-    (assistantVisible ||
-      (view === "chat" && !isDraftSession && noPaneRail !== "settings"));
-  const dockOnScreenRef = useRef(dockOnScreen);
-  dockOnScreenRef.current = dockOnScreen;
-  const paneCount = host?.panes?.length ?? 0;
-  const focusedPaneId = host?.focusedPaneId;
-  const dockWriter =
-    paneId === undefined
-      ? paneCount === 0
-      : focusedPaneId
-        ? focusedPaneId === paneId
-        : paneCount <= 1;
-  const dockWriteAllowed = dockOnScreen && dockWriter;
-  const dockWasOnScreen = useRef(false);
-  const dockWriteWasAllowed = useRef(false);
-  useEffect(() => {
-    // 会话页和分屏里的会话不跟 Issue 详情共用选中态。这边打开详情，
-    // 切到会话时不能把那边的面板改成详情，也不能反过来写这边的 dock。
-    if (host?.type === "desktop" && !assistantVisible) return;
-    const previousKind = seenPanelKind.current;
-    const previousGroupKey = seenPanelGroupKey.current;
-    const previousChecked = seenCheckedPanels.current;
-    const wasOnScreen = dockWasOnScreen.current;
-    const onScreen = dockOnScreenRef.current;
-    const wasWriter = dockWriteWasAllowed.current;
-    seenPanelKind.current = chromeActive;
-    seenPanelGroupKey.current = groupKey;
-    seenCheckedPanels.current = chromeChecked;
-    dockWasOnScreen.current = onScreen;
-    dockWriteWasAllowed.current = dockWriteAllowed;
-    if (!dockWriteAllowed) return;
-    const checkedUnchanged =
-      previousChecked.length === chromeChecked.length &&
-      previousChecked.every((kind, index) => kind === chromeChecked[index]);
-    const gainedWrite = !wasWriter;
-    if (
-      !gainedWrite &&
-      previousGroupKey === groupKey &&
-      previousKind === chromeActive &&
-      checkedUnchanged
-    ) {
-      return;
-    }
-    const dock = dockChromeRef.current;
-    const selectDock = selectDockRef.current;
-    const chromeKindMissing =
-      dock !== DOCK_DETAIL_TAB && !chromeChecked.includes(dock);
-    if (gainedWrite) {
-      if (chromeKindMissing) selectDock(DOCK_DETAIL_TAB);
-      return;
-    }
-    if (previousGroupKey !== groupKey || !wasOnScreen) {
-      if (chromeKindMissing) selectDock(DOCK_DETAIL_TAB);
-      return;
-    }
-    if (previousGroupKey === groupKey && previousKind === chromeActive) {
-      if (chromeKindMissing) {
-        const nextKind = PANEL_ADD_ORDER.find((kind) =>
-          chromeChecked.includes(kind),
-        );
-        selectDock(nextKind ?? DOCK_DETAIL_TAB);
-      }
-      return;
-    }
-    const closedPreviousKind =
-      previousGroupKey === groupKey &&
-      previousKind != null &&
-      !chromeChecked.includes(previousKind);
-    if (dock === DOCK_DETAIL_TAB && closedPreviousKind && chromeActive) {
-      return;
-    }
-    if (chromeActive && dock !== chromeActive) {
-      selectDock(chromeActive);
-    } else if (!chromeActive && dock !== DOCK_DETAIL_TAB) {
-      // A bot terminal or browser stays put when the issue directory's active
-      // kind disappears. Only leave it when that tab itself is gone.
-      if (
-        (dock === "terminal" || dock === "preview") &&
-        chromeChecked.includes(dock)
-      ) {
-        return;
-      }
-      selectDock(DOCK_DETAIL_TAB);
-    }
-  }, [assistantVisible, chromeActive, chromeChecked, dockWriteAllowed, groupKey, host?.type]);
-  // Single-file view for the panel body = the active tab (multi-tab: the tab
-  // bar lives in FilePane; everything downstream keeps working on one view).
-  const fileView = useMemo(
-    () => shownFileTabs.find((t) => t.path === shownActiveFilePath) ?? null,
-    [shownFileTabs, shownActiveFilePath],
-  );
-  const previewUrlRef = useRef(previewUrl);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-  const [chatColumnWidth, setChatColumnWidth] = useState(
-    () => (typeof window !== "undefined" ? window.innerWidth : 1280),
-  );
-  // Null until the frame is measured (jsdom). Cards stay while the message
-  // column can still shrink, and fold once it would go under its minimum.
-  // matchMedia follows the screen under the Electron viewport, so a real
-  // measurement wins.
-  const [leftPanelWidth, setLeftPanelWidth] = useState(0);
-  const [quickOpenOpen, setQuickOpenOpen] = useState(false);
-  const [quickOpenQuery, setQuickOpenQuery] = useState("");
-  const [showNewIssue, setShowNewIssue] = useState(false);
-  const [planningIssueId, setPlanningIssueId] = useState<string | null>(null);
-  // 初始化 agent store（GET /agents + /agents/scenarios），用于草稿默认模型解析与设置页
-  useEffect(() => {
-    useScenarioModelsStore.getState().init(museApi);
-  }, [museApi]);
-  // 只有会话 id 真的变了才离开当前页。切图标栏本身不能把视图拉回聊天。
-  // 无窗格的面是 noPaneRail；窗格的面是壳提供的 shell surface。
-  // 不改 noPaneRail。设置页在 view 之前渲染，所以这里 setView 不会盖住设置。
-  // 正在把布局交给 DesktopShell 的外层实例不渲染 view，会话变化不能改掉它。
-  const sessionIdRef = useRef(state.currentSession?.id);
-  useEffect(() => {
-    const nextId = state.currentSession?.id;
-    if (sessionIdRef.current === nextId) return;
-    sessionIdRef.current = nextId;
-    if (noPaneDesktop) {
-      if (noPaneRail === "assistant" || noPaneRail === "skills") return;
-      setView("chat");
-      return;
-    }
-    if (paneId !== undefined) {
-      if (providedShellSurface === "assistant") return;
-      setView("chat");
-      return;
-    }
-    if (host?.type !== "desktop") setView("chat");
-  }, [
-    state.currentSession?.id,
-    noPaneDesktop,
-    noPaneRail,
+    workspace,
+    host,
     paneId,
     providedShellSurface,
-    host?.type,
-  ]);
-  // Mirrors so the stable message listener can reach the panel toggle logic
-  // (filled by usePanels) without re-subscribing.
-  const togglePanelRef = useRef<(kind: DesktopPanelKind) => void>(() => {});
-  const toggleFullscreenRef = useRef<() => void>(() => {});
-  const openQuickOpenRef = useRef<(query: string) => void>(() => {});
-  const messageInputRef = useRef<MessageInputHandle>(null);
-  const assistantInputRef = useRef<MessageInputHandle>(null);
-  const messageListRef = useRef<{
-    scrollToBottom: (behavior?: ScrollBehavior) => void;
-  }>(null);
-  const stateRef = useRef(state);
-  // The pane this instance renders; undefined = single view (desktop
-  // single-pane layout). Ref mirror for use inside stable callbacks.
-  const paneIdRef = useRef<string | undefined>(paneId);
-  const hostRef = useRef(host);
-  hostRef.current = host;
+    noPaneRail,
+    currentSession: state.currentSession,
+    effectiveWorkdir,
+    assistantWorkdir,
+    shownIssueGroup,
+    vscode,
+    view,
+    isDraftSession,
+  });
+  const {
+    dockIssueId,
+    dockIssueGroup,
+    onSessionsSurface,
+    dockWorkdir,
+    panelWorkdir,
+    followIssueTools,
+    groupKey,
+    groupKeyRef,
+    assistantVisibleRef,
+    onSessionsSurfaceRef,
+    dockWorkdirRef,
+    dockIssueIdRef,
+    shownIssueIdRef,
+    vscodeRef,
+    previewGroupKeyRef,
+    fileContentGroupKeyRef,
+    checkedPanels,
+    mountedPanels,
+    activePanel,
+    dockFullscreen,
+    previewUrl,
+    diffView,
+    fileSidebarMode,
+    previewTitle,
+    assistantTools,
+    assistantActiveToolId,
+    dockTabOrder,
+    chromeChecked,
+    chromeActive,
+    slotCheckedWithFile,
+    slotMountedWithFile,
+    assistantWidths,
+    shownWidths,
+    shownFileTabs,
+    shownActiveFilePath,
+    shownFileTree,
+    shownContentSearch,
+    shownPreviewUrl,
+    shownForward,
+    shownForwardError,
+    shownPreviewEpoch,
+    fileView,
+    selectDockRef,
+    dockChromeRef,
+  } = surface;
+  const {
+    previewUrlRef,
+    chatContainerRef,
+    chatColumnWidth,
+    leftPanelWidth,
+    quickOpenOpen,
+    setQuickOpenOpen,
+    quickOpenQuery,
+    setQuickOpenQuery,
+    showNewIssue,
+    setShowNewIssue,
+    planningIssueId,
+    setPlanningIssueId,
+    togglePanelRef,
+    toggleFullscreenRef,
+    messageInputRef,
+    assistantInputRef,
+    messageListRef,
+    stateRef,
+    paneIdRef,
+    hostRef,
+  } = useChatFrame({
+    previewUrl,
+    assistantVisible,
+    assistantTools,
+    assistantActiveToolId,
+    shownPreviewUrl,
+    paneId,
+    host,
+    view,
+    shellSurface,
+    state,
+    dispatch,
+    vscode,
+    groupKeyRef,
+    previewGroupKeyRef,
+    fileContentGroupKeyRef,
+    noPaneDesktop,
+    noPaneRail,
+    setView,
+    providedShellSurface,
+    museApi,
+  });
 
-  openQuickOpenRef.current = (query: string) => {
-    setQuickOpenQuery(query);
-    setQuickOpenOpen(true);
-  };
-
-  // Keep stateRef in sync with state
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
-
-  const shownToolPreview = activePreviewTool(assistantTools, assistantActiveToolId);
-  useEffect(() => {
-    previewUrlRef.current = assistantVisible
-      ? (shownToolPreview?.previewUrl ?? null)
-      : shownPreviewUrl;
-  }, [assistantVisible, shownPreviewUrl, shownToolPreview]);
-
-  // Track the chat column width so dock maxWidth stays correct across
-  // window resizes and split-pane changes (ref reads alone do not re-render).
-  // Do not measure in a layout effect with no deps: the measured width is
-  // written back into the layout, so every commit saw a new clientWidth and
-  // setState never settled.
-  const measureFrame = useCallback(() => {
-    const el = chatContainerRef.current;
-    const frame = el?.clientWidth ?? 0;
-    if (frame > 0) {
-      setChatColumnWidth((current) => (current === frame ? current : frame));
-    }
-    const main = el?.querySelector(".desktop-chat-main");
-    const left = main?.clientWidth ?? 0;
-    if (left > 0) {
-      setLeftPanelWidth((current) => (current === left ? current : left));
-    }
-  }, []);
-  useLayoutEffect(() => {
-    measureFrame();
-  }, [measureFrame, paneId, host?.panes?.length, view, shellSurface]);
-  useEffect(() => {
-    window.addEventListener("resize", measureFrame);
-    window.visualViewport?.addEventListener("resize", measureFrame);
-    const el = chatContainerRef.current;
-    let ro: ResizeObserver | undefined;
-    if (el && typeof ResizeObserver !== "undefined") {
-      ro = new ResizeObserver(() => measureFrame());
-      ro.observe(el);
-      const main = el.querySelector(".desktop-chat-main");
-      if (main) ro.observe(main);
-      const dock = el.querySelector(".desktop-panel-dock");
-      if (dock) ro.observe(dock);
-    }
-    return () => {
-      ro?.disconnect();
-      window.removeEventListener("resize", measureFrame);
-      window.visualViewport?.removeEventListener("resize", measureFrame);
-    };
-  }, [measureFrame, paneId, host?.panes?.length, view, shellSurface]);
-
-  useEffect(() => {
-    paneIdRef.current = paneId;
-  }, [paneId]);
-
-  // Host pushes (updateMessages, setInitialState, user:message, ...) arrive on
-  // the window message channel. The 58-case router lives in muse/messageRouter
-  // (extracted verbatim) — this component only registers it. `refs` objects are
-  // stable across renders, so the handler is created once per mount.
-  const handleMessage = useMemo(
-    () =>
-      createMessageHandler({
-        dispatch,
-        vscode,
-        refs: {
-          paneIdRef,
-          stateRef,
-          messageListRef,
-          messageInputRef,
-          chatContainerRef,
-          togglePanelRef,
-          previewUrlRef,
-          groupKeyRef,
-          previewGroupKeyRef,
-          fileContentGroupKeyRef,
-          openQuickOpenRef,
-          hostRef,
-        },
-      }),
-    [dispatch, vscode],
-  );
-  useEffect(() => {
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [handleMessage]);
 
   // Domain hooks: core bridge first, then panels → preview → file panel
   // (tryOpenPanel/acquireForward/handleOpenPreview flow down), then the
@@ -1203,6 +352,30 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     paneIdRef,
   });
   const { postToHost, patchPane, updatePanelGroup } = core;
+  const {
+    openIssueViewTab,
+    setIssueTabChoice,
+    openIssueSessionId,
+    issueTranscript,
+    openIssueTranscript,
+    issueShowsLive,
+    shownIssueMessages,
+    issueTranscriptFailed,
+    issueShowWelcome,
+    issueStreaming,
+    setIssueTranscriptAttempt,
+    loadOlderIssueMessages,
+  } = useIssueTranscript({
+    shownIssueGroup,
+    assistantVisible,
+    host,
+    workspace,
+    museApi,
+    currentSessionId: state.currentSession?.id,
+    messages: state.messages,
+    isStreaming: state.isStreaming,
+    postToHost,
+  });
   // 焦点不在左侧事项或右侧面板时，⌘W 关闭窗口。侧栏里关不掉的页（Muse Bot、详情）不再连带关窗口。
   useEffect(() => {
     if (paneId !== undefined) return;
@@ -1210,235 +383,33 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       postToHost({ command: "desktopCloseWindow" });
     });
   }, [paneId, postToHost]);
-  // 会话页记住自己的会话。Muse Bot 看事项时会临时切到那条会话以接收流式，
-  // 但不改会话页记下的选择，回到会话页再切回去。Bot 主页不占用当前会话。
-  // 切回来时先在这一帧放上记下的会话，不等宿主往返，中间栏才不会空一拍。
-  // 新对话也是会话页自己的选择：草稿不在列表里，不能被上一条会话盖回去。
-  const sessionsPageSessionRef = useRef<string | null>(null);
-  const sessionsPageActiveRef = useRef(false);
-  useLayoutEffect(() => {
-    const listedSessionId = (id: string | undefined): string | null => {
-      if (!id || id === DRAFT_SESSION_ID) return null;
-      const listed = (hostRef.current?.sessionTree ?? []).some((group) =>
-        group.sessions.some((session) => session.sessionId === id),
-      );
-      return listed ? id : null;
-    };
-    const currentId = state.currentSession?.id;
-    const listed = listedSessionId(currentId);
-    if (listed) sessionsPageSessionRef.current = listed;
-
-    const ownsSessionsPage =
-      onSessionsSurface &&
-      (paneId === undefined || (hostRef.current?.focusedPaneId ?? paneId) === paneId);
-    const stayedOnSessionsPage =
-      ownsSessionsPage && sessionsPageActiveRef.current;
-    sessionsPageActiveRef.current = ownsSessionsPage;
-    if (ownsSessionsPage) {
-      if (currentId === DRAFT_SESSION_ID) {
-        sessionsPageSessionRef.current = DRAFT_SESSION_ID;
-        return;
-      }
-      let owned = sessionsPageSessionRef.current;
-      if (owned === DRAFT_SESSION_ID) {
-        // 第一条消息会把草稿换成还没进侧栏的真实会话。人还在这一页上，
-        // 就接着看这条，不要再开一个空白草稿把发送清掉。
-        if (stayedOnSessionsPage && currentId) {
-          sessionsPageSessionRef.current = currentId;
-          return;
-        }
-        dispatch({
-          type: "SET_CURRENT_SESSION",
-          payload: draftSessionMetadata(),
-        });
-        postToHost({ command: "newSession" });
-        return;
-      }
-      if (!owned) {
-        const panes = hostRef.current?.panes ?? [];
-        const paneSessionId = (
-          paneId ? panes.find((pane) => pane.paneId === paneId) : panes[0]
-        )?.sessionId;
-        owned = listedSessionId(paneSessionId);
-      }
-      if (!owned && currentId && currentId !== DRAFT_SESSION_ID && !listed) {
-        let latest = 0;
-        for (const group of hostRef.current?.sessionTree ?? []) {
-          for (const session of group.sessions) {
-            if ((session.lastActiveAt ?? 0) >= latest) {
-              latest = session.lastActiveAt ?? 0;
-              owned = session.sessionId;
-            }
-          }
-        }
-      }
-      if (owned && currentId !== owned) {
-        const entry = (hostRef.current?.sessionTree ?? [])
-          .flatMap((group) => group.sessions)
-          .find((session) => session.sessionId === owned);
-        sessionsPageSessionRef.current = owned;
-        dispatch({
-          type: "SET_CURRENT_SESSION",
-          payload: {
-            id: owned,
-            sessionType: "main",
-            workdir: entry?.workdir ?? state.currentSession?.workdir ?? "",
-            createdAt: new Date(entry?.lastActiveAt ?? 0),
-            lastActiveAt: new Date(entry?.lastActiveAt ?? 0),
-            latestTotalTokens: 0,
-            firstMessage: entry?.title,
-          },
-        });
-        postToHost({ command: "desktopSelectSession", sessionId: owned });
-      }
-      return;
-    }
-
-    if (!assistantVisible || workspace.active === "bot" || !openIssueSessionId) return;
-    if (currentId === openIssueSessionId) return;
-    postToHost({ command: "desktopSelectSession", sessionId: openIssueSessionId });
-  }, [
-    assistantVisible,
+  useSessionsPageSession({
+    hostRef,
+    currentSession: state.currentSession,
     onSessionsSurface,
-    workspace.active,
-    openIssueSessionId,
-    state.currentSession?.id,
-    state.currentSession?.workdir,
-    postToHost,
     paneId,
     dispatch,
-  ]);
-  useEffect(() => {
-    const loads = takeRestoredFileLoads();
-    for (const item of loads) {
-      postToHost({
-        command: "openFile",
-        path: item.path,
-        host: item.host,
-        // The reply must land on this group's tabs. At startup the visible
-        // preview group is often still the assistant key, because the issue
-        // list has not arrived yet. "assistant" is the bot file bar, not a
-        // directory: an absolute path still reads, and a relative one falls
-        // back to the app workdir.
-        ...(item.workdir === ASSISTANT_PANEL_GROUP_KEY
-          ? {}
-          : { workdir: item.workdir }),
-        fileGroupKey: item.workdir,
-      });
-    }
-  }, [postToHost]);
-  useEffect(() => {
-    clearIssueUnreadRef.current = (issueId: string) => {
-      const group = (host?.issueGroups ?? []).find((item) => item.issueId === issueId);
-      const sessionIds = (group?.sessions ?? [])
-        .filter((item) => item.unreadDone && item.sessionId)
-        .map((item) => item.sessionId);
-      if (sessionIds.length === 0) return;
-      postToHost({ command: "desktopClearUnread", sessionIds });
-    };
-  }, [host?.issueGroups, postToHost]);
-  useEffect(() => {
-    if (workspace.active === "bot") return;
-    clearIssueUnreadRef.current(workspace.active);
-  }, [workspace.active, host?.issueGroups]);
-  const updatePreviewGroup = useCallback(
-    (
-      patch:
-        | Partial<PanelGroupState>
-        | ((group: PanelGroupState) => Partial<PanelGroupState>),
-    ) => {
-      if (assistantVisibleRef.current) {
-        const store = usePanelGroupStore.getState();
-        const group = resolvePanelGroup(store.groups, ASSISTANT_PANEL_GROUP_KEY);
-        const resolved = typeof patch === "function" ? patch(group) : patch;
-        const touchesPreview =
-          "previewUrl" in resolved ||
-          "forward" in resolved ||
-          "forwardError" in resolved;
-        const target = activePreviewTool(group.tools ?? [], group.activeToolId);
-        if (touchesPreview && target) {
-          store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
-            tools: patchDockTool(group.tools ?? [], target.id, {
-              ...("previewUrl" in resolved ? { previewUrl: resolved.previewUrl } : {}),
-              ...("forward" in resolved ? { forward: resolved.forward } : {}),
-              ...("forwardError" in resolved
-                ? { forwardError: resolved.forwardError }
-                : {}),
-            }),
-          });
-          return;
-        }
-      }
-      const key = previewGroupKeyRef.current;
-      if (!key) return;
-      usePanelGroupStore.getState().patchGroup(key, patch);
-    },
-    [],
-  );
-  const updateFileGroup = useCallback(
-    (
-      patch:
-        | Partial<PanelGroupState>
-        | ((group: PanelGroupState) => Partial<PanelGroupState>),
-    ) => {
-      const store = usePanelGroupStore.getState();
-      if (!assistantVisibleRef.current) {
-        const key = previewGroupKeyRef.current;
-        if (!key) return;
-        store.patchGroup(key, patch);
-        return;
-      }
-      store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, patch);
-      const issueKey = previewGroupKeyRef.current;
-      if (issueKey && issueKey !== ASSISTANT_PANEL_GROUP_KEY) {
-        store.patchGroup(issueKey, { activeFilePath: null });
-      }
-      const ownedId = shownIssueIdRef.current ?? dockIssueIdRef.current;
-      if (ownedId) {
-        store.patchGroup(issueFileGroupKey(ownedId), { activeFilePath: null });
-      }
-    },
-    [],
-  );
-  const resolveFileGroupKey = useCallback((path: string) => {
-    if (!assistantVisibleRef.current) return undefined;
-    const store = usePanelGroupStore.getState();
-    const ownedId = shownIssueIdRef.current ?? dockIssueIdRef.current;
-    const issueKey = ownedId ? issueFileGroupKey(ownedId) : undefined;
-    const onAssistant = (store.groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? []).some(
-      (tab) => filesReferToSame(tab, { path }),
-    );
-    const onIssue = Boolean(
-      issueKey &&
-        (store.groups[issueKey]?.fileTabs ?? []).some((tab) =>
-          filesReferToSame(tab, { path }),
-        ),
-    );
-    if (onIssue && !onAssistant) return issueKey;
-    return ASSISTANT_PANEL_GROUP_KEY;
-  }, []);
-
-  // Auto-dismiss the queue-edit warning banner
-  useEffect(() => {
-    if (!queueEditWarning) return;
-    const timer = setTimeout(() => patchPane({ queueEditWarning: null }), 4000);
-    return () => clearTimeout(timer);
-  }, [queueEditWarning, patchPane]);
-
-  // Desktop: reset worktree opt-in only when the workdir path actually changes.
-  // Do not depend on `gitBranches` (poll rewrites it) or treat `patchPane`
-  // identity changes as a workdir switch — that wiped the pick and created
-  // from HEAD/current instead of the selected base branch.
-  const prevWorkdirRef = useRef(effectiveWorkdir);
-  useEffect(() => {
-    const prev = prevWorkdirRef.current;
-    prevWorkdirRef.current = effectiveWorkdir;
-    if (prev === effectiveWorkdir) return;
-    patchPane({
-      worktreeBranch: "",
-      worktreeChecked: false,
+    postToHost,
+    assistantVisible,
+    workspaceActive: workspace.active,
+    openIssueSessionId,
+  });
+  useHostStartupEffects({
+    postToHost,
+    host,
+    workspaceActive: workspace.active,
+    clearIssueUnreadRef,
+    queueEditWarning,
+    patchPane,
+    effectiveWorkdir,
+  });
+  const { updatePreviewGroup, updateFileGroup, resolveFileGroupKey } =
+    usePanelGroupWriters({
+      assistantVisibleRef,
+      previewGroupKeyRef,
+      shownIssueIdRef,
+      dockIssueIdRef,
     });
-  }, [effectiveWorkdir, patchPane]);
 
   const issueSendSessionRef = useRef<string | undefined>(undefined);
   issueSendSessionRef.current =
@@ -1489,315 +460,66 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     ? chatMinWidth + SPLIT_ISSUE_MIN_WIDTH
     : chatMinWidth;
   const dockMaxWidth = chatColumnWidth - layoutChatMin;
-  const assistantDockToggleRef = useRef<(() => void) | null>(null);
-  const restoreAssistantToolsRef = useRef(false);
-  const assistantDockSeenOpen = useRef(restoredDockAlreadyOpen());
-  const [assistantDockOpen, setAssistantDockOpenState] = useState(
-    () =>
-      usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.dockColumnOpen ===
-      true,
-  );
-  // Pixel width of the chat column while the dock is open. Window resize
-  // leaves this alone so the dock absorbs the change.
-  const [chatPaneWidth, setChatPaneWidth] = useState<number | null>(null);
-  const setAssistantDockOpen = useCallback((open: boolean) => {
-    setAssistantDockOpenState(open);
-    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
-      dockColumnOpen: open,
-    });
-  }, []);
-  // Opening the bot dock starts on 详情 and also opens 变更 for the current issue.
-  // Closing 变更 while the dock stays open keeps it closed until the next open.
-  useEffect(() => {
-    if (!assistantVisible || !assistantDockOpen) {
-      assistantDockSeenOpen.current = false;
-      return;
-    }
-    const justOpened = !assistantDockSeenOpen.current;
-    assistantDockSeenOpen.current = true;
-    if (!dockIssueId || !dockWorkdir) return;
-    const group = usePanelGroupStore.getState().groups[dockWorkdir];
-    const checked = group?.checked ?? [];
-    if (checked.includes("diff")) return;
-    const untouched = checked.length === 0 && !group?.collapsedTabs;
-    if (!justOpened && !untouched) return;
-    usePanelGroupStore.getState().patchGroup(dockWorkdir, {
-      checked: [...checked, "diff"],
-      mounted: group?.mounted.includes("diff")
-        ? group.mounted
-        : [...(group?.mounted ?? []), "diff"],
-    });
-  }, [assistantVisible, assistantDockOpen, dockIssueId, dockWorkdir]);
-  const [assistantView, setAssistantView] = useState<"chat" | "transcript">("chat");
-  const onAssistantViewMode = useCallback((mode: "chat" | "transcript") => {
-    setAssistantView(mode);
-  }, []);
-  useEffect(() => {
-    if (workspace.active !== "bot") setAssistantView("chat");
-  }, [workspace.active]);
-  const updateMuseWidthGroup = useCallback(
-    (
-      patch:
-        | Partial<PanelGroupState>
-        | ((group: PanelGroupState) => Partial<PanelGroupState>),
-    ) => {
-      usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, patch);
-    },
-    [],
-  );
-  // 详情不是面板 kind，原来停在 420。文件、终端第一次打开会按栏宽重算，
-  // 右侧宽度就会跳。这里用同一套首次宽度，已经拖过或开过的宽度不动。
-  useLayoutEffect(() => {
-    if (!assistantVisible || !assistantDockOpen) return;
-    if (checkedPanels.length > 0) return;
-    if (
-      assistantWidths.preview !== PANEL_DEFAULT_WIDTH ||
-      assistantWidths.diff !== PANEL_DEFAULT_WIDTH ||
-      assistantWidths.terminal !== PANEL_DEFAULT_WIDTH ||
-      assistantWidths.file !== PANEL_DEFAULT_WIDTH
-    ) {
-      return;
-    }
-    const containerW = chatContainerRef.current?.clientWidth ?? 0;
-    // chatColumnWidth 更新说明栏已经量过，这时再读 clientWidth。
-    if (!(containerW > 0) || chatColumnWidth <= 0) return;
-    const next = firstOpenDockWidths(containerW, layoutChatMin);
-    if (!next) return;
-    if (
-      next.preview === assistantWidths.preview &&
-      next.diff === assistantWidths.diff &&
-      next.terminal === assistantWidths.terminal &&
-      next.file === assistantWidths.file
-    ) {
-      return;
-    }
-    updateMuseWidthGroup({ widths: next });
-  }, [
-    assistantVisible,
+  const {
     assistantDockOpen,
-    checkedPanels.length,
-    assistantWidths,
-    chatColumnWidth,
-    layoutChatMin,
+    setAssistantDockOpen,
+    chatPaneWidth,
+    assistantDockToggleRef,
+    restoreAssistantToolsRef,
     updateMuseWidthGroup,
-  ]);
-  useLayoutEffect(() => {
-    if (!assistantVisible || !assistantDockOpen || dockFullscreen) {
-      setChatPaneWidth(null);
-      return;
-    }
-    // Let the first-open width land before the chat column is pinned to it.
-    const waitingForFirstWidth =
-      checkedPanels.length === 0 &&
-      assistantWidths.preview === PANEL_DEFAULT_WIDTH &&
-      assistantWidths.diff === PANEL_DEFAULT_WIDTH &&
-      assistantWidths.terminal === PANEL_DEFAULT_WIDTH &&
-      assistantWidths.file === PANEL_DEFAULT_WIDTH;
-    if (waitingForFirstWidth) return;
-    setChatPaneWidth((current) => {
-      if (current != null) return current;
-      const dockPx = clampDockWidth(
-        assistantWidths.preview,
-        Math.max(0, dockMaxWidth),
-      );
-      if (!(chatColumnWidth > 0) || !(dockPx > 0)) return null;
-      return Math.max(0, Math.round(chatColumnWidth - dockPx));
-    });
-  }, [
+    assistantView,
+    onAssistantViewMode,
+    toggleAssistantDock,
+    pinChatPaneAfterDrag,
+    handleToggleDockRef,
+  } = useAssistantDockColumn({
     assistantVisible,
-    assistantDockOpen,
-    dockFullscreen,
-    checkedPanels.length,
+    dockIssueId,
+    dockWorkdir,
+    checkedPanels,
     assistantWidths,
     chatColumnWidth,
+    chatContainerRef,
+    layoutChatMin,
     dockMaxWidth,
-  ]);
-  const beforeToggleRef = useRef<((kind: DesktopPanelKind) => boolean) | null>(null);
-  const panelShortcutRef = useRef<((kind: DesktopPanelKind) => boolean) | null>(null);
-  const placeKindRef = useRef<((kind: DesktopPanelKind) => void) | null>(null);
-  const dockTabPlaceRef = useRef<{
-    orderKey: string | undefined;
-    present: string[];
-    current: string | null;
-  }>({ orderKey: undefined, present: [], current: null });
-  const showingDetail =
-    assistantVisible &&
-    (workspace.dock === DOCK_DETAIL_TAB || !chromeChecked.includes(workspace.dock));
-  const visibleKind = showingDetail
-    ? null
-    : assistantVisible
-      ? workspace.dock
-      : workspace.dock !== DOCK_DETAIL_TAB && chromeChecked.includes(workspace.dock)
-        ? workspace.dock
-        : activePanel;
-  const activeShownFile = shownFileTabs.find((tab) => tab.path === shownActiveFilePath);
-  const currentFileKey =
-    visibleKind === "file" && activeShownFile
-      ? fileTabKey(activeShownFile.tabKey ?? activeShownFile.path)
-      : null;
-  const currentToolKey =
-    assistantVisible &&
-    (visibleKind === "terminal" || visibleKind === "preview") &&
-    assistantActiveToolId
-      ? toolTabKey(assistantActiveToolId)
-      : null;
-  dockTabPlaceRef.current = {
-    orderKey: assistantVisible ? ASSISTANT_PANEL_GROUP_KEY : groupKey,
-    present: defaultDockTabKeys({
-      detail: assistantVisible,
-      checked: slotCheckedWithFile,
-      filePaths: shownFileTabs.map((tab) => tab.tabKey ?? tab.path),
-      tools: assistantVisible ? assistantTools : [],
-    }),
-    current: showingDetail
-      ? DOCK_TAB_DETAIL_KEY
-      : (currentToolKey ?? currentFileKey ?? (visibleKind ? kindTabKey(visibleKind) : null)),
-  };
-  const placeDockTab = (newKey: string) => {
-    const placed = dockTabPlaceRef.current;
-    if (!placed.orderKey) return;
-    const store = usePanelGroupStore.getState();
-    store.patchGroup(placed.orderKey, {
-      tabOrder: insertTabAfterCurrent(
-        store.groups[placed.orderKey]?.tabOrder,
-        placed.present,
-        placed.current,
-        newKey,
-      ),
-    });
-  };
-  placeKindRef.current = (kind) => placeDockTab(kindTabKey(kind));
-  const placeForwardRef = useRef<
-    ((fwd: NonNullable<PanelGroupState["forward"]>) => void) | null
-  >(null);
-  const focusOrOpenBotPreviewRef = useRef<() => boolean>(() => false);
-  const readAssistantTools = () => {
-    const store = usePanelGroupStore.getState();
-    const group = resolvePanelGroup(store.groups, ASSISTANT_PANEL_GROUP_KEY);
-    return { store, group, tools: group.tools ?? EMPTY_DOCK_TOOLS };
-  };
-  const focusBotTool = (id: string) => {
-    const { store, tools } = readAssistantTools();
-    const tool = tools.find((item) => item.id === id);
-    if (!tool) return;
-    store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, { activeToolId: id });
-    selectDockRef.current(tool.kind);
-  };
-  const openBotTerminal = (): boolean => {
-    const cwd = dockWorkdirRef.current?.trim();
-    if (!cwd) return false;
-    const tool: DockToolInstance = {
-      id: createDockToolId("terminal"),
-      kind: "terminal",
-      workdir: cwd,
-    };
-    const { store, group, tools } = readAssistantTools();
-    const placed = dockTabPlaceRef.current;
-    store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
-      tools: appendDockTool(tools, tool),
-      activeToolId: tool.id,
-      tabOrder: insertTabAfterCurrent(
-        group.tabOrder,
-        placed.present,
-        placed.current,
-        toolTabKey(tool.id),
-      ),
-    });
-    selectDockRef.current("terminal");
-    return true;
-  };
-  const openBotPreview = (): boolean => {
-    const tool: DockToolInstance = {
-      id: createDockToolId("preview"),
-      kind: "preview",
-      previewUrl: null,
-      forward: null,
-      forwardError: null,
-      epoch: 0,
-    };
-    const { store, group, tools } = readAssistantTools();
-    const placed = dockTabPlaceRef.current;
-    store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
-      tools: appendDockTool(tools, tool),
-      activeToolId: tool.id,
-      tabOrder: insertTabAfterCurrent(
-        group.tabOrder,
-        placed.present,
-        placed.current,
-        toolTabKey(tool.id),
-      ),
-    });
-    selectDockRef.current("preview");
-    return true;
-  };
-  const focusOrOpenBotPreview = (): boolean => {
-    const { tools, group } = readAssistantTools();
-    const existing = activePreviewTool(tools, group.activeToolId);
-    if (existing) {
-      focusBotTool(existing.id);
-      return true;
-    }
-    return openBotPreview();
-  };
-  focusOrOpenBotPreviewRef.current = focusOrOpenBotPreview;
-  const closeBotTool = (id: string) => {
-    const { store, tools, group } = readAssistantTools();
-    const closed = tools.find((tool) => tool.id === id);
-    if (!closed) return;
-    if (closed.kind === "terminal") {
-      vscodeRef.current.postMessage({
-        command: "desktopTerminalKill",
-        termId: botToolTermId(id),
-      });
-    }
-    const nextId = nextDockToolId(tools, id, group.activeToolId);
-    const nextTools = removeDockTool(tools, id);
-    store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
-      tools: nextTools,
-      activeToolId: nextId,
-    });
-    if (dockChromeRef.current !== closed.kind) return;
-    if (group.activeToolId && group.activeToolId !== id) return;
-    const next = nextTools.find((tool) => tool.id === nextId);
-    selectDockRef.current(next ? next.kind : DOCK_DETAIL_TAB);
-  };
-  beforeToggleRef.current = (kind) => {
-    if (!assistantVisibleRef.current) return false;
-    if (kind !== "terminal" && kind !== "preview") return false;
-    const { tools, group } = readAssistantTools();
-    const ofKind = tools.filter((tool) => tool.kind === kind);
-    if (ofKind.length === 0) {
-      if (!dockIssueIdRef.current && group.checked.includes(kind)) return false;
-      if (kind === "terminal") {
-        openBotTerminal();
-        return true;
-      }
-      openBotPreview();
-      return true;
-    }
-    const active =
-      ofKind.find((tool) => tool.id === group.activeToolId) ?? ofKind[ofKind.length - 1];
-    if (dockChromeRef.current === kind && group.activeToolId === active.id) {
-      closeBotTool(active.id);
-      return true;
-    }
-    focusBotTool(active.id);
-    return true;
-  };
-  placeForwardRef.current = assistantVisibleRef.current
-    ? (fwd) => {
-        const { store, tools, group } = readAssistantTools();
-        const target = activePreviewTool(tools, group.activeToolId);
-        if (!target) return;
-        store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
-          tools: patchDockTool(tools, target.id, {
-            forward: fwd,
-            forwardError: null,
-            previewUrl: null,
-          }),
-        });
-      }
-    : null;
+    dockFullscreen,
+    workspaceActive: workspace.active,
+  });
+  const {
+    beforeToggleRef,
+    panelShortcutRef,
+    placeKindRef,
+    placeForwardRef,
+    focusOrOpenBotPreviewRef,
+    tryOpenPanelRef,
+    tryOpenForPreview,
+    handleAddPanelRef,
+    openBotTerminal,
+    openBotPreview,
+    focusBotTool,
+    closeBotTool,
+    readAssistantTools,
+  } = useBotDockTools({
+    assistantVisible,
+    workspace,
+    chromeChecked,
+    activePanel,
+    shownFileTabs,
+    shownActiveFilePath,
+    assistantActiveToolId,
+    assistantTools,
+    slotCheckedWithFile,
+    groupKey,
+    selectDockRef,
+    dockWorkdirRef,
+    vscodeRef,
+    dockChromeRef,
+    assistantVisibleRef,
+    dockIssueIdRef,
+    onSessionsSurface,
+    groupKeyRef,
+    setAssistantDockOpen,
+  });
   const panels = usePanels({
     postToHost,
     updatePanelGroup,
@@ -1847,79 +569,14 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const handleDockWidthChangeAndPin = useCallback(
     (width: number) => {
       handleDockWidthChange(width);
-      const frame = chatContainerRef.current?.clientWidth ?? 0;
-      if (!(frame > 0)) return;
-      setChatPaneWidth(Math.max(0, Math.round(frame - width)));
+      pinChatPaneAfterDrag(width);
     },
-    [handleDockWidthChange],
+    [handleDockWidthChange, pinChatPaneAfterDrag],
   );
-  // Panel chords open or switch. On Muse Bot they also leave 详情. A second
-  // press keeps the panel; the tab close button is what removes it.
-  panelShortcutRef.current = (kind) => {
-    if (!assistantVisibleRef.current) {
-      // 会话页的选中项和 Muse Bot 共用。快捷键只改目录里的 active 时，
-      // 开过浏览器之后界面仍停在原来的那种面板上。
-      if (onSessionsSurface) selectDockRef.current(kind);
-      return false;
-    }
-    if (kind === "terminal" || kind === "preview") {
-      const { tools, group } = readAssistantTools();
-      const ofKind = tools.filter((tool) => tool.kind === kind);
-      if (ofKind.length === 0) {
-        if (!dockIssueIdRef.current && group.checked.includes(kind)) return false;
-        setAssistantDockOpen(true);
-        if (kind === "terminal") openBotTerminal();
-        else openBotPreview();
-        return true;
-      }
-      const active =
-        ofKind.find((tool) => tool.id === group.activeToolId) ?? ofKind[ofKind.length - 1];
-      setAssistantDockOpen(true);
-      focusBotTool(active.id);
-      return true;
-    }
-    handleAddPanel(kind);
-    const key = groupKeyRef.current;
-    const group = key ? usePanelGroupStore.getState().groups[key] : undefined;
-    if (!group?.checked.includes(kind) && group?.active !== kind) return true;
-    setAssistantDockOpen(true);
-    selectDockRef.current(kind);
-    return true;
-  };
-  const toggleAssistantDock = useCallback(() => {
-    if (!assistantVisible) {
-      handleToggleDock();
-      return;
-    }
-    if (assistantDockOpen) {
-      restoreAssistantToolsRef.current = checkedPanels.length > 0;
-      if (checkedPanels.length > 0) handleToggleDock();
-      setAssistantDockOpen(false);
-      return;
-    }
-    setAssistantDockOpen(true);
-    if (restoreAssistantToolsRef.current) {
-      restoreAssistantToolsRef.current = false;
-      handleToggleDock();
-    }
-  }, [
-    assistantDockOpen,
-    assistantVisible,
-    checkedPanels.length,
-    handleToggleDock,
-    setAssistantDockOpen,
-  ]);
+  handleToggleDockRef.current = handleToggleDock;
+  handleAddPanelRef.current = handleAddPanel;
+  tryOpenPanelRef.current = tryOpenPanel;
   assistantDockToggleRef.current = assistantVisible ? toggleAssistantDock : null;
-
-  const tryOpenForPreview = useCallback(
-    (kind: DesktopPanelKind) => {
-      if (assistantVisibleRef.current && kind === "preview") {
-        return focusOrOpenBotPreviewRef.current();
-      }
-      return tryOpenPanel(kind);
-    },
-    [tryOpenPanel],
-  );
   const preview = usePreview({
     updatePanelGroup: updatePreviewGroup,
     tryOpenPanel: tryOpenForPreview,
@@ -1966,172 +623,35 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     handleFileSidebarModeChange,
     handleContentSearchChange,
   } = filePanel;
-  // 详情 doesn't change the directory group's active kind. Opening a file
-  // while that kind is already "file" would update the tab and leave the
-  // dock on 详情. The visible pane follows the chrome tab, so a session
-  // whose chrome is already 变更 stays there unless we select 文件 too.
-  const revealOpenedFile = useCallback(() => {
-    const onBot = assistantVisibleRef.current;
-    const onSessions = onSessionsSurfaceRef.current;
-    if (!onBot && !onSessions) return;
-    const store = usePanelGroupStore.getState();
-    const keys = [
-      previewGroupKeyRef.current,
-      groupKeyRef.current,
-      ASSISTANT_PANEL_GROUP_KEY,
-    ];
-    const opened = keys.some((key) => {
-      if (!key) return false;
-      const group = store.groups[key];
-      return group?.active === "file" || Boolean(group?.checked?.includes("file"));
-    });
-    if (!opened) return;
-    if (onBot) setAssistantDockOpen(true);
-    selectDockRef.current("file");
-  }, [setAssistantDockOpen]);
-  const handleOpenFile = useCallback(
-    (path: string, startLine?: number, endLine?: number, pinned?: boolean) => {
-      openFileTabInGroup(path, startLine, endLine, pinned);
-      if (!path) return;
-      revealOpenedFile();
-    },
-    [openFileTabInGroup, revealOpenedFile],
-  );
-  // A file link in the conversation opens a permanent tab. A later preview
-  // open must not replace it.
-  const openMessageFile = useCallback(
-    (path: string, startLine?: number, endLine?: number) => {
-      handleOpenFile(path, startLine, endLine, true);
-    },
-    [handleOpenFile],
-  );
-  // Issue transcript links stay on that issue. Bot-page opens stay resident.
-  const openIssueMessageFile = useCallback(
-    (path: string, startLine?: number, endLine?: number) => {
-      if (!path) return;
-      if (!assistantVisibleRef.current) {
-        openMessageFile(path, startLine, endLine);
-        return;
-      }
-      if (!tryOpenPanel("file")) return;
-      const ownedId = shownIssueIdRef.current ?? dockIssueIdRef.current;
-      const key = ownedId ? issueFileGroupKey(ownedId) : previewGroupKeyRef.current;
-      if (!key) return;
-      const store = usePanelGroupStore.getState();
-      store.patchGroup(key, (group) =>
-        openFileTab(
-          {
-            fileTabs: group.fileTabs ?? [],
-            activeFilePath: group.activeFilePath ?? null,
-          },
-          path,
-          effectiveHost,
-          { startLine, endLine, pinned: true },
-        ),
-      );
-      store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, { activeFilePath: null });
-      postToHost({
-        command: "openFile",
-        path,
-        host: effectiveHost,
-        workdir: dockWorkdirRef.current,
-        startLine,
-        endLine,
-        fileGroupKey: key,
-      });
-      setAssistantDockOpen(true);
-      selectDockRef.current("file");
-    },
-    [effectiveHost, openMessageFile, postToHost, setAssistantDockOpen, tryOpenPanel],
-  );
-  // The card click has to bring 变更 forward. On an issue the dock otherwise
-  // stays on 详情, and the directory's active kind never becomes the visible tab.
-  const openFileHistoryDiff = useCallback(
-    (path: string) => {
-      if (!handleOpenFileHistoryDiff(path)) return;
-      if (assistantVisibleRef.current) setAssistantDockOpen(true);
-      if (assistantVisibleRef.current || onSessionsSurface) {
-        selectDockRef.current("diff");
-      }
-    },
-    [handleOpenFileHistoryDiff, onSessionsSurface, setAssistantDockOpen],
-  );
-  const issueOwnsFileTab = useCallback((path: string) => {
-    if (!assistantVisibleRef.current) return false;
-    const store = usePanelGroupStore.getState();
-    const onAssistant = (store.groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? []).some(
-      (tab) => filesReferToSame(tab, { path }),
-    );
-    if (onAssistant) return false;
-    const ownedId = shownIssueIdRef.current ?? dockIssueIdRef.current;
-    if (!ownedId) return false;
-    const issueKey = issueFileGroupKey(ownedId);
-    return (store.groups[issueKey]?.fileTabs ?? []).some((tab) =>
-      filesReferToSame(tab, { path }),
-    );
-  }, []);
-  const selectShownFileTab = useCallback(
-    (path: string) => {
-      if (!path) return;
-      const ownedId = shownIssueIdRef.current ?? dockIssueIdRef.current;
-      const issueKey = ownedId ? issueFileGroupKey(ownedId) : undefined;
-      if (issueOwnsFileTab(path) && issueKey) {
-        if (!tryOpenPanel("file")) return;
-        const store = usePanelGroupStore.getState();
-        store.patchGroup(issueKey, (group) =>
-          selectFileTab(
-            {
-              fileTabs: group.fileTabs ?? [],
-              activeFilePath: group.activeFilePath ?? null,
-            },
-            path,
-          ),
-        );
-        store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, { activeFilePath: null });
-        return;
-      }
-      handleSelectFileTab(path);
-    },
-    [handleSelectFileTab, issueOwnsFileTab, tryOpenPanel],
-  );
-  const closeShownFileTab = useCallback(
-    (path: string) => {
-      if (!path) return;
-      const ownedId = shownIssueIdRef.current ?? dockIssueIdRef.current;
-      const issueKey = ownedId ? issueFileGroupKey(ownedId) : undefined;
-      if (issueOwnsFileTab(path) && issueKey) {
-        usePanelGroupStore.getState().patchGroup(issueKey, (group) => {
-          const tabs = group.fileTabs ?? [];
-          if (!tabs.some((tab) => filesReferToSame(tab, { path }))) return {};
-          return applyCloseFileTab(group, path);
-        });
-        return;
-      }
-      handleCloseFileTab(path);
-    },
-    [handleCloseFileTab, issueOwnsFileTab],
-  );
-  const pinShownFileTab = useCallback(
-    (path: string) => {
-      if (!path) return;
-      const ownedId = shownIssueIdRef.current ?? dockIssueIdRef.current;
-      const issueKey = ownedId ? issueFileGroupKey(ownedId) : undefined;
-      if (issueOwnsFileTab(path) && issueKey) {
-        usePanelGroupStore.getState().patchGroup(issueKey, (group) =>
-          pinFileTab(
-            {
-              fileTabs: group.fileTabs ?? [],
-              activeFilePath: group.activeFilePath ?? null,
-            },
-            path,
-          ),
-        );
-        return;
-      }
-      handlePinFileTab(path);
-    },
-    [handlePinFileTab, issueOwnsFileTab],
-  );
+  const {
+    revealOpenedFile,
+    handleOpenFile,
+    openMessageFile,
+    openIssueMessageFile,
+    openFileHistoryDiff,
+    selectShownFileTab,
+    closeShownFileTab,
+    pinShownFileTab,
+  } = useShownFileTabs({
+    assistantVisibleRef,
+    onSessionsSurfaceRef,
+    previewGroupKeyRef,
+    groupKeyRef,
+    shownIssueIdRef,
+    dockIssueIdRef,
+    dockWorkdirRef,
+    selectDockRef,
+    setAssistantDockOpen,
+    onSessionsSurface,
+    tryOpenPanel,
+    openFileTabInGroup,
+    handleOpenFileHistoryDiff,
+    handleSelectFileTab,
+    handleCloseFileTab,
+    handlePinFileTab,
+    postToHost,
+    effectiveHost,
+  });
 
   const rewind = useRewind({
     postToHost,
@@ -2256,1204 +776,295 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // question with no file changes shows nothing (no fallback to earlier
   // turns). Derived from the live message list so it survives session
   // switches — the reloaded transcript carries the same file_history blocks.
-  const recentDiffFiles = useMemo(
-    () => recentTurnDiffFiles(state.messages, effectiveWorkdir),
-    [state.messages, effectiveWorkdir],
-  );
-  const issueRecentDiffFiles = useMemo(() => {
-    const sessionId = dockIssueGroup ? issueTabSessionId(dockIssueGroup) : undefined;
-    return recentTurnDiffFiles(
-      messagesForDockIssue({
-        sessionId,
-        liveSessionId: state.currentSession?.id,
-        liveMessages: state.messages,
-        shownSessionId: openIssueSessionId,
-        shownMessages: shownIssueMessages,
-        cached: issueTranscript,
-      }),
-      dockWorkdir,
-    );
-  }, [
+  const {
+    recentDiffFiles,
+    issueRecentDiffFiles,
+    activeIssueGroup,
+    issueClosed,
+    issueViewTab,
+    handleIssueTabChange,
+    handleSelectIssue,
+  } = useIssueSessionChrome({
+    state,
+    host,
+    effectiveWorkdir,
+    dockWorkdir,
     dockIssueGroup,
-    state.currentSession?.id,
-    state.messages,
+    assistantVisible,
+    shownIssueGroup,
     openIssueSessionId,
     shownIssueMessages,
     issueTranscript,
-    dockWorkdir,
-  ]);
-
-  const activeIssueGroup = useMemo(() => {
-    if (host?.type !== "desktop") return undefined;
-    const sessionId = state.currentSession?.id;
-    return (
-      findIssueGroupForSession(host.issueGroups, sessionId) ??
-      findIssueGroupForSession(host.closedIssueGroups, sessionId)
-    );
-  }, [host, state.currentSession?.id]);
-  // 事项标签上的输入框跟屏幕上这条 Issue。宿主当前会话可能还停在另一条已关闭的事项上。
-  const issueForComposer =
-    assistantVisible && shownIssueGroup ? shownIssueGroup : activeIssueGroup;
-  const issueClosed =
-    issueForComposer?.status === "completed" ||
-    issueForComposer?.status === "cancelled";
-  const issueViewTab: IssueViewTab = paneUi.issueViewTab ?? "planning";
-
-  useEffect(() => {
-    if (!activeIssueGroup) return;
-    const sid = state.currentSession?.id;
-    if (sid === activeIssueGroup.executionSessionId) {
-      patchPane({ issueViewTab: "execution" });
-    } else if (sid === activeIssueGroup.planningSessionId) {
-      patchPane({ issueViewTab: "planning" });
-    }
-  }, [
-    activeIssueGroup?.issueId,
-    activeIssueGroup?.executionSessionId,
-    activeIssueGroup?.planningSessionId,
-    state.currentSession?.id,
+    paneIssueViewTab: paneUi.issueViewTab,
     patchPane,
-  ]);
+  });
 
-  const handleIssueTabChange = useCallback(
-    (tab: IssueViewTab) => {
-      if (!activeIssueGroup || host?.type !== "desktop") return;
-      const sessionId =
-        tab === "execution"
-          ? activeIssueGroup.executionSessionId
-          : resolveIssuePlanningSessionId(activeIssueGroup);
-      if (!sessionId) return;
-      patchPane({ issueViewTab: tab });
-      host.onSelectSession(
-        issueGroupSessionWorkdir(
-          activeIssueGroup,
-          sessionId,
-          effectiveWorkdir ?? host.workdir,
-        ),
-        sessionId,
-      );
-    },
-    [activeIssueGroup, host, patchPane, effectiveWorkdir],
-  );
 
-  const handleSelectIssue = useCallback(
-    (issueId: string) => {
-      if (host?.type !== "desktop") return;
-      const group =
-        host.issueGroups?.find((g) => g.issueId === issueId) ??
-        host.closedIssueGroups?.find((g) => g.issueId === issueId);
-      if (!group) return;
-      const sessionId = resolveIssuePlanningSessionId(group);
-      if (!sessionId) return;
-      patchPane({ issueViewTab: "planning" });
-      host.onSelectSession(
-        issueGroupSessionWorkdir(
-          group,
-          sessionId,
-          effectiveWorkdir ?? host.workdir,
-        ),
-        sessionId,
-      );
-    },
-    [host, patchPane, effectiveWorkdir],
-  );
+  const {
+    showIssueChrome,
+    issueSessionHeader,
+    sendIssueMessage,
+    composer,
+  } = useIssueComposer({
+    activeIssueGroup,
+    issueViewTab,
+    handleIssueTabChange,
+    shownIssueGroup,
+    assistantVisible,
+    openIssueViewTab,
+    setIssueTabChoice,
+    issueSendSessionRef,
+    handleSendMessage,
+    messageInputRef,
+    issueStreaming,
+    state,
+    handleAbortMessage,
+    handleSubmitQueuedEdit,
+    handleCancelQueuedEdit,
+    handleInputCleared,
+    vscode,
+    host,
+    isDraftSession,
+    effectiveHost,
+    effectiveWorkdir,
+    panelWorkdir,
+    gitBranches,
+    worktreeBranch,
+    worktreeChecked,
+    patchPane,
+    resolvedModelId,
+    handleSessionModelChange,
+    rewindPopupOpen,
+    rewindCheckpointsLoading,
+    rewindCheckpoints,
+    handleRewindCheckpointSelect,
+    handleRewindPopupClose,
+    modelPopupOpen,
+    modelLoading,
+    configuredModels,
+    currentModel,
+    handleModelSelect,
+    handleModelPopupClose,
+    issueClosed,
+  });
 
-  const showIssueChrome = Boolean(activeIssueGroup);
-  const issueSessionHeader =
-    showIssueChrome && activeIssueGroup ? (
-      <IssueSessionHeader
-        title={activeIssueGroup.title}
-        activeTab={issueViewTab}
-        onTabChange={handleIssueTabChange}
-        showTabs={Boolean(
-          activeIssueGroup && isSplitIssueGroup(activeIssueGroup),
-        )}
-        executionEnabled={Boolean(activeIssueGroup.executionSessionId)}
-      />
-    ) : undefined;
-
-  // 执行会话不收用户消息。从执行标签发出去时，改投规划会话并切过去。
-  const sendIssueMessage = useCallback(
-    (
-      text: string,
-      images?: Array<{ data: string; mediaType: string }>,
-      force?: boolean,
-    ) => {
-      const planningId =
-        shownIssueGroup && isSplitIssueGroup(shownIssueGroup)
-          ? resolveIssuePlanningSessionId(shownIssueGroup)
-          : undefined;
-      if (
-        assistantVisible &&
-        shownIssueGroup &&
-        planningId &&
-        openIssueViewTab === "execution" &&
-        (text.trim() || (images && images.length > 0))
-      ) {
-        issueSendSessionRef.current = planningId;
-        setIssueTabChoice({ issueId: shownIssueGroup.issueId, tab: "planning" });
-      }
-      handleSendMessage(text, images, force);
-    },
-    [assistantVisible, shownIssueGroup, openIssueViewTab, handleSendMessage],
-  );
-
-  const composer = (
-    <ChatComposer
-      ref={messageInputRef}
-      onSendMessage={sendIssueMessage}
-      isStreaming={
-        assistantVisible && shownIssueGroup ? issueStreaming : state.isStreaming
-      }
-      onAbortMessage={handleAbortMessage}
-      onSubmitQueuedEdit={handleSubmitQueuedEdit}
-      editingQueuedId={state.editingQueuedId}
-      onCancelQueuedEdit={handleCancelQueuedEdit}
-      shouldClearInput={state.shouldClearInput}
-      onInputCleared={handleInputCleared}
-      vscode={vscode}
-      selection={state.selection}
-      inputContent={state.inputContent}
-      sessionId={state.currentSession?.id}
-      permissionMode={state.permissionMode}
-      initialAttachedImages={state.attachedImages}
-      host={host}
-      isDraftSession={isDraftSession}
-      effectiveHost={effectiveHost}
-      effectiveWorkdir={effectiveWorkdir}
-      panelWorkdir={panelWorkdir}
-      gitBranches={gitBranches}
-      worktreeBranch={worktreeBranch}
-      worktreeChecked={worktreeChecked}
-      patchPane={patchPane}
-      modelId={resolvedModelId}
-      onModelChange={handleSessionModelChange}
-      rewindPopupOpen={rewindPopupOpen}
-      rewindCheckpointsLoading={rewindCheckpointsLoading}
-      rewindCheckpoints={rewindCheckpoints}
-      onRewindCheckpointSelect={handleRewindCheckpointSelect}
-      onRewindPopupClose={handleRewindPopupClose}
-      modelPopupOpen={modelPopupOpen}
-      modelLoading={modelLoading}
-      configuredModels={configuredModels}
-      currentModel={currentModel}
-      onModelSelect={handleModelSelect}
-      onModelPopupClose={handleModelPopupClose}
-      closed={issueClosed}
-      showDraftControls={isDraftSession && !(assistantVisible && shownIssueGroup)}
-    />
-  );
 
   // One assembly for the 4 return branches (desktop shell / pane / layout / web).
-  const dialogProps: ChatDialogsProps = {
-    activeDialog: state.activeDialog,
-    configurationData: state.configurationData,
-    configurationLoading: state.configurationLoading,
-    configurationError: state.configurationError,
-    onConfigurationSave: handleConfigurationSave,
-    onDialogClose: handleDialogClose,
+  const dialogProps = buildChatDialogProps({
+    state,
     vscode,
-    workflowRuns: state.workflowRuns,
-    onOpenFile: handleOpenFile,
-    isAuthenticated: state.isAuthenticated,
-    loginError: state.loginError,
-    loginServiceName: state.loginServiceName,
-    onLogin: handleLogin,
+    host,
+    effectiveWorkdir,
+    patchPane,
+    handleConfigurationSave,
+    handleDialogClose,
+    handleOpenFile,
+    handleLogin,
     agentTranscript,
-    subagentMessages: state.subagentMessages,
-    agentToolSubagentIds: state.agentToolSubagentIds,
-    onCloseAgentTranscript: handleCloseAgentTranscript,
+    handleCloseAgentTranscript,
     pendingRewindId,
-    onRewindConfirm: handleRewindConfirm,
-    onCancelRewind: () => patchPane({ pendingRewindId: null }),
+    handleRewindConfirm,
     toasts,
-    onToastDismiss: handleToastDismiss,
-    onToastAction: handleToastAction,
+    handleToastDismiss,
+    handleToastAction,
     quickOpenOpen,
     quickOpenQuery,
-    onQuickOpenClose: () => {
-      setQuickOpenOpen(false);
-      setQuickOpenQuery("");
-    },
-    effectiveWorkdir,
-    quickOpenIssues: (host?.issueGroups ?? []).map((group) => ({
-      id: group.issueId,
-      title: group.title,
-      type: group.type,
-    })),
-    onQuickOpenIssue: (issueId: string) => {
-      selectBotPanel({ kind: "issue", issueId });
-    },
-  };
+    setQuickOpenOpen,
+    setQuickOpenQuery,
+    selectBotPanel,
+  });
 
-  const detailSelection = (() => {
-    const panel = workspace.panel;
-    if (panel.kind === "issue") {
-      const found = (host?.issueGroups ?? []).find(
-        (group) => group.issueId === panel.issueId,
-      );
-      return found
-        ? { kind: "issue" as const, issue: found }
-        : { kind: "none" as const };
-    }
-    if (panel.kind === "queue") {
-      const found = botQueue.find((item) => item.id === panel.id);
-      return found
-        ? {
-            kind: "queue" as const,
-            typeLabel: found.kind,
-            title: found.title,
-            body: "",
-          }
-        : { kind: "none" as const };
-    }
-    return { kind: "none" as const };
-  })();
-  const detailIssueGroup =
-    workspace.panel.kind === "issue"
-      ? (host?.issueGroups ?? []).find((group) => group.issueId === workspace.panel.issueId)
-      : undefined;
-  const detailActionLabel =
-    detailIssueGroup && issueTabSessionId(detailIssueGroup)
-      ? sessionActionLabel(workspace, detailIssueGroup.issueId)
-      : null;
-  const detailTitle =
-    detailSelection.kind === "issue"
-      ? detailSelection.issue.title
-      : detailSelection.kind === "queue"
-        ? detailSelection.title
-        : undefined;
 
-  // Shared dock payload: the 4 panel slots + dock chrome (rendered by
-  // ChatContainer when a bound session is showing).
-  // The highlighted kind and the visible pane follow the chrome tab.
-  // The other group's active must not paint through when it differs.
-  // Panes share workspace.dock, and an unfocused pane does not write it.
-  // If that chrome kind is not in this pane's checked set, show this pane's
-  // detail layer. Leave the shared chrome alone until this pane can write.
-  const chromeKindMissing =
-    workspace.dock !== DOCK_DETAIL_TAB &&
-    !chromeChecked.includes(workspace.dock);
-  const issueDiffView = useMemo<DiffViewState | null>(
-    () => (dockIssueId ? { mode: "unstaged" } : null),
-    [dockIssueId],
-  );
-  // 详情只属于 Muse Bot / Issue。会话页用自己目录里正在打开的那种面板，
-  // 不因为这边停在详情就把那边也打开。
-  const showIssueDetail = assistantVisible;
-  const sessionChromeKind =
-    workspace.dock !== DOCK_DETAIL_TAB && chromeChecked.includes(workspace.dock)
-      ? workspace.dock
-      : activePanel;
-  const dock: DesktopPanelSlotsProps = {
-    checked: slotCheckedWithFile,
-    active: showIssueDetail
-      ? workspace.dock === DOCK_DETAIL_TAB
-        ? chromeActive
-        : workspace.dock
-      : sessionChromeKind,
-    mounted: slotMountedWithFile,
-    disabledPanels: panelDisabled,
-    fullscreen: dockFullscreen,
-    widths: shownWidths,
+  const dock = useChatDock({
+    surface,
+    board,
+    workspace,
+    host,
+    panelDisabled,
     dockMaxWidth,
-    onSelect: (kind) => {
-      if (showIssueDetail || onSessionsSurface) workspace.selectDock(kind);
-      handleSelectPanel(kind);
-    },
-    onSelectDetail: showIssueDetail
-      ? () => {
-          workspace.selectDock(DOCK_DETAIL_TAB);
-        }
-      : undefined,
-    detailTitle: showIssueDetail ? detailTitle : undefined,
-    detailPresence:
-      showIssueDetail && detailIssueGroup
-        ? issueTabPresence[detailIssueGroup.issueId] ?? null
-        : null,
-    detailActive:
-      showIssueDetail &&
-      (workspace.dock === DOCK_DETAIL_TAB || chromeKindMissing),
-    detail: showIssueDetail ? (
-      <DockDetail
-        selection={detailSelection}
-        actionLabel={detailActionLabel}
-        onOpenSession={workspace.openIssueSession}
-        onOpenInEditor={(workdir) =>
-          postToHost({ command: "desktopOpenInEditor", workdir })
-        }
-        onRevealInFinder={(workdir) =>
-          postToHost({ command: "revealInFinder", path: workdir })
-        }
-        issues={botIssues.map((item) => ({
-          issueId: item.issueId,
-          title: item.title,
-          type: item.type,
-          presence: item.presence,
-        }))}
-        onSelectIssue={(issueId) => selectBotPanel({ kind: "issue", issueId })}
-      />
-    ) : undefined,
-    onCloseTab: handleTogglePanel,
-    onAddPanel: (kind) => {
-      if (assistantVisible && kind === "terminal") {
-        openBotTerminal();
-        return;
-      }
-      if (assistantVisible && kind === "preview") {
-        openBotPreview();
-        return;
-      }
-      handleAddPanel(kind);
-      if (!onSessionsSurface || !groupKey) return;
-      const opened = usePanelGroupStore.getState().groups[groupKey];
-      if (opened?.checked.includes(kind)) workspace.selectDock(kind);
-    },
-    tools: assistantVisible ? assistantTools : EMPTY_DOCK_TOOLS,
-    activeToolId: assistantActiveToolId,
-    onSelectTool: focusBotTool,
-    onCloseTool: closeBotTool,
-    tabOrder: dockTabOrder,
-    onTabOrderChange: (order) => {
-      const key = assistantVisible ? ASSISTANT_PANEL_GROUP_KEY : groupKey;
-      if (!key) return;
-      usePanelGroupStore.getState().patchGroup(key, { tabOrder: order });
-    },
-    onToolPreviewNavigate: (id, url) => {
-      focusBotTool(id);
-      handlePreviewNavigate(url);
-    },
-    onPreviewLocationChange: (url) => {
-      updatePreviewGroup({ previewUrl: url });
-    },
-    onPreviewTitleChange: (title) => {
-      const next = title || null;
-      const key = previewGroupKeyRef.current;
-      if (!key) return;
-      const current = usePanelGroupStore.getState().groups[key]?.previewTitle ?? null;
-      if (current === next) return;
-      updatePreviewGroup({ previewTitle: next });
-    },
-    previewLabel: previewTitle?.trim() || undefined,
-    onToolPreviewLocationChange: (id, url) => {
-      const store = usePanelGroupStore.getState();
-      const tools = store.groups[ASSISTANT_PANEL_GROUP_KEY]?.tools ?? [];
-      if (!tools.some((tool) => tool.id === id)) return;
-      store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
-        tools: patchDockTool(tools, id, { previewUrl: url }),
-      });
-    },
-    onToolPreviewTitle: (id, title) => {
-      const store = usePanelGroupStore.getState();
-      const tools = store.groups[ASSISTANT_PANEL_GROUP_KEY]?.tools ?? [];
-      const tool = tools.find((item) => item.id === id);
-      if (!tool || (tool.pageTitle ?? null) === (title || null)) return;
-      store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
-        tools: patchDockTool(tools, id, { pageTitle: title || null }),
-      });
-    },
-    onToolPreviewRetry: (id) => {
-      const tool = assistantTools.find((item) => item.id === id);
-      if (!tool?.forward) return;
-      focusBotTool(id);
-      acquireForward(tool.forward.host, tool.forward.originalUrl);
-    },
-    onToggleDock: assistantVisible ? toggleAssistantDock : handleToggleDock,
-    onCloseDock: () => {
-      if (assistantVisible) {
-        restoreAssistantToolsRef.current = false;
-        setAssistantDockOpen(false);
-        return;
-      }
-      const group = groupKey
-        ? usePanelGroupStore.getState().groups[groupKey]
-        : undefined;
-      if ((group?.checked.length ?? 0) > 0) handleToggleDock();
-    },
-    onToggleFullscreen: handleToggleFullscreen,
-    onWidthChange: handleDockWidthChangeAndPin,
-    vscode,
+    assistantVisible,
+    recentDiffFiles,
+    issueRecentDiffFiles,
+    state,
+    effectiveWorkdir,
+    sessionBaseBranch: sessionGitMeta?.baseBranch,
     paneId,
-    isStreaming: state.isStreaming,
-    sessionId: dockIssueId
-      ? dockIssueGroup
-        ? issueTabSessionId(dockIssueGroup)
-        : undefined
-      : state.currentSession?.id,
-    workdir: assistantVisible || onSessionsSurface ? dockWorkdir : effectiveWorkdir,
-    baseBranch:
-      dockIssueId || assistantVisible ? undefined : sessionGitMeta?.baseBranch,
-    homeDir: host?.homeDir,
-    previewEpoch: shownPreviewEpoch,
-    previewUrl: shownPreviewUrl,
-    currentForward: shownForward,
-    previewForwardError: shownForwardError,
-    onRemotePreviewRetry: handleRemotePreviewRetry,
-    onPreviewNavigate: handlePreviewNavigate,
-    onAddComment: handleAddComment,
-    diffView:
-      dockIssueId && diffView?.mode !== "recent" ? issueDiffView : diffView,
-    recentFiles: dockIssueId ? issueRecentDiffFiles : recentDiffFiles,
-    issues: assistantVisible
-      ? (host?.issueGroups ?? []).map((group) => ({
-          id: group.issueId,
-          title: group.title,
-          workdir: issueGroupSessionWorkdir(
-            group,
-            issueTabSessionId(group) ?? "",
-            host?.workdir,
-          ),
-        }))
-      : undefined,
-    issueId: assistantVisible ? dockIssueId : undefined,
-    onSelectIssue: assistantVisible
-      ? (issueId: string) => {
-          const group = (host?.issueGroups ?? []).find(
-            (item) => item.issueId === issueId,
-          );
-          const nextWorkdir = group
-            ? issueGroupSessionWorkdir(
-                group,
-                issueTabSessionId(group) ?? "",
-                host?.workdir,
-              )
-            : undefined;
-          if (nextWorkdir) {
-            const store = usePanelGroupStore.getState();
-            const existing = store.groups[nextWorkdir];
-            const checked = existing?.checked ?? [];
-            const mounted = existing?.mounted ?? [];
-            store.patchGroup(nextWorkdir, {
-              checked: checked.includes("diff") ? checked : [...checked, "diff"],
-              mounted: mounted.includes("diff") ? mounted : [...mounted, "diff"],
-              active: "diff",
-            });
-          }
-          selectBotPanel({ kind: "issue", issueId });
-          workspace.selectDock("diff");
-        }
-      : undefined,
-    onOpenFile: handleOpenFile,
-    onOpenFilePinned: (path) => {
-      handleOpenFilePin(path);
-      revealOpenedFile();
-    },
-    onRefreshOpenFile: handleRefreshOpenFile,
-    onSendMessage: (text) => sendIssueMessage(text),
-    fileView,
-    fileTabs: shownFileTabs,
-    activeFilePath: shownActiveFilePath,
-    onSelectFileTab: (path) => {
-      if (showIssueDetail || onSessionsSurface) workspace.selectDock("file");
-      selectShownFileTab(path);
-    },
-    onCloseFileTab: closeShownFileTab,
-    onPinFileTab: pinShownFileTab,
-    onAddFileToChat: (path) => {
-      const input = botComposerFocused
-        ? assistantInputRef.current ?? messageInputRef.current
-        : messageInputRef.current ?? assistantInputRef.current;
-      input?.insertFile(path);
-    },
-    onAddSelectionToChat: (selection) => {
-      const input =
-        threeColumns && workspace.active === "bot"
-          ? assistantInputRef.current ?? messageInputRef.current
-          : messageInputRef.current ?? assistantInputRef.current;
-      input?.insertSelection(selection);
-    },
-    fileTree: shownFileTree,
-    onFileTreeChange: handleFileTreeChange,
-    fileSidebarMode,
-    onFileSidebarModeChange: handleFileSidebarModeChange,
-    contentSearch: shownContentSearch,
-    onContentSearchChange: handleContentSearchChange,
-    onOpenInPreview: handleOpenLocalFilePreview,
-    onRevealInFinder: handleRevealInFinder,
+    vscode,
+    postToHost,
+    openBotTerminal,
+    openBotPreview,
+    focusBotTool,
+    closeBotTool,
+    handleAddPanel,
+    handleSelectPanel,
+    handleTogglePanel,
+    handleToggleDock,
+    toggleAssistantDock,
+    handleToggleFullscreen,
+    handleDockWidthChangeAndPin,
+    handlePreviewNavigate,
+    handleRemotePreviewRetry,
+    handleAddComment,
+    acquireForward,
+    updatePreviewGroup,
+    restoreAssistantToolsRef,
+    setAssistantDockOpen,
+    handleOpenFile,
+    handleOpenFilePin,
+    revealOpenedFile,
+    handleRefreshOpenFile,
+    sendIssueMessage,
+    selectShownFileTab,
+    closeShownFileTab,
+    pinShownFileTab,
+    botComposerFocused,
+    assistantInputRef,
+    messageInputRef,
+    handleFileTreeChange,
+    handleFileSidebarModeChange,
+    handleContentSearchChange,
+    handleOpenLocalFilePreview,
+    handleRevealInFinder,
     openPreviewHandler,
-  };
+  });
+
 
   // Cards follow the pane left of the dock, not the window. matchMedia is
   // only the fallback when that pane has not been measured (jsdom).
-  const showWideCards =
-    leftPanelWidth > 0 ? botListsWideForPanel(leftPanelWidth) : botListsWide;
-  const onBotHome = workspace.active === "bot";
-  const showCards = onBotHome && showWideCards && !threeColumns;
-  const showBotLists =
-    assistantVisible &&
-    !dockFullscreen &&
-    !(onBotHome && assistantView === "transcript");
-  const botColumnMax =
-    showCards && showBotLists && leftPanelWidth > 0
-      ? Math.min(BOT_MESSAGE_COLUMN_MAX, Math.floor(botListsColumnWidth(leftPanelWidth)))
-      : undefined;
-  const botLists = showBotLists ? (
-    <BotLists
-      queue={botQueue}
-      issues={botIssues}
-      selected={workspace.panel}
-      wide={showCards}
-      menu={botMenu}
-      showQueue={onBotHome}
-      onSelect={selectBotPanel}
-      onOpenIssue={(issueId) => {
-        workspace.openIssueSession(issueId);
-        workspace.selectPanel({ kind: "issue", issueId });
-        setBotMenu(null);
-        clearIssueUnreadRef.current(issueId);
-      }}
-      onOpenDock={() => setAssistantDockOpen(true)}
-      onToggleMenu={(next) => setBotMenu((current) => (current === next ? null : next))}
-      onDismissMenu={() => setBotMenu(null)}
-    />
-  ) : null;
-
-  const shownIssueHeader = shownIssueGroup ? (
-    <IssueSessionHeader
-      placement="corner"
-      title={shownIssueGroup.title}
-      activeTab={openIssueViewTab}
-      onTabChange={(tab) => {
-        if (tab === "execution" && !shownIssueGroup.executionSessionId) return;
-        setIssueTabChoice({ issueId: shownIssueGroup.issueId, tab });
-      }}
-      showTabs={isSplitIssueGroup(shownIssueGroup)}
-      executionEnabled={Boolean(shownIssueGroup.executionSessionId)}
-    />
-  ) : null;
-
-  const columnToggle = (
-    <Tooltip text="分栏" position="bottom" wrap={false}>
-      <button
-        type="button"
-        className={`header-button${threeColumns ? " active" : ""}`}
-        data-testid="assistant-column-toggle"
-        aria-label="三栏"
-        aria-pressed={threeColumns}
-        disabled={workspace.openIssueIds.length === 0}
-        onClick={() => setThreeColumnsOn((on) => !on)}
-      >
-        <svg className="header-icon" viewBox="0 0 16 16" aria-hidden="true">
-          <path
-            fill="currentColor"
-            d="M1.5 2.5h3v11h-3v-11Zm5 0h3v11h-3v-11Zm5 0h3v11h-3v-11Z"
-          />
-        </svg>
-      </button>
-    </Tooltip>
-  );
-  const dockToggle = assistantDockOpen ? null : (
-    <div className="bot-frame-dock-toggle">
-      <PanelToggleControl onToggleDock={toggleAssistantDock} />
-    </div>
-  );
-
   const assistantFrame = (
-    <div
-      className={`chat-container assistant-frame${threeColumns ? " assistant-frame--split" : ""}${chatPaneWidth != null && assistantDockOpen && !dockFullscreen ? " assistant-frame--dock-flex" : ""}`}
-      ref={chatContainerRef}
-      data-testid="assistant-frame"
-      style={
-        {
-          ...(botColumnMax != null ? { "--bot-column-max": `${botColumnMax}px` } : {}),
-          ...(threeColumns
-            ? { "--chat-main-min-width": `${layoutChatMin}px` }
-            : {}),
-          ...(chatPaneWidth != null && assistantDockOpen && !dockFullscreen
-            ? {
-                gridTemplateColumns: dockFlexGridColumns(
-                  chatPaneWidth,
-                  chatMinWidth,
-                ),
-              }
-            : {}),
-        } as React.CSSProperties
-      }
-    >
-      {threeColumns ? null : (
-        <div className="bot-frame-bar">
-          <BotTabs
-            state={workspace}
-            titles={issueTitles}
-            presence={issueTabPresence}
-            onFocus={workspace.focusTab}
-            onClose={workspace.closeIssueTab}
-          />
-          <div className="bot-frame-switch" ref={setBotSwitchHost}>
-            {shownIssueHeader}
-          </div>
-          {showCards ? null : botLists}
-          <div className="bot-frame-end">
-            {columnToggle}
-            {dockToggle}
-          </div>
-        </div>
-      )}
-      <div className="desktop-chat-body">
-        <div
-          className="desktop-chat-main"
-          style={
-            threeColumns
-              ? {
-                  display: "grid",
-                  gridTemplateColumns: `${splitLeftWidth ?? chatMinWidth}px 6px minmax(0, 1fr)`,
-                }
-              : undefined
-          }
-        >
-          {threeColumns ? (
-            <div className="assistant-split-bot">
-              <div className="assistant-split-bar">
-                <BotTabs
-                  state={workspace}
-                  titles={issueTitles}
-                  presence={issueTabPresence}
-                  lockBotTab
-                  scope="bot"
-                  onFocus={workspace.focusTab}
-                  onClose={workspace.closeIssueTab}
-                />
-                <div className="bot-frame-switch" ref={setBotSwitchHost} />
-                {botLists}
-              </div>
-              <AssistantPage
-                api={museApi}
-                vscode={vscode}
-                showPanelToggle={false}
-                inputRef={assistantInputRef}
-                onToggleDock={toggleAssistantDock}
-                onViewModeChange={onAssistantViewMode}
-                onOpenFile={openMessageFile}
-                onOpenUrl={handleOpenPreview}
-                hideQueue={assistantVisible}
-                mentionIssues={(host?.issueGroups ?? []).map((group) => ({
-                  id: group.issueId,
-                  title: group.title,
-                }))}
-                onSelectIssue={(issueId) => selectBotPanel({ kind: "issue", issueId })}
-                emptyState={<AssistantWelcome />}
-                viewSwitchHost={botSwitchHost}
-                onComposerFocusChange={setBotComposerFocused}
-              />
-            </div>
-          ) : null}
-          {threeColumns ? (
-            <div
-              className="assistant-split-handle"
-              data-testid="assistant-split-handle"
-              onMouseDown={(event) => {
-                event.preventDefault();
-                const main = event.currentTarget.parentElement;
-                if (!main) return;
-                const rect = main.getBoundingClientRect();
-                const move = (ev: MouseEvent) => {
-                  const left = clampSplitLeftWidth(
-                    rect.width,
-                    ev.clientX - rect.left,
-                    chatMinWidth,
-                  );
-                  setSplitLeftWidth(left);
-                };
-                const up = () => {
-                  window.removeEventListener("mousemove", move);
-                  window.removeEventListener("mouseup", up);
-                  document.body.classList.remove("is-panel-resizing");
-                };
-                document.body.classList.add("is-panel-resizing");
-                window.addEventListener("mousemove", move);
-                window.addEventListener("mouseup", up);
-              }}
-            />
-          ) : null}
-          {shownIssueGroup ? (
-            <div
-              className={threeColumns ? "assistant-split-issue" : "assistant-split-passthrough"}
-            >
-            {threeColumns ? (
-              <div className="assistant-split-bar">
-                <BotTabs
-                  state={workspace}
-                  titles={issueTitles}
-                  presence={issueTabPresence}
-                  scope="issues"
-                  onFocus={workspace.focusTab}
-                  onClose={workspace.closeIssueTab}
-                />
-                <div className="bot-frame-switch">{shownIssueHeader}</div>
-                <div className="bot-frame-end">
-                  {columnToggle}
-                  {dockToggle}
-                </div>
-              </div>
-            ) : null}
-            <div className="issue-tab-transcript" data-testid="issue-tab-transcript">
-              {issueTranscriptFailed ? (
-                <div className="issue-tab-load-error" data-testid="issue-tab-load-error">
-                  <span>会话加载失败</span>
-                  <button
-                    type="button"
-                    className="issue-tab-load-retry"
-                    onClick={() =>
-                      setIssueTranscriptAttempt((attempt) => attempt + 1)
-                    }
-                  >
-                    重试
-                  </button>
-                </div>
-              ) : (
-                <ChatBody
-                  hideWelcome={!issueShowWelcome}
-                  onSelectPrompt={(text) => messageInputRef.current?.setText(text)}
-                  isRestoring={false}
-                  messages={shownIssueMessages}
-                  initialized
-                  isAuthenticated={state.isAuthenticated}
-                  configurationData={state.configurationData}
-                  onLogin={handleLogin}
-                  queuedMessages={issueShowsLive ? state.queuedMessages : []}
-                  isStreaming={issueStreaming}
-                  isCompacting={issueShowsLive && state.isCompacting}
-                  vscode={vscode}
-                  onRewindToMessage={issueShowsLive ? handleRewindToMessage : () => undefined}
-                  workdir={dockWorkdir}
-                  onOpenPreview={handleOpenPreview}
-                  onOpenFile={openIssueMessageFile}
-                  onOpenAgentTranscript={handleOpenAgentTranscript}
-                  hasOlderMessages={
-                    issueShowsLive
-                      ? state.hasOlderMessages
-                      : openIssueTranscript?.status === "ready" && openIssueTranscript.hasMore
-                  }
-                  onLoadOlder={loadOlderIssueMessages}
-                  onRevertFileHistory={issueShowsLive ? handleRevertFileHistory : () => undefined}
-                  revertingFileHistory={issueShowsLive && revertingFileHistory}
-                  onOpenFileHistoryFile={openFileHistoryDiff}
-                  backgroundTasks={issueShowsLive ? state.backgroundTasks : []}
-                  isBackgroundTasksCollapsed={state.isBackgroundTasksCollapsed}
-                  onToggleBackgroundTasks={() =>
-                    dispatch({ type: "TOGGLE_BACKGROUND_TASKS_COLLAPSE" })
-                  }
-                  onStopTask={(taskId) =>
-                    postToHost({ command: "stopBackgroundTask", taskId })
-                  }
-                  tasks={issueShowsLive ? state.tasks : []}
-                  isTaskListCollapsed={state.isTaskListCollapsed}
-                  onToggleTaskList={() => dispatch({ type: "TOGGLE_TASK_LIST_COLLAPSE" })}
-                  isQueueCollapsed={state.isQueueCollapsed}
-                  onToggleQueueCollapse={() => dispatch({ type: "TOGGLE_QUEUE_COLLAPSE" })}
-                  onEditQueuedMessage={handleEditQueuedMessage}
-                  onDeleteQueuedMessage={handleDeleteQueuedMessage}
-                  editingQueuedId={issueShowsLive ? state.editingQueuedId : null}
-                  pendingConfirmations={issueShowsLive ? state.pendingConfirmations : []}
-                  onConfirm={handleConfirmation}
-                  onReject={handleRejection}
-                  currentSession={issueShowsLive ? state.currentSession : undefined}
-                  composer={composer}
-                  onComposerFocus={threeColumns ? focusShownIssueFromSender : undefined}
-                />
-              )}
-            </div>
-            </div>
-          ) : (
-            <AssistantPage
-              api={museApi}
-              vscode={vscode}
-              showPanelToggle={false}
-              onToggleDock={toggleAssistantDock}
-              onViewModeChange={onAssistantViewMode}
-              onOpenFile={openMessageFile}
-              onOpenUrl={handleOpenPreview}
-              hideQueue={assistantVisible}
-              inputRef={messageInputRef}
-              mentionIssues={(host?.issueGroups ?? []).map((group) => ({
-                id: group.issueId,
-                title: group.title,
-              }))}
-              onSelectIssue={(issueId) => selectBotPanel({ kind: "issue", issueId })}
-              emptyState={<AssistantWelcome />}
-              viewSwitchHost={botSwitchHost}
-            />
-          )}
-          {showCards ? botLists : null}
-        </div>
-        {assistantDockOpen ? <DesktopPanelSlots {...dock} /> : null}
-      </div>
-    </div>
+    <AssistantFrame
+      leftPanelWidth={leftPanelWidth}
+      botListsWide={botListsWide}
+      workspace={workspace}
+      assistantVisible={assistantVisible}
+      dockFullscreen={dockFullscreen}
+      assistantView={assistantView}
+      board={board}
+      setAssistantDockOpen={setAssistantDockOpen}
+      openIssueViewTab={openIssueViewTab}
+      setIssueTabChoice={setIssueTabChoice}
+      assistantDockOpen={assistantDockOpen}
+      toggleAssistantDock={toggleAssistantDock}
+      chatPaneWidth={chatPaneWidth}
+      chatContainerRef={chatContainerRef}
+      layoutChatMin={layoutChatMin}
+      chatMinWidth={chatMinWidth}
+      issueTitles={issueTitles}
+      museApi={museApi}
+      vscode={vscode}
+      assistantInputRef={assistantInputRef}
+      messageInputRef={messageInputRef}
+      onAssistantViewMode={onAssistantViewMode}
+      openMessageFile={openMessageFile}
+      openIssueMessageFile={openIssueMessageFile}
+      handleOpenPreview={handleOpenPreview}
+      host={host}
+      setBotComposerFocused={setBotComposerFocused}
+      issueTranscriptFailed={issueTranscriptFailed}
+      setIssueTranscriptAttempt={setIssueTranscriptAttempt}
+      issueShowWelcome={issueShowWelcome}
+      shownIssueMessages={shownIssueMessages}
+      state={state}
+      handleLogin={handleLogin}
+      issueShowsLive={issueShowsLive}
+      issueStreaming={issueStreaming}
+      handleRewindToMessage={handleRewindToMessage}
+      dockWorkdir={dockWorkdir}
+      handleOpenAgentTranscript={handleOpenAgentTranscript}
+      openIssueTranscript={openIssueTranscript}
+      loadOlderIssueMessages={loadOlderIssueMessages}
+      handleRevertFileHistory={handleRevertFileHistory}
+      revertingFileHistory={revertingFileHistory}
+      openFileHistoryDiff={openFileHistoryDiff}
+      postToHost={postToHost}
+      dispatch={dispatch}
+      handleEditQueuedMessage={handleEditQueuedMessage}
+      handleDeleteQueuedMessage={handleDeleteQueuedMessage}
+      handleConfirmation={handleConfirmation}
+      handleRejection={handleRejection}
+      composer={composer}
+      dock={dock}
+    />
   );
+
 
   const chatContainer = (
-    <ChatContainer
+    <ChatSessionColumn
+      state={state}
       chatContainerRef={chatContainerRef}
       queueEditWarning={queueEditWarning}
-      onDismissQueueEditWarning={() => patchPane({ queueEditWarning: null })}
+      patchPane={patchPane}
       view={view}
       postToHost={postToHost}
-      patchPane={patchPane}
-      currentSession={state.currentSession}
-      initialized={state.initialized}
-      hideWelcome={state.transcriptPending}
       effectiveWorkdir={effectiveWorkdir}
       dock={dock}
       vscode={vscode}
-      // ChatChrome / ChatBody props
-      onNewSession={handleClearChat}
-      onAbortMessage={handleAbortMessage}
-      messages={state.messages}
-      hasOlderMessages={state.hasOlderMessages}
-      onLoadOlder={() => {
-        const before = state.messages[0]?.id;
-        if (before) postToHost({ command: "loadOlderMessages", before });
-      }}
-      onOpenSettings={handleOpenSettings}
-      onLogin={handleLogin}
-      onSelectPrompt={(text) => messageInputRef.current?.setText(text)}
-      onLogout={handleLogout}
-      isAuthenticated={state.isAuthenticated}
+      handleClearChat={handleClearChat}
+      handleAbortMessage={handleAbortMessage}
+      messageInputRef={messageInputRef}
+      handleOpenSettings={handleOpenSettings}
+      handleLogin={handleLogin}
+      handleLogout={handleLogout}
       dispatch={dispatch}
       gitBranches={gitBranches}
       isDraftSession={isDraftSession}
       checkedPanels={checkedPanels}
-      onToggleDock={handleToggleDock}
-      isRestoring={state.isRestoring}
-      configurationData={state.configurationData}
-      queuedMessages={state.queuedMessages}
-      isStreaming={state.isStreaming}
-      isCompacting={state.isCompacting}
-      onRewindToMessage={handleRewindToMessage}
-      workdir={state.workdir}
-      onOpenPreview={openPreviewHandler}
-      onOpenFile={openMessageFile}
-      onOpenAgentTranscript={handleOpenAgentTranscript}
-      onRevertFileHistory={handleRevertFileHistory}
+      handleToggleDock={handleToggleDock}
+      handleRewindToMessage={handleRewindToMessage}
+      openPreviewHandler={openPreviewHandler}
+      openMessageFile={openMessageFile}
+      handleOpenAgentTranscript={handleOpenAgentTranscript}
+      handleRevertFileHistory={handleRevertFileHistory}
       revertingFileHistory={revertingFileHistory}
-      onOpenFileHistoryFile={openFileHistoryDiff}
-      backgroundTasks={state.backgroundTasks}
-      isBackgroundTasksCollapsed={state.isBackgroundTasksCollapsed}
-      onToggleBackgroundTasks={() =>
-        dispatch({ type: "TOGGLE_BACKGROUND_TASKS_COLLAPSE" })
-      }
-      onStopTask={(taskId) =>
-        postToHost({ command: "stopBackgroundTask", taskId })
-      }
-      tasks={state.tasks}
-      isTaskListCollapsed={state.isTaskListCollapsed}
-      onToggleTaskList={() =>
-        dispatch({ type: "TOGGLE_TASK_LIST_COLLAPSE" })
-      }
-      isQueueCollapsed={state.isQueueCollapsed}
-      onToggleQueueCollapse={() =>
-        dispatch({ type: "TOGGLE_QUEUE_COLLAPSE" })
-      }
-      onEditQueuedMessage={handleEditQueuedMessage}
-      onDeleteQueuedMessage={handleDeleteQueuedMessage}
-      editingQueuedId={state.editingQueuedId}
-      pendingConfirmations={state.pendingConfirmations}
-      onConfirm={handleConfirmation}
-      onReject={handleRejection}
+      openFileHistoryDiff={openFileHistoryDiff}
+      handleEditQueuedMessage={handleEditQueuedMessage}
+      handleDeleteQueuedMessage={handleDeleteQueuedMessage}
+      handleConfirmation={handleConfirmation}
+      handleRejection={handleRejection}
       composer={composer}
       issueSessionHeader={issueSessionHeader}
-      hideChatTitle={showIssueChrome}
+      showIssueChrome={showIssueChrome}
     />
   );
 
-  if (host?.type === "desktop") {
-    const refreshSessionTree = () =>
-      postToHost({ command: "desktopRefreshSessionTree" });
-    const issueSidebarProps = {
-      issueGroups: host.issueGroups,
-      closedIssueGroups: host.closedIssueGroups,
-      onNewIssue: () => setShowNewIssue(true),
-      onSelectIssue: (issueId: string) => {
-        setView("chat");
-        handleSelectIssue(issueId);
-      },
-      onOpenPlanning: (issueId: string) => setPlanningIssueId(issueId),
-      onCompleteIssue: (issueId: string, note: string) => {
-        void museApi
-          .completeIssue(issueId, note)
-          .then(refreshSessionTree)
-          .catch((err) => {
-            window.alert(
-              err instanceof Error ? err.message : "完成 Issue 失败",
-            );
-          });
-      },
-      onCancelIssue: (issueId: string, note: string) => {
-        void museApi
-          .cancelIssue(issueId, note)
-          .then(refreshSessionTree)
-          .catch((err) => {
-            window.alert(
-              err instanceof Error ? err.message : "取消 Issue 失败",
-            );
-          });
-      },
-    };
-    const newIssueDialog = showNewIssue ? (
-      <NewIssueDialog
-        api={museApi}
-        onCancel={() => setShowNewIssue(false)}
-        onCreated={() => {
-          setShowNewIssue(false);
-          refreshSessionTree();
-        }}
-      />
-    ) : null;
-    const openPlanningDialog = planningIssueId ? (
-      <OpenPlanningDialog
-        issueId={planningIssueId}
-        api={museApi}
-        postToHost={postToHost}
-        recentWorkdirs={host.recentWorkdirs}
-        onCancel={() => setPlanningIssueId(null)}
-        onOpened={({ sessionId, workdir }) => {
-          setPlanningIssueId(null);
-          host.onSelectSession(workdir, sessionId);
-          refreshSessionTree();
-        }}
-      />
-    ) : null;
 
-    // FR-032 split-view: when the host has pushed a pane layout, DesktopShell
-    // owns the row of paneId-scoped ChatApp instances. This instance then only
-    // contributes its pane-scoped chatContainer (rendered below); without a
-    // paneId it would double-render, so bail out to the shell instead.
-    if ((host.panes?.length ?? 0) > 0 && paneId === undefined) {
-      return (
-        <>
-          <DesktopShell
-            vscode={vscode}
-            host={host}
-            workspace={workspace}
-            onLogin={handleLogin}
-            isAuthenticated={state.isAuthenticated}
-            configurationData={state.configurationData}
-            configurationLoading={state.configurationLoading}
-            configurationError={state.configurationError}
-            onConfigurationSave={handleConfigurationSave}
-            api={museApi}
-            postToHost={postToHost}
-            {...issueSidebarProps}
-          />
-          {newIssueDialog}
-          {openPlanningDialog}
-          <ChatDialogs {...dialogProps} />
-        </>
-      );
-    }
-    // Inside DesktopShell each pane renders only its own chatContainer; the
-    // sidebar / preview pane live in the shell / single-pane layout.
-    // 助理占中间栏，右侧是助手自己的文件、终端和浏览器。
-    const showAssistantInPane =
-      paneId !== undefined &&
-      providedShellSurface === "assistant" &&
-      (host.focusedPaneId ?? paneId) === paneId;
-    if (paneId !== undefined) {
-      return (
-        <>
-          {showAssistantInPane ? assistantFrame : chatContainer}
-          <ChatDialogs {...dialogProps} />
-        </>
-      );
-    }
+  if (host?.type === "desktop") {
     return (
-      <div
-        className="desktop-layout"
-        data-sidebar-collapsed={sidebarCollapsed ? "true" : undefined}
-        style={
-          {
-            "--desktop-sidebar-width": `${contentInset}px`,
-            "--desktop-sidebar-drawer-width": `${sidebarWidth}px`,
-          } as React.CSSProperties
-        }
-      >
-        <AssistantNotice
-          onOpen={() => {
-            if (
-              settingsPageLeaveBlocked(
-                noPaneRail,
-                "assistant",
-                settingsPageRef.current,
-              )
-            ) {
-              return;
-            }
-            setNoPaneRail("assistant");
-            setView("assistant");
-            workspace.focusTab("bot");
-          }}
-        />
-        {noPaneRail === "sessions" ? <DesktopSidebarToggle /> : null}
-        <DesktopSidebar
-          onNewSession={() => {
-            setView("chat");
-            handleDesktopNewSession();
-          }}
-          onNewSessionInPane={() => {
-            setView("chat");
-            postToHost({ command: "desktopNewSessionInPane" });
-          }}
-          onNewSessionInWorkdir={handleDesktopNewSessionInWorkdir}
-          isStreaming={state.isStreaming}
-          disabled={false}
-          onOpenSettings={() => {
-            setNoPaneRail("settings");
-            vscode.postMessage({ command: "getConfiguration" });
-          }}
-          onLogin={handleLogin}
-          isAuthenticated={state.isAuthenticated}
-          {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
-          {...issueSidebarProps}
-          currentSessionId={
-            view === "assistant" || view === "automations" || view === "skills"
-              ? undefined
-              : state.currentSession?.id
-          }
-          onSelectSession={(workdir, sessionId) => {
-            setView("chat");
-            host.onSelectSession(workdir, sessionId);
-          }}
-          onOpenPane={host.onOpenPane}
-          onDeleteSession={host.onDeleteSession}
-          onTogglePin={host.onTogglePin}
-          onRenameSession={host.onRenameSession}
-          onOpenInEditor={(workdir) =>
-            postToHost({ command: "desktopOpenInEditor", workdir })
-          }
-          onOpenInTerminal={(workdir) =>
-            postToHost({ command: "desktopOpenInTerminal", workdir })
-          }
-          onRevealInFinder={(workdir) =>
-            postToHost({ command: "revealInFinder", path: workdir })
-          }
-          onOpenSessions={() => {
-            if (
-              settingsPageLeaveBlocked(
-                noPaneRail,
-                "sessions",
-                settingsPageRef.current,
-              )
-            ) {
-              return;
-            }
-            setNoPaneRail("sessions");
-            setView("chat");
-          }}
-          onOpenAutomations={() => {
-            if (
-              settingsPageLeaveBlocked(
-                noPaneRail,
-                "automations",
-                settingsPageRef.current,
-              )
-            ) {
-              return;
-            }
-            setNoPaneRail("automations");
-            setView("automations");
-          }}
-          onOpenSkills={() => {
-            if (
-              settingsPageLeaveBlocked(
-                noPaneRail,
-                "skills",
-                settingsPageRef.current,
-              )
-            ) {
-              return;
-            }
-            setNoPaneRail("skills");
-            setView("skills");
-          }}
-          onOpenAssistant={() => {
-            if (
-              settingsPageLeaveBlocked(
-                noPaneRail,
-                "assistant",
-                settingsPageRef.current,
-              )
-            ) {
-              return;
-            }
-            setNoPaneRail("assistant");
-            setView("assistant");
-          }}
-          activeMenu={noPaneRail}
-        />
-        {noPaneRail === "sessions" ? (
-          <DesktopSessionList
-            onNewSession={() => {
-              setNoPaneRail("sessions");
-              setView("chat");
-              handleDesktopNewSession();
-            }}
-            onNewSessionInWorkdir={handleDesktopNewSessionInWorkdir}
-            isStreaming={state.isStreaming}
-            disabled={false}
-            {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
-            currentSessionId={
-              view === "assistant" || view === "automations" || view === "skills"
-                ? undefined
-                : state.currentSession?.id
-            }
-            onSelectSession={(workdir, sessionId) => {
-              setView("chat");
-              host.onSelectSession(workdir, sessionId);
-            }}
-            onOpenPane={host.onOpenPane}
-            onDeleteSession={host.onDeleteSession}
-            onTogglePin={host.onTogglePin}
-            onRenameSession={host.onRenameSession}
-            onOpenInEditor={(workdir) =>
-              postToHost({ command: "desktopOpenInEditor", workdir })
-            }
-            onOpenInTerminal={(workdir) =>
-              postToHost({ command: "desktopOpenInTerminal", workdir })
-            }
-            onRevealInFinder={(workdir) =>
-              postToHost({ command: "revealInFinder", path: workdir })
-            }
-            width={sessionListWidth}
-            onWidthChange={setSessionListWidth}
-          />
-        ) : null}
-        {noPaneRail === "settings" ? (
-          <ConfigDialog
-            ref={settingsPageRef}
-            layout="page"
-            vscode={vscode}
-            configurationData={state.configurationData || {}}
-            isLoading={state.configurationLoading}
-            error={state.configurationError}
-            onSave={handleConfigurationSave}
-            onCancel={() => {}}
-            isAuthenticated={state.isAuthenticated}
-            onLogin={handleLogin}
-          />
-        ) : noPaneRail === "skills" ? (
-          <SkillsPage
-            api={museApi}
-            onRunInTerminal={(command) =>
-              postToHost({ command: "desktopRunInTerminal", text: command })
-            }
-          />
-        ) : view === "automations" ? (
-          <AutomationsPage
-            api={museApi}
-            postToHost={postToHost}
-            recentWorkdirs={host.recentWorkdirs ?? []}
-          />
-        ) : view === "assistant" ? (
-          assistantFrame
-        ) : (
-          chatContainer
-        )}
-        {newIssueDialog}
-        {openPlanningDialog}
-        <ChatDialogs {...dialogProps} />
-      </div>
+      <DesktopChatLayout
+        host={host}
+        paneId={paneId}
+        vscode={vscode}
+        workspace={workspace}
+        state={state}
+        museApi={museApi}
+        postToHost={postToHost}
+        dialogProps={dialogProps}
+        assistantFrame={assistantFrame}
+        chatContainer={chatContainer}
+        providedShellSurface={providedShellSurface}
+        view={view}
+        setView={setView}
+        noPaneRail={noPaneRail}
+        setNoPaneRail={setNoPaneRail}
+        settingsPageRef={settingsPageRef}
+        showNewIssue={showNewIssue}
+        setShowNewIssue={setShowNewIssue}
+        planningIssueId={planningIssueId}
+        setPlanningIssueId={setPlanningIssueId}
+        handleSelectIssue={handleSelectIssue}
+        handleLogin={handleLogin}
+        handleConfigurationSave={handleConfigurationSave}
+        handleDesktopNewSession={handleDesktopNewSession}
+        handleDesktopNewSessionInWorkdir={handleDesktopNewSessionInWorkdir}
+        sidebarCollapsed={sidebarCollapsed}
+        contentInset={contentInset}
+        sidebarWidth={sidebarWidth}
+        sessionListWidth={sessionListWidth}
+        setSessionListWidth={setSessionListWidth}
+      />
     );
   }
+
 
   return (
     <>
