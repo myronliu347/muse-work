@@ -1,0 +1,71 @@
+packages/webview/tests/utils/messageImages.test.ts
+  16c15ca6b7b4db01 30,39,42-43,46-50,53,58-59,63,83-84,87-89
+packages/webview/src/utils/messageImages.ts
+  16c15ca6b7b4db01 7-12,15-16,32,34,41-42,62,76-77,79-86,89-92,171-172,204-205
+packages/webview/tests/reducers/chatReducer.test.ts
+  16c15ca6b7b4db01 744,748-749
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "cbfe052450c4d9a0a4356713d360a1bffa6279f7",
+  "prompts": {
+    "16c15ca6b7b4db01": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2b49bc5c-1355-439c-a919-462f92870da3",
+        "model": "default"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 103,
+      "total_deletions": 191,
+      "accepted_lines": 94,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/utils/messageImages.ts": {
+          "additions": 82,
+          "deletions": 136,
+          "accepted_lines": 73
+        },
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "additions": 3,
+          "deletions": 8,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/utils/messageImages.test.ts": {
+          "additions": 18,
+          "deletions": 47,
+          "accepted_lines": 18
+        }
+      }
+    },
+    "77f2456c8992f900": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e32ef64-7567-4b85-9961-7e1fc15ed467",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 9,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/hostPlugins.test.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/index.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/src/utils/logger.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/src/plugins/hostPlugins.ts": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
