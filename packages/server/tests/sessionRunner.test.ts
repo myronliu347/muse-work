@@ -331,16 +331,16 @@ describe("sessionRunner concurrency / dispose", () => {
       { data: "data:image/png;base64,abc", mediaType: "image/png" },
     ]);
     await expect.poll(() => seen).toBeTruthy();
-    expect(seen.images).toEqual([
-      { path: "data:image/png;base64,abc", mimeType: "image/png" },
-    ]);
-    // Content keeps the base64 send flow unchanged, plus [Image source: ...]
-    // markers pointing at the persisted temp file for the model to read.
+    // Content gets [Image source: ...] markers; transcript images keep the
+    // same disk paths (UI resolves path → blob on paint; vision re-reads file).
     const marker = /^see this\n\n\[Image source: (.+\.png)\]$/.exec(
       seen.content,
     );
     expect(marker).toBeTruthy();
     expect(fs.existsSync(marker![1])).toBe(true);
+    expect(seen.images).toEqual([
+      { path: marker![1], mimeType: "image/png" },
+    ]);
   });
 
   it("abortMessage stops the in-flight agent and marks session idle", async () => {

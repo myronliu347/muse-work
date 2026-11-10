@@ -95,6 +95,17 @@ describe("imageSaver", () => {
       tmp = fs.mkdtempSync(path.join(os.tmpdir(), "muse-saver-"));
       expect(await saveBase64Images([], tmp)).toEqual([]);
     });
+
+    it("passes absolute filesystem paths through unchanged", async () => {
+      tmp = fs.mkdtempSync(path.join(os.tmpdir(), "muse-saver-"));
+      const existing = path.join(tmp, "already.png");
+      fs.writeFileSync(existing, Buffer.from([1, 2, 3]));
+      const paths = await saveBase64Images(
+        [{ data: existing, mediaType: "image/png" }],
+        path.join(tmp, "uploads"),
+      );
+      expect(paths).toEqual([existing]);
+    });
   });
 
   describe("appendImageSourceMarkers", () => {

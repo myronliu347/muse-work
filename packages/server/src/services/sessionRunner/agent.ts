@@ -1111,13 +1111,20 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       // Fire-and-forget AI title generation on the first message; the truncation
       // fallback (maybeUpdateTitle) applies when askBtw is unavailable or fails.
       void maybeGenerateAiTitle(sessionId, content, agent);
-      // Persist pasted screenshots to a temp dir so the model can read them
-      // via its tools, then point at them with [Image source: ...] markers.
-      // The base64 images are still forwarded unchanged for vision.
+      // Persist pasted screenshots to a temp dir. Transcript + UI keep these
+      // filesystem paths (not data:); convertMessagesForAPI re-reads them for
+      // vision, and the webview resolves path → blob on paint.
       const imagePaths = await saveBase64Images(
         images?.map((img) => ({ data: img.path, mediaType: img.mimeType })) ??
           [],
       );
+      const diskImages =
+        imagePaths.length > 0
+          ? imagePaths.map((filePath, i) => ({
+              path: filePath,
+              mimeType: images?.[i]?.mimeType || "image/png",
+            }))
+          : images;
       const contentWithSources = appendImageSourceMarkers(
         content,
         imagePaths,
@@ -1128,7 +1135,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       if (source === "user-present") markIssueUserPresent(sessionId, finalContent);
       if (queued) holdSendDepth();
       try {
-        await agent.sendMessage(finalContent, images);
+        await agent.sendMessage(finalContent, diskImages);
       } finally {
         releaseSendDepth();
       }

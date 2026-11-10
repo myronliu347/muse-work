@@ -8,11 +8,63 @@ import {
   WRITE_TOOL_NAME,
 } from "@muse-work/agent/constants";
 import type { ImageBlock, Message as MessageType, TaskNotificationBlock, ToolBlock, VsCodeApi } from "../../types";
+import {
+  isFilesystemImagePath,
+  resolveImageSrc,
+} from "../../utils/resolveImageSrc";
 import { DiffViewer } from "./DiffViewer";
 import type { PreviewImage } from "./imagePreview";
+import { ResolvedImage, useResolvedImageSrc } from "./ResolvedImage";
 import { ToolLine } from "./ToolActivityGroup";
 import { toolHasDetail, toolOpenTarget, toolPresentation } from "./toolActivity";
 import { WriteToolPreview } from "./WriteToolPreview";
+
+function UserImageThumb({
+  imageUrl,
+  name,
+  gallery,
+  galleryIndex,
+  onPreview,
+}: {
+  imageUrl: string;
+  name: string;
+  gallery: PreviewImage[];
+  galleryIndex: number;
+  onPreview: (
+    src: string,
+    alt: string,
+    gallery: PreviewImage[],
+    index: number,
+  ) => void;
+}) {
+  const resolved = useResolvedImageSrc(imageUrl);
+  return (
+    <button
+      type="button"
+      className="user-image-thumb"
+      title={name}
+      disabled={!resolved}
+      onClick={() => {
+        if (!resolved) return;
+        if (!gallery.some((item) => isFilesystemImagePath(item.url))) {
+          onPreview(resolved, name, gallery, galleryIndex);
+          return;
+        }
+        void (async () => {
+          const paintable = await Promise.all(
+            gallery.map(async (item) => ({
+              ...item,
+              url: await resolveImageSrc(item.url),
+            })),
+          );
+          onPreview(resolved, name, paintable, galleryIndex);
+        })();
+      }}
+    >
+      <ResolvedImage src={imageUrl} alt={name} draggable={false} />
+    </button>
+  );
+}
 
 export function renderToolActivity(options: {
   toolBlock: ToolBlock;
@@ -302,15 +354,14 @@ const renderImageBlock = (imageBlock: ImageBlock, index: number) => {
           if (!imageUrl) return null;
           const name = `图片 ${imgIndex + 1}`;
           return (
-            <button
+            <UserImageThumb
               key={`img-${index}-${imgIndex}`}
-              type="button"
-              className="user-image-thumb"
-              title={name}
-              onClick={() => handleImagePreview(imageUrl, name, gallery, offset + imgIndex)}
-            >
-              <img src={imageUrl} alt={name} draggable={false} />
-            </button>
+              imageUrl={imageUrl}
+              name={name}
+              gallery={gallery}
+              galleryIndex={offset + imgIndex}
+              onPreview={handleImagePreview}
+            />
           );
         })}
       </div>

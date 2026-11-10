@@ -28,6 +28,11 @@ import {
   revokeUnusedAttachedImageBlobs,
   revokeUnusedMessageImageBlobs,
 } from "../../utils/messageImages";
+import { ResolvedImage, useResolvedImageSrc } from "../message/ResolvedImage";
+import {
+  isFilesystemImagePath,
+  resolveImageSrc,
+} from "../../utils/resolveImageSrc";
 import { pathToFileUrl } from "../../utils/pathToFileUrl";
 import type { AttachedImage, VsCodeApi } from "../../types";
 import {
@@ -373,13 +378,30 @@ function UserShot({
     index: number,
   ) => void;
 }) {
+  const resolved = useResolvedImageSrc(src);
   return (
     <button
       type="button"
       className="assistant-user-shot"
-      onClick={() => onPreviewImage(src, alt, gallery, index)}
+      disabled={!resolved}
+      onClick={() => {
+        if (!resolved) return;
+        if (!gallery.some((item) => isFilesystemImagePath(item.url))) {
+          onPreviewImage(resolved, alt, gallery, index);
+          return;
+        }
+        void (async () => {
+          const paintable = await Promise.all(
+            gallery.map(async (item) => ({
+              ...item,
+              url: await resolveImageSrc(item.url),
+            })),
+          );
+          onPreviewImage(resolved, alt, paintable, index);
+        })();
+      }}
     >
-      <img src={src} alt={alt} draggable={false} />
+      <ResolvedImage src={src} alt={alt} draggable={false} />
     </button>
   );
 }
