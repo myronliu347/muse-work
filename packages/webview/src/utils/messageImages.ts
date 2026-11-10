@@ -3,69 +3,17 @@ import type { Message, MessageBlock } from "../types";
 /** Max session transcripts kept for instant switch paint. */
 export const TRANSCRIPT_CACHE_MAX_SESSIONS = 3;
 
-/** Fingerprint → blob URL. Never keyed by the data URL itself (that would pin base64). */
-const blobUrlByFingerprint = new Map<string, string>();
-
-/** Test helper: drop the fingerprint → blob memo. */
-export function clearMessageImageBlobCacheForTests(): void {
-  blobUrlByFingerprint.clear();
-}
-
-function canCreateBlobUrl(): boolean {
-  return (
-    typeof URL !== "undefined" &&
-    typeof URL.createObjectURL === "function" &&
-    typeof atob === "function"
-  );
-}
-
-/** Cheap stable id so identical payloads share one blob without retaining the string. */
-export function dataUrlFingerprint(dataUrl: string): string {
-  let hash = 2166136261;
-  for (let i = 0; i < dataUrl.length; i++) {
-    hash ^= dataUrl.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return `${dataUrl.length.toString(16)}:${(hash >>> 0).toString(16)}`;
-}
-
-/** Parse a data URL into a Blob. Returns null when the input is not usable. */
-export function dataUrlToBlob(dataUrl: string): Blob | null {
-  const match = /^data:([^;,]+)?(;base64)?,(.*)$/s.exec(dataUrl);
-  if (!match) return null;
-  const mime = match[1] || "application/octet-stream";
-  const base64 = Boolean(match[2]);
-  const payload = match[3] ?? "";
-  try {
-    if (base64) {
-      const binary = atob(payload);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-      return new Blob([bytes], { type: mime });
-    }
-    return new Blob([decodeURIComponent(payload)], { type: mime });
-  } catch {
-    return null;
-  }
-}
-
 /**
- * Turn a data: image URL into a blob: URL so React state does not retain the
- * multi-hundred-KB base64 string. Identical payloads reuse one blob URL.
+ * Ingest hook for message image URLs.
+ *
+ * data: must stay as data: — rewriting to blob: broke thumbs in the desktop
+ * renderer. Strip leftover blob: handles from that experiment so they cannot
+ * paint as broken icons; the next host page supplies data: again.
+ * Memory wins come from slimTranscriptCache + stable callbacks instead.
  */
 export function materializeImageUrl(url: string): string {
-  if (!url.startsWith("data:")) return url;
-  const fingerprint = dataUrlFingerprint(url);
-  const cached = blobUrlByFingerprint.get(fingerprint);
-  if (cached) return cached;
-  if (!canCreateBlobUrl()) return url;
-  const blob = dataUrlToBlob(url);
-  if (!blob) return url;
-  const blobUrl = URL.createObjectURL(blob);
-  blobUrlByFingerprint.set(fingerprint, blobUrl);
-  return blobUrl;
+  if (url.startsWith("blob:")) return "";
+  return url;
 }
 
 function materializeBlock(block: MessageBlock): MessageBlock {
@@ -81,21 +29,17 @@ function materializeBlock(block: MessageBlock): MessageBlock {
   if (block.type === "tool" && block.images?.length) {
     let changed = false;
     const images = block.images.map((img) => {
-      if (!img.data?.startsWith("data:")) return img;
-      const next = materializeImageUrl(img.data);
-      if (next === img.data) return img;
+      if (!img.data?.startsWith("blob:")) return img;
       changed = true;
-      return { ...img, data: next };
+      return { ...img, data: "" };
     });
     return changed ? { ...block, images } : block;
   }
   return block;
 }
 
-/** Replace embedded data: image URLs with blob: URLs on a message list. */
-export function materializeMessageImages(
-  messages: Message[],
-): Message[] {
+/** Keep data: image URLs; drop unrecoverable blob: leftovers. */
+export function materializeMessageImages(messages: Message[]): Message[] {
   let listChanged = false;
   const next = messages.map((message) => {
     const blocks = message.blocks;
@@ -115,7 +59,7 @@ export function materializeMessageImages(
 
 export type AttachedImageRef = { data: string; mediaType: string };
 
-/** Materialize assistant / composer attached images the same way as message blocks. */
+/** Keep data: attached images; drop unrecoverable blob: leftovers. */
 export function materializeAttachedImages(
   images: AttachedImageRef[] | undefined,
 ): AttachedImageRef[] | undefined {
@@ -129,8 +73,23 @@ export function materializeAttachedImages(
   });
   return changed ? next : images;
 }
+/** @deprecated no-op; kept for existing tests/imports */
+export function clearMessageImageBlobCacheForTests(): void {}
 
-function collectBlobUrlsFromBlocks(blocks: MessageBlock[] | undefined, into: Set<string>): void {
+/** @deprecated no-op */
+export function dataUrlFingerprint(dataUrl: string): string {
+  return `${dataUrl.length}`;
+}
+
+/** @deprecated unused after blob materialize was disabled */
+export function dataUrlToBlob(_dataUrl: string): Blob | null {
+  return null;
+}
+
+function collectBlobUrlsFromBlocks(
+  blocks: MessageBlock[] | undefined,
+  into: Set<string>,
+): void {
   if (!blocks?.length) return;
   for (const block of blocks) {
     if (block.type === "image" && block.imageUrls?.length) {
@@ -148,7 +107,6 @@ function collectBlobUrlsFromBlocks(blocks: MessageBlock[] | undefined, into: Set
   }
 }
 
-/** Collect blob: URLs currently referenced by a transcript. */
 export function collectBlobUrlsFromMessages(messages: Message[]): Set<string> {
   const urls = new Set<string>();
   for (const message of messages) {
@@ -168,16 +126,6 @@ export function collectBlobUrlsFromAttachedImages(
   return into;
 }
 
-function forgetFingerprint(blobUrl: string): void {
-  for (const [fingerprint, cached] of blobUrlByFingerprint) {
-    if (cached === blobUrl) {
-      blobUrlByFingerprint.delete(fingerprint);
-      return;
-    }
-  }
-}
-
-/** Revoke blob URLs that left the live transcript (session switch / replace). */
 export function revokeBlobUrlsExcept(
   keep: Set<string>,
   candidates: Iterable<string>,
@@ -192,7 +140,6 @@ export function revokeBlobUrlsExcept(
     } catch {
       // Ignore revoke failures; the URL may already be gone.
     }
-    forgetFingerprint(url);
   }
 }
 
@@ -221,8 +168,8 @@ export function revokeUnusedAttachedImageBlobs(
 
 function slimBlock(block: MessageBlock): MessageBlock {
   if (block.type === "image" && block.imageUrls?.length) {
-    // Drop data: payloads only. blob: URLs are short handles and must stay so
-    // session-switch paint from transcriptsBySession still shows thumbnails.
+    // Drop heavy data: payloads from the session switch book. Skip empty / blob
+    // leftovers so switch-back paint does not flash broken thumbs.
     if (!block.imageUrls.some((url) => url.startsWith("data:"))) {
       return block;
     }
@@ -254,8 +201,8 @@ function slimBlock(block: MessageBlock): MessageBlock {
 }
 
 /**
- * Copy a transcript for transcriptsBySession without retaining base64 payloads.
- * blob: URLs are kept so switching back can paint thumbs before refetch.
+ * Copy a transcript for transcriptsBySession without retaining base64
+ * payloads. Session switch refetches the real page from the host.
  */
 export function slimMessagesForTranscriptCache(
   messages: Message[],
@@ -277,7 +224,6 @@ export function slimMessagesForTranscriptCache(
   return listChanged ? next : messages;
 }
 
-/** Blobs still referenced by the live transcript or the session switch book. */
 export function collectBlobUrlsFromTranscriptBook(
   book: Record<string, Message[]> | undefined,
 ): Set<string> {

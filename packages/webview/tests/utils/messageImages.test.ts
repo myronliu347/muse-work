@@ -6,7 +6,6 @@ import {
   evictTranscriptCache,
   materializeAttachedImages,
   materializeMessageImages,
-  revokeUnusedMessageImageBlobs,
   slimMessagesForTranscriptCache,
 } from "../../src/utils/messageImages";
 
@@ -23,18 +22,12 @@ function imageMessage(id: string, urls: string[]): Message {
 }
 
 describe("messageImages", () => {
-  const created: string[] = [];
   const originalCreate = URL.createObjectURL;
   const originalRevoke = URL.revokeObjectURL;
 
   beforeEach(() => {
-    created.length = 0;
     clearMessageImageBlobCacheForTests();
-    URL.createObjectURL = vi.fn((blob: Blob) => {
-      const url = `blob:mock-${created.length}-${blob.size}`;
-      created.push(url);
-      return url;
-    }) as typeof URL.createObjectURL;
+    URL.createObjectURL = vi.fn(() => "blob:mock") as typeof URL.createObjectURL;
     URL.revokeObjectURL = vi.fn() as typeof URL.revokeObjectURL;
   });
 
@@ -43,43 +36,32 @@ describe("messageImages", () => {
     URL.revokeObjectURL = originalRevoke;
   });
 
-  it("materializeMessageImages converts data URLs to blob URLs once", () => {
+  it("materializeMessageImages keeps data URLs and does not create blobs", () => {
     const messages = [imageMessage("a", [TINY_PNG, TINY_PNG])];
     const next = materializeMessageImages(messages);
+    expect(next).toBe(messages);
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+  });
+
+  it("materializeMessageImages clears leftover blob URLs", () => {
+    const messages = [imageMessage("a", ["blob:dead", TINY_PNG])];
+    const next = materializeMessageImages(messages);
     const urls = (next[0].blocks?.[0] as { imageUrls: string[] }).imageUrls;
-    expect(urls[0]).toMatch(/^blob:/);
-    expect(urls[1]).toBe(urls[0]);
-    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
-    expect(next).not.toBe(messages);
+    expect(urls).toEqual(["", TINY_PNG]);
   });
 
-  it("does not retain data URLs as cache keys", () => {
-    materializeMessageImages([imageMessage("a", [TINY_PNG])]);
-    // Re-materializing the same payload must hit the fingerprint cache, not a
-    // Map keyed by the multi-KB data URL string.
-    materializeMessageImages([imageMessage("b", [TINY_PNG])]);
-    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
-  });
-
-  it("materializeMessageImages leaves non-data URLs alone", () => {
+  it("materializeMessageImages leaves http URLs alone", () => {
     const messages = [imageMessage("a", ["https://example.com/a.png"])];
     expect(materializeMessageImages(messages)).toBe(messages);
   });
 
-  it("slimMessagesForTranscriptCache strips data URLs but keeps blob URLs", () => {
-    const withData = slimMessagesForTranscriptCache([
+  it("slimMessagesForTranscriptCache strips data URLs", () => {
+    const slim = slimMessagesForTranscriptCache([
       imageMessage("a", [TINY_PNG]),
     ]);
     expect(
-      (withData[0].blocks?.[0] as { imageUrls: string[] }).imageUrls,
+      (slim[0].blocks?.[0] as { imageUrls: string[] }).imageUrls,
     ).toEqual([""]);
-
-    const materialized = materializeMessageImages([
-      imageMessage("b", [TINY_PNG]),
-    ]);
-    const slim = slimMessagesForTranscriptCache(materialized);
-    const urls = (slim[0].blocks?.[0] as { imageUrls: string[] }).imageUrls;
-    expect(urls[0]).toMatch(/^blob:/);
   });
 
   it("evictTranscriptCache keeps the active session and caps size", () => {
@@ -98,23 +80,12 @@ describe("messageImages", () => {
     expect(next.active).toBe(book.active);
   });
 
-  it("materializeAttachedImages converts data URLs to blob URLs", () => {
-    const images = materializeAttachedImages([
+  it("materializeAttachedImages keeps data URLs", () => {
+    const images = [
       { data: TINY_PNG, mediaType: "image/png" },
       { data: TINY_PNG, mediaType: "image/png" },
-    ]);
-    expect(images?.[0].data).toMatch(/^blob:/);
-    expect(images?.[1].data).toBe(images?.[0].data);
-    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
-  });
-
-  it("revokeUnusedMessageImageBlobs drops blobs that left the transcript", () => {
-    const first = materializeMessageImages([imageMessage("a", [TINY_PNG])]);
-    const blob = (first[0].blocks?.[0] as { imageUrls: string[] }).imageUrls[0];
-    revokeUnusedMessageImageBlobs(first, []);
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith(blob);
-    // Same payload after revoke must create a fresh blob URL.
-    materializeMessageImages([imageMessage("b", [TINY_PNG])]);
-    expect(URL.createObjectURL).toHaveBeenCalledTimes(2);
+    ];
+    expect(materializeAttachedImages(images)).toBe(images);
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
   });
 });
