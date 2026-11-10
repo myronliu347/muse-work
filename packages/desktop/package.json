@@ -2,8 +2,8 @@
   "name": "@muse-work/desktop",
   "private": true,
   "description": "Muse desktop app (Electron)",
-  "version": "0.1.6",
-  "shellVersion": "0.1.6",
+  "version": "0.1.7",
+  "shellVersion": "0.1.7",
   "productName": "Muse",
   "appId": "com.muse.work",
   "build": {
