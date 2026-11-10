@@ -1,0 +1,151 @@
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  37fc47e4d53e6a87 43-46,117,125,138,154-159,162-177,234,236,254,256,291,300,339,368,370,604
+packages/webview/src/styles/AssistantPage.css
+  37fc47e4d53e6a87 301-304
+packages/webview/src/components/DesktopApp.tsx
+  37fc47e4d53e6a87 1,7,57,172-216,218,225
+packages/webview/src/stores/panelGroupStore.ts
+  37fc47e4d53e6a87 202-206,278-283,298-303,305
+packages/webview/src/styles/DesktopPanelDock.css
+  37fc47e4d53e6a87 93-95,103,178-182,258,276-280
+packages/webview/tests/components/issueTab.test.tsx
+  37fc47e4d53e6a87 1996,1999,2001-2003,2394,2396-2398,2419-2476
+packages/webview/src/muse/fileTabs.ts
+  37fc47e4d53e6a87 45-63,84-102,112-127,129,217-219,229-230,232,235,237,239-246,249
+packages/webview/src/components/ChatApp.tsx
+  37fc47e4d53e6a87 131-137,142,162,561,693-694,700-706,766-793,839-852,862-864,866-867,872-873,876-877,879,892-893,1183,1393-1399,1406-1407,1409,1413-1415,2017-2018,2063,2066-2071,2076-2077,2100-2101,2105,2117-2118
+packages/webview/src/components/desktop/botWorkspace.ts
+  37fc47e4d53e6a87 39-56,59,62,78-89,120
+packages/webview/src/stores/index.ts
+  37fc47e4d53e6a87 6
+packages/webview/tests/muse/fileTabs.test.ts
+  37fc47e4d53e6a87 297-319
+packages/webview/src/muse/messageRouter.ts
+  37fc47e4d53e6a87 42,76,211-215,262-266
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "0fd415bb4b59a0abd8522acf6d7a686bbc61c2a7",
+  "prompts": {
+    "29f1f9f0dc9fa211": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0afb3b8c-e4f0-46e0-b041-a786fefa3bd7",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 0,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        }
+      }
+    },
+    "37fc47e4d53e6a87": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e63f2be3-332e-42e9-a774-2f8617e5d775",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 454,
+      "total_deletions": 141,
+      "accepted_lines": 443,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/fileTabs.test.ts": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 103,
+          "deletions": 44,
+          "accepted_lines": 103
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 75,
+          "deletions": 11,
+          "accepted_lines": 67
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 15,
+          "deletions": 1,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/muse/fileTabs.ts": {
+          "additions": 72,
+          "deletions": 23,
+          "accepted_lines": 72
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 18,
+          "deletions": 3,
+          "accepted_lines": 18
+        },
+        "packages/webview/src/stores/index.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/desktop/botWorkspace.ts": {
+          "additions": 33,
+          "deletions": 3,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/components/DesktopApp.tsx": {
+          "additions": 58,
+          "deletions": 36,
+          "accepted_lines": 56
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 12,
+          "deletions": 2,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 40,
+          "deletions": 16,
+          "accepted_lines": 39
+        }
+      }
+    },
+    "77f2456c8992f900": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e32ef64-7567-4b85-9961-7e1fc15ed467",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 9,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/index.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/src/plugins/hostPlugins.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/utils/logger.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/tests/hostPlugins.test.ts": {
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
