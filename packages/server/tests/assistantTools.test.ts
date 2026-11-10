@@ -75,6 +75,9 @@ describe("assistant tools", () => {
       },
     });
     const context = { workdir, taskManager: {} as never };
+    expect(tool(tools, "SendMessage").config.function.description).toContain(
+      "回合正文不会发出去",
+    );
     for (const entry of tools) {
       expect(typeof entry.formatCompactParams).toBe("function");
     }

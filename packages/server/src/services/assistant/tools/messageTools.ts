@@ -158,7 +158,7 @@ function truncateCodePoints(input: string, max: number): { text: string; truncat
 export function createMessageTools(deps: AssistantToolDeps) {
   const channels = deps.apps ?? [];
   const sendDescription = [
-    "回复人。app 为 muse。ats 用来 @ issue。本地图片和文件用 files 传绝对路径，链接用 links。正文超过 200 字且没有 files 会被拒绝。",
+    "人只能看见这次调用。回合正文不会发出去，写在那里等于没说。短回复也走这里。app 为 muse。ats 用来 @ issue。本地图片和文件用 files 传绝对路径，链接用 links。正文超过 200 字且没有 files 会被拒绝。",
     ...channels.map((app) => app.description),
   ].join("");
   return [
