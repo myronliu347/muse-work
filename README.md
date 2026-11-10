@@ -99,12 +99,12 @@ pnpm dev:desktop
 # 打包 macOS 安装包
 pnpm dist:mac
 
-# 发布：选择 patch / minor / major，更新所有包的版本，推送 tag。Actions 打出 dmg
+# 发布：选择 patch / minor / major，更新各包版本并推送 tag。dmg 版本跟着发布号走
 pnpm release
 pnpm release --dry-run
 ```
 
-`pnpm release` 在 main 上完成一次发布。它先让你选 patch、minor 或 major，再把这个版本写进每个 workspace 包并提交，然后推送对应的 tag。GitHub Actions 打出 dmg，挂到这个 tag 的 Release。已安装的应用启动后会检查一次，之后每 30 分钟再查。设置页右上角有「检查更新」。启动后每 30 分钟查到新版本时，侧栏底部、设置图标上方会出现「更新」，点开后才提示：界面和服务可以重启生效，换了桌面程序则下载 dmg。安装包会下到「下载」，打开后把 Muse 拖进「应用程序」（/Applications）覆盖安装。仓库需要是公开的，应用才能匿名读到 Release。
+`pnpm release` 在 main 上完成一次发布。它先让你选 patch、minor 或 major，再把这个版本写进每个 workspace 包并提交，然后推送对应的 tag。dmg 的文件名和关于面板用的是这个发布号。壳版本写在 `packages/desktop/package.json` 的 `shellVersion`。发布前跟上一个 tag 比较 `packages/desktop/src` 和 `packages/desktop/package.json`，有改动就把壳版本升到这次的发布号，已安装的旧壳会下载 dmg；没有改动就沿用原来的壳版本，走热更新。GitHub Actions 打出 dmg，挂到这个 tag 的 Release。已安装的应用启动后会检查一次，之后每 30 分钟再查。设置页右上角有「检查更新」。启动后每 30 分钟查到新版本时，侧栏底部、设置图标上方会出现「更新」，点开后才提示：界面和服务可以重启生效，换了桌面程序则下载 dmg。安装包会下到「下载」，打开后把 Muse 拖进「应用程序」（/Applications）覆盖安装。仓库需要是公开的，应用才能匿名读到 Release。
 
 ### 测试
 

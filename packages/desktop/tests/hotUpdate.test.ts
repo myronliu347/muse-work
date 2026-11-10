@@ -12,6 +12,8 @@ import {
   HOT_ZIP_NAME,
   parseHotManifest,
   pickInstallerUrl,
+  readBundledHot,
+  readShellVersion,
   resolveLaunchResources,
 } from "../src/main/hotUpdate";
 
@@ -152,7 +154,7 @@ describe("hot update", () => {
       status: "installer",
       version: "0.3.0",
       shell: "0.9.0",
-      url: `https://github.com/${HOT_REPO}/releases/latest/download/Muse-0.9.0-arm64.dmg`,
+      url: `https://github.com/${HOT_REPO}/releases/latest/download/Muse-0.3.0-arm64.dmg`,
     });
   });
 
@@ -216,6 +218,20 @@ describe("hot update", () => {
     });
     expect(result).toEqual({ status: "skipped", reason: "checksum mismatch" });
     expect(fs.existsSync(path.join(hotRoot, "current.json"))).toBe(false);
+  });
+
+  it("reads the baked shell separately from the release version", () => {
+    const dir = tempRoot();
+    fs.writeFileSync(
+      path.join(dir, "package.json"),
+      JSON.stringify({ version: "0.4.0", shellVersion: "0.2.0" }),
+    );
+    fs.writeFileSync(
+      path.join(dir, "bundled-hot.json"),
+      JSON.stringify({ version: "0.4.0", shell: "0.2.0" }),
+    );
+    expect(readShellVersion(path.join(dir, "package.json"))).toBe("0.2.0");
+    expect(readBundledHot(dir)).toEqual({ version: "0.4.0", shell: "0.2.0" });
   });
 
   it("discards the active hot directory", () => {

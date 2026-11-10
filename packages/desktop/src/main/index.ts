@@ -12,7 +12,8 @@ import {
   checkForHotUpdate,
   discardActiveHot,
   HOT_REPO,
-  readBundledHotVersion,
+  readBundledHot,
+  readShellVersion,
   resolveLaunchResources,
   type LaunchResources,
 } from "./hotUpdate";
@@ -261,14 +262,17 @@ if (!gotLock) {
         detail: status.detail,
       });
     };
+    const bundledHot = app.isPackaged ? readBundledHot(process.resourcesPath) : null;
+    const shellVersion =
+      bundledHot?.shell ??
+      readShellVersion(path.join(app.getAppPath(), "package.json")) ??
+      app.getVersion();
     const updateMonitor = createUpdateMonitor({
       check: () =>
         checkForHotUpdate({
           hotRoot: path.join(app.getPath("userData"), "hot"),
-          shellVersion: app.getVersion(),
-          bundledVersion:
-            (app.isPackaged ? readBundledHotVersion(process.resourcesPath) : null) ??
-            app.getVersion(),
+          shellVersion,
+          bundledVersion: bundledHot?.version ?? app.getVersion(),
           repo: HOT_REPO,
         }),
       publish: publishUpdate,
@@ -357,9 +361,7 @@ if (!gotLock) {
 
     const paths = resolveDesktopPaths();
     const hotRoot = path.join(app.getPath("userData"), "hot");
-    const bundledVersion =
-      (app.isPackaged ? readBundledHotVersion(process.resourcesPath) : null) ??
-      app.getVersion();
+    const bundledVersion = bundledHot?.version ?? app.getVersion();
     const bundledLaunch: LaunchResources = {
       webviewHtmlPath: paths.webviewHtmlPath,
       serverEntry: paths.serverEntry,

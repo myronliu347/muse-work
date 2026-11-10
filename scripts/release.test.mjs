@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import test from "node:test";
 import {
   compareVersions,
   nextReleaseVersion,
   parseChoice,
   parseReleaseArgs,
+  desktopShellChanged,
   parseVersion,
+  shellPackageFile,
   versionedPackageFiles,
 } from "./release.mjs";
 import path from "node:path";
@@ -45,4 +48,18 @@ test("flags leave the bump unset so the prompt can ask", () => {
 test("every workspace package with a version is released together", () => {
   const names = versionedPackageFiles(root).map((file) => path.basename(path.dirname(file)));
   assert.deepEqual(names, ["agent", "desktop", "plugin-sdk", "provider", "server", "webview"]);
+});
+
+test("shell rises when desktop src or package.json changed since the tag", () => {
+  assert.equal(desktopShellChanged(["packages/desktop/src/main/index.ts"]), true);
+  assert.equal(desktopShellChanged(["packages/desktop/package.json"]), true);
+  assert.equal(desktopShellChanged(["packages/desktop/src"]), true);
+  assert.equal(
+    desktopShellChanged(["packages/webview/src/app.tsx", "packages/desktop/scripts/packHot.mjs"]),
+    false,
+  );
+  assert.equal(desktopShellChanged([]), false);
+  const desktop = JSON.parse(fs.readFileSync(shellPackageFile(root), "utf8"));
+  assert.ok(parseVersion(desktop.version));
+  assert.ok(parseVersion(desktop.shellVersion));
 });

@@ -16,8 +16,9 @@ export function releaseAssetUrl(repo: string, name: string): string {
   return `https://github.com/${repo}/releases/latest/download/${name}`;
 }
 
-export function installerAssetName(shell: string, arch: string): string {
-  return `Muse-${normalizeVersion(shell)}-${arch}.dmg`;
+/** electron-builder names the dmg from the release version, not shellVersion. */
+export function installerAssetName(version: string, arch: string): string {
+  return `Muse-${normalizeVersion(version)}-${arch}.dmg`;
 }
 
 export type HotManifest = {
@@ -74,13 +75,32 @@ export function parseHotManifest(raw: unknown): HotManifest | null {
   };
 }
 
-export function readBundledHotVersion(resourcesPath: string): string | null {
+export function readBundledHot(
+  resourcesPath: string,
+): { version: string; shell: string | null } | null {
   try {
     const raw = JSON.parse(
       fs.readFileSync(path.join(resourcesPath, "bundled-hot.json"), "utf8"),
-    ) as { version?: unknown };
+    ) as { version?: unknown; shell?: unknown };
     if (typeof raw.version !== "string" || !parseVersion(raw.version)) return null;
-    return normalizeVersion(raw.version);
+    const shell =
+      typeof raw.shell === "string" && parseVersion(raw.shell) ? normalizeVersion(raw.shell) : null;
+    return { version: normalizeVersion(raw.version), shell };
+  } catch {
+    return null;
+  }
+}
+
+export function readBundledHotVersion(resourcesPath: string): string | null {
+  return readBundledHot(resourcesPath)?.version ?? null;
+}
+
+/** Shell baked into this build. The dmg version (app.getVersion) tracks each release. */
+export function readShellVersion(packageJsonPath: string): string | null {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf8")) as { shellVersion?: unknown };
+    if (typeof pkg.shellVersion !== "string" || !parseVersion(pkg.shellVersion)) return null;
+    return normalizeVersion(pkg.shellVersion);
   } catch {
     return null;
   }
@@ -262,7 +282,7 @@ export async function checkForHotUpdate(opts: {
       shell: manifest.shell,
       url: releaseAssetUrl(
         repo,
-        installerAssetName(manifest.shell, opts.arch ?? process.arch),
+        installerAssetName(manifest.version, opts.arch ?? process.arch),
       ),
     };
   }

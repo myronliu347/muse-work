@@ -1,15 +1,19 @@
 /**
  * Shared version stamp for the dmg and the hot-update zip.
- * HOT_VERSION (a tag like v0.2.0) is the resource version.
- * The shell version stays packages/desktop/package.json so an Electron
- * upgrade can refuse older shells.
+ * HOT_VERSION (a tag like v0.2.0) is the resource version. electron-builder
+ * names the dmg from package.json "version", which tracks that release.
+ * shellVersion in the same package.json is the Electron shell. pnpm release
+ * raises it when packages/desktop/src or package.json differs from the
+ * previous tag.
  */
 import fs from "node:fs";
 import path from "node:path";
 
 export function shellVersion(desktopRoot) {
   const pkg = JSON.parse(fs.readFileSync(path.join(desktopRoot, "package.json"), "utf8"));
-  return String(pkg.version);
+  const raw = typeof pkg.shellVersion === "string" ? pkg.shellVersion.trim().replace(/^v/, "") : "";
+  if (!raw) throw new Error("packages/desktop/package.json 缺少 shellVersion");
+  return raw;
 }
 
 export function resourceVersion(shell) {

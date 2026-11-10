@@ -1,7 +1,11 @@
 /**
  * Publish from main: ask for patch, minor, or major, write that version into
  * every workspace package, commit, and push a tag. The tag starts the Release
- * workflow, which builds the dmg.
+ * workflow, which builds the dmg. The dmg version is this release version.
+ *
+ * shellVersion in packages/desktop/package.json stays put unless
+ * packages/desktop/src or that package.json differs from the previous tag.
+ * Then it rises to this release version, and installed apps download a dmg.
  *
  *   pnpm release                 交互选择 patch / minor / major
  *   pnpm release patch|minor|major
@@ -88,6 +92,22 @@ export function versionedPackageFiles(repoRoot) {
   return files.sort();
 }
 
+export function shellPackageFile(repoRoot) {
+  return path.join(repoRoot, "packages", "desktop", "package.json");
+}
+
+/** True when a path is the desktop shell: src, or its package.json. */
+export function desktopShellChanged(paths) {
+  return paths.some((file) => {
+    const name = String(file).replaceAll("\\", "/").replace(/^\.\//, "");
+    return (
+      name === "packages/desktop/package.json" ||
+      name === "packages/desktop/src" ||
+      name.startsWith("packages/desktop/src/")
+    );
+  });
+}
+
 function git(args, { allowFailure = false } = {}) {
   try {
     return execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
@@ -112,6 +132,37 @@ function writePackageVersion(file, version) {
   fs.writeFileSync(file, next);
 }
 
+function readShellVersion(file) {
+  const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
+  const version = String(pkg.shellVersion ?? "");
+  if (!parseVersion(version)) {
+    throw new Error(`${path.relative(root, file)} 的 shellVersion 不是 x.y.z：${version}`);
+  }
+  return version;
+}
+
+function writeShellVersion(file, version) {
+  const raw = fs.readFileSync(file, "utf8");
+  const next = raw.replace(/"shellVersion": "[^"]+"/, `"shellVersion": "${version}"`);
+  if (next === raw) throw new Error(`没有写到 ${path.relative(root, file)} 的 shellVersion`);
+  fs.writeFileSync(file, next);
+}
+
+/** Paths under the desktop shell that differ from the previous release tag. No tag counts as changed. */
+function shellChangesSinceTag(tag) {
+  if (!tag) return ["packages/desktop/package.json"];
+  const out = git([
+    "diff",
+    "--name-only",
+    `v${tag}`,
+    "HEAD",
+    "--",
+    "packages/desktop/src",
+    "packages/desktop/package.json",
+  ]);
+  return out.split("\n").map((line) => line.trim()).filter(Boolean);
+}
+
 function latestTag() {
   const out = git(["tag", "--list", "v[0-9]*", "--sort=-v:refname"]);
   for (const tag of out.split("\n")) {
@@ -134,7 +185,8 @@ function assertClean() {
 
 function help() {
   console.log(`用法
-  pnpm release                 选择 patch、minor 或 major，更新所有包的版本并推送 tag
+  pnpm release                 选择 patch、minor 或 major，更新各包版本并推送 tag
+  壳版本看 desktop 的 src 和 package.json。相对上一个 tag 有改动才升到本次版本
   pnpm release patch|minor|major
   pnpm release 1.2.3           指定版本
   pnpm release --dry-run       选择后只打印`);
@@ -175,6 +227,8 @@ async function main() {
   const files = versionedPackageFiles(root);
   if (files.length === 0) throw new Error("没有找到带版本号的包。");
   const currentVersions = files.map((file) => ({ file, version: readPackageVersion(file) }));
+  const shellFile = shellPackageFile(root);
+  const shell = readShellVersion(shellFile);
   const current = highestVersion(currentVersions.map((row) => row.version));
   const tagged = latestTag();
   const kind = argKind ?? (await chooseKind(tagged && compareVersions(tagged, current) > 0 ? tagged : current));
@@ -191,9 +245,16 @@ async function main() {
   }
 
   const tag = `v${version}`;
+  const raiseShell = desktopShellChanged(shellChangesSinceTag(tagged)) && compareVersions(version, shell) > 0;
   console.log(`版本 ${current} → ${version}，提交到 ${branch}，推送 tag ${tag}。`);
   for (const row of currentVersions) {
     console.log(`  ${path.relative(root, row.file)}  ${row.version} → ${version}`);
+  }
+  if (raiseShell) {
+    const since = tagged ? `v${tagged}` : "没有上一个 tag";
+    console.log(`  壳版本 ${shell} → ${version}（相对 ${since}，desktop 的 src 或 package.json 有改动）`);
+  } else {
+    console.log(`  壳版本 ${shell}`);
   }
   console.log("Actions 会打出 dmg 并挂到这个 Release。");
   if (flags.dryRun) {
@@ -202,6 +263,7 @@ async function main() {
   }
 
   for (const row of currentVersions) writePackageVersion(row.file, version);
+  if (raiseShell) writeShellVersion(shellFile, version);
   git(["add", ...currentVersions.map((row) => path.relative(root, row.file))]);
   git(["commit", "-m", `release: ${version}`]);
   git(["push", "origin", "HEAD"]);
