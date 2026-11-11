@@ -238,6 +238,9 @@ export const MessageList = forwardRef<
 
   const computeSticky = useCallback(() => {
     const container = containerRef.current;
+    // Update stickyRef before setState so repeated observers in the same
+    // frame (ResizeObserver / scroll) see the pending pin and do not each
+    // schedule another nested update ("Maximum update depth exceeded").
     const setSticky = (
       next: { id: string; text: string; system: boolean; message: MessageType } | null,
     ) => {
@@ -249,7 +252,9 @@ export const MessageList = forwardRef<
             prev.id === next.id &&
             prev.text === next.text &&
             prev.system === next.system;
-      if (!same) setStickyMessage(next);
+      if (same) return;
+      stickyRef.current = next;
+      setStickyMessage(next);
     };
     if (!container) {
       setSticky(null);
@@ -335,6 +340,20 @@ export const MessageList = forwardRef<
     });
     setActiveNavId((prev) => (prev === next ? prev : next));
   }, [virtualizer]);
+
+  const computeStickyRef = useRef(computeSticky);
+  computeStickyRef.current = computeSticky;
+  const computeActiveNavRef = useRef(computeActiveNav);
+  computeActiveNavRef.current = computeActiveNav;
+  const stickyNavRafRef = useRef<number | undefined>(undefined);
+  const scheduleStickyNav = useCallback(() => {
+    if (stickyNavRafRef.current !== undefined) return;
+    stickyNavRafRef.current = requestAnimationFrame(() => {
+      stickyNavRafRef.current = undefined;
+      computeStickyRef.current();
+      computeActiveNavRef.current();
+    });
+  }, []);
 
   const scrollToMessage = useCallback(
     (id: string) => {
@@ -529,8 +548,7 @@ export const MessageList = forwardRef<
       prevScrollTopRef.current = container.scrollTop;
       prevScrollHeightRef.current = container.scrollHeight;
       prevClientHeightRef.current = container.clientHeight;
-      computeSticky();
-      computeActiveNav();
+      scheduleStickyNav();
     };
 
     const handleWheel = (event: WheelEvent) => {
@@ -540,12 +558,13 @@ export const MessageList = forwardRef<
     container.addEventListener("scroll", handleScroll);
     container.addEventListener("wheel", handleWheel, { passive: true });
 
+    // Coalesce observer callbacks to one frame. Observe + measure + sticky
+    // setState in the same turn nested past React's update depth limit.
     const resizeObserver = new ResizeObserver(() => {
       prevScrollTopRef.current = container.scrollTop;
       prevScrollHeightRef.current = container.scrollHeight;
       prevClientHeightRef.current = container.clientHeight;
-      computeSticky();
-      computeActiveNav();
+      scheduleStickyNav();
     });
     resizeObserver.observe(container);
 
@@ -571,15 +590,25 @@ export const MessageList = forwardRef<
       }, 3000);
       onLoadOlderRef.current?.();
     }
-    computeSticky();
-    computeActiveNav();
+    scheduleStickyNav();
 
     return () => {
       resizeObserver.disconnect();
       container.removeEventListener("scroll", handleScroll);
       container.removeEventListener("wheel", handleWheel);
+      if (stickyNavRafRef.current !== undefined) {
+        cancelAnimationFrame(stickyNavRafRef.current);
+        stickyNavRafRef.current = undefined;
+      }
     };
-  }, [messages, queuedMessages, isStreaming, hasOlderMessages, scrollToBottom, computeSticky, computeActiveNav]);
+  }, [
+    messages,
+    queuedMessages,
+    isStreaming,
+    hasOlderMessages,
+    scrollToBottom,
+    scheduleStickyNav,
+  ]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -631,6 +660,7 @@ export const MessageList = forwardRef<
     container.scrollTo({ top: max, behavior: "auto" });
   }, [showThinkingHint, isCompacting, fileHistory, markProgrammaticScroll]);
 
+  // Keep ref aligned after React commits (e.g. session swap clears nav/pin).
   stickyRef.current = stickyMessage;
 
   const holdTranscriptScroll = useCallback(() => {
