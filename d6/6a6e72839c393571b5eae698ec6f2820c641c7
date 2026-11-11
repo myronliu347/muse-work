@@ -1,0 +1,83 @@
+packages/webview/src/components/desktop/botWorkspace.ts
+  3eb2ea653c89d220 16-17,21-30,37,75,94,109,122-132,138,141-142,147-152
+packages/webview/tests/components/botWorkspace.test.ts
+  3eb2ea653c89d220 66-78
+packages/webview/src/muse/botPageState.ts
+  3eb2ea653c89d220 120-131,137-139,144-145,278,488-494,499-500,504-505
+packages/webview/tests/components/issueTab.test.tsx
+  3eb2ea653c89d220 628-631,2475,2479-2494
+packages/webview/tests/muse/botPageState.test.ts
+  3eb2ea653c89d220 90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d66a6e72839c393571b5eae698ec6f2820c641c7",
+  "prompts": {
+    "3eb2ea653c89d220": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9edc11cc-2654-4688-9d86-24fe119afde5",
+        "model": "default"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 104,
+      "total_deletions": 13,
+      "accepted_lines": 100,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/botWorkspace.ts": {
+          "additions": 40,
+          "deletions": 9,
+          "accepted_lines": 36
+        },
+        "packages/webview/src/muse/botPageState.ts": {
+          "additions": 29,
+          "deletions": 3,
+          "accepted_lines": 29
+        },
+        "packages/webview/tests/muse/botPageState.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 21,
+          "deletions": 1,
+          "accepted_lines": 21
+        },
+        "packages/webview/tests/components/botWorkspace.test.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        }
+      }
+    },
+    "77f2456c8992f900": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e32ef64-7567-4b85-9961-7e1fc15ed467",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 9,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/index.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/src/plugins/hostPlugins.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/utils/logger.ts": {
+          "accepted_lines": 3
+        },
+        "packages/server/tests/hostPlugins.test.ts": {
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
