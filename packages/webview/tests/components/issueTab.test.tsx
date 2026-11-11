@@ -625,7 +625,10 @@ describe("issue tab", () => {
 
     await user.click(botTab(frame, RADII));
     expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(RADII);
-    expect(within(dock).getByRole("heading", { name: RADII })).toBeInTheDocument();
+    // RADII was left while 文件 was active; switching back restores that chrome.
+    expect(within(dock).getByTestId("desktop-panel-tab-file")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
     expect(within(dock).queryByRole("button", { name: "切到会话" })).toBeNull();
     await user.click(botTab(frame, A11Y));
     expect(onSelectSession).not.toHaveBeenCalled();
@@ -2469,9 +2472,26 @@ describe("issue tab", () => {
       "data-path",
       "src/App.tsx",
     );
+    expect(within(dock).getByTestId("file-tab")).toHaveAttribute("data-active", "true");
 
     await user.click(within(frame).getByRole("button", { name: "灵光" }));
     expect(within(dock).queryByTestId("file-tab")).toBeNull();
+    expect(within(dock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(
+      usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? [],
+    ).toEqual([]);
+
+    await user.click(botTab(frame, RADII));
+    expect(await within(dock).findByTestId("file-tab")).toHaveAttribute(
+      "data-path",
+      "src/App.tsx",
+    );
+    expect(within(dock).getByTestId("file-tab")).toHaveAttribute("data-active", "true");
+    expect(
+      usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? [],
+    ).toEqual([]);
   });
 
   it("clears unread when the issue list or tab is chosen", async () => {

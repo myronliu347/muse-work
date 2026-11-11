@@ -63,6 +63,19 @@ describe("botWorkspace", () => {
     expect(next.dock).toBe("file");
   });
 
+  it("focus restores each tab's dock chrome", () => {
+    const opened = openIssueSession(initialBotWorkspace("radii"), "radii");
+    const onFile = selectDock(opened, "file");
+    const onBot = focusTab(onFile, "bot");
+    expect(onBot.active).toBe("bot");
+    expect(onBot.dock).toBe("detail");
+    expect(onBot.docks).toMatchObject({ radii: "file", bot: "detail" });
+    const back = focusTab(onBot, "radii");
+    expect(back.active).toBe("radii");
+    expect(back.dock).toBe("file");
+    expect(back.panel).toEqual({ kind: "issue", issueId: "radii" });
+  });
+
   it("focus and close only change center tabs", () => {
     const opened = openIssueSession(
       openIssueSession(initialBotWorkspace("radii"), "radii"),

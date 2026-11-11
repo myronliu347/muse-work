@@ -117,16 +117,32 @@ function parseDock(value: unknown): DockChrome {
   return DOCKS.find((dock) => dock === value) ?? "detail";
 }
 
+function parseDocks(value: unknown, openIssueIds: readonly string[]): Record<string, DockChrome> {
+  if (!isRecord(value)) return {};
+  const allowed = new Set<string>(["bot", ...openIssueIds]);
+  const docks: Record<string, DockChrome> = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (!allowed.has(key)) continue;
+    const dock = DOCKS.find((entry) => entry === item);
+    if (dock) docks[key] = dock;
+  }
+  return docks;
+}
+
 function parseWorkspace(value: unknown): BotWorkspaceState | null {
   if (!isRecord(value)) return null;
   const openIssueIds = stringList(value.openIssueIds, 30);
   const active = typeof value.active === "string" && value.active ? value.active : "bot";
   const lastIssueId = typeof value.lastIssueId === "string" && value.lastIssueId ? value.lastIssueId : null;
+  const dock = parseDock(value.dock);
+  const docks = parseDocks(value.docks, openIssueIds);
+  if (!docks[active]) docks[active] = dock;
   return {
     active: active === "bot" || openIssueIds.includes(active) ? active : "bot",
     openIssueIds,
     panel: parsePanel(value.panel),
-    dock: parseDock(value.dock),
+    dock,
+    docks,
     lastIssueId,
   };
 }
@@ -259,6 +275,7 @@ export function saveBotWorkspace(state: BotWorkspaceState): void {
     openIssueIds: state.openIssueIds.slice(0, 30),
     panel: state.panel,
     dock: state.dock,
+    docks: state.docks,
     lastIssueId: state.lastIssueId,
   };
   writeSnapshot(current);
@@ -468,15 +485,24 @@ export function pruneBotWorkspace(
       : state.panel;
   const lastIssueId = state.lastIssueId && known.has(state.lastIssueId) ? state.lastIssueId : null;
   const active = state.active === "bot" || openIssueIds.includes(state.active) ? state.active : "bot";
+  const docks: Record<string, DockChrome> = {};
+  for (const [key, dock] of Object.entries(state.docks ?? {})) {
+    if (key === "bot" || openIssueIds.includes(key)) docks[key] = dock;
+  }
+  const docksUnchanged =
+    Object.keys(docks).length === Object.keys(state.docks ?? {}).length &&
+    Object.entries(docks).every(([key, dock]) => state.docks?.[key] === dock);
   if (
     active === state.active &&
     lastIssueId === state.lastIssueId &&
     panel === state.panel &&
-    openIssueIds.length === state.openIssueIds.length
+    openIssueIds.length === state.openIssueIds.length &&
+    docksUnchanged
   ) {
     return state;
   }
-  return { ...state, active, openIssueIds, panel, lastIssueId };
+  const dock = docks[active] ?? (active === state.active ? state.dock : "detail");
+  return { ...state, active, openIssueIds, panel, lastIssueId, dock, docks };
 }
 
 export function readInitialBotWorkspace(

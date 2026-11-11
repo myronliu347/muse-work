@@ -13,7 +13,19 @@ export interface BotWorkspaceState {
   openIssueIds: string[];
   panel: PanelSelection;
   dock: DockChrome;
+  /** Per center-tab chrome: Muse Bot and each issue remember their own dock. */
+  docks: Record<string, DockChrome>;
   lastIssueId: string | null;
+}
+
+function withDockForTab(
+  state: BotWorkspaceState,
+  nextActive: string,
+): Pick<BotWorkspaceState, "dock" | "docks"> {
+  const docks = { ...state.docks, [state.active]: state.dock };
+  const dock = docks[nextActive] ?? "detail";
+  docks[nextActive] = dock;
+  return { docks, dock };
 }
 
 export function initialBotWorkspace(firstIssueId: string | null): BotWorkspaceState {
@@ -22,6 +34,7 @@ export function initialBotWorkspace(firstIssueId: string | null): BotWorkspaceSt
     openIssueIds: [],
     panel: firstIssueId ? { kind: "issue", issueId: firstIssueId } : { kind: "none" },
     dock: "detail",
+    docks: {},
     lastIssueId: firstIssueId,
   };
 }
@@ -59,6 +72,7 @@ export function selectPanel(
     active,
     panel,
     dock: "detail",
+    docks: { ...state.docks, [state.active]: state.dock, [active]: "detail" },
     lastIssueId,
   };
 }
@@ -77,7 +91,7 @@ export function focusTab(state: BotWorkspaceState, tab: "bot" | string): BotWork
   if (tab !== "bot" && !state.openIssueIds.includes(tab)) return state;
   if (tab === "bot") {
     if (state.active === "bot") return state;
-    return { ...state, active: tab };
+    return { ...state, active: tab, ...withDockForTab(state, tab) };
   }
   if (
     state.active === tab &&
@@ -92,6 +106,7 @@ export function focusTab(state: BotWorkspaceState, tab: "bot" | string): BotWork
     active: tab,
     panel: { kind: "issue", issueId: tab },
     lastIssueId: tab,
+    ...withDockForTab(state, tab),
   };
 }
 
@@ -104,21 +119,37 @@ export function closeIssueTab(state: BotWorkspaceState, issueId: string): BotWor
   if (!hadTab && !panelWasThis && !lastWasThis && !activeWasThis) return state;
   // 右侧正在看这条 Issue 时，关掉后不再选中它，回到详情。
   const droveDock = panelWasThis;
+  const docks = { ...state.docks };
+  delete docks[issueId];
+  const active = activeWasThis ? "bot" : state.active;
+  let dock = state.dock;
+  if (activeWasThis) {
+    dock = droveDock ? "detail" : (docks.bot ?? "detail");
+    docks.bot = dock;
+  } else if (droveDock) {
+    dock = "detail";
+    docks[active] = "detail";
+  }
   return {
     ...state,
     openIssueIds: hadTab
       ? state.openIssueIds.filter((id) => id !== issueId)
       : state.openIssueIds,
-    active: activeWasThis ? "bot" : state.active,
+    active,
     panel: panelWasThis ? { kind: "none" } : state.panel,
     lastIssueId: lastWasThis ? null : state.lastIssueId,
-    dock: droveDock ? "detail" : state.dock,
+    dock,
+    docks,
   };
 }
 
 export function selectDock(state: BotWorkspaceState, dock: DockChrome): BotWorkspaceState {
-  if (state.dock === dock) return state;
-  return { ...state, dock };
+  if (state.dock === dock && state.docks[state.active] === dock) return state;
+  return {
+    ...state,
+    dock,
+    docks: { ...state.docks, [state.active]: dock },
+  };
 }
 
 /** 执行会话优先；否则用规划会话。两个都没有时打不开这条 Issue。 */

@@ -87,6 +87,7 @@ describe("bot page persistence", () => {
         openIssueIds: ["radii", "gone"],
         panel: { kind: "issue", issueId: "radii" },
         dock: "diff",
+        docks: { radii: "diff" },
         lastIssueId: "radii",
       },
       assistant: {
