@@ -137,7 +137,7 @@ export async function startMuseServer(
       if (stopping) return;
       console.error("[muse-desktop] server health check failed; restarting");
       health.stop();
-      if (child && child.exitCode === null && !child.killed) {
+      if (child && child.exitCode === null) {
         child.kill("SIGTERM");
       }
     },
@@ -146,15 +146,20 @@ export async function startMuseServer(
   const stopChild = async (): Promise<void> => {
     const c = child;
     child = null;
-    if (!c || c.exitCode !== null || c.killed) return;
+    // `child.killed` only says a signal was sent, so it cannot be used to
+    // decide whether the process is gone — a server that ignores SIGTERM
+    // (busy turn) would never be escalated and the restart would hang here.
+    if (!c || c.exitCode !== null) return;
+    const exited = once(c, "exit").then(() => undefined);
     c.kill("SIGTERM");
-    const exited = Promise.race([
-      once(c, "exit").then(() => undefined),
-      wait(3000).then(() => {
-        if (c.exitCode === null && !c.killed) c.kill("SIGKILL");
-      }),
+    const grace = await Promise.race([
+      exited.then(() => true),
+      wait(3000).then(() => false),
     ]);
-    await exited;
+    if (!grace && c.exitCode === null) {
+      c.kill("SIGKILL");
+      await Promise.race([exited, wait(2000)]);
+    }
   };
 
   const spawnOnce = (): Promise<{ port: number; host: string }> =>

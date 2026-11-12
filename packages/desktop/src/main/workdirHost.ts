@@ -21,6 +21,7 @@ import {
   getWorkspaceDiff,
   listRecentCommits,
   readDiffFileSides,
+  revertWorkspaceDiff,
 } from "./gitDiff.js";
 import { generateRandomName } from "./nameGenerator.js";
 import { TerminalManager } from "./terminal.js";

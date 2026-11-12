@@ -7,6 +7,7 @@
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, powerMonitor, shell, webContents } from "electron";
 import { execFileSync } from "child_process";
+import * as fs from "fs";
 import * as path from "path";
 import {
   checkForHotUpdate,
@@ -170,6 +171,19 @@ if (!gotLock) {
     }
   });
 
+  const updateLog = (line: string): void => {
+    try {
+      const dir = path.join(app.getPath("userData"), "hot");
+      fs.mkdirSync(dir, { recursive: true });
+      fs.appendFileSync(
+        path.join(dir, "update.log"),
+        `${new Date().toISOString()} ${line}\n`,
+      );
+    } catch {
+      // logging must never block an update
+    }
+  };
+
   void app.whenReady().then(async () => {
     const iconPath = path.join(__dirname, "../../assets/icon.png");
     const appIcon = nativeImage.createFromPath(iconPath);
@@ -285,6 +299,11 @@ if (!gotLock) {
           bundledVersion,
           runningVersion,
           repo: HOT_REPO,
+        }).then((result) => {
+          updateLog(
+            `check ${result.status}${"version" in result ? ` ${result.version}` : ""}${"reason" in result ? ` (${result.reason})` : ""}`,
+          );
+          return result;
         }),
       publish: publishUpdate,
     });
@@ -326,11 +345,18 @@ if (!gotLock) {
       void box
         .then(({ response }) => {
           const restart = busy ? response === 1 : response === 0;
+          updateLog(`restart dialog response=${response} busy=${busy} restart=${restart}`);
           if (!restart) return;
-          return stopServer?.().finally(() => {
+          return (async () => {
+            // A graceful server stop can stall (busy turn); relaunch anyway.
+            await Promise.race([
+              stopServer?.() ?? Promise.resolve(),
+              new Promise<void>((resolve) => setTimeout(resolve, 6000)),
+            ]);
+            updateLog(`relaunch running=${runningVersion} -> ${offer.version}`);
             app.relaunch();
             app.exit(0);
-          });
+          })();
         })
         .catch((err) => {
           console.error("[muse-desktop] update prompt failed:", err);
@@ -361,7 +387,16 @@ if (!gotLock) {
       }
       if (msg?.command === "desktopApplyUpdate") {
         const offer = updateMonitor.offer();
-        if (offer) showUpdateDialog(offer);
+        if (offer) {
+          updateLog(`apply tapped (${offer.kind} ${offer.version})`);
+          showUpdateDialog(offer);
+          return;
+        }
+        updateLog("apply tapped without an offer; re-checking");
+        void updateMonitor.checkNow().then(() => {
+          const next = updateMonitor.offer();
+          if (next) showUpdateDialog(next);
+        });
         return;
       }
       if (msg?.command !== "desktopCloseWindow") return;
