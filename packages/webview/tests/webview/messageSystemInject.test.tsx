@@ -52,7 +52,7 @@ describe("Message system-inject rendering", () => {
       /\.system-inject-bubble\s*\{[^}]*\}/s,
     )?.[0];
     expect(bubbleRule).toBeTruthy();
-    expect(bubbleRule).toMatch(/max-height:\s*150px/);
+    expect(bubbleRule).toMatch(/max-height:\s*75px/);
     expect(bubbleRule).toMatch(/overflow-y:\s*auto/);
   });
 });

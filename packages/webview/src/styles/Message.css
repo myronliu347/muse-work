@@ -99,7 +99,9 @@
 
 .system-inject-bubble {
   width: 100%;
-  max-height: 150px;
+  /* Same budget as the pinned user bar: enough to recognize the injection,
+     the rest scrolls, so it cannot swallow the transcript. */
+  max-height: 75px;
   overflow-y: auto;
   background: var(--gray-2);
   border: 1px solid var(--gray-5);
