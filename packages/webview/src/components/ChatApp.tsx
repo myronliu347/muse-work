@@ -357,21 +357,16 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     openIssueViewTab,
     setIssueTabChoice,
     openIssueSessionId,
-    issueTranscript,
-    openIssueTranscript,
-    issueShowsLive,
+    issueSessionActive,
+    issueLoading,
     shownIssueMessages,
-    issueTranscriptFailed,
     issueShowWelcome,
     issueStreaming,
-    setIssueTranscriptAttempt,
     loadOlderIssueMessages,
   } = useIssueTranscript({
     shownIssueGroup,
     assistantVisible,
     host,
-    workspace,
-    museApi,
     currentSessionId: state.currentSession?.id,
     messages: state.messages,
     isStreaming: state.isStreaming,
@@ -815,7 +810,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     shownIssueGroup,
     openIssueSessionId,
     shownIssueMessages,
-    issueTranscript,
+    setIssueTabChoice,
     paneIssueViewTab: paneUi.issueViewTab,
     patchPane,
   });
@@ -982,18 +977,15 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       handleOpenPreview={handleOpenPreview}
       host={host}
       setBotComposerFocused={setBotComposerFocused}
-      issueTranscriptFailed={issueTranscriptFailed}
-      setIssueTranscriptAttempt={setIssueTranscriptAttempt}
       issueShowWelcome={issueShowWelcome}
       shownIssueMessages={shownIssueMessages}
       state={state}
       handleLogin={handleLogin}
-      issueShowsLive={issueShowsLive}
+      issueLoading={issueLoading}
       issueStreaming={issueStreaming}
       handleRewindToMessage={handleRewindToMessage}
       dockWorkdir={dockWorkdir}
       handleOpenAgentTranscript={handleOpenAgentTranscript}
-      openIssueTranscript={openIssueTranscript}
       loadOlderIssueMessages={loadOlderIssueMessages}
       handleRevertFileHistory={handleRevertFileHistory}
       revertingFileHistory={revertingFileHistory}

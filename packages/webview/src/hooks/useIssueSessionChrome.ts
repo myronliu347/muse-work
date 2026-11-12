@@ -26,7 +26,7 @@ export function useIssueSessionChrome({
   shownIssueGroup,
   openIssueSessionId,
   shownIssueMessages,
-  issueTranscript,
+  setIssueTabChoice,
   paneIssueViewTab,
   patchPane,
 }: {
@@ -39,7 +39,8 @@ export function useIssueSessionChrome({
   shownIssueGroup: DesktopIssueGroup | undefined;
   openIssueSessionId: string | undefined;
   shownIssueMessages: Message[];
-  issueTranscript: Transcript;
+  /** The issue column's tab choice: the single source for 规划/执行. */
+  setIssueTabChoice: (choice: { issueId: string; tab: IssueViewTab }) => void;
   paneIssueViewTab: IssueViewTab | undefined;
   patchPane: ChatAppCore["patchPane"];
 }) {
@@ -56,7 +57,7 @@ export function useIssueSessionChrome({
         liveMessages: state.messages,
         shownSessionId: openIssueSessionId,
         shownMessages: shownIssueMessages,
-        cached: issueTranscript,
+        cached: null,
       }),
       dockWorkdir ?? undefined,
     );
@@ -66,7 +67,6 @@ export function useIssueSessionChrome({
     state.messages,
     openIssueSessionId,
     shownIssueMessages,
-    issueTranscript,
     dockWorkdir,
   ]);
 
@@ -111,6 +111,7 @@ export function useIssueSessionChrome({
           : resolveIssuePlanningSessionId(activeIssueGroup);
       if (!sessionId) return;
       patchPane({ issueViewTab: tab });
+      setIssueTabChoice({ issueId: activeIssueGroup.issueId, tab });
       host.onSelectSession(
         issueGroupSessionWorkdir(
           activeIssueGroup,
@@ -120,7 +121,7 @@ export function useIssueSessionChrome({
         sessionId,
       );
     },
-    [activeIssueGroup, host, patchPane, effectiveWorkdir],
+    [activeIssueGroup, host, patchPane, setIssueTabChoice, effectiveWorkdir],
   );
 
   const handleSelectIssue = useCallback(
@@ -130,9 +131,16 @@ export function useIssueSessionChrome({
         host.issueGroups?.find((g) => g.issueId === issueId) ??
         host.closedIssueGroups?.find((g) => g.issueId === issueId);
       if (!group) return;
-      const sessionId = resolveIssuePlanningSessionId(group);
+      // Open the tab the column would show by default: the execution session
+      // when the issue has one, otherwise its planning session.
+      const tab: IssueViewTab = group.executionSessionId ? "execution" : "planning";
+      const sessionId =
+        tab === "execution"
+          ? (group.executionSessionId ?? resolveIssuePlanningSessionId(group))
+          : resolveIssuePlanningSessionId(group);
       if (!sessionId) return;
-      patchPane({ issueViewTab: "planning" });
+      patchPane({ issueViewTab: tab });
+      setIssueTabChoice({ issueId, tab });
       host.onSelectSession(
         issueGroupSessionWorkdir(
           group,
@@ -142,7 +150,7 @@ export function useIssueSessionChrome({
         sessionId,
       );
     },
-    [host, patchPane, effectiveWorkdir],
+    [host, patchPane, setIssueTabChoice, effectiveWorkdir],
   );
 
   return {

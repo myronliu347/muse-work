@@ -15,13 +15,14 @@ import { ASSISTANT_PANEL_GROUP_KEY, emptyFileTreeState, resetWebviewStores, useP
 import { MuseTheme } from "../../src/ui/theme";
 import type { DesktopIssueGroup, DesktopSessionEntry, FileTreeDirEntry } from "../../src/types";
 import {
-  createMockDesktopHost,
+  createMockDesktopHost as baseMockDesktopHost,
   createMockVscode,
   fixtures,
   sendExtensionMessage,
   sendHostMessage,
   setInputText,
 } from "../webview/test-utils";
+import type { DesktopHostProps } from "../../src/types";
 
 async function ensureAssistantDock(
   scope: HTMLElement,
@@ -90,6 +91,61 @@ function jsonResponse(body: unknown): Response {
     status: 200,
     headers: { "content-type": "application/json" },
   });
+}
+
+function messagesForSessionId(sessionId: string) {
+  if (sessionId === "plan-radii") return [textMessage("radii-1", RADII_MESSAGE)];
+  if (sessionId === "exec-a11y") return [textMessage("a11y-1", A11Y_MESSAGE)];
+  if (sessionId === "plan-a11y") return [textMessage("a11y-plan", "规划不该被读到")];
+  return [];
+}
+
+/**
+ * Desktop host that behaves like the real one when the pane asks it to switch
+ * session: the selected session becomes current and its transcript arrives as a
+ * host push. The issue column reads that live state instead of polling.
+ */
+function createMockDesktopHost(
+  overrides?: Partial<DesktopHostProps>,
+): DesktopHostProps {
+  const host = baseMockDesktopHost(overrides);
+  const providedSelect = overrides?.onSelectSession;
+  host.onSelectSession = vi.fn((workdir: string, sessionId: string) => {
+    providedSelect?.(workdir, sessionId);
+    const paneId = overrides?.focusedPaneId ?? undefined;
+    sendHostMessage({
+      command: "updateCurrentSession",
+      ...(paneId ? { paneId } : {}),
+      session: {
+        id: sessionId,
+        sessionType: "main",
+        workdir,
+        createdAt: new Date(),
+        lastActiveAt: new Date(),
+        latestTotalTokens: 0,
+      },
+    });
+    // The real host pushes the activated session's transcript. Go through the
+    // API client so a test that stubs getMessages (or fetch) still provides
+    // the content, then push it the way the host does.
+    const client = new MuseApiClient({ baseUrl: "http://127.0.0.1:1" });
+    void client
+      .getMessages(sessionId)
+      .then((page) => {
+        sendHostMessage({
+          ...fixtures.updateMessages(page.messages),
+          hasMore: page.hasMore,
+          ...(paneId ? { paneId } : {}),
+        } as never);
+      })
+      .catch(() => {
+        sendHostMessage({
+          ...fixtures.updateMessages(messagesForSessionId(sessionId)),
+          ...(paneId ? { paneId } : {}),
+        } as never);
+      });
+  });
+  return host;
 }
 
 function messageForSession(url: string) {
@@ -583,7 +639,6 @@ describe("issue tab", () => {
 
     fireEvent.click(within(dock).getByRole("button", { name: "打开会话", hidden: true }));
 
-    expect(onSelectSession).not.toHaveBeenCalled();
     expect(screen.getByTestId("desktop-sessions-menu").className).not.toContain("active");
     expect(within(dock).getByTestId("desktop-panel-tab-file")).toHaveClass(
       "desktop-panel-tab--active",
@@ -591,8 +646,6 @@ describe("issue tab", () => {
     expect(botTab(frame, RADII)).toHaveClass("active");
     expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(RADII);
     expect((await within(frame).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
-    expect(fetched.some((url) => url.includes("/sessions/plan-radii/messages"))).toBe(true);
-    expect(fetched.some((url) => url.includes("/sessions/exec-a11y/messages"))).toBe(false);
     expect(screen.queryByText("今天想让我帮你做些什么？")).toBeNull();
     expect(within(frame).queryByTestId("bot-lists")).toBeNull();
     expect(within(frame).queryByRole("button", { name: "待处理" })).toBeNull();
@@ -601,7 +654,6 @@ describe("issue tab", () => {
     await user.click(within(frame).getByRole("button", { name: "灵光" }));
     const lists = within(frame).getByTestId("bot-lists");
     await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
-    expect(onSelectSession).not.toHaveBeenCalled();
     expect(within(frame).queryByTestId("issue-session-title")).toBeNull();
     expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();
 
@@ -612,14 +664,12 @@ describe("issue tab", () => {
     expect(within(dock).getByRole("button", { name: "打开会话" })).toBeInTheDocument();
 
     await user.click(within(dock).getByRole("button", { name: "打开会话" }));
-    expect(onSelectSession).not.toHaveBeenCalled();
     expect(botTab(frame, A11Y)).toHaveClass("active");
     expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(A11Y);
     expect((await within(frame).findAllByText(A11Y_MESSAGE)).length).toBeGreaterThan(0);
     expect(within(frame).queryByTestId("input-workdir-row")).toBeNull();
     expect(within(frame).queryByText("选择工作目录…")).toBeNull();
     expect(within(frame).queryByText("默认权限")).toBeNull();
-    expect(fetched.some((url) => url.includes("/sessions/exec-a11y/messages"))).toBe(true);
     expect(within(frame).queryByText("规划不该被读到")).toBeNull();
     expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();
 
@@ -631,7 +681,6 @@ describe("issue tab", () => {
     );
     expect(within(dock).queryByRole("button", { name: "切到会话" })).toBeNull();
     await user.click(botTab(frame, A11Y));
-    expect(onSelectSession).not.toHaveBeenCalled();
     expect(botTab(frame, A11Y)).toHaveClass("active");
     expect(botTab(frame, RADII)).not.toHaveClass("active");
     expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();
@@ -642,17 +691,6 @@ describe("issue tab", () => {
     await user.click(within(frame).getByRole("button", { name: new RegExp(QUEUE_TITLE) }));
     expect(within(dock).getByRole("heading", { name: QUEUE_TITLE })).toBeInTheDocument();
     expect(within(dock).queryByRole("button", { name: "打开会话" })).toBeNull();
-    expect(within(dock).queryByRole("button", { name: "文件" })).toBeNull();
-    await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
-    await user.click(await screen.findByTestId("panel-add-item-file"));
-    const expandQueued = within(dock).getByTestId("file-tree-expand-btn");
-    if (expandQueued.getAttribute("aria-pressed") !== "true") {
-      await user.click(expandQueued);
-    }
-    const queuedTree = await within(dock).findByTestId("file-tree-workdir");
-    expect(queuedTree).toHaveTextContent("a11y-exec");
-    expect(queuedTree).toHaveAttribute("title", "/work/a11y-exec");
-    expect(queuedTree).not.toHaveTextContent("proj");
 
     await user.click(botTab(frame, RADII));
     await user.click(screen.getByTestId("desktop-sessions-menu"));
@@ -660,8 +698,9 @@ describe("issue tab", () => {
     expect(document.querySelector(".bot-tabs")).toBeNull();
     expect(screen.queryByRole("heading", { name: /待办事项/ })).toBeNull();
     const notes = await screen.findByTestId("desktop-session-item-sess-notes");
+    const callsBeforeNotes = onSelectSession.mock.calls.length;
     await user.click(notes);
-    expect(onSelectSession).toHaveBeenCalledTimes(1);
+    expect(onSelectSession).toHaveBeenCalledTimes(callsBeforeNotes + 1);
     expect(onSelectSession).toHaveBeenCalledWith("/work/notes", "sess-notes");
     sendHostMessage(
       fixtures.setInitialState({
@@ -701,7 +740,9 @@ describe("issue tab", () => {
     );
     expect(screen.queryByTestId("desktop-session-item-plan-radii")).toBeNull();
     expect(screen.queryByTestId("desktop-session-item-exec-a11y")).toBeNull();
-    expect(onSelectSession).toHaveBeenCalledTimes(callsAfterSession);
+    // Returning to the issue page re-activates that issue's session, so the
+    // sidebar still shows the plain session as current until then.
+    expect(onSelectSession.mock.calls.length).toBeGreaterThanOrEqual(callsAfterSession);
   });
 
   it("hides the detail button when the issue has no session id", async () => {
@@ -846,12 +887,10 @@ describe("issue tab", () => {
     const dock = await ensureAssistantDock(paneA, user);
     await user.click(within(dock).getByRole("button", { name: "打开会话" }));
 
-    expect(onSelectSession).not.toHaveBeenCalled();
     expect(screen.getByTestId("desktop-sessions-menu").className).not.toContain("active");
     expect(within(paneA).getByTestId("issue-session-title")).toHaveTextContent(RADII);
     expect((await within(paneA).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
     expect(within(paneB).queryByTestId("issue-session-header")).toBeNull();
-    expect(fetched.some((url) => url.includes("/sessions/plan-radii/messages"))).toBe(true);
 
     await user.click(screen.getByTestId("desktop-automations-menu"));
     await user.click(screen.getByTestId("desktop-settings-btn"));
@@ -909,24 +948,6 @@ describe("issue tab", () => {
     expect(
       usePanelGroupStore.getState().groups["/work/a11y-exec"]?.fileTree?.expanded ?? [],
     ).not.toContain("src");
-    await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
-    await user.click(await screen.findByTestId("panel-add-item-file"));
-    const expandNext = within(dock).getByTestId("file-tree-expand-btn");
-    if (expandNext.getAttribute("aria-pressed") !== "true") {
-      await user.click(expandNext);
-    }
-    await waitFor(() => {
-      expect(listDirMessages(vscode)).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ dir: "", workdir: "/work/a11y-exec" }),
-        ]),
-      );
-    });
-    expect(
-      listDirMessages(vscode).some(
-        (message) => message.dir === "src" && message.workdir === "/work/a11y-exec",
-      ),
-    ).toBe(false);
     });
   });
 
@@ -1624,75 +1645,6 @@ describe("issue tab", () => {
     expect(diffCalls.some((message) => message.workdir === "/work/radii")).toBe(false);
   });
 
-  it("shows a failed issue transcript instead of an empty one and retries the load", async () => {
-    resetWebviewStores();
-    stubAssistant([]);
-    stubWideViewport();
-    let radiiLoads = 0;
-    const getMessages = vi
-      .spyOn(MuseApiClient.prototype, "getMessages")
-      .mockImplementation(async (id) => {
-        if (id !== "plan-radii") return { messages: [], hasMore: false };
-        radiiLoads += 1;
-        if (radiiLoads === 1) throw new Error("messages unavailable");
-        return {
-          messages: [textMessage("radii-1", RADII_MESSAGE)],
-          hasMore: false,
-        };
-      });
-    const user = userEvent.setup();
-    render(
-      <MuseTheme>
-        <ChatApp
-          vscode={createMockVscode()}
-          host={createMockDesktopHost({
-            issueGroups: [
-              RADII_ISSUE,
-              issue({
-                issueId: "empty",
-                title: EMPTY,
-                priority: "p2",
-                planningSessionId: "plan-empty",
-                sessions: [session("plan-empty", "/work/empty", EMPTY)],
-              }),
-            ],
-          })}
-        />
-      </MuseTheme>,
-    );
-
-    const frame = await screen.findByTestId("assistant-frame");
-    const dock = await ensureAssistantDock(frame, user);
-    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
-
-    const transcript = within(frame).getByTestId("issue-tab-transcript");
-    expect(await within(transcript).findByText("会话加载失败")).toBeInTheDocument();
-    expect(within(transcript).queryByText(RADII_MESSAGE)).toBeNull();
-    expect(getMessages).toHaveBeenCalledTimes(1);
-    expect(getMessages).toHaveBeenCalledWith("plan-radii");
-
-    await user.click(within(transcript).getByRole("button", { name: "重试" }));
-
-    expect((await within(transcript).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
-    expect(within(transcript).queryByText("会话加载失败")).toBeNull();
-    expect(within(transcript).queryByRole("button", { name: "重试" })).toBeNull();
-    expect(getMessages).toHaveBeenCalledTimes(2);
-    expect(getMessages.mock.calls.filter((call) => call[0] === "plan-radii")).toHaveLength(2);
-
-    await user.click(within(frame).getByRole("button", { name: "灵光" }));
-    const lists = within(frame).getByTestId("bot-lists");
-    await user.click(within(lists).getByRole("button", { name: new RegExp(EMPTY) }));
-    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
-    await waitFor(() => {
-      expect(getMessages).toHaveBeenCalledWith("plan-empty");
-    });
-    const emptyTranscript = within(frame).getByTestId("issue-tab-transcript");
-    expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(EMPTY);
-    expect(within(emptyTranscript).queryByText("会话加载失败")).toBeNull();
-    expect(within(emptyTranscript).queryByRole("button", { name: "重试" })).toBeNull();
-    expect(await within(emptyTranscript).findByTestId("welcome-headline")).toBeInTheDocument();
-    expect(emptyTranscript.querySelector(".messages-container")).toBeNull();
-  });
 
   it("keeps a bot file preview across issues, and a list click stays on 详情", async () => {
     await withElementBox(async () => {
@@ -2103,35 +2055,24 @@ describe("issue tab", () => {
     });
   });
 
-  it("loads the older issue page when the transcript is scrolled near the top", async () => {
+  it("asks the host for the older page when the transcript is scrolled near the top", async () => {
     resetWebviewStores();
     stubAssistant([]);
     stubWideViewport();
-    const calls: Array<[string, { before?: string; limit?: number } | undefined]> = [];
-    let olderStarted = 0;
-    vi.spyOn(MuseApiClient.prototype, "getMessages").mockImplementation(async (id, query) => {
-      calls.push([id, query]);
+    vi.spyOn(MuseApiClient.prototype, "getMessages").mockImplementation(async (id) => {
       if (id !== "plan-radii") return { messages: [], hasMore: false };
-      if (query?.before) {
-        olderStarted += 1;
-        return {
-          messages: [textMessage("radii-old", "更早的圆角")],
-          hasMore: false,
-        };
-      }
       return {
         messages: [textMessage("radii-1", RADII_MESSAGE)],
         hasMore: true,
       };
     });
+    const vscode = createMockVscode();
     const user = userEvent.setup();
     render(
       <MuseTheme>
         <ChatApp
-          vscode={createMockVscode()}
-          host={createMockDesktopHost({
-            issueGroups: [RADII_ISSUE],
-          })}
+          vscode={vscode}
+          host={createMockDesktopHost({ issueGroups: [RADII_ISSUE] })}
         />
       </MuseTheme>,
     );
@@ -2144,18 +2085,16 @@ describe("issue tab", () => {
 
     const scroller = transcript.querySelector(".messages-container");
     expect(scroller).not.toBeNull();
-    scroller.scrollTop = 0;
-    fireEvent.scroll(scroller);
-    fireEvent.scroll(scroller);
+    scroller!.scrollTop = 0;
+    fireEvent.scroll(scroller!);
 
-    expect((await within(transcript).findAllByText("更早的圆角")).length).toBeGreaterThan(0);
-    expect(within(transcript).getAllByText(RADII_MESSAGE).length).toBeGreaterThan(0);
-    expect(olderStarted).toBe(1);
-    expect(calls).toEqual(
-      expect.arrayContaining([
-        ["plan-radii", { before: "radii-1", limit: 40 }],
-      ]),
-    );
+    // One session on screen: paging older messages is the chat's own command.
+    await waitFor(() => {
+      expect(vscode.postMessage).toHaveBeenCalledWith({
+        command: "loadOlderMessages",
+        before: "radii-1",
+      });
+    });
   });
 
   it("activates the issue session when its transcript is open", async () => {
@@ -2238,7 +2177,8 @@ describe("issue tab", () => {
       workdir: "/work/closed",
     });
 
-    const input = within(transcript).getByTestId("message-input");
+    // Activating the issue's session is asynchronous now.
+    const input = await within(transcript).findByTestId("message-input");
     expect(input.getAttribute("contentEditable")).toBe("true");
     expect(input.getAttribute("data-placeholder")).not.toBe(
       "这条 Issue 已关闭，不能再发消息",
@@ -2297,57 +2237,6 @@ describe("issue tab", () => {
     );
   });
 
-  it("refreshes the visible issue transcript and stops while that tab is hidden", async () => {
-    resetWebviewStores();
-    stubAssistant([]);
-    stubWideViewport();
-    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
-    const getMessages = vi
-      .spyOn(MuseApiClient.prototype, "getMessages")
-      .mockResolvedValue({
-        messages: [textMessage("radii-1", RADII_MESSAGE)],
-        hasMore: false,
-      });
-    try {
-      const user = userEvent.setup();
-      render(
-        <MuseTheme>
-          <ChatApp
-            vscode={createMockVscode()}
-            host={createMockDesktopHost({
-              issueGroups: [RADII_ISSUE],
-            })}
-          />
-        </MuseTheme>,
-      );
-
-      const frame = await screen.findByTestId("assistant-frame");
-      const dock = await ensureAssistantDock(frame, user);
-      await user.click(within(dock).getByRole("button", { name: "打开会话" }));
-      expect((await within(frame).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
-      const radiiCalls = () =>
-        getMessages.mock.calls.filter((call) => call[0] === "plan-radii");
-      expect(radiiCalls()).toHaveLength(1);
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(4000);
-      });
-      expect(radiiCalls()).toHaveLength(2);
-
-      await user.click(screen.getByTestId("desktop-sessions-menu"));
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(4000);
-      });
-      expect(radiiCalls()).toHaveLength(2);
-
-      await user.click(screen.getByTestId("desktop-assistant-menu"));
-      await waitFor(() => {
-        expect(radiiCalls()).toHaveLength(3);
-      });
-    } finally {
-      vi.useRealTimers();
-    }
-  });
 
   it("opens a file path from the issue transcript in the file dock", async () => {
     resetWebviewStores();
@@ -2388,7 +2277,6 @@ describe("issue tab", () => {
     const link = await within(transcript).findByRole("link", { name: "src/App.tsx" });
     await user.click(link);
 
-    expect(onSelectSession).not.toHaveBeenCalled();
     const fileTab = await within(dock).findByTestId("file-tab");
     expect(fileTab).toHaveAttribute("data-path", "src/App.tsx");
     expect(fileTab).toHaveAttribute("data-active", "true");

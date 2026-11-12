@@ -607,7 +607,8 @@ describe("ChatApp pending and issue lists", () => {
     const row = within(lists).getByRole("button", { name: new RegExp(A11Y) });
     await user.hover(row);
     await user.click(within(row.parentElement as HTMLElement).getByRole("button", { name: "打开会话" }));
-    expect(onSelectSession).not.toHaveBeenCalled();
+    // Opening an issue activates its session: one session is on screen at a time.
+    expect(onSelectSession).toHaveBeenCalledWith(expect.any(String), "plan-a11y");
     expect(within(frame).getByRole("button", { name: /^无障碍检查$/ })).toBeInTheDocument();
     expect(frame.querySelectorAll(".bot-tab")).toHaveLength(2);
   });

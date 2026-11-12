@@ -75,18 +75,15 @@ export function AssistantFrame({
   handleOpenPreview,
   host,
   setBotComposerFocused,
-  issueTranscriptFailed,
-  setIssueTranscriptAttempt,
   issueShowWelcome,
   shownIssueMessages,
   state,
   handleLogin,
-  issueShowsLive,
+  issueLoading,
   issueStreaming,
   handleRewindToMessage,
   dockWorkdir,
   handleOpenAgentTranscript,
-  openIssueTranscript,
   loadOlderIssueMessages,
   handleRevertFileHistory,
   revertingFileHistory,
@@ -127,21 +124,16 @@ export function AssistantFrame({
   handleOpenPreview: (url: string) => void;
   host: DesktopHostProps | undefined;
   setBotComposerFocused: (focused: boolean) => void;
-  issueTranscriptFailed: boolean;
-  setIssueTranscriptAttempt: React.Dispatch<React.SetStateAction<number>>;
   issueShowWelcome: boolean;
   shownIssueMessages: ChatState["messages"];
   state: ChatState;
   handleLogin: () => void;
-  issueShowsLive: boolean;
+  /** The issue session is still being activated; its chat state is not ours yet. */
+  issueLoading: boolean;
   issueStreaming: boolean;
   handleRewindToMessage: (messageId: string) => void;
   dockWorkdir: string | null | undefined;
   handleOpenAgentTranscript: (toolBlock: ToolBlock) => void;
-  openIssueTranscript:
-    | { status: "ready"; hasMore: boolean }
-    | { status: "error" }
-    | null;
   loadOlderIssueMessages: () => void;
   handleRevertFileHistory: (messageIds: string[]) => void;
   revertingFileHistory: boolean;
@@ -384,18 +376,13 @@ export function AssistantFrame({
               </div>
             ) : null}
             <div className="issue-tab-transcript" data-testid="issue-tab-transcript">
-              {issueTranscriptFailed ? (
-                <div className="issue-tab-load-error" data-testid="issue-tab-load-error">
-                  <span>会话加载失败</span>
-                  <button
-                    type="button"
-                    className="issue-tab-load-retry"
-                    onClick={() =>
-                      setIssueTranscriptAttempt((attempt) => attempt + 1)
-                    }
-                  >
-                    重试
-                  </button>
+              {issueLoading ? (
+                <div
+                  className="issue-tab-loading"
+                  data-testid="issue-tab-loading"
+                  role="status"
+                >
+                  正在切换会话…
                 </div>
               ) : (
                 <ChatBody
@@ -407,25 +394,21 @@ export function AssistantFrame({
                   isAuthenticated={state.isAuthenticated}
                   configurationData={state.configurationData}
                   onLogin={handleLogin}
-                  queuedMessages={issueShowsLive ? state.queuedMessages : []}
+                  queuedMessages={state.queuedMessages}
                   isStreaming={issueStreaming}
-                  isCompacting={issueShowsLive && state.isCompacting}
+                  isCompacting={state.isCompacting}
                   vscode={vscode}
-                  onRewindToMessage={issueShowsLive ? handleRewindToMessage : () => undefined}
+                  onRewindToMessage={handleRewindToMessage}
                   workdir={dockWorkdir ?? undefined}
                   onOpenPreview={handleOpenPreview}
                   onOpenFile={openIssueMessageFile}
                   onOpenAgentTranscript={handleOpenAgentTranscript}
-                  hasOlderMessages={
-                    issueShowsLive
-                      ? state.hasOlderMessages
-                      : openIssueTranscript?.status === "ready" && openIssueTranscript.hasMore
-                  }
+                  hasOlderMessages={state.hasOlderMessages}
                   onLoadOlder={loadOlderIssueMessages}
-                  onRevertFileHistory={issueShowsLive ? handleRevertFileHistory : () => undefined}
-                  revertingFileHistory={issueShowsLive && revertingFileHistory}
+                  onRevertFileHistory={handleRevertFileHistory}
+                  revertingFileHistory={revertingFileHistory}
                   onOpenFileHistoryFile={openFileHistoryDiff}
-                  backgroundTasks={issueShowsLive ? state.backgroundTasks : []}
+                  backgroundTasks={state.backgroundTasks}
                   isBackgroundTasksCollapsed={state.isBackgroundTasksCollapsed}
                   onToggleBackgroundTasks={() =>
                     dispatch({ type: "TOGGLE_BACKGROUND_TASKS_COLLAPSE" })
@@ -433,18 +416,18 @@ export function AssistantFrame({
                   onStopTask={(taskId) =>
                     postToHost({ command: "stopBackgroundTask", taskId })
                   }
-                  tasks={issueShowsLive ? state.tasks : []}
+                  tasks={state.tasks}
                   isTaskListCollapsed={state.isTaskListCollapsed}
                   onToggleTaskList={() => dispatch({ type: "TOGGLE_TASK_LIST_COLLAPSE" })}
                   isQueueCollapsed={state.isQueueCollapsed}
                   onToggleQueueCollapse={() => dispatch({ type: "TOGGLE_QUEUE_COLLAPSE" })}
                   onEditQueuedMessage={handleEditQueuedMessage}
                   onDeleteQueuedMessage={handleDeleteQueuedMessage}
-                  editingQueuedId={issueShowsLive ? state.editingQueuedId : null}
-                  pendingConfirmations={issueShowsLive ? state.pendingConfirmations : []}
+                  editingQueuedId={state.editingQueuedId}
+                  pendingConfirmations={state.pendingConfirmations}
                   onConfirm={handleConfirmation}
                   onReject={handleRejection}
-                  currentSession={issueShowsLive ? state.currentSession : undefined}
+                  currentSession={state.currentSession}
                   composer={composer}
                   onComposerFocus={threeColumns ? focusShownIssueFromSender : undefined}
                 />
