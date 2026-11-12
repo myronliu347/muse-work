@@ -369,6 +369,14 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async getProviderModels(providerId: string): Promise<MuseModelInfo[]> {
+    const res = await this.request(
+      `/providers/${encodeURIComponent(providerId)}/models`,
+    );
+    const body = (await parseJson(res)) as { models?: MuseModelInfo[] };
+    return Array.isArray(body.models) ? body.models : [];
+  }
+
   async getProviderQuota(providerId: string): Promise<unknown> {
     const res = await this.request(`/providers/${encodeURIComponent(providerId)}/quota`);
     return parseJson(res);

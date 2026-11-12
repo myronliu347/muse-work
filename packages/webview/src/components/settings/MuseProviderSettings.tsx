@@ -273,6 +273,12 @@ export const MuseProviderSettings = forwardRef<
         };
         setError(null);
         await loadPanelForProvider(body.active.providerId);
+        const activeInfo = body.providers.find(
+          (p) => p.id === body.active.providerId,
+        );
+        if (activeInfo && activeInfo.models.length === 0) {
+          void loadModelsFor(body.active.providerId);
+        }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : String(err));
@@ -285,6 +291,29 @@ export const MuseProviderSettings = forwardRef<
     };
   }, [client, loadPanelForProvider]);
 
+  // /providers only refreshes the active provider's models, so ask for the one
+  // the user is switching to before save needs its model list.
+  const loadModelsFor = useCallback(
+    async (providerId: string) => {
+      try {
+        const models = await client.getProviderModels(providerId);
+        setData((prev) =>
+          prev
+            ? {
+                ...prev,
+                providers: prev.providers.map((p) =>
+                  p.id === providerId ? { ...p, models } : p,
+                ),
+              }
+            : prev,
+        );
+      } catch {
+        // keep whatever we had; save reports an empty list
+      }
+    },
+    [client],
+  );
+
   const onChangeProvider = (providerId: string) => {
     if (!data) return;
     const provider = data.providers.find((p) => p.id === providerId);
@@ -292,6 +321,7 @@ export const MuseProviderSettings = forwardRef<
     setDraftProviderId(providerId);
     setError(null);
     void loadPanelForProvider(providerId);
+    if (provider.models.length === 0) void loadModelsFor(providerId);
   };
 
   const isDirty = useCallback(() => {

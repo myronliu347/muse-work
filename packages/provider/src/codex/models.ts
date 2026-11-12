@@ -151,7 +151,10 @@ export function createCodexModelsLoader(
         headers["chatgpt-account-id"] = creds.accountId;
       }
       try {
-        const res = await fetchImpl(url, { headers });
+        const res = await fetchImpl(url, {
+          headers,
+          signal: AbortSignal.timeout(5_000),
+        });
         if (!res.ok) return null;
         const models = parseCodexModels(await res.json());
         return models.length > 0 ? models : null;

@@ -61,8 +61,19 @@ describe("providers + auth routes", () => {
       "deepseek",
       "openai-compatible",
     ]);
+    // Only the active provider is refreshed on the poll; the others are
+    // served on demand so an inactive provider never costs a network call.
+    const active = body.providers.find((p) => p.id === "deepseek");
+    expect(active?.models.length).toBeGreaterThan(0);
     const openai = body.providers.find((p) => p.id === "openai-compatible");
-    expect(openai?.models.map((m) => m.id)).toContain("gpt-4.1");
+    expect(openai?.models).toEqual([]);
+
+    const modelsRes = await fetch(
+      `${app.baseUrl}/providers/openai-compatible/models`,
+    );
+    expect(modelsRes.status).toBe(200);
+    const models = (await modelsRes.json()) as { models: ModelInfo[] };
+    expect(models.models.map((m) => m.id)).toContain("gpt-4.1");
   });
 
   it("POST /providers/active switches model and invalidates agent identities", async () => {

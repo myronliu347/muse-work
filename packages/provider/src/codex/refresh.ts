@@ -59,6 +59,7 @@ export async function refreshCodexCredentials(opts: {
   try {
     response = await fetchImpl(endpoint, {
       method: "POST",
+      signal: AbortSignal.timeout(8_000),
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         grant_type: "refresh_token",

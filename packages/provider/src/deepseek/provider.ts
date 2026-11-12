@@ -89,6 +89,8 @@ export function createDeepSeekProvider(deps: DeepSeekProviderDeps): AiProvider {
     if (!key) throw new Error("DeepSeek 未配置密钥");
     const res = await fetchImpl(`${DEEPSEEK_BASE_URL}${path}`, {
       headers: { Authorization: `Bearer ${key}` },
+      // Metadata calls back the model picker; a hung API must not pin it.
+      signal: AbortSignal.timeout(5_000),
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
