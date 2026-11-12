@@ -16,6 +16,11 @@ import { previewViewportScale } from "../../src/components/panels/previewViewpor
 import { createMockVscode, sendCommand } from "./test-utils";
 import { MockDataGenerator } from "../fixtures/mockData";
 
+/** Split drags paint on the next frame; the width commits on release. */
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
 vi.mock("../../src/styles/DesktopApp.css", () => ({}));
 
 type MockWebview = Omit<
@@ -445,7 +450,7 @@ describe("PreviewPane", () => {
     expect(wv.loadURL).toHaveBeenCalledWith("http://localhost:3000/other");
   });
 
-  it("drag handle resizes within min/max bounds", () => {
+  it("drag handle resizes within min/max bounds", async () => {
     const { container } = renderPane();
     const pane = screen.getByTestId("preview-pane");
     const handle = container.querySelector(
@@ -456,14 +461,17 @@ describe("PreviewPane", () => {
       right: 1024,
     } as DOMRect);
 
-    fireEvent.mouseDown(handle);
-    fireEvent.mouseMove(window, { clientX: 624 }); // 1024 - 624 = 400
+    fireEvent.pointerDown(handle, { button: 0, pointerId: 1 });
+    fireEvent.pointerMove(window, { clientX: 624 }); // 1024 - 624 = 400
+    await nextFrame();
     expect(pane).toHaveStyle({ width: "400px" });
-    fireEvent.mouseMove(window, { clientX: 950 }); // 74 → clamped to 320
+    fireEvent.pointerMove(window, { clientX: 950 }); // 74 → clamped to 320
+    await nextFrame();
     expect(pane).toHaveStyle({ width: "320px" });
-    fireEvent.mouseMove(window, { clientX: 10 }); // 1014 → clamped to maxWidth 716
+    fireEvent.pointerMove(window, { clientX: 10 }); // 1014 → clamped to maxWidth 716
+    await nextFrame();
     expect(pane).toHaveStyle({ width: "716px" });
-    fireEvent.mouseUp(window);
+    fireEvent.pointerUp(window);
   });
 
   it("picker submit appends a formatted comment via onAddComment and keeps the picker active", () => {
@@ -575,13 +583,19 @@ describe("PreviewPane", () => {
     expect(screen.queryByTestId("preview-error")).not.toBeInTheDocument();
   });
 
-  it("shows the link sidebar by default and widens it from the left edge", () => {
+  it("shows the link sidebar by default and widens it from the left edge", async () => {
     renderPane({ url: "https://example.com/report.html" });
     const sidebar = screen.getByTestId("preview-links");
     expect(sidebar).toHaveStyle({ width: "240px" });
-    fireEvent.mouseDown(screen.getByTestId("preview-links-resize"), { clientX: 200 });
-    fireEvent.mouseMove(window, { clientX: 120 });
-    fireEvent.mouseUp(window);
+    fireEvent.pointerDown(screen.getByTestId("preview-links-resize"), {
+      button: 0,
+      pointerId: 1,
+      clientX: 200,
+    });
+    fireEvent.pointerMove(window, { clientX: 120 });
+    await nextFrame();
+    expect(sidebar).toHaveStyle({ width: "320px" });
+    fireEvent.pointerUp(window);
     expect(sidebar).toHaveStyle({ width: "320px" });
     expect(document.body.classList.contains("is-panel-resizing")).toBe(false);
   });

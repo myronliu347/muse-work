@@ -18,7 +18,12 @@ import { IssueSessionHeader, type IssueViewTab } from "../issue/IssueSessionHead
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { type IssuePresence } from "../session/SessionStatusGlyph";
 import { Tooltip } from "../shared/Tooltip";
-import { clampSplitLeftWidth, dockFlexGridColumns } from "../../muse/layout";
+import {
+  clampSplitLeftWidth,
+  dockFlexGridColumns,
+  splitGridColumns,
+} from "../../muse/layout";
+import { beginSplitDrag } from "../../muse/splitDrag";
 import type { BotIssueBoard } from "../../hooks/useBotIssueBoard";
 import type { MuseApiClient } from "../../muse/apiClient";
 import { isSplitIssueGroup } from "../../utils/issueGroups";
@@ -287,7 +292,9 @@ export function AssistantFrame({
             threeColumns
               ? {
                   display: "grid",
-                  gridTemplateColumns: `${splitLeftWidth ?? chatMinWidth}px 6px minmax(0, 1fr)`,
+                  gridTemplateColumns: splitGridColumns(
+                    splitLeftWidth ?? chatMinWidth,
+                  ),
                 }
               : undefined
           }
@@ -332,27 +339,26 @@ export function AssistantFrame({
             <div
               className="assistant-split-handle"
               data-testid="assistant-split-handle"
-              onMouseDown={(event) => {
-                event.preventDefault();
+              onPointerDown={(event) => {
                 const main = event.currentTarget.parentElement;
                 if (!main) return;
                 const rect = main.getBoundingClientRect();
-                const move = (ev: MouseEvent) => {
-                  const left = clampSplitLeftWidth(
-                    rect.width,
-                    ev.clientX - rect.left,
-                    chatMinWidth,
-                  );
-                  setSplitLeftWidth(left);
-                };
-                const up = () => {
-                  window.removeEventListener("mousemove", move);
-                  window.removeEventListener("mouseup", up);
-                  document.body.classList.remove("is-panel-resizing");
-                };
-                document.body.classList.add("is-panel-resizing");
-                window.addEventListener("mousemove", move);
-                window.addEventListener("mouseup", up);
+                // Live drag writes the grid on the column itself; the width
+                // reaches the board state once, on release, so the transcript
+                // and dock do not re-render per pointer event.
+                beginSplitDrag(event, {
+                  startValue: splitLeftWidth ?? chatMinWidth,
+                  value: (ev) =>
+                    clampSplitLeftWidth(
+                      rect.width,
+                      ev.clientX - rect.left,
+                      chatMinWidth,
+                    ),
+                  preview: (left) => {
+                    main.style.gridTemplateColumns = splitGridColumns(left);
+                  },
+                  commit: setSplitLeftWidth,
+                });
               }}
             />
           ) : null}

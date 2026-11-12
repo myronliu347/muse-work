@@ -17,6 +17,7 @@ import {
 } from "../../muse/dockTabOrder";
 import { dockFullscreenShortcutLabel, stepTab } from "../../muse/panelShortcuts";
 import { dockTabsToClose, type DockTabCloseMode } from "../../muse/dockTabMenu";
+import { beginSplitDrag, widthFromRightEdge } from "../../muse/splitDrag";
 import { registerSidePanel } from "../../muse/sidePanelTabs";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { PanelAddMenu } from "../panels/PanelAddMenu";
@@ -73,6 +74,12 @@ export interface DesktopPanelDockProps {
   onToggleFullscreen: () => void;
   width: number;
   onWidthChange: (width: number) => void;
+  /**
+   * Live width while the handle drags. Layouts that size the dock from their
+   * own grid (the assistant frame) write that grid here instead of waiting for
+   * the committed width.
+   */
+  onWidthPreview?: (width: number) => void;
   maxWidth: number;
   /** Open file tabs — top-level tabs in the dock's tab bar (VS Code style).
    * While any files are open the "文件" kind tab yields its place to them. */
@@ -121,6 +128,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   onToggleFullscreen,
   width,
   onWidthChange,
+  onWidthPreview,
   maxWidth,
   fileTabs = EMPTY_FILE_TABS,
   activeFilePath = null,
@@ -338,27 +346,22 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
     scrollDockTabIntoView(container, tab);
   }, [active, activeFilePath, activeToolId, stableChecked, detailActive, fileDockIds, tabOrder, stableToolTabs]);
 
-  const onDragStart = (e: React.MouseEvent) => {
+  const onDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
     if (fullscreen) return;
-    e.preventDefault();
     dockRef.current?.classList.remove("desktop-panel-dock--enter");
     setEntering(false);
-    const handle = e.currentTarget as HTMLElement;
-    handle.style.background = "var(--accent-9)";
-    document.body.classList.add("is-panel-resizing");
-    const rect = dockRef.current?.getBoundingClientRect();
-    const onMove = (ev: MouseEvent) => {
-      const next = (rect?.right ?? 0) - ev.clientX;
-      onWidthChange(clampDockWidth(next, maxWidth));
+    const right = dockRef.current?.getBoundingClientRect().right ?? 0;
+    const preview = (next: number) => {
+      dockRef.current?.style.setProperty("--dock-width", `${next}px`);
+      onWidthPreview?.(next);
     };
-    const onUp = () => {
-      handle.style.background = "";
-      document.body.classList.remove("is-panel-resizing");
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    beginSplitDrag(e, {
+      startValue: clampedWidth,
+      value: (ev) =>
+        widthFromRightEdge(right, ev, (next) => clampDockWidth(next, maxWidth)),
+      preview,
+      commit: onWidthChange,
+    });
   };
 
   // Open files live in the dock's top tab bar regardless of which panel is
@@ -547,7 +550,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
       {!fullscreen && (
         <div
           className="preview-pane-drag-handle"
-          onMouseDown={onDragStart}
+          onPointerDown={onDragStart}
           data-testid="desktop-panel-dock-resize"
         />
       )}

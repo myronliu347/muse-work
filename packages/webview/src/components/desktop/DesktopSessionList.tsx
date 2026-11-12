@@ -1,9 +1,10 @@
+import { beginSplitDrag } from "../../muse/splitDrag";
 import React from "react";
 import {
   SessionTree,
   resolveSidebarSessions,
 } from "../session/SessionTree";
-import { DESKTOP_SIDEBAR_WIDTH } from "../../muse/layout";
+import { DESKTOP_SIDEBAR_WIDTH, clampSidebarWidth } from "../../muse/layout";
 import { NewSessionIcon } from "../shared/HeaderIcons";
 import type {
   DesktopSessionEntry,
@@ -59,22 +60,27 @@ export const DesktopSessionList: React.FC<DesktopSessionListProps> = ({
   width = DESKTOP_SESSION_LIST_WIDTH,
   onWidthChange,
 }) => {
-  const onResizeStart = (event: React.MouseEvent) => {
+  const onResizeStart = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!onWidthChange) return;
-    event.preventDefault();
     const startX = event.clientX;
     const startWidth = width;
-    const move = (e: MouseEvent) => {
-      onWidthChange(startWidth + e.clientX - startX);
-    };
-    const up = () => {
-      document.body.classList.remove("is-panel-resizing");
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mouseup", up);
-    };
-    document.body.classList.add("is-panel-resizing");
-    window.addEventListener("mousemove", move);
-    window.addEventListener("mouseup", up);
+    const aside = event.currentTarget.parentElement;
+    // The list overlays the conversation; the chat is inset by the same width
+    // (--desktop-sidebar-width), so the drag has to move both or the list would
+    // paint over the text until the release.
+    const layout = event.currentTarget.closest<HTMLElement>(".desktop-layout");
+    beginSplitDrag(event, {
+      startValue: startWidth,
+      value: (ev) => clampSidebarWidth(startWidth + ev.clientX - startX),
+      preview: (next) => {
+        if (aside) aside.style.width = `${next}px`;
+        layout?.style.setProperty(
+          "--desktop-sidebar-width",
+          `${DESKTOP_SIDEBAR_WIDTH + next}px`,
+        );
+      },
+      commit: onWidthChange,
+    });
   };
   return (
     <aside
@@ -99,7 +105,7 @@ export const DesktopSessionList: React.FC<DesktopSessionListProps> = ({
         <div
           className="desktop-session-list-resize"
           data-testid="desktop-session-list-resize"
-          onMouseDown={onResizeStart}
+          onPointerDown={onResizeStart}
         />
       ) : null}
       <SessionTree

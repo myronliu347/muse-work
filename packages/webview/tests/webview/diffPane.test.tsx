@@ -9,6 +9,11 @@ HTMLElement.prototype.hasPointerCapture ??= () => false;
 HTMLElement.prototype.setPointerCapture ??= () => {};
 HTMLElement.prototype.releasePointerCapture ??= () => {};
 
+/** Split drags paint on the next frame; the width commits on release. */
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
 vi.mock("@pierre/diffs/react", () => ({
   PatchDiff: ({
     patch,
@@ -686,7 +691,7 @@ describe("DiffPane", () => {
     expect(lastDiffRequest(vscode).length).toBeGreaterThan(1);
   });
 
-  it("drag handle resizes within min/max bounds", () => {
+  it("drag handle resizes within min/max bounds", async () => {
     const onWidthChange = vi.fn();
     const vscode = createMockVscode();
     render(
@@ -710,19 +715,24 @@ describe("DiffPane", () => {
       right: 1024,
     } as DOMRect);
 
-    fireEvent.mouseDown(handle);
+    fireEvent.pointerDown(handle, { button: 0, pointerId: 1 });
     // The handle stays lit for the whole drag instead of relying on :hover,
     // which flickers when the pointer outruns the 6px handle.
     expect(handle.style.background).not.toBe("");
     expect(document.body.classList.contains("is-panel-resizing")).toBe(true);
-    fireEvent.mouseMove(window, { clientX: 624 }); // 1024 - 624 = 400
-    expect(onWidthChange).toHaveBeenLastCalledWith(400);
+    fireEvent.pointerMove(window, { clientX: 624 }); // 1024 - 624 = 400
+    await nextFrame();
+    expect(pane).toHaveStyle({ width: "400px" });
+    expect(onWidthChange).not.toHaveBeenCalled();
     expect(handle.style.background).not.toBe(""); // still lit mid-drag
-    fireEvent.mouseMove(window, { clientX: 950 }); // 74 → clamped to 320
-    expect(onWidthChange).toHaveBeenLastCalledWith(320);
-    fireEvent.mouseMove(window, { clientX: 10 }); // 1014 → clamped to 716
+    fireEvent.pointerMove(window, { clientX: 950 }); // 74 → clamped to 320
+    await nextFrame();
+    expect(pane).toHaveStyle({ width: "320px" });
+    fireEvent.pointerMove(window, { clientX: 10 }); // 1014 → clamped to 716
+    await nextFrame();
+    expect(pane).toHaveStyle({ width: "716px" });
+    fireEvent.pointerUp(window);
     expect(onWidthChange).toHaveBeenLastCalledWith(716);
-    fireEvent.mouseUp(window);
     expect(handle.style.background).toBe(""); // cleared on release
     expect(document.body.classList.contains("is-panel-resizing")).toBe(false);
   });
@@ -1280,17 +1290,23 @@ describe("DiffPane", () => {
       expect(screen.getAllByTestId("diff-tree-file-modified")).toHaveLength(2);
     });
 
-    it("resizes the change-tree column by dragging the left edge", () => {
+    it("resizes the change-tree column by dragging the left edge", async () => {
       renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile()]);
       const nav = screen.getByTestId("diff-tree-nav");
       expect(nav).toHaveClass("is-opening");
       expect(nav).toHaveStyle({ width: "240px" });
       const handle = screen.getByTestId("diff-tree-resize");
-      fireEvent.mouseDown(handle, { clientX: 500 });
+      fireEvent.pointerDown(handle, {
+        button: 0,
+        pointerId: 1,
+        clientX: 500,
+      });
       expect(nav).not.toHaveClass("is-opening");
-      fireEvent.mouseMove(window, { clientX: 460 });
-      fireEvent.mouseUp(window);
+      fireEvent.pointerMove(window, { clientX: 460 });
+      await nextFrame();
+      expect(nav).toHaveStyle({ width: "280px" });
+      fireEvent.pointerUp(window);
       // Dragging left 40px widens a right-side column to 280.
       expect(nav).toHaveStyle({ width: "280px" });
     });

@@ -57,6 +57,8 @@ export function useChatDock(input: {
   toggleAssistantDock: () => void;
   handleToggleFullscreen: () => void;
   handleDockWidthChangeAndPin: (width: number) => void;
+  /** Live dock width while the handle drags, before the commit. */
+  onWidthPreview: (width: number) => void;
   handlePreviewNavigate: (url: string) => void;
   handleRemotePreviewRetry: () => void;
   handleAddComment: (text: string) => void;
@@ -133,6 +135,7 @@ export function useChatDock(input: {
     toggleAssistantDock,
     handleToggleFullscreen,
     handleDockWidthChangeAndPin,
+    onWidthPreview,
     handlePreviewNavigate,
     handleRemotePreviewRetry,
     handleAddComment,
@@ -353,6 +356,7 @@ export function useChatDock(input: {
     },
     onToggleFullscreen: handleToggleFullscreen,
     onWidthChange: handleDockWidthChangeAndPin,
+    onWidthPreview,
     vscode,
     paneId,
     isStreaming: state.isStreaming,

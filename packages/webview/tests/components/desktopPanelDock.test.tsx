@@ -13,6 +13,11 @@ const fileTab = (
   overrides: Partial<FileViewState> = {},
 ): FileViewState => ({ path, host: "local", content: "x", ...overrides });
 
+/** Split drags paint on the next frame; the width commits on release. */
+function frame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
 const baseProps = {
   onSelect: () => {},
   onCloseTab: () => {},
@@ -47,6 +52,43 @@ describe("DesktopPanelDock", () => {
     expect(diffTab.querySelector(".codicon-diff")).toBeTruthy();
     expect(screen.queryByTestId("desktop-panel-tab-terminal")).toBeNull();
     expect(screen.getByTestId("panel-toggle-btn")).toBeInTheDocument();
+  });
+
+  it("previews the drag on the dock and commits the width once", async () => {
+    const onWidthChange = vi.fn();
+    const onWidthPreview = vi.fn();
+    render(
+      <MuseTheme>
+        <DesktopPanelDock
+          {...baseProps}
+          checked={["file"]}
+          active="file"
+          onWidthChange={onWidthChange}
+          onWidthPreview={onWidthPreview}
+        >
+          <div>body</div>
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+
+    const dock = screen.getByTestId("desktop-panel-dock");
+    vi.spyOn(dock, "getBoundingClientRect").mockReturnValue({
+      right: 1200,
+    } as DOMRect);
+    fireEvent.pointerDown(screen.getByTestId("desktop-panel-dock-resize"), {
+      button: 0,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(window, { clientX: 800 }); // 1200 - 800 = 400
+    await frame();
+    // The drag paints the CSS var (and the layout's own grid) without state.
+    expect(dock.style.getPropertyValue("--dock-width")).toBe("400px");
+    expect(onWidthPreview).toHaveBeenLastCalledWith(400);
+    expect(onWidthChange).not.toHaveBeenCalled();
+
+    fireEvent.pointerUp(window);
+    expect(onWidthChange).toHaveBeenCalledWith(400);
+    expect(onWidthChange).toHaveBeenCalledTimes(1);
   });
 
   it("shows the loaded page title on the browser tab", () => {

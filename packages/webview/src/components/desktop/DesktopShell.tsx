@@ -1,3 +1,4 @@
+import { beginSplitDrag } from "../../muse/splitDrag";
 import React, {
   useCallback,
   useEffect,
@@ -168,13 +169,6 @@ const DesktopShellView: React.FC<
   // VS Code-style translucent overlay while hovering an edge band (only in a
   // single-row layout): drop splits the layout into two rows.
   const [dropZone, setDropZone] = useState<DropZone | null>(null);
-  const [resizePreview, setResizePreview] = useState<{
-    row: number;
-    widths: number[];
-  } | null>(null);
-  const [rowResizePreview, setRowResizePreview] = useState<number[] | null>(
-    null,
-  );
   const [activeSeparator, setActiveSeparator] = useState<{
     row: number;
     index: number;
@@ -185,9 +179,6 @@ const DesktopShellView: React.FC<
   const paneNodes = useRef(new Map<string, HTMLDivElement>());
   // Insertion boundary (row + gap index) tracked while a pane/session drags.
   const dropBoundary = useRef<{ row: number; index: number } | null>(null);
-  const resizePreviewRef = useRef<{ row: number; widths: number[] } | null>(
-    null,
-  );
 
   const showHint = useCallback(
     (text: string) => {
@@ -596,9 +587,8 @@ const DesktopShellView: React.FC<
     return () => document.removeEventListener("dragend", clearDragFeedback);
   }, [clearDragFeedback]);
 
-  const handleSeparatorMouseDown = useCallback(
-    (e: React.MouseEvent, row: number, separatorIndex: number) => {
-      e.preventDefault();
+  const handleSeparatorPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>, row: number, separatorIndex: number) => {
       const rowPanes = panes.filter((p) => (p.row === 1 ? 1 : 0) === row);
       const startX = e.clientX;
       const widths = rowPanes.map(
@@ -607,83 +597,100 @@ const DesktopShellView: React.FC<
           0,
       );
       const pairTotal = widths[separatorIndex] + widths[separatorIndex + 1];
-      setActiveSeparator({ row, index: separatorIndex });
-      const onMouseMove = (ev: MouseEvent) => {
-        // Both panes of the pair keep at least the minimum width; a pair that
-        // can't satisfy that is frozen in place.
-        const minLeft = minPaneWidth(separatorIndex === 0, sidebarWidth);
-        const minRight = MIN_PANE_WIDTH;
-        if (pairTotal < minLeft + minRight) return;
-        const clamped = Math.max(
-          minLeft,
-          Math.min(
-            pairTotal - minRight,
-            widths[separatorIndex] + ev.clientX - startX,
-          ),
-        );
+      // Both panes of the pair keep at least the minimum width; a pair that
+      // can't satisfy that is frozen in place.
+      const minLeft = minPaneWidth(separatorIndex === 0, sidebarWidth);
+      const minRight = MIN_PANE_WIDTH;
+      const widthsFor = (left: number) => {
         const next = [...widths];
-        next[separatorIndex] = clamped;
-        next[separatorIndex + 1] = pairTotal - clamped;
-        resizePreviewRef.current = { row, widths: next };
-        setResizePreview({ row, widths: next });
+        next[separatorIndex] = left;
+        next[separatorIndex + 1] = pairTotal - left;
+        return next;
       };
-      const onMouseUp = () => {
-        window.removeEventListener("mousemove", onMouseMove);
-        window.removeEventListener("mouseup", onMouseUp);
-        setActiveSeparator(null);
-        const preview = resizePreviewRef.current;
-        resizePreviewRef.current = null;
-        setResizePreview(null);
-        if (!preview) return;
-        const sum = preview.widths.reduce((total, w) => total + w, 0);
-        if (sum <= 0) return;
-        vscode.postMessage({
-          command: "desktopResizePanes",
-          row,
-          widths: preview.widths.map((w) => w / sum),
+      // Live drag writes the pane flex directly; the layout state gets one
+      // update, through the host, when the pointer is released.
+      const paint = (basis: (index: number) => string) => {
+        rowPanes.forEach((pane, index) => {
+          const el = paneNodes.current.get(pane.paneId);
+          if (el) el.style.flex = basis(index);
         });
       };
-      window.addEventListener("mousemove", onMouseMove);
-      window.addEventListener("mouseup", onMouseUp);
+      setActiveSeparator({ row, index: separatorIndex });
+      beginSplitDrag(e, {
+        startValue: widths[separatorIndex],
+        value: (ev) => {
+          if (pairTotal < minLeft + minRight) return widths[separatorIndex];
+          return Math.max(
+            minLeft,
+            Math.min(
+              pairTotal - minRight,
+              widths[separatorIndex] + ev.clientX - startX,
+            ),
+          );
+        },
+        preview: (left) => {
+          const next = widthsFor(left);
+          paint((index) => `0 0 ${next[index]}px`);
+        },
+        commit: (left) => {
+          const next = widthsFor(left);
+          const sum = next.reduce((total, width) => total + width, 0);
+          if (sum <= 0) return;
+          const ratios = next.map((width) => width / sum);
+          // Leave the panes on the committed ratio (the render's own basis)
+          // so a later window resize still scales them.
+          paint((index) => `0 1 ${ratios[index] * 100}%`);
+          vscode.postMessage({
+            command: "desktopResizePanes",
+            row,
+            widths: ratios,
+          });
+        },
+        onDone: () => setActiveSeparator(null),
+      });
     },
     [panes, vscode, sidebarWidth],
   );
 
   // Drag the horizontal separator between the two rows: live pixel preview,
-  // final heights reported on mouseup.
-  const handleRowSeparatorMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
+  // final heights reported on release.
+  const handleRowSeparatorPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
       const container = rowsContainerRef.current;
       const heights = host.rowHeights;
       if (!container || !heights) return;
       const total = container.getBoundingClientRect().height;
       const startY = e.clientY;
       const startTop = heights[0] * total;
-      setRowSeparatorActive(true);
-      const onMouseMove = (ev: MouseEvent) => {
-        const top = Math.max(
+      const topFor = (ev: PointerEvent) =>
+        Math.max(
           MIN_ROW_HEIGHT,
           Math.min(total - MIN_ROW_HEIGHT, startTop + ev.clientY - startY),
         );
-        setRowResizePreview([top, total - top]);
-      };
-      const onMouseUp = (ev: MouseEvent) => {
-        window.removeEventListener("mousemove", onMouseMove);
-        window.removeEventListener("mouseup", onMouseUp);
-        setRowSeparatorActive(false);
-        setRowResizePreview(null);
-        const top = Math.max(
-          MIN_ROW_HEIGHT,
-          Math.min(total - MIN_ROW_HEIGHT, startTop + ev.clientY - startY),
-        );
-        vscode.postMessage({
-          command: "desktopResizePaneRows",
-          heights: [top, total - top],
+      const paint = (top: number, px: boolean) => {
+        const next = [top, total - top];
+        rowRefs.current.forEach((el, index) => {
+          if (!el || index > 1) return;
+          el.style.flex = px
+            ? `0 0 ${next[index]}px`
+            : `0 0 ${(next[index] / total) * 100}%`;
         });
       };
-      window.addEventListener("mousemove", onMouseMove);
-      window.addEventListener("mouseup", onMouseUp);
+      setRowSeparatorActive(true);
+      beginSplitDrag(e, {
+        startValue: startTop,
+        axis: "y",
+        value: topFor,
+        preview: (top) => paint(top, true),
+        commit: (top) => {
+          paint(top, false);
+          vscode.postMessage({
+            command: "desktopResizePaneRows",
+            heights: [top, total - top],
+          });
+        },
+        onDone: () => setRowSeparatorActive(false),
+      });
     },
     [host.rowHeights, vscode],
   );
@@ -705,7 +712,6 @@ const DesktopShellView: React.FC<
 
   const rowStyle = (row: number): React.CSSProperties | undefined => {
     if (!hasTwoRows) return undefined;
-    if (rowResizePreview) return { flex: `0 0 ${rowResizePreview[row]}px` };
     const heights = host.rowHeights;
     if (!heights) return undefined;
     return { flex: `0 0 ${heights[row] * 100}%` };
@@ -872,7 +878,7 @@ const DesktopShellView: React.FC<
             {rowIdx > 0 && (
               <div
                 className={`desktop-row-separator${rowSeparatorActive ? " desktop-row-separator--active" : ""}`}
-                onMouseDown={handleRowSeparatorMouseDown}
+                onPointerDown={handleRowSeparatorPointerDown}
                 data-testid="desktop-row-separator"
               />
             )}
@@ -893,14 +899,7 @@ const DesktopShellView: React.FC<
                 const paneStyle: React.CSSProperties = {
                   minWidth: minPaneWidth(index === 0, contentInset),
                 };
-                if (
-                  resizePreview &&
-                  resizePreview.row === rowIdx &&
-                  resizePreview.widths[index] != null
-                ) {
-                  // Live preview while a separator drags (pixel widths).
-                  paneStyle.flex = `0 0 ${resizePreview.widths[index]}px`;
-                } else if (pane.width != null) {
+                if (pane.width != null) {
                   // flex-shrink:1 lets panes absorb the few px of overflow that
                   // otherwise accumulates from each pane's border-right (content-
                   // box, not counted in the % basis) plus the separators' net
@@ -915,8 +914,8 @@ const DesktopShellView: React.FC<
                     {index > 0 && (
                       <div
                         className={`desktop-pane-separator${activeSeparator?.row === rowIdx && activeSeparator.index === index - 1 ? " desktop-pane-separator--active" : ""}`}
-                        onMouseDown={(e) =>
-                          handleSeparatorMouseDown(e, rowIdx, index - 1)
+                        onPointerDown={(e) =>
+                          handleSeparatorPointerDown(e, rowIdx, index - 1)
                         }
                         onDragOver={(e) =>
                           handleSeparatorDragOver(e, rowIdx, index)

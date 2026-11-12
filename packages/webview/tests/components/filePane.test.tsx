@@ -11,6 +11,11 @@ import {
   parseFileSelectionClipboard,
 } from "../../src/utils/filePanelDnD";
 
+/** Split drags paint on the next frame; the width commits on release. */
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
 vi.mock("../../src/components/message/MermaidRenderer", () => ({
   MermaidRenderer: ({ content }: { content: string }) => (
     <div data-testid="mermaid-diagram">{content}</div>
@@ -1044,7 +1049,7 @@ describe("FilePane", () => {
     expect(img.getAttribute("src")).toBe("data:image/png;base64,AAAA");
   });
 
-  it("drag handle resizes within min/max bounds", () => {
+  it("drag handle resizes within min/max bounds", async () => {
     const { onWidthChange } = renderPane({ maxWidth: 716 });
     const pane = screen.getByTestId("file-pane");
     const handle = pane.querySelector(
@@ -1055,14 +1060,20 @@ describe("FilePane", () => {
       right: 1024,
     } as DOMRect);
 
-    fireEvent.mouseDown(handle);
-    fireEvent.mouseMove(window, { clientX: 624 });
-    expect(onWidthChange).toHaveBeenLastCalledWith(400);
-    fireEvent.mouseMove(window, { clientX: 950 });
-    expect(onWidthChange).toHaveBeenLastCalledWith(320);
-    fireEvent.mouseMove(window, { clientX: 10 });
+    fireEvent.pointerDown(handle, { button: 0, pointerId: 1 });
+    fireEvent.pointerMove(window, { clientX: 624 });
+    await nextFrame();
+    expect(pane).toHaveStyle({ width: "400px" });
+    fireEvent.pointerMove(window, { clientX: 950 });
+    await nextFrame();
+    expect(pane).toHaveStyle({ width: "320px" });
+    fireEvent.pointerMove(window, { clientX: 10 });
+    await nextFrame();
+    expect(pane).toHaveStyle({ width: "716px" });
+    // Live drag only paints; the panel width lands in state once, on release.
+    expect(onWidthChange).not.toHaveBeenCalled();
+    fireEvent.pointerUp(window);
     expect(onWidthChange).toHaveBeenLastCalledWith(716);
-    fireEvent.mouseUp(window);
   });
 
   afterEach(() => {

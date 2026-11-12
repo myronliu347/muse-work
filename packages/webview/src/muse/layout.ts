@@ -36,6 +36,11 @@ export function clampSplitLeftWidth(
   return Math.min(leftCap, Math.max(leftFloor, desiredLeft));
 }
 
+/** Three-column split: Muse Bot column, 6px handle, issue column. */
+export function splitGridColumns(leftWidth: number): string {
+  return `${Math.round(leftWidth)}px 6px minmax(0, 1fr)`;
+}
+
 export function clampSidebarWidth(width: number): number {
   return Math.min(
     DESKTOP_SIDEBAR_MAX_WIDTH,

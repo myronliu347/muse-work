@@ -1,3 +1,4 @@
+import { beginSplitDrag, widthFromRightEdge } from "../../muse/splitDrag";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { VsCodeApi } from "../../types";
 import { pathToFileUrl } from "../../utils/pathToFileUrl";
@@ -164,6 +165,7 @@ export interface PreviewPaneProps {
   /** Controlled width (px); the parent enforces the conversation-area minimum. */
   width: number;
   onWidthChange: (width: number) => void;
+  onWidthPreview?: (width: number) => void;
   /** Upper bound so the conversation area keeps its minimum width. */
   maxWidth: number;
   /** Receives a formatted picker comment; appended to this pane's chat input. */
@@ -193,6 +195,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   vscode,
   width,
   onWidthChange,
+  onWidthPreview,
   maxWidth,
   onAddComment,
   originalUrl,
@@ -573,25 +576,19 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   const bookmarks = filterPreviewLinks(library.bookmarks, linkQuery);
   const recentGroups = previewRecentGroups(filterPreviewLinks(library.recents, linkQuery));
 
-  const onLinksResizeStart = (event: React.MouseEvent) => {
-    event.preventDefault();
-    const handle = event.currentTarget as HTMLElement;
-    handle.style.background = "var(--accent-9)";
-    document.body.classList.add("is-panel-resizing");
+  const onLinksResizeStart = (event: React.PointerEvent<HTMLDivElement>) => {
     const startX = event.clientX;
-    const startW = linksWidth;
-    const onMove = (ev: MouseEvent) => {
-      // Sidebar sits on the right; dragging left increases its width.
-      writePreviewLinksWidth(clampPreviewLinksWidth(startW + (startX - ev.clientX)));
-    };
-    const onUp = () => {
-      handle.style.background = "";
-      document.body.classList.remove("is-panel-resizing");
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    const startWidth = linksWidth;
+    const sidebar = event.currentTarget.parentElement;
+    // Sidebar sits on the right; dragging left increases its width.
+    beginSplitDrag(event, {
+      startValue: startWidth,
+      value: (ev) => clampPreviewLinksWidth(startWidth + (startX - ev.clientX)),
+      preview: (next) => {
+        if (sidebar) sidebar.style.width = `${next}px`;
+      },
+      commit: writePreviewLinksWidth,
+    });
   };
 
   const renderPreviewLink = (link: PreviewLink, kind: "bookmark" | "recent") => (
@@ -679,26 +676,23 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
 
   // Dragging the left edge resizes this panel: the panels to the right keep
   // their widths, so the aside's right edge is fixed for the drag.
-  const onDragStart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const handle = e.currentTarget as HTMLElement;
-    // Keep the handle lit + cursor locked for the whole drag — :hover and the
-    // 6px-only col-resize cursor both flicker as the pointer outruns the handle.
-    handle.style.background = "var(--accent-9)";
-    document.body.classList.add("is-panel-resizing");
-    const rect = asideRef.current?.getBoundingClientRect();
-    const onMove = (ev: MouseEvent) => {
-      const next = (rect?.right ?? 0) - ev.clientX;
-      onWidthChange(Math.min(Math.max(next, MIN_WIDTH), maxWidth));
-    };
-    const onUp = () => {
-      handle.style.background = "";
-      document.body.classList.remove("is-panel-resizing");
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+  // Drag the left edge: the right edge is the anchor, so the width is whatever
+  // the pointer leaves. The live width only touches the DOM; the width lands in
+  // state (and the panel snapshot) once, on release.
+  const onDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    const right = asideRef.current?.getBoundingClientRect().right ?? 0;
+    beginSplitDrag(e, {
+      startValue: width,
+      value: (ev) =>
+        widthFromRightEdge(right, ev, (next) =>
+          Math.min(Math.max(next, MIN_WIDTH), maxWidth),
+        ),
+      preview: (next) => {
+        if (asideRef.current) asideRef.current.style.width = `${next}px`;
+        onWidthPreview?.(next);
+      },
+      commit: onWidthChange,
+    });
   };
 
   return (
@@ -708,7 +702,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       style={{ width }}
       data-testid={tid("preview-pane")}
     >
-      <div className="preview-pane-drag-handle" onMouseDown={onDragStart} />
+      <div className="preview-pane-drag-handle" onPointerDown={onDragStart} />
       <div className="preview-pane-inner">
         <div className="preview-pane-toolbar">
           <button
@@ -997,7 +991,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
               <div
                 className="preview-pane-links-resize"
                 data-testid={tid("preview-links-resize")}
-                onMouseDown={onLinksResizeStart}
+                onPointerDown={onLinksResizeStart}
               />
               <label className="preview-pane-links-search">
                 <i className="codicon codicon-search" />

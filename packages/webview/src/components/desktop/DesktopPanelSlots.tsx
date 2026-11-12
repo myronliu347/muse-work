@@ -42,6 +42,8 @@ export interface DesktopPanelSlotsProps {
   onCloseDock?: () => void;
   onToggleFullscreen: () => void;
   onWidthChange: (width: number) => void;
+  /** Live width while a splitter drags; layouts size the dock from their own grid. */
+  onWidthPreview?: (width: number) => void;
   // Panel slot payloads
   vscode: VsCodeApi;
   paneId?: string;
@@ -136,6 +138,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   onCloseDock,
   onToggleFullscreen,
   onWidthChange,
+  onWidthPreview,
   vscode,
   paneId,
   isStreaming,
@@ -200,6 +203,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
     const common = {
       width: dockWidth,
       onWidthChange,
+      onWidthPreview,
       maxWidth: dockMaxWidth,
       onClose: () => onCloseTab(kind),
     };
@@ -303,6 +307,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
         Math.max(0, dockMaxWidth),
       )}
       onWidthChange={onWidthChange}
+      onWidthPreview={onWidthPreview}
       maxWidth={Math.max(0, dockMaxWidth)}
       fileTabs={fileTabs}
       activeFilePath={activeFilePath}
@@ -353,6 +358,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
         const common = {
           width: dockWidth,
           onWidthChange,
+          onWidthPreview,
           maxWidth: dockMaxWidth,
           onClose: () => onCloseTool?.(tool.id),
         };

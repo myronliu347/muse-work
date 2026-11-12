@@ -1,3 +1,4 @@
+import { beginSplitDrag, widthFromRightEdge } from "../../muse/splitDrag";
 import React, { useEffect, useRef, useState } from "react";
 import type {
   ContentSearchState,
@@ -25,6 +26,7 @@ export interface FilePaneProps {
   fileView: FileViewState | null;
   width: number;
   onWidthChange: (width: number) => void;
+  onWidthPreview?: (width: number) => void;
   maxWidth: number;
   onClose: () => void;
   workdir?: string;
@@ -59,6 +61,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
   fileView,
   width,
   onWidthChange,
+  onWidthPreview,
   maxWidth,
   workdir,
   vscode,
@@ -125,24 +128,23 @@ export const FilePane: React.FC<FilePaneProps> = ({
     onFileTreeChange({ ...tree, collapsed: false });
   }, [fileView, onFileTreeChange]);
 
-  const onDragStart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const handle = e.currentTarget as HTMLElement;
-    handle.style.background = "var(--accent-9)";
-    document.body.classList.add("is-panel-resizing");
-    const rect = asideRef.current?.getBoundingClientRect();
-    const onMove = (ev: MouseEvent) => {
-      const next = (rect?.right ?? 0) - ev.clientX;
-      onWidthChange(Math.min(Math.max(next, MIN_WIDTH), maxWidth));
-    };
-    const onUp = () => {
-      handle.style.background = "";
-      document.body.classList.remove("is-panel-resizing");
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+  // Drag the left edge: the right edge is the anchor, so the width is whatever
+  // the pointer leaves. The live width only touches the DOM; the width lands in
+  // state (and the panel snapshot) once, on release.
+  const onDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    const right = asideRef.current?.getBoundingClientRect().right ?? 0;
+    beginSplitDrag(e, {
+      startValue: width,
+      value: (ev) =>
+        widthFromRightEdge(right, ev, (next) =>
+          Math.min(Math.max(next, MIN_WIDTH), maxWidth),
+        ),
+      preview: (next) => {
+        if (asideRef.current) asideRef.current.style.width = `${next}px`;
+        onWidthPreview?.(next);
+      },
+      commit: onWidthChange,
+    });
   };
 
   const isMd = !!(fileView?.content && isMarkdownPath(fileView.path));
@@ -227,7 +229,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
       style={{ width }}
       data-testid="file-pane"
     >
-      <div className="preview-pane-drag-handle" onMouseDown={onDragStart} />
+      <div className="preview-pane-drag-handle" onPointerDown={onDragStart} />
       <div className="preview-pane-inner file-pane-inner">
         <div className="preview-pane-toolbar">
           {fileView ? (

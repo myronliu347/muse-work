@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { MessageInputHandle } from "../components/chat/MessageInput";
 import { activePreviewTool } from "../muse/dockTools";
+import { isSplitDragging, onSplitDragEnd } from "../muse/splitDrag";
 import type { MuseApiClient } from "../muse/apiClient";
 import { useScenarioModelsStore } from "../stores/scenarioModelsStore";
 import { createMessageHandler } from "../muse/messageRouter";
@@ -139,6 +140,10 @@ export function useChatFrame({
   // written back into the layout, so every commit saw a new clientWidth and
   // setState never settled.
   const measureFrame = useCallback(() => {
+    // During a split drag the columns move every frame; measuring here would
+    // re-render per frame and feed the new width back into the layout. The
+    // drag notifies once when it ends.
+    if (isSplitDragging()) return;
     const el = chatContainerRef.current;
     const frame = el?.clientWidth ?? 0;
     if (frame > 0) {
@@ -153,6 +158,7 @@ export function useChatFrame({
   useLayoutEffect(() => {
     measureFrame();
   }, [measureFrame, paneId, host?.panes?.length, view, shellSurface]);
+  useEffect(() => onSplitDragEnd(measureFrame), [measureFrame]);
   useEffect(() => {
     window.addEventListener("resize", measureFrame);
     window.visualViewport?.addEventListener("resize", measureFrame);

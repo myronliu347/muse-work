@@ -1,3 +1,4 @@
+import { beginSplitDrag } from "../../muse/splitDrag";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type {
@@ -177,28 +178,21 @@ export const FileTree: React.FC<FileTreeProps> = ({
 
   const [opening, setOpening] = useState(true);
 
-  const onWidthDragStart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.currentTarget.parentElement?.classList.remove("is-opening");
+  const onWidthDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    const root = e.currentTarget.parentElement;
+    root?.classList.remove("is-opening");
     setOpening(false);
-    const handle = e.currentTarget as HTMLElement;
-    handle.style.background = "var(--accent-9)";
-    document.body.classList.add("is-panel-resizing");
     const startX = e.clientX;
-    const startW = width;
-    const onMove = (ev: MouseEvent) => {
-      // Tree is on the right; dragging left increases width
-      const next = clampFileTreeWidth(startW + (startX - ev.clientX));
-      onTreeChange({ ...tree, width: next });
-    };
-    const onUp = () => {
-      handle.style.background = "";
-      document.body.classList.remove("is-panel-resizing");
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    const startWidth = width;
+    beginSplitDrag(e, {
+      startValue: startWidth,
+      // Tree is on the right; dragging left increases width.
+      value: (ev) => clampFileTreeWidth(startWidth + (startX - ev.clientX)),
+      preview: (next) => {
+        if (root) root.style.width = `${next}px`;
+      },
+      commit: (next) => onTreeChange({ ...tree, width: next }),
+    });
   };
 
   const toggleDir = (rel: string) => {
@@ -227,7 +221,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
         style={{ width }}
         onAnimationEnd={finishOpening}
       >
-        <div className="file-tree-drag-handle" onMouseDown={onWidthDragStart} />
+        <div className="file-tree-drag-handle" onPointerDown={onWidthDragStart} />
         <div className="file-tree-header">
           <span className="file-tree-workdir" title="">
             无工作目录
@@ -260,7 +254,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
     >
       <div
         className="file-tree-drag-handle"
-        onMouseDown={onWidthDragStart}
+        onPointerDown={onWidthDragStart}
         data-testid="file-tree-resize"
       />
       <div className="file-tree-header" title={workdir} data-testid="file-tree-workdir">

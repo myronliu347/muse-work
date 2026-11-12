@@ -1,3 +1,4 @@
+import { beginSplitDrag, widthFromRightEdge } from "../../muse/splitDrag";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { DropdownMenu } from "@radix-ui/themes";
 import type { VsCodeApi } from "../../types";
@@ -174,6 +175,7 @@ export interface TerminalPaneProps {
   workdir?: string;
   width: number;
   onWidthChange: (width: number) => void;
+  onWidthPreview?: (width: number) => void;
   maxWidth: number;
   onClose: () => void;
   /** Split-view pane identity: tags PTY create requests for cwd resolution. */
@@ -197,6 +199,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   vscode,
   width,
   onWidthChange,
+  onWidthPreview,
   maxWidth,
   paneId,
   visible,
@@ -443,26 +446,23 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     }
   }, [visible, termId, workdir, killPty, createPty]);
 
-  const onDragStart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const handle = e.currentTarget as HTMLElement;
-    // Keep the handle lit + cursor locked for the whole drag — :hover and the
-    // 6px-only col-resize cursor both flicker as the pointer outruns the handle.
-    handle.style.background = "var(--accent-9)";
-    document.body.classList.add("is-panel-resizing");
-    const rect = asideRef.current?.getBoundingClientRect();
-    const onMove = (ev: MouseEvent) => {
-      const next = (rect?.right ?? 0) - ev.clientX;
-      onWidthChange(Math.min(Math.max(next, MIN_WIDTH), maxWidth));
-    };
-    const onUp = () => {
-      handle.style.background = "";
-      document.body.classList.remove("is-panel-resizing");
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+  // Drag the left edge: the right edge is the anchor, so the width is whatever
+  // the pointer leaves. The live width only touches the DOM; the width lands in
+  // state (and the panel snapshot) once, on release.
+  const onDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    const right = asideRef.current?.getBoundingClientRect().right ?? 0;
+    beginSplitDrag(e, {
+      startValue: width,
+      value: (ev) =>
+        widthFromRightEdge(right, ev, (next) =>
+          Math.min(Math.max(next, MIN_WIDTH), maxWidth),
+        ),
+      preview: (next) => {
+        if (asideRef.current) asideRef.current.style.width = `${next}px`;
+        onWidthPreview?.(next);
+      },
+      commit: onWidthChange,
+    });
   };
 
   return (
@@ -472,7 +472,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       style={{ width }}
       data-testid={tid("terminal-pane")}
     >
-      <div className="preview-pane-drag-handle" onMouseDown={onDragStart} />
+      <div className="preview-pane-drag-handle" onPointerDown={onDragStart} />
       <div className="preview-pane-inner">
         <div className="preview-pane-toolbar">
           <span className="preview-pane-url">终端</span>

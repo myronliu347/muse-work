@@ -1730,10 +1730,24 @@
 }
 
 /* While dragging a panel handle, lock the cursor globally so it doesn't
-   flicker as the pointer crosses the 6px handle onto adjacent elements. */
+   flicker as the pointer crosses the 6px handle onto adjacent elements. The
+   gesture also owns text selection, and the dock's guest <webview>/xterm must
+   not swallow the moves. */
 body.is-panel-resizing,
 body.is-panel-resizing * {
   cursor: col-resize !important;
+  user-select: none;
+}
+
+body.is-panel-resizing webview,
+body.is-panel-resizing iframe {
+  pointer-events: none;
+}
+
+body.is-panel-resizing-row,
+body.is-panel-resizing-row * {
+  cursor: row-resize !important;
+  user-select: none;
 }
 
 .preview-pane-inner {

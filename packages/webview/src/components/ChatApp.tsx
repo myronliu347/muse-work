@@ -43,6 +43,7 @@ import {
   DESKTOP_SIDEBAR_WIDTH,
   SPLIT_ISSUE_MIN_WIDTH,
   chatMainMinWidth,
+  dockFlexGridColumns,
   paneHasSidebarInset,
 } from "../muse/layout";
 import { useDesktopSidebarCollapsed } from "../hooks/useDesktopSidebarCollapsed";
@@ -573,6 +574,26 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     },
     [handleDockWidthChange, pinChatPaneAfterDrag],
   );
+  // Live dock width while a splitter drags. The assistant frame sizes the dock
+  // from its own grid, so the drag writes that grid (and the dock's
+  // --dock-width, used by the flex chat layout) straight to the DOM. The width
+  // reaches the store once, from handleDockWidthChangeAndPin on release.
+  const previewDockWidth = useCallback(
+    (width: number) => {
+      const frame = chatContainerRef.current;
+      if (!frame) return;
+      frame
+        .querySelector<HTMLElement>(".desktop-panel-dock")
+        ?.style.setProperty("--dock-width", `${width}px`);
+      if (assistantDockOpen && !dockFullscreen && chatColumnWidth > 0) {
+        frame.style.gridTemplateColumns = dockFlexGridColumns(
+          Math.max(0, chatColumnWidth - width),
+          chatMinWidth,
+        );
+      }
+    },
+    [assistantDockOpen, dockFullscreen, chatColumnWidth, chatMinWidth],
+  );
   handleToggleDockRef.current = handleToggleDock;
   handleAddPanelRef.current = handleAddPanel;
   tryOpenPanelRef.current = tryOpenPanel;
@@ -902,6 +923,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     toggleAssistantDock,
     handleToggleFullscreen,
     handleDockWidthChangeAndPin,
+    onWidthPreview: previewDockWidth,
     handlePreviewNavigate,
     handleRemotePreviewRetry,
     handleAddComment,
