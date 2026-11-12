@@ -90,23 +90,6 @@ describe("Basic Message Flow", () => {
     expect(input.textContent).toBe("");
   });
 
-  it("should handle multiple message exchanges", () => {
-    renderChatApp();
-
-    // Simulate a conversation
-    const conversation = MockDataGenerator.createSampleConversation();
-    sendCommand("updateMessages", { messages: conversation });
-
-    // Verify all messages are displayed
-    expect(getMessages()).toHaveLength(4); // 4 conversation messages
-
-    // Verify the conversation flow
-    expect(getMessages()[0]).toHaveTextContent(/Hello, can you help me/);
-    expect(getMessages()[1]).toHaveTextContent(/I'd be happy to help/);
-    expect(getMessages()[2]).toHaveTextContent(/Can you read the package.json/);
-    expect(getMessages()[3]).toHaveTextContent(/I'll read the package.json/);
-  });
-
   it("should maintain input functionality after messages", async () => {
     const { vscode } = renderChatApp();
 

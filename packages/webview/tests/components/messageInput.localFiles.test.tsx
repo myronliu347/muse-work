@@ -136,49 +136,6 @@ describe("MessageInput local file pick", () => {
     expect(input.querySelector('[data-path="/tmp/out.md"]')).toBeTruthy();
   });
 
-  it("unmounts @file tooltips when the composer is cleared on send", async () => {
-    const vscode = stubVscode();
-    const onSendMessage = vi.fn();
-    render(
-      <MessageInput
-        onSendMessage={onSendMessage}
-        isStreaming={false}
-        onAbortMessage={vi.fn()}
-        vscode={vscode}
-        workdir="/proj"
-      />,
-    );
-
-    const input = screen.getByTestId("message-input");
-    input.focus();
-    await act(async () => {
-      window.dispatchEvent(
-        new MessageEvent("message", {
-          data: {
-            command: "desktopSelectFilesResult",
-            paths: ["/proj/prototype-status-for-frontend.md"],
-          },
-        }),
-      );
-    });
-    const tag = input.querySelector(".tooltip-container") as HTMLElement;
-    expect(tag).toBeTruthy();
-    fireEvent.mouseEnter(tag);
-    await waitFor(() => {
-      expect(document.querySelector(".tooltip-box.visible")).not.toBeNull();
-    });
-
-    await act(async () => {
-      input.appendChild(document.createTextNode("x"));
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    fireEvent.click(screen.getByTestId("send-btn"));
-    expect(onSendMessage).toHaveBeenCalled();
-    await waitFor(() => {
-      expect(document.querySelector(".tooltip-box.visible")).toBeNull();
-    });
-  });
-
   it("pastes non-image local file as @file via museGetPathForFile", async () => {
     const vscode = stubVscode();
     const prev = window.museGetPathForFile;

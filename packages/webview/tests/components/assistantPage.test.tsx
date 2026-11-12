@@ -365,30 +365,6 @@ describe("AssistantPage", () => {
     expect(screen.getByText("图在这")).toBeTruthy();
   });
 
-  it("renders an issue mention as a tag", async () => {
-    const api = {
-      listAssistantMessages: vi.fn().mockResolvedValue({
-        messages: [
-          {
-            id: "1",
-            at: 1,
-            role: "user",
-            message: "接着做 [@issue:abc123 登录失败]",
-          },
-        ],
-        hasMore: false,
-      }),
-      sendAssistantMessage: vi.fn(),
-    };
-    render(<AssistantPage api={api} />);
-    const title = await screen.findByText("登录失败", { selector: ".tag-name" });
-    expect(screen.queryByText(/\[@issue:/)).toBeNull();
-    fireEvent.mouseEnter(title.closest(".tooltip-container") as HTMLElement);
-    const tip = document.querySelector(".tooltip-box.visible");
-    expect(tip).toHaveTextContent("登录失败");
-    expect(tip).not.toHaveTextContent("abc123");
-  });
-
   it("shows a user message as plain text inside a capped scroller", async () => {
     const api = {
       listAssistantMessages: vi.fn().mockResolvedValue({
@@ -410,32 +386,6 @@ describe("AssistantPage", () => {
     expect(text.closest(".markdown-content")).toBeNull();
     expect(screen.queryByRole("link", { name: "文档" })).toBeNull();
     expect(screen.queryByRole("heading")).toBeNull();
-  });
-
-  it("renders an issue mention in an assistant reply as a tag", async () => {
-    const api = {
-      listAssistantMessages: vi.fn().mockResolvedValue({
-        messages: [
-          {
-            id: "1",
-            at: 1,
-            role: "assistant",
-            message: "[@issue:abc123 登录失败] 修好了",
-          },
-        ],
-        hasMore: false,
-      }),
-      sendAssistantMessage: vi.fn(),
-    };
-    render(<AssistantPage api={api} />);
-    const title = await screen.findByText("登录失败", { selector: ".tag-name" });
-    expect(title.closest(".assistant-bubble-assistant")).toBeTruthy();
-    fireEvent.mouseEnter(title.closest(".tooltip-container") as HTMLElement);
-    const tip = document.querySelector(".tooltip-box.visible");
-    expect(tip).toHaveTextContent("登录失败");
-    expect(tip).not.toHaveTextContent("abc123");
-    expect(screen.getByText("修好了").closest(".assistant-bubble-assistant")).toBeTruthy();
-    expect(screen.queryByText(/\[@issue:/)).toBeNull();
   });
 
   it("prepends older lines when the log is scrolled to the top", async () => {

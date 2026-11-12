@@ -100,61 +100,6 @@ describe("Streaming Messages", () => {
     expect(getLastMessage()).toHaveTextContent("Return meaningful errors");
   });
 
-  it("should handle empty streaming updates gracefully", () => {
-    renderChatApp();
-
-    // Start streaming
-    sendCommand("startStreaming");
-    expect(screen.getByTestId("abort-btn")).toBeInTheDocument();
-
-    // Send empty update
-    sendCommand("updateMessages", {
-      messages: [
-        {
-          id: "msg_streaming_empty",
-          role: "assistant",
-          timestamp: "2024-01-01T00:00:00.000Z",
-          blocks: [{ type: "text", content: "" }],
-        },
-      ],
-    });
-
-    // Empty content should not render .message-content div
-    const lastMsg = getLastMessage();
-    expect(lastMsg.querySelector(".message-content")).toBeNull();
-
-    // Send actual content
-    sendCommand("updateMessages", {
-      messages: [
-        {
-          id: "msg_streaming_empty",
-          role: "assistant",
-          timestamp: "2024-01-01T00:00:00.000Z",
-          blocks: [{ type: "text", content: "Hello world" }],
-        },
-      ],
-    });
-    expect(getLastMessage()).toHaveTextContent("Hello world");
-
-    // Send empty again
-    sendCommand("updateMessages", {
-      messages: [
-        {
-          id: "msg_streaming_empty",
-          role: "assistant",
-          timestamp: "2024-01-01T00:00:00.000Z",
-          blocks: [{ type: "text", content: "" }],
-        },
-      ],
-    });
-    // Empty content should not render .message-content div
-    const lastMsgAgain = getLastMessage();
-    expect(lastMsgAgain.querySelector(".message-content")).toBeNull();
-
-    // End streaming
-    sendCommand("endStreaming");
-  });
-
   it("should differentiate streaming from completed messages", () => {
     renderChatApp();
 

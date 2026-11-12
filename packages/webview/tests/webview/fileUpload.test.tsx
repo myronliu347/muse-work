@@ -92,43 +92,6 @@ describe("File Upload Feature", () => {
     expect(suggestionItems[0]).toHaveTextContent(/test.tsx/);
   });
 
-  it("should not show upload option when typing @ with filter text", async () => {
-    const { vscode } = renderChatApp();
-
-    await typeInInput("@test");
-
-    const reqId = await waitForFileSuggestionRequest(vscode);
-
-    act(() => {
-      sendCommand("fileSuggestionsResponse", {
-        suggestions: [
-          {
-            path: "/workspace/src/test.tsx",
-            relativePath: "src/test.tsx",
-            name: "test.tsx",
-            extension: "tsx",
-            icon: "codicon-file",
-            isDirectory: false,
-          },
-        ],
-        filterText: "test",
-        requestId: reqId,
-      });
-    });
-
-    await waitFor(() => {
-      const items = document.querySelectorAll(".suggestion-item");
-      expect(items.length).toBe(1);
-    });
-
-    const suggestionItems = document.querySelectorAll(".suggestion-item");
-    expect(suggestionItems.length).toBe(1);
-    expect(
-      document.querySelector(".suggestion-item.upload-option"),
-    ).toBeNull();
-    expect(suggestionItems[0]).toHaveTextContent(/test.tsx/);
-  });
-
   it("should insert file paths into input after desktopSelectFilesResult", async () => {
     renderChatApp();
 

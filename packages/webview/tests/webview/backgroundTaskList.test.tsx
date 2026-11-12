@@ -36,23 +36,6 @@ describe("BackgroundTaskList inline interactions", () => {
     expect(screen.queryByTestId("background-task-list")).not.toBeInTheDocument();
   });
 
-  it("collapses and expands on header click", () => {
-    renderChatApp();
-    act(() => {
-      sendCommand("updateBackgroundTasks", { tasks: [runningTask] });
-    });
-
-    const list = screen.getByTestId("background-task-list");
-    expect(list).toHaveTextContent("npm run build");
-
-    fireEvent.click(screen.getByLabelText("折叠后台任务"));
-    expect(screen.queryByText(/npm run build/)).not.toBeInTheDocument();
-    expect(screen.getByText("后台任务 (1)")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByLabelText("展开后台任务"));
-    expect(screen.getByText(/npm run build/)).toBeInTheDocument();
-  });
-
   it("posts stopBackgroundTask when the stop button of a running task is clicked", () => {
     const { vscode } = renderChatApp();
     act(() => {

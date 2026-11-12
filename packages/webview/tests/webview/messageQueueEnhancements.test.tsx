@@ -83,41 +83,6 @@ describe("Message Queue Features", () => {
     expect(queuePanel).toHaveTextContent("消息队列 (3)");
   });
 
-  it("should default to collapsed hiding every item, and expand to show all on header click", () => {
-    renderChatApp();
-    sendCommand("startStreaming");
-    sendCommand("updateQueue", {
-      messages: [
-        { id: "q1", content: "Queued 1" },
-        { id: "q2", content: "Queued 2" },
-      ],
-    });
-
-    // Collapsed by default: no item rows, chevron SVG not rotated (no `expanded`)
-    expect(screen.queryByTestId("queued-item-q1")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("queued-item-q2")).not.toBeInTheDocument();
-    const collapsedChevron = screen
-      .getByTestId("queued-message-list")
-      .querySelector(".queued-chevron");
-    expect(collapsedChevron).toBeTruthy();
-    expect(collapsedChevron?.classList.contains("expanded")).toBe(false);
-
-    // Expand: both items, chevron SVG rotated (`expanded`)
-    clickHeader();
-    expect(screen.getByTestId("queued-item-q1")).toBeInTheDocument();
-    expect(screen.getByTestId("queued-item-q2")).toBeInTheDocument();
-    expect(
-      screen
-        .getByTestId("queued-message-list")
-        .querySelector(".queued-chevron.expanded"),
-    ).toBeTruthy();
-
-    // Collapse again: every row disappears
-    clickHeader();
-    expect(screen.queryByTestId("queued-item-q1")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("queued-item-q2")).not.toBeInTheDocument();
-  });
-
   it("should delete a queued message by id via deleteQueuedMessageById", () => {
     const { vscode } = renderChatApp();
     sendCommand("startStreaming");

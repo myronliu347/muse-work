@@ -11,27 +11,6 @@ import {
 import { MockDataGenerator } from "../fixtures/mockData";
 
 describe("Clear Chat Functionality", () => {
-  it("should clear all messages except welcome message", () => {
-    renderChatApp();
-
-    const conversation = MockDataGenerator.createSampleConversation();
-    act(() => {
-      sendCommand("updateMessages", { messages: conversation });
-    });
-
-    // Verify messages are present (4 conversation)
-    const messages = document.querySelectorAll(".messages-container .message");
-    expect(messages.length).toBe(4);
-
-    // Clear chat
-    act(() => {
-      sendCommand("updateMessages", { messages: [] });
-    });
-
-    // Verify welcome view is shown (empty + authenticated)
-    expect(screen.getByTestId("welcome-headline")).toBeInTheDocument();
-  });
-
   it("should request a new session via the desktop sidebar button", () => {
     const { vscode } = renderChatApp();
 

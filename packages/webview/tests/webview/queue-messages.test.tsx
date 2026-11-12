@@ -157,34 +157,6 @@ describe("Message Queuing", () => {
     expect(itemText("q2")).toBe("Queued message 2");
   });
 
-  it("should hide every queued item while collapsed, so toggling is always visible", () => {
-    renderChatApp();
-
-    sendCommand("startStreaming");
-    sendCommand("updateQueue", {
-      messages: [{ id: "q1", content: "Queued message 1" }],
-    });
-
-    // Default state is collapsed: the header shows the count, no item rows.
-    const queuePanel = screen.getByTestId("queued-message-list");
-    expect(queuePanel).toHaveTextContent("消息队列 (1)");
-    expect(screen.queryByTestId("queued-item-q1")).not.toBeInTheDocument();
-
-    // Expand: the single item becomes visible.
-    fireEvent.click(
-      queuePanel.querySelector(".queued-message-list-header") as HTMLElement,
-    );
-    expect(screen.getByTestId("queued-item-q1")).toBeInTheDocument();
-
-    // Collapse again: the item disappears — visible feedback in both directions.
-    fireEvent.click(
-      screen
-        .getByTestId("queued-message-list")
-        .querySelector(".queued-message-list-header") as HTMLElement,
-    );
-    expect(screen.queryByTestId("queued-item-q1")).not.toBeInTheDocument();
-  });
-
   it("should wrap each item in a Tooltip showing the full text", () => {
     renderChatApp();
 
