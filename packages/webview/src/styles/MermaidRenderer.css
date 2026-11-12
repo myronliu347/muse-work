@@ -277,10 +277,27 @@
   left: 0;
   width: 100%;
   height: 100%;
+  box-sizing: border-box;
+  /* Full-window scrim, but the header starts below the macOS traffic lights:
+     the shell keeps a 38px hiddenInset strip for them, and without the inset
+     the window buttons were painted over the zoom controls. */
+  padding-top: var(--desktop-shell-titlebar-height, 0px);
   background: rgba(0, 0, 0, 0.9);
   z-index: 9999;
   display: flex;
   flex-direction: column;
+}
+
+/* Keep the traffic-light strip usable as the window drag handle while the
+   modal owns the rest of the window. */
+.mermaid-fullscreen-modal::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--desktop-shell-titlebar-height, 0px);
+  -webkit-app-region: drag;
 }
 
 .fullscreen-header {
