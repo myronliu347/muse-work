@@ -59,7 +59,9 @@ describe("desktop update button", () => {
       offer: { kind: "installer", version: "0.2.0" },
     });
 
-    expect(screen.getByTestId("desktop-update-btn").textContent).toBe("更新");
+    expect(
+      screen.getByTestId("desktop-update-btn").getAttribute("aria-label"),
+    ).toBe("更新 0.2.0");
     fireEvent.click(screen.getByTestId("desktop-update-btn"));
     expect(postMessage).toHaveBeenCalledWith({ command: "desktopApplyUpdate" });
   });

@@ -283,12 +283,19 @@ html:has(.desktop-layout) {
 
 .desktop-rail-btn.desktop-rail-update {
   margin-top: auto;
+  background: transparent;
+  color: var(--gray-11);
+}
+
+.desktop-rail-update-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
   background: var(--accent-9);
-  color: var(--accent-contrast);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
+  box-shadow: 0 0 0 2px var(--gray-2);
 }
 
 .desktop-rail-btn.desktop-rail-update + .desktop-rail-btn.desktop-rail-settings {
@@ -321,8 +328,8 @@ html:has(.desktop-layout) {
 
 .desktop-rail-btn.desktop-rail-update:hover,
 .desktop-rail-btn.desktop-rail-update:hover:not(.active) {
-  background: var(--accent-10);
-  color: var(--accent-contrast);
+  background: var(--gray-4);
+  color: var(--gray-12);
 }
 
 .desktop-rail-btn.active {

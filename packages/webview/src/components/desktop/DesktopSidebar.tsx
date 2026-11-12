@@ -101,6 +101,46 @@ export interface DesktopSidebarProps {
   sidebarAccessHidden?: boolean;
 }
 
+function UpdateIcon() {
+  return (
+    <RailIcon>
+      <path
+        d="M12 4v10.5m0 0 4.2-4.2M12 14.5 7.8 10.3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 18.5h14"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </RailIcon>
+  );
+}
+
+function AgentInstallIcon() {
+  return (
+    <RailIcon>
+      <path
+        d="M12 3.5 20 8v8l-8 4.5L4 16V8l8-4.5Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 12v5m0 0 2.2-2.2M12 17l-2.2-2.2"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </RailIcon>
+  );
+}
+
 function RailIcon({ children }: { children: React.ReactNode }) {
   return (
     <svg
@@ -308,7 +348,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
               aria-label={`更新 ${update.offer.version}`}
               data-testid="desktop-update-btn"
             >
-              更新
+              {update.offer.kind === "installer" ? <AgentInstallIcon /> : <UpdateIcon />}
+              <span className="desktop-rail-update-dot" aria-hidden="true" />
             </button>
           </Tooltip>
         ) : null}
