@@ -8,10 +8,7 @@ import {
   WRITE_TOOL_NAME,
 } from "@muse-work/agent/constants";
 import type { ImageBlock, Message as MessageType, TaskNotificationBlock, ToolBlock, VsCodeApi } from "../../types";
-import {
-  isFilesystemImagePath,
-  resolveImageSrc,
-} from "../../utils/resolveImageSrc";
+import { resolveImageSrc } from "../../utils/resolveImageSrc";
 import { DiffViewer } from "./DiffViewer";
 import type { PreviewImage } from "./imagePreview";
 import { ResolvedImage, useResolvedImageSrc } from "./ResolvedImage";
@@ -46,19 +43,13 @@ function UserImageThumb({
       disabled={!resolved}
       onClick={() => {
         if (!resolved) return;
-        if (!gallery.some((item) => isFilesystemImagePath(item.url))) {
-          onPreview(resolved, name, gallery, galleryIndex);
-          return;
-        }
-        void (async () => {
-          const paintable = await Promise.all(
-            gallery.map(async (item) => ({
-              ...item,
-              url: await resolveImageSrc(item.url),
-            })),
-          );
-          onPreview(resolved, name, paintable, galleryIndex);
-        })();
+        // Resolution is synchronous, so the gallery opens in the same tick.
+        onPreview(
+          resolved,
+          name,
+          gallery.map((item) => ({ ...item, url: resolveImageSrc(item.url) })),
+          galleryIndex,
+        );
       }}
     >
       <ResolvedImage src={imageUrl} alt={name} draggable={false} />

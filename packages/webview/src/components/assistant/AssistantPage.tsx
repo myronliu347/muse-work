@@ -29,10 +29,7 @@ import {
   revokeUnusedMessageImageBlobs,
 } from "../../utils/messageImages";
 import { ResolvedImage, useResolvedImageSrc } from "../message/ResolvedImage";
-import {
-  isFilesystemImagePath,
-  resolveImageSrc,
-} from "../../utils/resolveImageSrc";
+import { resolveImageSrc } from "../../utils/resolveImageSrc";
 import { pathToFileUrl } from "../../utils/pathToFileUrl";
 import type { AttachedImage, VsCodeApi } from "../../types";
 import {
@@ -386,19 +383,13 @@ function UserShot({
       disabled={!resolved}
       onClick={() => {
         if (!resolved) return;
-        if (!gallery.some((item) => isFilesystemImagePath(item.url))) {
-          onPreviewImage(resolved, alt, gallery, index);
-          return;
-        }
-        void (async () => {
-          const paintable = await Promise.all(
-            gallery.map(async (item) => ({
-              ...item,
-              url: await resolveImageSrc(item.url),
-            })),
-          );
-          onPreviewImage(resolved, alt, paintable, index);
-        })();
+        // Resolution is synchronous, so the gallery opens in the same tick.
+        onPreviewImage(
+          resolved,
+          alt,
+          gallery.map((item) => ({ ...item, url: resolveImageSrc(item.url) })),
+          index,
+        );
       }}
     >
       <ResolvedImage src={src} alt={alt} draggable={false} />
