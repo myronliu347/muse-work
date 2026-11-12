@@ -167,7 +167,7 @@
   box-sizing: border-box;
   /* Same reserved gutter as .messages-container, so the two columns line up. */
   scrollbar-gutter: stable;
-  padding: var(--space-4) 28px 213px var(--space-4);
+  padding: var(--space-4) 28px 128px var(--space-4);
 }
 
 .assistant-column {

@@ -2653,7 +2653,7 @@ body.is-panel-resizing .assistant-split-handle::before {
   overflow-y: auto;
   /* Same tail inset as .messages-container so the last line can scroll
      clear of the composer. */
-  padding-bottom: 213px;
+  padding-bottom: 128px;
 }
 
 .issue-tab-load-error {
@@ -2935,7 +2935,7 @@ body.is-panel-resizing .assistant-split-handle::before {
 }
 
 .assistant-frame .issue-tab-messages {
-  padding: 0 28px 213px var(--space-4);
+  padding: 0 28px 128px var(--space-4);
 }
 
 .assistant-frame .desktop-panel-dock > .preview-pane-drag-handle {
