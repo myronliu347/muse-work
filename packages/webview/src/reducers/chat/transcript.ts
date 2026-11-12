@@ -8,6 +8,7 @@ import {
   isEmptyTurnErrorMessage,
   isOptimisticUserId,
   nearestUserIndex,
+  userImageCount,
   userTextContent,
   userTextsMatch,
   nestedMessagesFromLoaded,
@@ -88,31 +89,46 @@ export function reduceTranscript(state: ChatState, action: Action): ChatState {
       // order (and the router may miss the bubble when stateRef lags). Same
       // text + one optimistic id + one real id → keep a single row.
       if (payload.role === "user") {
-        const incoming = userTextContent(payload);
-        if (incoming) {
-          const idx = nearestUserIndex(state.messages);
-          if (idx !== -1) {
-            const nearest = state.messages[idx];
-            const nearestText = userTextContent(nearest);
-            if (nearestText && userTextsMatch(nearestText, incoming)) {
-              const incomingOpt = isOptimisticUserId(payload.id);
-              const nearestOpt = isOptimisticUserId(nearest.id);
-              if (incomingOpt && !nearestOpt) {
-                return state;
-              }
-              if (!incomingOpt && nearestOpt) {
-                const messages = state.messages.map((m, i) =>
-                  i === idx ? { ...m, id: payload.id } : m,
-                );
-                return {
-                  ...state,
+        const idx = nearestUserIndex(state.messages);
+        if (idx !== -1) {
+          const nearest = state.messages[idx];
+          const incomingText = userTextContent(payload);
+          const nearestText = userTextContent(nearest);
+          const sameText =
+            incomingText != null &&
+            nearestText != null &&
+            userTextsMatch(nearestText, incomingText);
+          // An image-only send has no text to compare, so the SDK echo used to
+          // be appended next to the optimistic bubble and the same screenshot
+          // rendered twice. Pair them by shape instead: no text on either side
+          // and the same number of image refs.
+          const incomingImages = userImageCount(payload);
+          const sameImages =
+            !incomingText &&
+            !nearestText &&
+            incomingImages > 0 &&
+            incomingImages === userImageCount(nearest);
+          if (sameText || sameImages) {
+            const incomingOpt = isOptimisticUserId(payload.id);
+            const nearestOpt = isOptimisticUserId(nearest.id);
+            if (incomingOpt && !nearestOpt) {
+              return state;
+            }
+            if (!incomingOpt && nearestOpt) {
+              // Adopt the echo wholesale: it carries the persisted blocks
+              // (screenshot paths on disk), while the optimistic bubble only
+              // ever held data: URLs.
+              const messages = state.messages.map((m, i) =>
+                i === idx ? payload : m,
+              );
+              return {
+                ...state,
+                messages,
+                currentSession: pinSessionTitle(
+                  state.currentSession,
                   messages,
-                  currentSession: pinSessionTitle(
-                    state.currentSession,
-                    messages,
-                  ),
-                };
-              }
+                ),
+              };
             }
           }
         }

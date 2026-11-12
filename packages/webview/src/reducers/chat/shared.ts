@@ -31,6 +31,12 @@ export function userTextContent(message: Message): string | undefined {
   return text || undefined;
 }
 
+/** Image refs on a user message (0 when it carries none). */
+export function userImageCount(message: Message): number {
+  const block = message.blocks.find((b) => b.type === "image");
+  return block && block.type === "image" ? (block.imageUrls?.length ?? 0) : 0;
+}
+
 export function userTextsMatch(a: string, b: string): boolean {
   return a === b || normalizeUserTextForDedupe(a) === normalizeUserTextForDedupe(b);
 }

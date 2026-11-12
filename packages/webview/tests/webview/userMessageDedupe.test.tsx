@@ -56,6 +56,34 @@ describe("user:message dedupe with [Image source: ...] markers", () => {
     expect(getMessages()[0].textContent).not.toContain("Image source");
   });
 
+  it("dedupes an image-only send so the screenshot renders once", async () => {
+    renderChatApp();
+
+    // The optimistic bubble for a pasted screenshot: no text, data: URL only.
+    sendCommand("appendMessage", {
+      message: {
+        id: "user_shot",
+        role: "user",
+        timestamp: new Date().toISOString(),
+        blocks: [{ type: "image", imageUrls: ["data:image/png;base64,abc"] }],
+      },
+    });
+
+    // Server echo: the screenshot now lives on disk, content is only markers.
+    sendCommand("user:message", {
+      id: "msg-real-shot",
+      content: "[Image source: /var/folders/T/muse-work/uploads/1-0.png]",
+      images: [
+        { path: "/var/folders/T/muse-work/uploads/1-0.png", mimeType: "image/png" },
+      ],
+    });
+
+    await waitFor(() => {
+      expect(getMessages()).toHaveLength(1);
+    });
+    expect(getMessageIds()).toEqual(["msg-real-shot"]);
+  });
+
   it("reconciles the optimistic bubble id with the real SDK message id so rewind-by-id works", async () => {
     renderChatApp();
 

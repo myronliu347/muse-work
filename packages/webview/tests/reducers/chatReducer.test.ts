@@ -133,6 +133,92 @@ describe("chatReducer", () => {
       ]);
     });
 
+    it("folds an image-only echo into the optimistic bubble", () => {
+      // A screenshot send has no text to dedupe on: without the image pairing
+      // the SDK echo appended a second bubble and the same shot showed twice.
+      const optimistic: Message = {
+        id: "user_opt1",
+        role: "user",
+        timestamp: "0",
+        blocks: [
+          { type: "image", imageUrls: ["data:image/png;base64,AAAA"] },
+        ],
+      };
+      const state = { ...initialState, messages: [optimistic] };
+      const newState = chatReducer(state, {
+        type: "APPEND_MESSAGE",
+        payload: {
+          id: "msg-real-shot",
+          role: "user",
+          timestamp: "1",
+          blocks: [
+            {
+              type: "image",
+              imageUrls: ["/var/folders/T/muse-work/uploads/1-0.png"],
+            },
+          ],
+        },
+      });
+
+      expect(newState.messages).toHaveLength(1);
+      expect(newState.messages[0].id).toBe("msg-real-shot");
+      // The echo wins: it holds the persisted path, not the data: URL.
+      expect(newState.messages[0].blocks).toEqual([
+        {
+          type: "image",
+          imageUrls: ["/var/folders/T/muse-work/uploads/1-0.png"],
+        },
+      ]);
+    });
+
+    it("keeps two image-only sends that are both real", () => {
+      const first: Message = {
+        id: "msg-real-1",
+        role: "user",
+        timestamp: "0",
+        blocks: [{ type: "image", imageUrls: ["/tmp/one.png"] }],
+      };
+      const state = { ...initialState, messages: [first] };
+      const newState = chatReducer(state, {
+        type: "APPEND_MESSAGE",
+        payload: {
+          id: "msg-real-2",
+          role: "user",
+          timestamp: "1",
+          blocks: [{ type: "image", imageUrls: ["/tmp/two.png"] }],
+        },
+      });
+
+      expect(newState.messages.map((m) => m.id)).toEqual([
+        "msg-real-1",
+        "msg-real-2",
+      ]);
+    });
+
+    it("does not fold a text send into a nearby image-only bubble", () => {
+      const optimistic: Message = {
+        id: "user_opt1",
+        role: "user",
+        timestamp: "0",
+        blocks: [{ type: "image", imageUrls: ["data:image/png;base64,AAAA"] }],
+      };
+      const state = { ...initialState, messages: [optimistic] };
+      const newState = chatReducer(state, {
+        type: "APPEND_MESSAGE",
+        payload: {
+          id: "msg-real-text",
+          role: "user",
+          timestamp: "1",
+          blocks: [{ type: "text", content: "看下这个" }],
+        },
+      });
+
+      expect(newState.messages.map((m) => m.id)).toEqual([
+        "user_opt1",
+        "msg-real-text",
+      ]);
+    });
+
     it("aligns the optimistic bubble even when an isMeta user is the nearest user", () => {
       const optimistic: Message = {
         id: "user_opt1",
