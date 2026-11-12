@@ -913,14 +913,14 @@ export const AssistantPage: React.FC<{
       if (watchedId === sessionId) return;
       if (watchedId) {
         vscode.postMessage({
-          command: "watchAssistantSession",
+          command: "watchSession",
           sessionId: watchedId,
           watching: false,
         });
       }
       watchedId = sessionId;
       vscode.postMessage({
-        command: "watchAssistantSession",
+        command: "watchSession",
         sessionId,
         watching: true,
       });
@@ -989,7 +989,7 @@ export const AssistantPage: React.FC<{
       window.removeEventListener("message", onMessage);
       if (watchedId) {
         vscode.postMessage({
-          command: "watchAssistantSession",
+          command: "watchSession",
           sessionId: watchedId,
           watching: false,
         });

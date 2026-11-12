@@ -440,7 +440,7 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     messages.length = 0;
 
     bridge.postMessage({
-      command: "watchAssistantSession",
+      command: "watchSession",
       sessionId: "agent-1",
       watching: true,
     });
@@ -465,7 +465,7 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     );
 
     bridge.postMessage({
-      command: "watchAssistantSession",
+      command: "watchSession",
       sessionId: "agent-1",
       watching: false,
     });

@@ -69,7 +69,7 @@ describe("AssistantPage", () => {
     expect(await screen.findByText(/起始/)).toBeTruthy();
     expect(api.getMessages).toHaveBeenCalledTimes(1);
     expect(postMessage).toHaveBeenCalledWith({
-      command: "watchAssistantSession",
+      command: "watchSession",
       sessionId: "agent-1",
       watching: true,
     });
@@ -93,7 +93,7 @@ describe("AssistantPage", () => {
 
     view.unmount();
     expect(postMessage).toHaveBeenCalledWith({
-      command: "watchAssistantSession",
+      command: "watchSession",
       sessionId: "agent-1",
       watching: false,
     });

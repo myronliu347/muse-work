@@ -293,7 +293,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
   const dispatch: Record<string, (msg: BridgeMsg) => void> = {
     desktopReady: () => void session.handleDesktopReady(),
-    watchAssistantSession: (msg) => {
+    watchSession: (msg) => {
       const id = typeof msg.sessionId === "string" ? msg.sessionId.trim() : "";
       if (!id) return;
       if (msg.watching === false) ctx.watchedSessionIds.delete(id);

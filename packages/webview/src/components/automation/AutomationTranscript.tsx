@@ -1,4 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { Message } from "@muse-work/agent";
+import {
+  applyWatchedTranscriptEvent,
+  type WatchedTranscriptEvent,
+} from "../assistant/agentTranscript";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import type { MuseApiClient, MuseAutomationRun } from "../../muse/apiClient";
@@ -107,17 +112,39 @@ export const AutomationTranscript: React.FC<{
   const [messages, setMessages] = useState<TranscriptMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // The run's session is not the window's current session, so the bridge drops
+  // its events unless we ask it to watch. Seed once over HTTP, then follow the
+  // socket — no polling.
+  const rawRef = useRef<Message[]>([]);
   useEffect(() => {
-    if (!run.sessionId) {
+    const sessionId = run.sessionId;
+    if (!sessionId) {
+      rawRef.current = [];
       setMessages([]);
       return;
     }
     let cancelled = false;
+    const paint = (raw: Message[]) => {
+      rawRef.current = raw;
+      setMessages(coalesceTurns(asMessages(raw)));
+    };
+    const bridge = (): { postMessage: (message: unknown) => void } | undefined => {
+      try {
+        return (window as unknown as {
+          acquireVsCodeApi?: () => { postMessage: (message: unknown) => void };
+        }).acquireVsCodeApi?.();
+      } catch {
+        return undefined;
+      }
+    };
+    const post = (watching: boolean) =>
+      bridge()?.postMessage({ command: "watchSession", sessionId, watching });
+
     const load = () => {
       void api
-        .getMessages(run.sessionId!)
+        .getMessages(sessionId)
         .then((res) => {
-          if (!cancelled) setMessages(coalesceTurns(asMessages(res.messages)));
+          if (!cancelled) paint(res.messages as unknown as Message[]);
         })
         .catch((err) => {
           if (!cancelled) {
@@ -125,12 +152,28 @@ export const AutomationTranscript: React.FC<{
           }
         });
     };
+
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as
+        | { command?: string; sessionId?: string; event?: unknown }
+        | null;
+      if (data?.command !== "watchedSessionEvent") return;
+      if (data.sessionId !== sessionId || !data.event) return;
+      paint(
+        applyWatchedTranscriptEvent(
+          rawRef.current,
+          data.event as WatchedTranscriptEvent,
+        ),
+      );
+    };
+
+    window.addEventListener("message", onMessage);
+    post(true);
     load();
-    const timer =
-      run.status === "running" ? window.setInterval(load, 1500) : undefined;
     return () => {
       cancelled = true;
-      if (timer) window.clearInterval(timer);
+      window.removeEventListener("message", onMessage);
+      post(false);
     };
   }, [api, run.sessionId, run.status]);
 
