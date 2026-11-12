@@ -18,12 +18,7 @@ import { IssueSessionHeader, type IssueViewTab } from "../issue/IssueSessionHead
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { type IssuePresence } from "../session/SessionStatusGlyph";
 import { Tooltip } from "../shared/Tooltip";
-import {
-  clampSplitLeftWidth,
-  dockFlexGridColumns,
-  splitGridColumns,
-} from "../../muse/layout";
-import { beginSplitDrag } from "../../muse/splitDrag";
+import { dockFlexGridColumns } from "../../muse/layout";
 import type { BotIssueBoard } from "../../hooks/useBotIssueBoard";
 import type { MuseApiClient } from "../../muse/apiClient";
 import { isSplitIssueGroup } from "../../utils/issueGroups";
@@ -62,7 +57,6 @@ export function AssistantFrame({
   toggleAssistantDock,
   chatPaneWidth,
   chatContainerRef,
-  layoutChatMin,
   chatMinWidth,
   issueTitles,
   museApi,
@@ -111,7 +105,6 @@ export function AssistantFrame({
   toggleAssistantDock: () => void;
   chatPaneWidth: number | null;
   chatContainerRef: React.Ref<HTMLDivElement>;
-  layoutChatMin: number;
   chatMinWidth: number;
   issueTitles: Record<string, string>;
   museApi: MuseApiClient;
@@ -155,19 +148,15 @@ export function AssistantFrame({
     setBotMenu,
     clearIssueUnreadRef,
     shownIssueGroup,
-    threeColumns,
-    setThreeColumnsOn,
     issueTabPresence,
     setBotSwitchHost,
-    splitLeftWidth,
-    setSplitLeftWidth,
+
     botSwitchHost,
-    focusShownIssueFromSender,
   } = board;
   const showWideCards =
     leftPanelWidth > 0 ? botListsWideForPanel(leftPanelWidth) : botListsWide;
   const onBotHome = workspace.active === "bot";
-  const showCards = onBotHome && showWideCards && !threeColumns;
+  const showCards = onBotHome && showWideCards;
   const showBotLists =
     assistantVisible &&
     !dockFullscreen &&
@@ -211,26 +200,6 @@ export function AssistantFrame({
     />
   ) : null;
 
-  const columnToggle = (
-    <Tooltip text="分栏" position="bottom" wrap={false}>
-      <button
-        type="button"
-        className={`header-button${threeColumns ? " active" : ""}`}
-        data-testid="assistant-column-toggle"
-        aria-label="三栏"
-        aria-pressed={threeColumns}
-        disabled={workspace.openIssueIds.length === 0}
-        onClick={() => setThreeColumnsOn((on) => !on)}
-      >
-        <svg className="header-icon" viewBox="0 0 16 16" aria-hidden="true">
-          <path
-            fill="currentColor"
-            d="M1.5 2.5h3v11h-3v-11Zm5 0h3v11h-3v-11Zm5 0h3v11h-3v-11Z"
-          />
-        </svg>
-      </button>
-    </Tooltip>
-  );
   const dockToggle = assistantDockOpen ? null : (
     <div className="bot-frame-dock-toggle">
       <PanelToggleControl onToggleDock={toggleAssistantDock} />
@@ -238,15 +207,12 @@ export function AssistantFrame({
   );
   return (
     <div
-      className={`chat-container assistant-frame${threeColumns ? " assistant-frame--split" : ""}${chatPaneWidth != null && assistantDockOpen && !dockFullscreen ? " assistant-frame--dock-flex" : ""}`}
+      className={`chat-container assistant-frame${chatPaneWidth != null && assistantDockOpen && !dockFullscreen ? " assistant-frame--dock-flex" : ""}`}
       ref={chatContainerRef}
       data-testid="assistant-frame"
       style={
         {
           ...(botColumnMax != null ? { "--bot-column-max": `${botColumnMax}px` } : {}),
-          ...(threeColumns
-            ? { "--chat-main-min-width": `${layoutChatMin}px` }
-            : {}),
           ...(chatPaneWidth != null && assistantDockOpen && !dockFullscreen
             ? {
                 gridTemplateColumns: dockFlexGridColumns(
@@ -258,8 +224,7 @@ export function AssistantFrame({
         } as React.CSSProperties
       }
     >
-      {threeColumns ? null : (
-        <div className="bot-frame-bar">
+      <div className="bot-frame-bar">
           <BotTabs
             state={workspace}
             titles={issueTitles}
@@ -270,111 +235,13 @@ export function AssistantFrame({
           <div className="bot-frame-switch" ref={setBotSwitchHost}>
             {shownIssueHeader}
           </div>
-          {showCards ? null : botLists}
-          <div className="bot-frame-end">
-            {columnToggle}
-            {dockToggle}
-          </div>
-        </div>
-      )}
+        {showCards ? null : botLists}
+        <div className="bot-frame-end">{dockToggle}</div>
+      </div>
       <div className="desktop-chat-body">
-        <div
-          className="desktop-chat-main"
-          style={
-            threeColumns
-              ? {
-                  display: "grid",
-                  gridTemplateColumns: splitGridColumns(
-                    splitLeftWidth ?? chatMinWidth,
-                  ),
-                }
-              : undefined
-          }
-        >
-          {threeColumns ? (
-            <div className="assistant-split-bot">
-              <div className="assistant-split-bar">
-                <BotTabs
-                  state={workspace}
-                  titles={issueTitles}
-                  presence={issueTabPresence}
-                  lockBotTab
-                  scope="bot"
-                  onFocus={workspace.focusTab}
-                  onClose={workspace.closeIssueTab}
-                />
-                <div className="bot-frame-switch" ref={setBotSwitchHost} />
-                {botLists}
-              </div>
-              <AssistantPage
-                api={museApi}
-                vscode={vscode}
-                showPanelToggle={false}
-                inputRef={assistantInputRef}
-                onToggleDock={toggleAssistantDock}
-                onViewModeChange={onAssistantViewMode}
-                onOpenFile={openMessageFile}
-                onOpenUrl={handleOpenPreview}
-                hideQueue={assistantVisible}
-                mentionIssues={(host?.issueGroups ?? []).map((group) => ({
-                  id: group.issueId,
-                  title: group.title,
-                }))}
-                onSelectIssue={(issueId) => selectBotPanel({ kind: "issue", issueId })}
-                emptyState={<AssistantWelcome />}
-                viewSwitchHost={botSwitchHost}
-                onComposerFocusChange={setBotComposerFocused}
-              />
-            </div>
-          ) : null}
-          {threeColumns ? (
-            <div
-              className="assistant-split-handle"
-              data-testid="assistant-split-handle"
-              onPointerDown={(event) => {
-                const main = event.currentTarget.parentElement;
-                if (!main) return;
-                const rect = main.getBoundingClientRect();
-                // Live drag writes the grid on the column itself; the width
-                // reaches the board state once, on release, so the transcript
-                // and dock do not re-render per pointer event.
-                beginSplitDrag(event, {
-                  startValue: splitLeftWidth ?? chatMinWidth,
-                  value: (ev) =>
-                    clampSplitLeftWidth(
-                      rect.width,
-                      ev.clientX - rect.left,
-                      chatMinWidth,
-                    ),
-                  preview: (left) => {
-                    main.style.gridTemplateColumns = splitGridColumns(left);
-                  },
-                  commit: setSplitLeftWidth,
-                });
-              }}
-            />
-          ) : null}
+        <div className="desktop-chat-main">
           {shownIssueGroup ? (
-            <div
-              className={threeColumns ? "assistant-split-issue" : "assistant-split-passthrough"}
-            >
-            {threeColumns ? (
-              <div className="assistant-split-bar">
-                <BotTabs
-                  state={workspace}
-                  titles={issueTitles}
-                  presence={issueTabPresence}
-                  scope="issues"
-                  onFocus={workspace.focusTab}
-                  onClose={workspace.closeIssueTab}
-                />
-                <div className="bot-frame-switch">{shownIssueHeader}</div>
-                <div className="bot-frame-end">
-                  {columnToggle}
-                  {dockToggle}
-                </div>
-              </div>
-            ) : null}
+            <div className="assistant-split-passthrough">
             <div className="issue-tab-transcript" data-testid="issue-tab-transcript">
               {issueLoading ? (
                 <div
@@ -429,7 +296,6 @@ export function AssistantFrame({
                   onReject={handleRejection}
                   currentSession={state.currentSession}
                   composer={composer}
-                  onComposerFocus={threeColumns ? focusShownIssueFromSender : undefined}
                 />
               )}
             </div>

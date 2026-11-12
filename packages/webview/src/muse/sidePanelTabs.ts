@@ -1,7 +1,6 @@
 import { matchCloseFocusedShortcut, matchTabStepShortcut } from "./panelShortcuts";
 
-const PANEL_SELECTOR =
-  ".desktop-panel-dock, .assistant-split-bot, .assistant-split-issue, .assistant-frame";
+const PANEL_SELECTOR = ".desktop-panel-dock, .assistant-frame";
 
 const steps = new Map<HTMLElement, (direction: -1 | 1) => void>();
 const closers = new Map<HTMLElement, () => boolean>();

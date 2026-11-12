@@ -79,7 +79,7 @@ describe("BotTabs", () => {
     const mac = /mac|iphone|ipad|ipod/i.test(navigator.platform);
     const chord = mac ? { metaKey: true } : { ctrlKey: true };
     render(
-      <div className="assistant-split-issue">
+      <div className="assistant-frame">
         <BotTabs
           state={state}
           titles={{ a: "A", b: "B", c: "C" }}

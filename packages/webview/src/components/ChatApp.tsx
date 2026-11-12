@@ -41,7 +41,6 @@ import { resolveMuseServerUrl } from "../muse/hostBridge";
 import { prefetchTerminalLib } from "./panels/TerminalPane";
 import {
   DESKTOP_SIDEBAR_WIDTH,
-  SPLIT_ISSUE_MIN_WIDTH,
   chatMainMinWidth,
   dockFlexGridColumns,
   paneHasSidebarInset,
@@ -228,12 +227,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     issueTabPresence,
     clearIssueUnreadRef,
     selectBotPanel,
-    setThreeColumnsOn,
-    splitLeftWidth,
-    setSplitLeftWidth,
-    threeColumns,
     shownIssueGroup,
-    focusShownIssueFromSender,
   } = board;
 
   const surface = useDockSurface({
@@ -450,11 +444,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const sidebarInset =
     !dockFullscreen && !sidebarCollapsed && paneHasSidebarInset(host?.panes, paneId);
   const chatMinWidth = chatMainMinWidth(sidebarInset, contentInset);
-  // Three columns keep the Muse Bot floor and still leave the issue column
-  // its own floor, so the dock cannot eat the left side down to one column.
-  const layoutChatMin = threeColumns
-    ? chatMinWidth + SPLIT_ISSUE_MIN_WIDTH
-    : chatMinWidth;
+  const layoutChatMin = chatMinWidth;
   const dockMaxWidth = chatColumnWidth - layoutChatMin;
   const {
     assistantDockOpen,
@@ -964,7 +954,6 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       toggleAssistantDock={toggleAssistantDock}
       chatPaneWidth={chatPaneWidth}
       chatContainerRef={chatContainerRef}
-      layoutChatMin={layoutChatMin}
       chatMinWidth={chatMinWidth}
       issueTitles={issueTitles}
       museApi={museApi}

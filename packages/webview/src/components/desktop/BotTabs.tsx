@@ -180,9 +180,7 @@ export function BotTabs({
   useEffect(() => {
     const root = scrollerRef.current;
     if (!root) return;
-    const column = root.closest(".assistant-split-bot, .assistant-split-issue");
-    const panel =
-      column instanceof HTMLElement ? column : root.closest(".assistant-frame");
+    const panel = root.closest(".assistant-frame");
     if (!(panel instanceof HTMLElement)) return;
     const visible = ["bot", ...state.openIssueIds].filter((tab) => {
       if (scope === "bot" && tab !== "bot") return false;

@@ -106,45 +106,13 @@ export function useBotIssueBoard({
     },
     [workspace],
   );
-  const [threeColumnsOn, setThreeColumnsOn] = useState(false);
-  // Pixel width of the Muse Bot column. Null until the user drags the split.
-  // The column is a fixed grid track, so a window resize changes the issue column.
-  const [splitLeftWidth, setSplitLeftWidth] = useState<number | null>(null);
-  useEffect(() => {
-    if (workspace.openIssueIds.length === 0) setThreeColumnsOn(false);
-  }, [workspace.openIssueIds.length]);
   const openIssueGroup =
     workspace.active === "bot"
       ? undefined
       : (host?.issueGroups ?? []).find((group) => group.issueId === workspace.active);
-  const splitIssueId = !threeColumnsOn
-    ? null
-    : workspace.active !== "bot" && workspace.openIssueIds.includes(workspace.active)
-      ? workspace.active
-      : workspace.lastIssueId && workspace.openIssueIds.includes(workspace.lastIssueId)
-        ? workspace.lastIssueId
-        : (workspace.openIssueIds[workspace.openIssueIds.length - 1] ?? null);
-  const splitIssueGroup = splitIssueId
-    ? (host?.issueGroups ?? []).find((group) => group.issueId === splitIssueId)
-    : undefined;
-  const threeColumns = Boolean(splitIssueGroup);
-  // 两栏时主栏只显示当前标签。三栏时中间固定是一条事项会话，即使焦点在 Muse Bot。
-  const shownIssueGroup = threeColumns ? splitIssueGroup : openIssueGroup;
-  // 分栏时中间会话和右侧当前事项可能不是同一条。输入框聚焦后，把当前事项切回这条会话。
-  const focusShownIssueFromSender = useCallback(() => {
-    if (!threeColumns || !shownIssueGroup) return;
-    const issueId = shownIssueGroup.issueId;
-    const panel = workspace.panel;
-    if (
-      workspace.active === issueId &&
-      panel.kind === "issue" &&
-      panel.issueId === issueId
-    ) {
-      return;
-    }
-    workspace.focusTab(issueId);
-    clearIssueUnreadRef.current(issueId);
-  }, [threeColumns, shownIssueGroup, workspace]);
+  // One session at a time: the issue column shows the active issue, there is
+  // no second bot+issue split view.
+  const shownIssueGroup = openIssueGroup;
 
   return {
     botSwitchHost,
@@ -156,12 +124,7 @@ export function useBotIssueBoard({
     issueTabPresence,
     clearIssueUnreadRef,
     selectBotPanel,
-    setThreeColumnsOn,
-    splitLeftWidth,
-    setSplitLeftWidth,
-    threeColumns,
     shownIssueGroup,
-    focusShownIssueFromSender,
   };
 }
 

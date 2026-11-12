@@ -156,7 +156,6 @@ export function useChatDock(input: {
     closeShownFileTab,
     pinShownFileTab,
     botComposerFocused,
-    threeColumns,
     assistantInputRef,
     messageInputRef,
     shownFileTree,
@@ -441,10 +440,9 @@ export function useChatDock(input: {
       input?.insertFile(path);
     },
     onAddSelectionToChat: (selection) => {
-      const input =
-        threeColumns && workspace.active === "bot"
-          ? assistantInputRef.current ?? messageInputRef.current
-          : messageInputRef.current ?? assistantInputRef.current;
+      const input = botComposerFocused
+        ? assistantInputRef.current ?? messageInputRef.current
+        : messageInputRef.current ?? assistantInputRef.current;
       input?.insertSelection(selection);
     },
     fileTree: shownFileTree,

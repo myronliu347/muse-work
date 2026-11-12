@@ -10,7 +10,6 @@ import {
   clampDockWidth,
   clampSidebarWidth,
   dockFlexGridColumns,
-  clampSplitLeftWidth,
   minPaneWidth,
   paneHasSidebarInset,
 } from "../../src/muse/layout";
@@ -62,19 +61,6 @@ describe("clampDockWidth", () => {
   it("returns 0 when leftover is not positive", () => {
     expect(clampDockWidth(420, 0)).toBe(0);
     expect(clampDockWidth(420, -40)).toBe(0);
-  });
-});
-
-describe("clampSplitLeftWidth", () => {
-  const chatMin = CHAT_CONTENT_MIN_WIDTH + DESKTOP_SIDEBAR_WIDTH;
-
-  it("keeps the Muse Bot column at the chat minimum when the pane has room", () => {
-    expect(clampSplitLeftWidth(1600, 200, chatMin)).toBe(chatMin);
-    expect(clampSplitLeftWidth(1600, 1400, chatMin)).toBe(1600 - CHAT_CONTENT_MIN_WIDTH);
-  });
-
-  it("gives the leftover to the issue column when the pane is tighter than both floors", () => {
-    expect(clampSplitLeftWidth(400, 10, chatMin)).toBe(400);
   });
 });
 
