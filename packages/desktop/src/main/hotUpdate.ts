@@ -126,6 +126,10 @@ function currentFile(hotRoot: string): string {
   return path.join(hotRoot, "current.json");
 }
 
+function failedFile(hotRoot: string): string {
+  return path.join(hotRoot, "failed.json");
+}
+
 function versionDir(hotRoot: string, version: string): string {
   return path.join(hotRoot, "versions", version);
 }
@@ -140,6 +144,35 @@ function readCurrentVersion(hotRoot: string): string | null {
   } catch {
     return null;
   }
+}
+
+/** A tree that failed to boot is remembered so it is not downloaded again. */
+export function markHotFailed(hotRoot: string, version: string): void {
+  try {
+    fs.mkdirSync(hotRoot, { recursive: true });
+    fs.writeFileSync(
+      failedFile(hotRoot),
+      `${JSON.stringify({ version: normalizeVersion(version) })}\n`,
+    );
+  } catch {
+    // best effort: a missing marker only costs one extra download
+  }
+}
+
+export function readFailedHot(hotRoot: string): string | null {
+  try {
+    const raw = JSON.parse(fs.readFileSync(failedFile(hotRoot), "utf8")) as {
+      version?: unknown;
+    };
+    if (typeof raw.version !== "string" || !parseVersion(raw.version)) return null;
+    return normalizeVersion(raw.version);
+  } catch {
+    return null;
+  }
+}
+
+function clearFailedHot(hotRoot: string): void {
+  fs.rmSync(failedFile(hotRoot), { force: true });
 }
 
 export function discardActiveHot(hotRoot: string): void {
@@ -299,6 +332,12 @@ export async function checkForHotUpdate(opts: {
       ),
     };
   }
+  const failed = readFailedHot(opts.hotRoot);
+  if (failed && compareVersions(manifest.version, failed) === 0) {
+    // This exact tree crashed on the last launch; downloading it again would
+    // just restart the fall-back loop.
+    return { status: "current" };
+  }
   if (compareVersions(manifest.version, floor) <= 0) {
     // Nothing new to download, but the tree on disk is newer than the process
     // that is serving it. Say so, so the restart path stays reachable.
@@ -331,6 +370,9 @@ export async function checkForHotUpdate(opts: {
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.renameSync(staging, dest);
     writeCurrent(opts.hotRoot, manifest.version);
+    if (failed && compareVersions(manifest.version, failed) > 0) {
+      clearFailedHot(opts.hotRoot);
+    }
     pruneVersions(opts.hotRoot, manifest.version);
     return { status: "updated", version: manifest.version };
   } catch (err) {

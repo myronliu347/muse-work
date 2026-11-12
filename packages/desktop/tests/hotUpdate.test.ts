@@ -13,8 +13,10 @@ import {
   parseHotManifest,
   pickInstallerUrl,
   readBundledHot,
+  readFailedHot,
   readShellVersion,
   resolveLaunchResources,
+  markHotFailed,
 } from "../src/main/hotUpdate";
 
 const roots: string[] = [];
@@ -232,6 +234,72 @@ describe("hot update", () => {
     );
     expect(readShellVersion(path.join(dir, "package.json"))).toBe("0.2.0");
     expect(readBundledHot(dir)).toEqual({ version: "0.4.0", shell: "0.2.0" });
+  });
+
+  it("does not re-download a version that already failed to boot", async () => {
+    const hotRoot = tempRoot();
+    markHotFailed(hotRoot, "0.2.0");
+    expect(readFailedHot(hotRoot)).toBe("0.2.0");
+    let downloads = 0;
+    const fetchImpl = (async (url: string) => {
+      if (String(url).endsWith(`/${HOT_MANIFEST_NAME}`)) {
+        return Response.json({
+          version: "0.2.0",
+          shell: "0.1.0",
+          sha256: "a".repeat(64),
+          asset: HOT_ZIP_NAME,
+        });
+      }
+      downloads += 1;
+      return new Response("nope");
+    }) as typeof fetch;
+
+    const result = await checkForHotUpdate({
+      hotRoot,
+      shellVersion: "0.1.0",
+      bundledVersion: "0.1.0",
+      runningVersion: "0.1.0",
+      fetch: fetchImpl,
+    });
+    expect(result).toEqual({ status: "current" });
+    expect(downloads).toBe(0);
+  });
+
+  it("clears the failure marker once a newer version installs", async () => {
+    const hotRoot = tempRoot();
+    markHotFailed(hotRoot, "0.2.0");
+    const zipBody = Buffer.from("hot-bytes");
+    const fetchImpl = (async (url: string) => {
+      if (String(url).endsWith(`/${HOT_MANIFEST_NAME}`)) {
+        return Response.json({
+          version: "0.3.0",
+          shell: "0.1.0",
+          sha256: createHash("sha256").update(zipBody).digest("hex"),
+          asset: HOT_ZIP_NAME,
+        });
+      }
+      return new Response(zipBody);
+    }) as typeof fetch;
+
+    const result = await checkForHotUpdate({
+      hotRoot,
+      shellVersion: "0.1.0",
+      bundledVersion: "0.1.0",
+      runningVersion: "0.1.0",
+      fetch: fetchImpl,
+      extract: async (_zip, dest) => {
+        fs.mkdirSync(path.join(dest, "webview"), { recursive: true });
+        fs.writeFileSync(path.join(dest, "webview", "index.html"), "<html></html>");
+        fs.mkdirSync(path.join(dest, "muse-server", "dist"), { recursive: true });
+        fs.writeFileSync(path.join(dest, "muse-server", "dist", "index.js"), "");
+        fs.writeFileSync(
+          path.join(dest, "muse-server", "package.json"),
+          JSON.stringify({ name: "@muse-work/server" }),
+        );
+      },
+    });
+    expect(result).toEqual({ status: "updated", version: "0.3.0" });
+    expect(readFailedHot(hotRoot)).toBeNull();
   });
 
   it("keeps offering a restart while the downloaded tree is newer than the running one", async () => {

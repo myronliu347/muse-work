@@ -12,6 +12,7 @@ import * as path from "path";
 import {
   checkForHotUpdate,
   discardActiveHot,
+  markHotFailed,
   HOT_REPO,
   readBundledHot,
   readShellVersion,
@@ -448,6 +449,8 @@ if (!gotLock) {
         return;
       }
       console.error("[muse-desktop] hot resources failed, using bundled copy:", err);
+      updateLog(`hot boot failed (${launch.version}): ${err instanceof Error ? err.message : String(err)}`);
+      markHotFailed(hotRoot, launch.version);
       discardActiveHot(hotRoot);
       launch = bundledLaunch;
       try {
