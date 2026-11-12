@@ -66,9 +66,7 @@
 }
 
 .desktop-panel-dock:focus,
-.assistant-frame:focus,
-.assistant-split-bot:focus,
-.assistant-split-issue:focus {
+.assistant-frame:focus {
   outline: none;
 }
 
