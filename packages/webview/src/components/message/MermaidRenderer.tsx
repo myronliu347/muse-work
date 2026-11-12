@@ -1,6 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import mermaid from "mermaid";
 import { isDarkTheme } from "../../utils/theme";
+import { bodyPortal } from "../../utils/bodyPortal";
 import "../../styles/MermaidRenderer.css";
 
 interface MermaidRendererProps {
@@ -94,6 +101,9 @@ const FullscreenModal: React.FC<FullscreenModalProps> = ({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const modalRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  // The fit calculation runs while a previous scale may still be applied.
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
 
   useEffect(() => {
     if (!isOpen) {
@@ -101,6 +111,45 @@ const FullscreenModal: React.FC<FullscreenModalProps> = ({
       setPosition({ x: 0, y: 0 });
     }
   }, [isOpen]);
+
+  /**
+   * Scale the diagram to fill the viewport (minus a small margin). Mermaid
+   * sizes the SVG for the message column, so opening it at 1:1 in a full-screen
+   * modal left a postage stamp in the middle of the screen.
+   */
+  const fitToScreen = useCallback(() => {
+    const content = contentRef.current;
+    const svg = content?.querySelector("svg");
+    if (!content || !svg) return;
+    const box = content.getBoundingClientRect();
+    const rect = svg.getBoundingClientRect();
+    const applied = scaleRef.current || 1;
+    const intrinsicWidth = rect.width / applied;
+    const intrinsicHeight = rect.height / applied;
+    if (
+      !(intrinsicWidth > 0) ||
+      !(intrinsicHeight > 0) ||
+      !(box.width > 0) ||
+      !(box.height > 0)
+    ) {
+      return;
+    }
+    const margin = 32;
+    const next = Math.min(
+      (box.width - margin * 2) / intrinsicWidth,
+      (box.height - margin * 2) / intrinsicHeight,
+    );
+    const fitted = Number(Math.max(0.1, Math.min(5, next)).toFixed(2));
+    setScale(fitted);
+    setPosition({ x: 0, y: 0 });
+  }, []);
+
+  // Measure after the SVG is committed but before paint, so the modal opens
+  // already fitted instead of flashing small for a frame.
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    fitToScreen();
+  }, [isOpen, svgContent, fitToScreen]);
 
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
@@ -143,30 +192,33 @@ const FullscreenModal: React.FC<FullscreenModalProps> = ({
       document.addEventListener("keydown", handleKeyDown);
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
-      const contentEl = contentRef.current;
-      if (contentEl) {
-        contentEl.addEventListener("wheel", handleWheel, { passive: false });
+      const modalEl = modalRef.current;
+      if (modalEl) {
+        modalEl.addEventListener("wheel", handleWheel, { passive: false });
       }
 
       return () => {
         document.removeEventListener("keydown", handleKeyDown);
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
-        if (contentEl) {
-          contentEl.removeEventListener("wheel", handleWheel);
+        if (modalEl) {
+          modalEl.removeEventListener("wheel", handleWheel);
         }
       };
     }
   }, [isOpen, handleWheel, handleMouseMove, handleMouseUp, onClose]);
 
   const resetView = () => {
-    setScale(1);
-    setPosition({ x: 0, y: 0 });
+    fitToScreen();
   };
 
   if (!isOpen) return null;
 
-  return (
+  // The modal mounts inside a virtualized row, whose `transform` makes
+  // `position: fixed` resolve against the row — the scrim stopped at the
+  // transcript and left the sidebar uncovered. Portaling restores the viewport
+  // as the containing block.
+  return bodyPortal(
     <div
       className="mermaid-fullscreen-modal"
       ref={modalRef}
@@ -174,8 +226,15 @@ const FullscreenModal: React.FC<FullscreenModalProps> = ({
     >
       <div className="fullscreen-header">
         <div className="fullscreen-controls">
-          <button onClick={resetView} className="control-btn" title="重置视图">
-            <i className="codicon codicon-refresh"></i> 重置
+          <button onClick={resetView} className="control-btn" title="适应屏幕">
+            <i className="codicon codicon-screen-full"></i> 适应屏幕
+          </button>
+          <button
+            onClick={() => setScale(1)}
+            className="control-btn"
+            title="原始尺寸"
+          >
+            1:1
           </button>
           <span className="zoom-info">{Math.round(scale * 100)}%</span>
         </div>
@@ -201,7 +260,7 @@ const FullscreenModal: React.FC<FullscreenModalProps> = ({
       </div>
 
       <div className="fullscreen-help">滚轮缩放 | 拖拽移动 | ESC关闭</div>
-    </div>
+    </div>,
   );
 };
 
