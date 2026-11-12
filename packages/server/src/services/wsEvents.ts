@@ -110,6 +110,7 @@ export type WsEvent =
   | { type: "tokens:update"; latestTotalTokens: number }
   | { type: "issue:changed" }
   | { type: "automation:changed" }
+  | { type: "providers:changed" }
   | {
       type: "assistant:chat";
       line: {

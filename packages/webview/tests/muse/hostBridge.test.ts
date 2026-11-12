@@ -477,6 +477,34 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     );
   });
 
+  it("providers:changed WS notifies the window event the model picker listens to", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    const dispatch = vi.mocked(window.dispatchEvent);
+    dispatch.mockClear();
+    handler!({ type: "providers:changed", sessionId: "*" });
+    await flush();
+
+    // The harness stubs dispatchEvent, so assert on the event it received.
+    expect(
+      dispatch.mock.calls.map((call) => (call[0] as Event).type),
+    ).toContain("muse:providers-changed");
+  });
+
   it("automation:changed WS posts automation:changed to webview (all panes)", async () => {
     let handler: ((e: unknown) => void) | undefined;
     const ws = {

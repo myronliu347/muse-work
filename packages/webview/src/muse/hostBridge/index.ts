@@ -1,5 +1,8 @@
 import type { VsCodeApi } from "../../types";
-import { MUSE_PROVIDERS_CHANGED_EVENT } from "../providersEvents.js";
+import {
+  MUSE_PROVIDERS_CHANGED_EVENT,
+  notifyProvidersChanged,
+} from "../providersEvents.js";
 import type { MuseWsEvent, MuseWsStatus } from "../wsClient.js";
 import { createAuthModule } from "./auth.js";
 import { createChatModule } from "./chat.js";
@@ -144,6 +147,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
     if (event.type === "automation:changed") {
       postToWebview({ command: "automation:changed" });
+      return;
+    }
+
+    if (event.type === "providers:changed") {
+      notifyProvidersChanged();
       return;
     }
 

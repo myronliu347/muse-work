@@ -80,14 +80,14 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
     const onProvidersChanged = () => void refresh();
     window.addEventListener("focus", onFocus);
     window.addEventListener(MUSE_PROVIDERS_CHANGED_EVENT, onProvidersChanged);
-    const timer = window.setInterval(() => void refresh(), 5000);
+    // No polling: the server keeps the active provider's models warm and pushes
+    // providers:changed when the list moves.
     return () => {
       window.removeEventListener("focus", onFocus);
       window.removeEventListener(
         MUSE_PROVIDERS_CHANGED_EVENT,
         onProvidersChanged,
       );
-      window.clearInterval(timer);
     };
   }, [refresh]);
 

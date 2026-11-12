@@ -11,6 +11,7 @@ import { agentsRoutes } from "./routes/agents.js";
 import { controlRoutes } from "./routes/control.js";
 import { healthRoutes } from "./routes/health.js";
 import { createProvidersRoutes } from "./routes/providers.js";
+import { createProvidersCatalog } from "./services/providersCatalog.js";
 import { sessionsRoutes } from "./routes/sessions.js";
 import { skillsRoutes } from "./routes/skills.js";
 import { createSkillMarketRoutes } from "./routes/skillMarket.js";
@@ -29,7 +30,9 @@ export function createHonoApp(ctx: AppContext): Hono<HonoEnv> {
   app.route("/", healthRoutes);
   app.route("/", settingsRoutes);
   app.route("/", controlRoutes);
-  app.route("/", createProvidersRoutes(ctx));
+  const providersCatalog = createProvidersCatalog(ctx);
+  providersCatalog.start();
+  app.route("/", createProvidersRoutes(ctx, providersCatalog));
   app.route("/", authRoutes);
   app.route("/", agentsRoutes);
   app.route("/", sessionsRoutes);
