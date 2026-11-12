@@ -119,6 +119,8 @@ export interface BridgeCtx {
   titledSessions: Set<string>;
   /** Cached permission:request for non-focus (and active) sessions until responded/disposed. */
   pendingPermissions: Map<string, PendingPermission>;
+  /** Sessions a surface asked to follow (e.g. the assistant's agent session). */
+  watchedSessionIds: Set<string>;
   /** Sessions whose SDK currently reports isCompacting. Used so a session switch
    *  does not leak the hint, and switching back restores it if still compacting. */
   compactingSessions: Set<string>;
@@ -205,6 +207,7 @@ export function createBridgeCtx(opts: HostBridgeOptions): BridgeCtx {
     closedIssueGroups: [],
     titledSessions: new Set<string>(),
     pendingPermissions: new Map<string, PendingPermission>(),
+    watchedSessionIds: new Set<string>(),
     compactingSessions: new Set<string>(),
     runningWorkBySession: new Map<string, { tasks: boolean; workflows: boolean }>(),
     pendingWorktrees: new Map<string, PendingWorktree>(),

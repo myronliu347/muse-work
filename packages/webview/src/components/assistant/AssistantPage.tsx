@@ -15,6 +15,10 @@ import DOMPurify from "dompurify";
 import { observeElementRect, useVirtualizer } from "@tanstack/react-virtual";
 import type { Message as AgentMessage } from "@muse-work/agent";
 import { MessageInput, type MessageInputHandle } from "../chat/MessageInput";
+import {
+  applyWatchedTranscriptEvent,
+  type WatchedTranscriptEvent,
+} from "./agentTranscript";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { MessageList } from "../chat/MessageList";
 import { FileIcon } from "../panels/FileIcon";
@@ -893,15 +897,41 @@ export const AssistantPage: React.FC<{
     };
   }, [api]);
 
+  // 会话记录 shows the assistant session's own transcript. The socket already
+  // carries that session's events (the client subscribes to every session), but
+  // the host bridge drops anything that is not the current session; the view
+  // asks it to watch this one and applies the events as they land. One fetch
+  // on entry seeds the history, the rest is push — no polling.
   useEffect(() => {
     if (mode !== "transcript" || !api.getAssistantSession || !api.getMessages) {
       return;
     }
     let cancelled = false;
+    let watchedId: string | undefined;
+
+    const watch = (sessionId: string) => {
+      if (watchedId === sessionId) return;
+      if (watchedId) {
+        vscode.postMessage({
+          command: "watchAssistantSession",
+          sessionId: watchedId,
+          watching: false,
+        });
+      }
+      watchedId = sessionId;
+      vscode.postMessage({
+        command: "watchAssistantSession",
+        sessionId,
+        watching: true,
+      });
+    };
+
     const load = () => {
       void api
         .getAssistantSession!()
         .then(async (info) => {
+          if (cancelled) return;
+          watch(info.sessionId);
           if (agentSessionRef.current !== info.sessionId) {
             agentSessionRef.current = info.sessionId;
             olderLoadedRef.current = false;
@@ -922,6 +952,7 @@ export const AssistantPage: React.FC<{
             setAgentHasMore(hasMore);
           }
           setAgentError(null);
+          setWorking(Boolean(info.working));
         })
         .catch((err: unknown) => {
           if (!cancelled) {
@@ -929,13 +960,42 @@ export const AssistantPage: React.FC<{
           }
         });
     };
+
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as
+        | { command?: string; sessionId?: string; event?: unknown; working?: unknown }
+        | null;
+      if (data?.command === "watchedSessionEvent") {
+        if (!watchedId || data.sessionId !== watchedId || !data.event) return;
+        setAgentMessages((prev) =>
+          applyWatchedTranscriptEvent(
+            prev,
+            data.event as WatchedTranscriptEvent,
+          ),
+        );
+        return;
+      }
+      // Turn finished: reconcile once so anything the deltas could not express
+      // (compaction rewriting blocks, tool results trimmed server-side) lands.
+      if (data?.command === "assistant:status" && data.working === false) {
+        load();
+      }
+    };
+
+    window.addEventListener("message", onMessage);
     load();
-    const timer = window.setInterval(load, 1500);
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      window.removeEventListener("message", onMessage);
+      if (watchedId) {
+        vscode.postMessage({
+          command: "watchAssistantSession",
+          sessionId: watchedId,
+          watching: false,
+        });
+      }
     };
-  }, [api, mode]);
+  }, [api, mode, vscode]);
 
   const loadOlderAgent = useCallback(async () => {
     const sessionId = agentSessionRef.current;

@@ -259,6 +259,18 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       ctx.setRunningWork(event.sessionId, "workflows", event.runs);
     }
 
+    // Wrapped surfaces (助手的轨迹) follow another session's transcript; hand
+    // them the same events under a separate command so ChatApp's reducer never
+    // sees them.
+    if (ctx.watchedSessionIds.has(event.sessionId)) {
+      postToWebview({
+        command: "watchedSessionEvent",
+        sessionId: event.sessionId,
+        event,
+      });
+      if (event.sessionId !== ctx.sessionId) return;
+    }
+
     // Chat / streaming events only drive ChatApp for the active session.
     if (event.sessionId !== ctx.sessionId) return;
     ctx.emitChatWs(event);
@@ -281,6 +293,12 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
   const dispatch: Record<string, (msg: BridgeMsg) => void> = {
     desktopReady: () => void session.handleDesktopReady(),
+    watchAssistantSession: (msg) => {
+      const id = typeof msg.sessionId === "string" ? msg.sessionId.trim() : "";
+      if (!id) return;
+      if (msg.watching === false) ctx.watchedSessionIds.delete(id);
+      else ctx.watchedSessionIds.add(id);
+    },
     newSession: (msg) => {
       const workdir =
         typeof msg.workdir === "string" && msg.workdir

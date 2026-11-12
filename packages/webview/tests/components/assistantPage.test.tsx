@@ -31,6 +31,75 @@ describe("AssistantPage", () => {
     clearAssistantComposerDraft();
   });
 
+  it("follows the watched agent session over the socket instead of polling", async () => {
+    const api = {
+      listAssistantMessages: vi
+        .fn()
+        .mockResolvedValue({ messages: [], hasMore: false }),
+      getAssistantSession: vi.fn().mockResolvedValue({
+        sessionId: "agent-1",
+        title: "灵光",
+        workdir: "/tmp/proj",
+        working: false,
+      }),
+      getMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "m1",
+            role: "assistant",
+            timestamp: "2026-10-22T00:00:00.000Z",
+            blocks: [{ type: "text", content: "起始" }],
+          },
+        ],
+        hasMore: false,
+      }),
+    };
+    const postMessage = vi.fn();
+    const vscode = {
+      postMessage,
+      getState: () => undefined,
+      setState: () => undefined,
+    };
+    const interval = vi.spyOn(window, "setInterval");
+    const view = render(
+      <AssistantPage api={api} vscode={vscode as never} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "轨迹" }));
+    expect(await screen.findByText(/起始/)).toBeTruthy();
+    expect(api.getMessages).toHaveBeenCalledTimes(1);
+    expect(postMessage).toHaveBeenCalledWith({
+      command: "watchAssistantSession",
+      sessionId: "agent-1",
+      watching: true,
+    });
+    // Push-only: no transcript poll timer is armed (other widgets may tick).
+    expect(
+      interval.mock.calls.some(([, delay]) => delay === 1500),
+    ).toBe(false);
+
+    fireEvent(
+      window,
+      new MessageEvent("message", {
+        data: {
+          command: "watchedSessionEvent",
+          sessionId: "agent-1",
+          event: { type: "message:delta", messageId: "m1", text: "追加" },
+        },
+      }),
+    );
+    expect(await screen.findByText(/起始追加/)).toBeTruthy();
+    expect(api.getMessages).toHaveBeenCalledTimes(1);
+
+    view.unmount();
+    expect(postMessage).toHaveBeenCalledWith({
+      command: "watchAssistantSession",
+      sessionId: "agent-1",
+      watching: false,
+    });
+    interval.mockRestore();
+  });
+
   it("renders jsonl roles and sends a user line", async () => {
     const api = {
       listAssistantMessages: vi.fn().mockResolvedValue({

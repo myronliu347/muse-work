@@ -421,6 +421,62 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(messages).toContainEqual({ command: "issue:changed" });
   });
 
+  it("forwards a watched session's chat events instead of dropping them", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    bridge.postMessage({
+      command: "watchAssistantSession",
+      sessionId: "agent-1",
+      watching: true,
+    });
+    const delta = {
+      type: "message:delta",
+      sessionId: "agent-1",
+      messageId: "m1",
+      text: "hi",
+    };
+    handler!(delta);
+    await flush();
+
+    // The watched stream goes out under its own command…
+    expect(messages).toContainEqual({
+      command: "watchedSessionEvent",
+      sessionId: "agent-1",
+      event: delta,
+    });
+    // …and never reaches the active session's chat channel.
+    expect(messages.some((m) => (m as { command?: string }).command === "message:delta")).toBe(
+      false,
+    );
+
+    bridge.postMessage({
+      command: "watchAssistantSession",
+      sessionId: "agent-1",
+      watching: false,
+    });
+    messages.length = 0;
+    handler!({ ...delta, messageId: "m2" });
+    await flush();
+    expect(messages.some((m) => (m as { command?: string }).command === "watchedSessionEvent")).toBe(
+      false,
+    );
+  });
+
   it("automation:changed WS posts automation:changed to webview (all panes)", async () => {
     let handler: ((e: unknown) => void) | undefined;
     const ws = {
