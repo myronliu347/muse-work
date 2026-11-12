@@ -174,12 +174,19 @@ if (!gotLock) {
     const iconPath = path.join(__dirname, "../../assets/icon.png");
     const appIcon = nativeImage.createFromPath(iconPath);
 
-    app.setAboutPanelOptions({
-      applicationName: APP_DISPLAY_NAME,
-      applicationVersion: app.getVersion(),
-      version: app.getVersion(),
-      iconPath,
-    });
+    /**
+     * About shows what is actually running. A hot update replaces the webview
+     * and server, so the dmg version alone makes an applied update look stuck.
+     */
+    const showAboutVersion = (version: string): void => {
+      app.setAboutPanelOptions({
+        applicationName: APP_DISPLAY_NAME,
+        applicationVersion: version,
+        version,
+        iconPath,
+      });
+    };
+    showAboutVersion(app.getVersion());
 
     if (!app.isPackaged && !appIcon.isEmpty()) {
       app.dock?.setIcon(appIcon);
@@ -267,12 +274,16 @@ if (!gotLock) {
       bundledHot?.shell ??
       readShellVersion(path.join(app.getAppPath(), "package.json")) ??
       app.getVersion();
+    const bundledVersion = bundledHot?.version ?? app.getVersion();
+    // Set to the launched resources once boot picks hot or bundled.
+    let runningVersion = bundledVersion;
     const updateMonitor = createUpdateMonitor({
       check: () =>
         checkForHotUpdate({
           hotRoot: path.join(app.getPath("userData"), "hot"),
           shellVersion,
-          bundledVersion: bundledHot?.version ?? app.getVersion(),
+          bundledVersion,
+          runningVersion,
           repo: HOT_REPO,
         }),
       publish: publishUpdate,
@@ -361,7 +372,6 @@ if (!gotLock) {
 
     const paths = resolveDesktopPaths();
     const hotRoot = path.join(app.getPath("userData"), "hot");
-    const bundledVersion = bundledHot?.version ?? app.getVersion();
     const bundledLaunch: LaunchResources = {
       webviewHtmlPath: paths.webviewHtmlPath,
       serverEntry: paths.serverEntry,
@@ -414,6 +424,8 @@ if (!gotLock) {
       }
     }
 
+    runningVersion = launch.version;
+    showAboutVersion(launch.version);
     console.log(
       `[muse-desktop] server ready at ${serverBaseUrl} (${launch.source} ${launch.version})`,
     );

@@ -234,6 +234,77 @@ describe("hot update", () => {
     expect(readBundledHot(dir)).toEqual({ version: "0.4.0", shell: "0.2.0" });
   });
 
+  it("keeps offering a restart while the downloaded tree is newer than the running one", async () => {
+    const hotRoot = tempRoot();
+    writeHot(hotRoot, "0.2.0");
+    const fetchImpl = (async () =>
+      Response.json({
+        version: "0.2.0",
+        shell: "0.1.0",
+        sha256: "a".repeat(64),
+        asset: HOT_ZIP_NAME,
+      })) as typeof fetch;
+
+    const pending = await checkForHotUpdate({
+      hotRoot,
+      shellVersion: "0.1.0",
+      bundledVersion: "0.1.0",
+      runningVersion: "0.1.0",
+      fetch: fetchImpl,
+      extract: async () => {
+        throw new Error("should not download twice");
+      },
+    });
+    expect(pending).toEqual({ status: "restart", version: "0.2.0" });
+
+    const afterRestart = await checkForHotUpdate({
+      hotRoot,
+      shellVersion: "0.1.0",
+      bundledVersion: "0.1.0",
+      runningVersion: "0.2.0",
+      fetch: fetchImpl,
+    });
+    expect(afterRestart).toEqual({ status: "current" });
+  });
+
+  it("re-downloads over a broken applied tree instead of calling it current", async () => {
+    const hotRoot = tempRoot();
+    writeHot(hotRoot, "0.2.0");
+    fs.rmSync(path.join(hotRoot, "versions", "0.2.0", "webview"), { recursive: true });
+    const zipBody = Buffer.from("hot-bytes");
+    const fetchImpl = (async (url: string) => {
+      const href = String(url);
+      if (href.endsWith(`/${HOT_MANIFEST_NAME}`)) {
+        return Response.json({
+          version: "0.2.0",
+          shell: "0.1.0",
+          sha256: createHash("sha256").update(zipBody).digest("hex"),
+          asset: HOT_ZIP_NAME,
+        });
+      }
+      return new Response(zipBody);
+    }) as typeof fetch;
+
+    const result = await checkForHotUpdate({
+      hotRoot,
+      shellVersion: "0.1.0",
+      bundledVersion: "0.1.0",
+      runningVersion: "0.1.0",
+      fetch: fetchImpl,
+      extract: async (_zip, dest) => {
+        fs.mkdirSync(path.join(dest, "webview"), { recursive: true });
+        fs.writeFileSync(path.join(dest, "webview", "index.html"), "<html></html>");
+        fs.mkdirSync(path.join(dest, "muse-server", "dist"), { recursive: true });
+        fs.writeFileSync(path.join(dest, "muse-server", "dist", "index.js"), "");
+        fs.writeFileSync(
+          path.join(dest, "muse-server", "package.json"),
+          JSON.stringify({ name: "@muse-work/server" }),
+        );
+      },
+    });
+    expect(result).toEqual({ status: "updated", version: "0.2.0" });
+  });
+
   it("discards the active hot directory", () => {
     const hotRoot = tempRoot();
     writeHot(hotRoot, "0.4.0");

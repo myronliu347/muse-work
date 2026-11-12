@@ -21,6 +21,11 @@ export function statusAfterCheck(prev: UpdateOffer | null, result: HotCheckResul
   if (result.status === "updated") {
     return { phase: "available", offer: { kind: "hot", version: result.version } };
   }
+  // Downloaded but not running yet: the restart offer has to survive repeated
+  // checks, otherwise the update becomes unreachable until a manual relaunch.
+  if (result.status === "restart") {
+    return { phase: "available", offer: { kind: "hot", version: result.version } };
+  }
   if (result.status === "installer") {
     return {
       phase: "available",

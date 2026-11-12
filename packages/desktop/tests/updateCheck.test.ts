@@ -24,6 +24,13 @@ describe("statusAfterCheck", () => {
     });
   });
 
+  it("keeps a downloaded-but-not-running update as a restart offer", () => {
+    expect(statusAfterCheck(null, { status: "restart", version: "0.2.0" })).toEqual({
+      phase: "available",
+      offer: { kind: "hot", version: "0.2.0" },
+    });
+  });
+
   it("clears the offer when already current, and keeps it when the check fails", () => {
     const prev = { kind: "hot" as const, version: "0.1.1" };
     expect(statusAfterCheck(prev, { status: "current" })).toEqual({

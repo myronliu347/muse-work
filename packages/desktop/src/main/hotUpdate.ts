@@ -197,9 +197,15 @@ export function extractZip(zipPath: string, destDir: string): Promise<void> {
 
 export type HotCheckResult =
   | { status: "updated"; version: string }
+  /** A newer tree is already on disk but this process still runs the old one. */
+  | { status: "restart"; version: string }
   | { status: "installer"; version: string; shell: string; url: string }
   | { status: "current" }
   | { status: "skipped"; reason: string };
+
+function highestVersion(versions: string[]): string {
+  return versions.reduce((best, version) => (compareVersions(version, best) > 0 ? version : best));
+}
 
 /** Prefer this machine's arch, then a lone dmg, then the release page. */
 export function pickInstallerUrl(
@@ -243,6 +249,8 @@ export async function checkForHotUpdate(opts: {
   hotRoot: string;
   shellVersion: string;
   bundledVersion: string;
+  /** What this process actually launched with. Defaults to bundledVersion. */
+  runningVersion?: string;
   repo?: string;
   arch?: string;
   fetch?: typeof fetch;
@@ -251,11 +259,16 @@ export async function checkForHotUpdate(opts: {
   const repo = opts.repo ?? HOT_REPO;
   const fetchImpl = opts.fetch ?? fetch;
   const extract = opts.extract ?? extractZip;
+  const bundled = normalizeVersion(opts.bundledVersion);
+  const running = normalizeVersion(opts.runningVersion ?? opts.bundledVersion);
   const applied = readCurrentVersion(opts.hotRoot);
-  const floor =
-    applied && compareVersions(applied, opts.bundledVersion) > 0
-      ? applied
-      : normalizeVersion(opts.bundledVersion);
+  // A downloaded tree only counts once it would actually launch. It is the
+  // updater's floor only when it beats the bundle; otherwise a broken copy or
+  // a hot tree older than the installed dmg would hide newer releases.
+  const appliedLayout = applied ? hotLayoutError(versionDir(opts.hotRoot, applied)) : null;
+  const appliedUsable =
+    applied && compareVersions(applied, bundled) > 0 && !appliedLayout ? applied : null;
+  const floor = highestVersion([running, bundled, appliedUsable ?? "0.0.0"]);
 
   const manifestUrl = releaseAssetUrl(repo, HOT_MANIFEST_NAME);
   const zipUrl = releaseAssetUrl(repo, HOT_ZIP_NAME);
@@ -286,7 +299,14 @@ export async function checkForHotUpdate(opts: {
       ),
     };
   }
-  if (compareVersions(manifest.version, floor) <= 0) return { status: "current" };
+  if (compareVersions(manifest.version, floor) <= 0) {
+    // Nothing new to download, but the tree on disk is newer than the process
+    // that is serving it. Say so, so the restart path stays reachable.
+    if (appliedUsable && compareVersions(appliedUsable, running) > 0) {
+      return { status: "restart", version: appliedUsable };
+    }
+    return { status: "current" };
+  }
 
   fs.mkdirSync(opts.hotRoot, { recursive: true });
   const tmp = fs.mkdtempSync(path.join(opts.hotRoot, "tmp-"));
