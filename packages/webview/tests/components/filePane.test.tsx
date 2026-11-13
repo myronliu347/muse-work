@@ -203,6 +203,29 @@ describe("FilePane", () => {
     expect(onFileSidebarModeChange).toHaveBeenCalledWith("search");
   });
 
+  it("does not replay the expand animation when the panel opens with the tree open", () => {
+    renderPane({
+      fileView: null,
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
+    });
+    expect(screen.getByTestId("file-tree")).toBeInTheDocument();
+    expect(screen.getByTestId("file-tree")).not.toHaveClass("is-opening");
+  });
+
+  it("animates the tree only after the toolbar expand click", () => {
+    const { rerenderWith } = renderPane({
+      fileView: makeFileView(),
+      fileTree: { ...emptyFileTreeState(), collapsed: true },
+    });
+    expect(screen.queryByTestId("file-tree")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("file-tree-expand-btn"));
+    rerenderWith({
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
+    });
+    expect(screen.getByTestId("file-tree")).toHaveClass("is-opening");
+  });
+
   it("keeps the file tree mounted while it closes", async () => {
     const tree = { ...emptyFileTreeState(), collapsed: false };
     const { rerenderWith } = renderPane({ fileView: null, fileTree: tree });

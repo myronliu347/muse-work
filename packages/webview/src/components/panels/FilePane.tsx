@@ -14,7 +14,7 @@ import {
 import { FilePathBar } from "./FilePathBar";
 import { FilePreview, type FileSelectionChatTarget } from "./FilePreview";
 import { FileTree, requestDirListings } from "./FileTree";
-import { useExitHold } from "../../hooks/useExitHold";
+import { PANEL_MOTION_MS, useExitHold } from "../../hooks/useExitHold";
 import "../../styles/FilePane.css";
 
 const MIN_WIDTH = 320;
@@ -102,6 +102,8 @@ export const FilePane: React.FC<FilePaneProps> = ({
   // switching tabs restores each file's position (see FilePreview props).
   const scrollTopsRef = useRef<Record<string, number>>({});
   const [searchOpen, setSearchOpen] = useState(false);
+  // One-shot: only an explicit expand click should slide the tree column in.
+  const [animateTreeOpen, setAnimateTreeOpen] = useState(false);
   const lastPathRef = useRef<string | null>(null);
   const streamingRef = useRef(false);
 
@@ -177,8 +179,24 @@ export const FilePane: React.FC<FilePaneProps> = ({
     if (!onFileTreeChange) return;
     const nextCollapsed = !treeCollapsed;
     if (!fileView) collapsedWhileEmpty.current = nextCollapsed;
+    setAnimateTreeOpen(!nextCollapsed);
     onFileTreeChange({ ...fileTree, collapsed: nextCollapsed });
   };
+
+  // Hiding the panel mid-animation must not make the next open replay it.
+  useEffect(() => {
+    if (visible === false) setAnimateTreeOpen(false);
+  }, [visible]);
+  // `onAnimationEnd` clears this in the browser; the timer covers
+  // prefers-reduced-motion (no animation event) and an interrupted mount.
+  useEffect(() => {
+    if (!animateTreeOpen) return;
+    const timer = setTimeout(
+      () => setAnimateTreeOpen(false),
+      PANEL_MOTION_MS + 50,
+    );
+    return () => clearTimeout(timer);
+  }, [animateTreeOpen]);
 
   // Re-request the currently open file from the host (soft refresh: old
   // content stays visible until the reply lands). Must not go through
@@ -350,6 +368,8 @@ export const FilePane: React.FC<FilePaneProps> = ({
               vscode={vscode}
               tree={fileTree}
               closing={treePresence.closing}
+              animateOpen={animateTreeOpen}
+              onOpenAnimationEnd={() => setAnimateTreeOpen(false)}
               onTreeChange={onFileTreeChange}
               onOpenFile={(path) => onOpenFile(path)}
               onOpenFilePinned={onOpenFilePinned}

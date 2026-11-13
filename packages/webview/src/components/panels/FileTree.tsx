@@ -38,6 +38,10 @@ export type FileTreeProps = {
   onOpenMatch?: (absPath: string, line: number) => void;
   /** Parent keeps the tree mounted while the close animation runs. */
   closing?: boolean;
+  /** Animate the column only when the toolbar toggle expanded it, not on every mount. */
+  animateOpen?: boolean;
+  /** The expand animation finished; the parent can drop its one-shot flag. */
+  onOpenAnimationEnd?: () => void;
 };
 
 type FlatRow = FileTreeDirEntry & { depth: number };
@@ -98,6 +102,8 @@ export const FileTree: React.FC<FileTreeProps> = ({
   onContentSearchChange,
   onOpenMatch,
   closing = false,
+  animateOpen = false,
+  onOpenAnimationEnd,
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const pendingRef = useRef<Set<string>>(new Set());
@@ -176,7 +182,10 @@ export const FileTree: React.FC<FileTreeProps> = ({
     initialRect: { width: 280, height: 400 },
   });
 
-  const [opening, setOpening] = useState(true);
+  // Only the toolbar toggle animates the column open. Mounting the panel with
+  // the tree already expanded must paint at its final width — the old
+  // `useState(true)` replayed the 280ms slide on every panel open.
+  const [opening, setOpening] = useState(Boolean(animateOpen));
 
   const onWidthDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
     const root = e.currentTarget.parentElement;
@@ -212,6 +221,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
   const finishOpening = (event: React.AnimationEvent) => {
     if (event.target !== event.currentTarget) return;
     setOpening(false);
+    onOpenAnimationEnd?.();
   };
 
   if (!workdir) {
