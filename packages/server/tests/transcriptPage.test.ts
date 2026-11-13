@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { pageTranscript, type PageMessage } from "../src/utils/transcriptPage.js";
+import {
+  pageTranscript,
+  TRANSCRIPT_INITIAL_LIMIT,
+  type PageMessage,
+} from "../src/utils/transcriptPage.js";
 
 function msg(id: string, type: "text" | "compact" = "text"): PageMessage {
   return { id, blocks: [{ type }] };
@@ -43,5 +47,36 @@ describe("pageTranscript", () => {
     const page = pageTranscript(plain, plain);
     expect(page.messages.map((m) => m.id)).toEqual(["u1", "a1"]);
     expect(page.hasMore).toBe(false);
+  });
+
+  it("caps the first page and pages back through a long session", () => {
+    const long = Array.from({ length: 200 }, (_, i) => msg(`m${i}`));
+    const page = pageTranscript(long, []);
+    expect(page.messages).toHaveLength(TRANSCRIPT_INITIAL_LIMIT);
+    expect(page.messages[0]?.id).toBe(`m${200 - TRANSCRIPT_INITIAL_LIMIT}`);
+    expect(page.messages.at(-1)?.id).toBe("m199");
+    expect(page.hasMore).toBe(true);
+
+    // Walking backward with the page size reaches the start and then stops.
+    let before = page.messages[0]!.id;
+    let loaded = page.messages.length;
+    for (;;) {
+      const older = pageTranscript(long, [], { before });
+      if (older.messages.length === 0) break;
+      loaded += older.messages.length;
+      before = older.messages[0]!.id;
+      if (!older.hasMore) break;
+    }
+    expect(loaded).toBe(long.length);
+  });
+
+  it("caps a post-compaction tail that is still longer than the page", () => {
+    const long = Array.from({ length: 200 }, (_, i) => msg(`m${i}`));
+    long[100] = msg("m100", "compact");
+    const page = pageTranscript(long, []);
+    // The post-compact tail is longer than the cap, so the window starts after
+    // the compact; the compact marker is still reachable by paging backwards.
+    expect(page.messages).toHaveLength(TRANSCRIPT_INITIAL_LIMIT);
+    expect(page.hasMore).toBe(true);
   });
 });

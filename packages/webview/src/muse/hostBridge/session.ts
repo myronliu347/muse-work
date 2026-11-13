@@ -248,7 +248,7 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     }
   };
 
-  const activateSession = async (id: string): Promise<MuseSession> => {
+  const runActivation = async (id: string): Promise<MuseSession> => {
     ctx.pendingNewSession = false;
     ctx.suppressWorkdirPush = false;
     const { session } = await ctx.api.selectSession(id);
@@ -271,6 +271,20 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
       ctx.showPermissionConfirmation(pending);
     }
     return session;
+  };
+
+  // Opening an issue can ask for the same session from two effects (the issue
+  // column and the sessions page). Coalesce the requests while one is in
+  // flight — otherwise the session's transcript is fetched, rendered, cached,
+  // and its tree refreshed twice, which is what makes a switch feel stuck.
+  let activation: { id: string; promise: Promise<MuseSession> } | null = null;
+  const activateSession = (id: string): Promise<MuseSession> => {
+    if (activation?.id === id) return activation.promise;
+    const promise = runActivation(id).finally(() => {
+      if (activation?.promise === promise) activation = null;
+    });
+    activation = { id, promise };
+    return promise;
   };
 
   const handleNewSession = async (workdir?: string): Promise<void> => {

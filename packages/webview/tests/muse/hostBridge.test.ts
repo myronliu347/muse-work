@@ -596,6 +596,45 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     });
   });
 
+  it("coalesces duplicate desktopSelectSession for the same session while it loads", async () => {
+    let release!: (value: { session: MuseSession }) => void;
+    const pending = new Promise<{ session: MuseSession }>((resolve) => {
+      release = resolve;
+    });
+    const api = stubApi({
+      selectSession: vi.fn(() => pending),
+      getMessages: vi.fn(async () => ({ messages: [] })),
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [{ ...baseSession, id: "sess-b" }],
+        activeSessionId: "sess-b",
+      })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    // Two UI effects can ask for the same issue session in the same tick.
+    bridge.postMessage({
+      command: "desktopSelectSession",
+      sessionId: "sess-b",
+      workdir: "/tmp",
+    });
+    bridge.postMessage({
+      command: "desktopSelectSession",
+      sessionId: "sess-b",
+      workdir: "/tmp",
+    });
+    await flush();
+    expect(api.selectSession).toHaveBeenCalledTimes(1);
+
+    release({ session: { ...baseSession, id: "sess-b" } });
+    await flush();
+    expect(api.getMessages).toHaveBeenCalledTimes(1);
+  });
+
   it("restores sidebar running when switching back to a busy session", async () => {
     const api = stubApi({
       getRuntimeState: vi.fn(async () => ({

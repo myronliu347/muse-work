@@ -70,6 +70,8 @@ export interface ChatBodyProps {
   onComposerFocus?: () => void;
   /** Issue 标签嵌入会话详情时不展示欢迎页。 */
   hideWelcome?: boolean;
+  /** 宿主正在加载这条会话的记录；空列表时不要露出空白消息区。 */
+  transcriptPending?: boolean;
 }
 
 export const ChatBody = forwardRef<
@@ -118,6 +120,7 @@ export const ChatBody = forwardRef<
     composer,
     onComposerFocus,
     hideWelcome,
+    transcriptPending = false,
   },
   ref,
 ) {
@@ -136,6 +139,10 @@ export const ChatBody = forwardRef<
   // arrived, otherwise logged-in users see the login CTA flash before
   // setInitialState updates isAuthenticated to true.
   const showWelcomeReady = showWelcome && initialized;
+  // A session switch clears the previous transcript before the host answers.
+  // Showing the empty list in that gap reads as a blank, stuck pane; keep the
+  // loading mark up until the transcript (or welcome) is ready to paint.
+  const awaitingTranscript = transcriptPending && !hasVisibleMessages;
   const hasDirectConnectConfig = !!(
     configurationData?.apiKey && configurationData?.baseURL
   );
@@ -170,7 +177,9 @@ export const ChatBody = forwardRef<
     </div>
   ) : (
     <>
-      {showWelcomeReady ? (
+      {awaitingTranscript ? (
+        <LoadingLogo />
+      ) : showWelcomeReady ? (
         <WelcomeView
           isAuthenticated={isAuthenticated}
           hasDirectConnectConfig={hasDirectConnectConfig}

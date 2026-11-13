@@ -98,6 +98,7 @@ export function ChatSessionColumn(input: {
       currentSession={state.currentSession}
       initialized={state.initialized}
       hideWelcome={state.transcriptPending}
+      transcriptPending={state.transcriptPending}
       effectiveWorkdir={effectiveWorkdir}
       dock={dock}
       vscode={vscode}

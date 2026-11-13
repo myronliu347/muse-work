@@ -21,38 +21,53 @@ export const sessionsRoutes = new Hono<HonoEnv>();
 sessionsRoutes.get("/sessions", (c) => {
   const ctx = c.get("ctx");
   if (c.req.query("grouped") === "1") {
-    const toGroup = (issue: {
-      id: string;
-      title: string;
-      description?: string;
-      priority: string;
-      type?: string;
-      status: string;
-      items: unknown;
-      planningSessionId?: string;
-      executionSessionId?: string;
-      agentMode?: "single" | "split";
-      closeNote?: string;
-      workdir?: string;
-      baseBranch?: string;
-    }) => {
+    // The sidebar tree reads ids, titles, statuses and workdirs. `systemPrompt`
+    // is a multi-KB per-session field the webview never reads, and closed
+    // issues never render their description or checklist — carrying them made
+    // every session switch download (and parse) a multi-MB tree.
+    const toClientSession = <T extends { systemPrompt?: string }>(
+      session: T,
+    ): Omit<T, "systemPrompt"> => {
+      const { systemPrompt: _systemPrompt, ...rest } = session;
+      return rest;
+    };
+    const toGroup = (
+      issue: {
+        id: string;
+        title: string;
+        description?: string;
+        priority: string;
+        type?: string;
+        status: string;
+        items: unknown;
+        planningSessionId?: string;
+        executionSessionId?: string;
+        agentMode?: "single" | "split";
+        closeNote?: string;
+        workdir?: string;
+        baseBranch?: string;
+      },
+      closed = false,
+    ) => {
       const sessions = [];
       if (issue.planningSessionId) {
         const planning = ctx.store.get(issue.planningSessionId);
-        if (planning) sessions.push(planning);
+        if (planning) sessions.push(toClientSession(planning));
       }
       if (issue.executionSessionId) {
         const execution = ctx.store.get(issue.executionSessionId);
-        if (execution) sessions.push(execution);
+        if (execution) sessions.push(toClientSession(execution));
       }
       return {
         issueId: issue.id,
         title: issue.title,
-        description: issue.description ?? "",
+        // Closed issues stay in the tree only to resolve a session that still
+        // points at one; their long-form body is never shown.
+        description: closed ? "" : (issue.description ?? ""),
         priority: issue.priority,
         type: issue.type,
         status: issue.status,
-        items: issue.items,
+        items: closed ? [] : issue.items,
         planningSessionId: issue.planningSessionId,
         executionSessionId: issue.executionSessionId,
         agentMode: issue.agentMode,
@@ -62,8 +77,10 @@ sessionsRoutes.get("/sessions", (c) => {
         sessions,
       };
     };
-    const issueGroups = ctx.issueStore.listActive().map(toGroup);
-    const closedIssueGroups = ctx.issueStore.listClosed().map(toGroup);
+    const issueGroups = ctx.issueStore.listActive().map((issue) => toGroup(issue));
+    const closedIssueGroups = ctx.issueStore
+      .listClosed()
+      .map((issue) => toGroup(issue, true));
     const issueSessionIds = new Set(
       [...issueGroups, ...closedIssueGroups].flatMap((g) =>
         g.sessions.map((s) => s.id),
@@ -77,6 +94,8 @@ sessionsRoutes.get("/sessions", (c) => {
     });
     return c.json({
       ...grouped,
+      pinned: grouped.pinned.map(toClientSession),
+      recent: grouped.recent.map(toClientSession),
       issueGroups,
       closedIssueGroups,
     });
