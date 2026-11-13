@@ -46,10 +46,12 @@ import { resetDesktopListDirRequests } from "../muse/listDirRequests";
 import { useDesktopStore } from "./desktopStore";
 import { usePanelGroupStore } from "./panelGroupStore";
 import { resetBotPagePersistence } from "../muse/botPageState";
+import { resetAssistantTranscriptCache } from "../muse/assistantTranscriptCache";
 import { usePaneUiStore } from "./paneUiStore";
 
 export function resetWebviewStores(): void {
   resetBotPagePersistence();
+  resetAssistantTranscriptCache();
   useDesktopStore.getState().reset();
   usePanelGroupStore.getState().reset();
   usePaneUiStore.getState().reset();

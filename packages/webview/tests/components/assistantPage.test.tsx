@@ -31,6 +31,33 @@ describe("AssistantPage", () => {
     clearAssistantComposerDraft();
   });
 
+  it("paints the cached transcript immediately when the page remounts", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "cached-1",
+            at: Date.now(),
+            role: "assistant",
+            message: "上一条助手消息",
+          },
+        ],
+        hasMore: false,
+      }),
+    };
+    const first = render(<AssistantPage api={api as never} />);
+    expect(await screen.findByText(/上一条助手消息/)).toBeInTheDocument();
+    first.unmount();
+
+    // Coming back from 会话 must not wait for another fetch: the snapshot from
+    // the previous mount seeds the first paint.
+    api.listAssistantMessages.mockImplementation(
+      () => new Promise(() => {}) as never,
+    );
+    render(<AssistantPage api={api as never} />);
+    expect(screen.getByText(/上一条助手消息/)).toBeInTheDocument();
+  });
+
   it("follows the watched agent session over the socket instead of polling", async () => {
     const api = {
       listAssistantMessages: vi

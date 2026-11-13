@@ -35,6 +35,10 @@ import {
 import { ResolvedImage, useResolvedImageSrc } from "../message/ResolvedImage";
 import { resolveImageSrc } from "../../utils/resolveImageSrc";
 import { pathToFileUrl } from "../../utils/pathToFileUrl";
+import {
+  readAssistantTranscriptCache,
+  writeAssistantTranscriptCache,
+} from "../../muse/assistantTranscriptCache";
 import type { AttachedImage, VsCodeApi } from "../../types";
 import {
   classifyAssistantHref,
@@ -681,8 +685,15 @@ export const AssistantPage: React.FC<{
   onComposerFocusChange,
   onSelectIssue,
 }) => {
-  const [lines, setLines] = useState<AssistantLine[]>([]);
-  const [hasMore, setHasMore] = useState(false);
+  // Seed from the last visit so coming back from 会话 paints the conversation
+  // immediately; the mount fetch below still refreshes it in the background.
+  const cachedTranscript = readAssistantTranscriptCache(api);
+  const [lines, setLines] = useState<AssistantLine[]>(
+    () => cachedTranscript?.lines ?? [],
+  );
+  const [hasMore, setHasMore] = useState(
+    () => cachedTranscript?.hasMore ?? false,
+  );
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"chat" | "transcript">("chat");
   useEffect(() => {
@@ -849,6 +860,11 @@ export const AssistantPage: React.FC<{
       return [...prev, line];
     });
   }, []);
+
+  // Keep the cross-mount snapshot in sync with every load, append and clear.
+  useEffect(() => {
+    writeAssistantTranscriptCache(api, { lines, hasMore });
+  }, [lines, hasMore]);
 
   useEffect(() => {
     let cancelled = false;
