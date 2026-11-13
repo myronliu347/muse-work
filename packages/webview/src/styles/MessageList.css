@@ -94,6 +94,16 @@
   background-color: var(--gray-4);
 }
 
+/* Keep the pinned bar in step with the assistant's warm user bubble. */
+:root[data-theme="light"] .assistant-frame .sticky-user-message:not(.sticky-user-message--system) {
+  background-color: var(--muse-user-bubble);
+  border-color: var(--muse-user-bubble-border);
+}
+
+:root[data-theme="light"] .assistant-frame .sticky-user-message:not(.sticky-user-message--system):hover {
+  background-color: var(--muse-user-bubble-hover);
+}
+
 /* Pinned system-inject uses the same card as the row in the list. */
 .sticky-user-message--system {
   background: transparent;
