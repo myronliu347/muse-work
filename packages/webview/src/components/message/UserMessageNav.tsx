@@ -107,7 +107,10 @@ export const UserMessageNav: React.FC<{
                 popover?.id === entry.id ? " user-message-nav-item--hover" : ""
               }`}
               data-testid={`user-message-nav-${entry.id}`}
-              onClick={() => onSelect(entry.id)}
+              onClick={() => {
+                setPopover(null);
+                onSelect(entry.id);
+              }}
               onPointerEnter={(event) => showFor(entry.id, event.currentTarget)}
               onPointerLeave={() => setPopover(null)}
               onFocus={(event) => showFor(entry.id, event.currentTarget)}

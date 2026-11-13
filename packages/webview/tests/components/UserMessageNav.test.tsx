@@ -124,6 +124,7 @@ describe("UserMessageNav", () => {
     );
     fireEvent.click(screen.getByTestId("user-message-nav-u3"));
     expect(onSelect).toHaveBeenCalledWith("u3");
+    expect(screen.queryByTestId("user-message-nav-popover")).toBeNull();
   });
 
   it("shows the assistant reply in the popover", () => {
