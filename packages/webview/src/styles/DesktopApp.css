@@ -2833,7 +2833,7 @@ body.is-panel-resizing-row * {
 .desktop-layout .assistant-page .assistant-composer,
 .desktop-layout .assistant-page .assistant-error {
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
-  padding-right: 28px;
+  padding-right: var(--chat-right-gutter, 28px);
 }
 
 .assistant-frame .desktop-panel-dock {

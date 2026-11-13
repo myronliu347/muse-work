@@ -38,6 +38,10 @@
   padding: 0 var(--chat-right-gutter, 28px) var(--space-3) var(--space-4);
 }
 
+.chat-container:not(:has(.user-message-nav)) {
+  --chat-right-gutter: var(--space-4);
+}
+
 .chat-container--no-user-nav {
   --chat-right-gutter: var(--space-4);
 }
