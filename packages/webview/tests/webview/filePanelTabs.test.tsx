@@ -171,7 +171,7 @@ describe("desktopFileContent multi-tab routing (messageRouter)", () => {
     expect(screen.getByTestId("quick-open-input")).toHaveValue("hello.ts");
   });
 
-  it("drops a loading tab when the file does not exist and keeps the others", async () => {
+  it("keeps the loading tab and shows the error when the file does not exist", async () => {
     renderChatApp(createMockVscode());
     usePanelGroupStore.getState().patchGroup("/mock/workdir", {
       checked: ["file"],
@@ -196,10 +196,15 @@ describe("desktopFileContent multi-tab routing (messageRouter)", () => {
     });
 
     const group = groupState();
-    expect(group.fileTabs.map((t) => t.path)).toEqual(["/mock/workdir/keep.ts"]);
-    expect(group.activeFilePath).toBe("/mock/workdir/keep.ts");
+    expect(group.fileTabs.map((t) => t.path)).toEqual([
+      "/mock/workdir/keep.ts",
+      "missing.html",
+    ]);
+    expect(group.activeFilePath).toBe("missing.html");
     expect(group.checked).toContain("file");
-    expect(group.fileTabs.some((t) => t.error)).toBe(false);
+    expect(
+      group.fileTabs.find((t) => t.path === "missing.html")?.error,
+    ).toContain("文件不存在");
   });
 
   it("does not create a tab when a missing file was never opened", async () => {
@@ -224,7 +229,7 @@ describe("desktopFileContent multi-tab routing (messageRouter)", () => {
     expect(groupState().activeFilePath).toBeNull();
   });
 
-  it("closes the file panel when the missing file was the only tab", async () => {
+  it("keeps the file panel open when the missing file was the only tab", async () => {
     renderChatApp(createMockVscode());
     usePanelGroupStore.getState().patchGroup("/mock/workdir", {
       checked: ["preview", "file"],
@@ -246,8 +251,9 @@ describe("desktopFileContent multi-tab routing (messageRouter)", () => {
     });
 
     const group = groupState();
-    expect(group.fileTabs).toEqual([]);
-    expect(group.checked).toEqual(["preview"]);
-    expect(group.active).toBe("preview");
+    expect(group.fileTabs.map((t) => t.path)).toEqual(["missing.html"]);
+    expect(group.fileTabs[0]?.error).toContain("文件不存在");
+    expect(group.checked).toEqual(["preview", "file"]);
+    expect(group.active).toBe("file");
   });
 });

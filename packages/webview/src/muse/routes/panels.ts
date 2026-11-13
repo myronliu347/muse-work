@@ -2,7 +2,6 @@ import type { MessageRouteContext } from "./context";
 import { acceptDesktopContentSearchResult } from "../contentSearchRequests";
 import { acceptDesktopListDirResult } from "../listDirRequests";
 import { emptyFileTreeState, patchPaneUi, usePanelGroupStore } from "../../stores";
-import { applyCloseFileTab } from "../../stores/panelGroupStore";
 import { patchDockTool } from "../dockTools";
 import { upsertFileContentTab, closeFileTab } from "../fileTabs";
 import type {
@@ -95,8 +94,9 @@ export function routePanels(message: any, ctx: MessageRouteContext): boolean {
                 ? message.requestedPath
                 : undefined;
             // A click opens a loading tab before the host can stat the path.
-            // When the file is not on disk, drop that tab (and the file panel
-            // if it was the only one). The host toast is the only feedback.
+            // Keep that tab when the file is gone and show the error in the
+            // preview: closing it here made the panel flash open and vanish,
+            // with no way to see why.
             if (
               typeof incoming?.error === "string" &&
               incoming.error.includes("文件不存在")
@@ -104,15 +104,12 @@ export function routePanels(message: any, ctx: MessageRouteContext): boolean {
               const paths = [requestedPath, incoming.path].filter(
                 (p): p is string => typeof p === "string" && p.length > 0,
               );
-              usePanelGroupStore.getState().patchGroup(key, (group) => {
-                const tabs = group.fileTabs ?? [];
-                const hit = paths.find((p) =>
-                  tabs.some((t) => t.path === p || t.tabKey === p),
-                );
-                if (!hit) return {};
-                return applyCloseFileTab(group, hit);
-              });
-              break;
+              const tabs = usePanelGroupStore.getState().groups[key]?.fileTabs ?? [];
+              const hit = paths.some((p) =>
+                tabs.some((t) => t.path === p || t.tabKey === p),
+              );
+              // No click opened a tab for this path: do not invent one.
+              if (!hit) break;
             }
             usePanelGroupStore.getState().patchGroup(key, (group) =>
               upsertFileContentTab(
