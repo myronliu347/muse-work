@@ -43,6 +43,14 @@ describe("PanelAddMenu", () => {
     expect(screen.queryByTestId("panel-add-item-preview")).toBeNull();
   });
 
+  it("keeps 文件 listed when the file panel is already open", () => {
+    renderAddMenu({ checked: ["file"] });
+    expect(screen.getByTestId("panel-add-item-file")).toBeInTheDocument();
+    expect(screen.getByTestId("panel-add-item-terminal")).toBeInTheDocument();
+    expect(screen.getByTestId("panel-add-item-preview")).toBeInTheDocument();
+    expect(screen.getByTestId("panel-add-item-diff")).toBeInTheDocument();
+  });
+
   it("adds a panel when an item is selected", async () => {
     const user = userEvent.setup();
     const { onAdd } = renderAddMenu();

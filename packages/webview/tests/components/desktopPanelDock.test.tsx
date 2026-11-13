@@ -368,7 +368,7 @@ describe("DesktopPanelDock", () => {
     expect(screen.getByTestId("desktop-panel-add-btn")).toBeInTheDocument();
   });
 
-  it("shows + when panels remain, hides when all open", () => {
+  it("keeps + for 文件 even when every kind is open", () => {
     const { rerender } = render(
       <MuseTheme>
         <DesktopPanelDock {...baseProps} checked={["preview"]} active="preview">
@@ -389,7 +389,7 @@ describe("DesktopPanelDock", () => {
         </DesktopPanelDock>
       </MuseTheme>,
     );
-    expect(screen.queryByTestId("desktop-panel-add-btn")).toBeNull();
+    expect(screen.getByTestId("desktop-panel-add-btn")).toBeInTheDocument();
   });
 
   it("opens the add menu when clicking +", async () => {

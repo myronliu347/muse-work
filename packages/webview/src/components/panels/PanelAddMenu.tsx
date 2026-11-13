@@ -22,8 +22,12 @@ export const PanelAddMenu: React.FC<PanelAddMenuProps> = ({
   trigger,
   defaultOpen,
 }) => {
+  // 文件 stays listed even while it is open: a file tab can replace the
+  // generic 文件 tab, and without this entry there is no way back to it.
   const items = PANEL_ADD_ORDER.filter(
-    (kind) => !checked.includes(kind) && !disabled.includes(kind),
+    (kind) =>
+      (kind === "file" || !checked.includes(kind)) &&
+      !disabled.includes(kind),
   );
   if (items.length === 0) return null;
 

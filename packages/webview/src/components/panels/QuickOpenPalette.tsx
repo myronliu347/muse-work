@@ -50,6 +50,13 @@ function matchIssues(issues: QuickOpenIssue[], query: string): QuickOpenIssue[] 
     .slice(0, 20);
 }
 
+/** Keep long absolute workdirs readable inside the scope picker. */
+function shortWorkdir(dir: string): string {
+  const parts = dir.split("/").filter(Boolean);
+  if (parts.length <= 2) return dir;
+  return `…/${parts.slice(-2).join("/")}`;
+}
+
 export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
   open,
   workdir,
@@ -195,33 +202,41 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
           }
         }}
       >
-        <div className="quick-open-scope">
-          <span className="quick-open-scope-label">范围</span>
-          <select
-            className="quick-open-scope-select"
-            data-testid="quick-open-scope"
-            aria-label="搜索范围"
-            value={scopeWorkdir ?? ""}
-            onChange={(event) => {
-              setScopeWorkdir(event.target.value || undefined);
-            }}
-          >
-            {!scopeWorkdir ? <option value="">选择工作目录</option> : null}
-            {scopeOptions.map((dir) => (
-              <option key={dir} value={dir} title={dir}>
-                {dir}
-              </option>
-            ))}
-          </select>
+        <div className="quick-open-search">
+          <input
+            ref={inputRef}
+            className="quick-open-input"
+            data-testid="quick-open-input"
+            placeholder="搜索文件或事项…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {scopeOptions.length > 1 ? (
+            <div className="quick-open-scope">
+              <i
+                className="codicon codicon-folder quick-open-scope-icon"
+                aria-hidden
+              />
+              <select
+                className="quick-open-scope-select"
+                data-testid="quick-open-scope"
+                aria-label="搜索范围"
+                title={scopeWorkdir ?? undefined}
+                value={scopeWorkdir ?? ""}
+                onChange={(event) => {
+                  setScopeWorkdir(event.target.value || undefined);
+                }}
+              >
+                {!scopeWorkdir ? <option value="">选择工作目录</option> : null}
+                {scopeOptions.map((dir) => (
+                  <option key={dir} value={dir} title={dir}>
+                    {shortWorkdir(dir)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
         </div>
-        <input
-          ref={inputRef}
-          className="quick-open-input"
-          data-testid="quick-open-input"
-          placeholder="搜索文件或事项…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
         <div className="quick-open-list">
           {empty ? (
             <div className="quick-open-empty">{empty}</div>

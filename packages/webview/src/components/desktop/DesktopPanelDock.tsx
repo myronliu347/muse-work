@@ -498,7 +498,9 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   // 详情 is not a kind, so a detail-only dock still needs + to open
   // 文件、终端、浏览器、变更.
   const canAdd = PANEL_ADD_ORDER.some(
-    (kind) => !checked.includes(kind) && !disabledPanels.includes(kind),
+    (kind) =>
+      (kind === "file" || !checked.includes(kind)) &&
+      !disabledPanels.includes(kind),
   );
   const detailLabel = detailTitle?.trim() || "详情";
   // Never paint wider than the live max — persisted widths from a larger
