@@ -3137,17 +3137,7 @@ body.is-panel-resizing-row * {
 .bot-tab-label {
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: clip;
   font-weight: 600;
-  /* 短标题停在左边，只有顶到右缘的字才淡出。 */
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
-  mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
 }
 
 .bot-tab-close {

@@ -22,6 +22,7 @@ import { registerSidePanel } from "../../muse/sidePanelTabs";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { PanelAddMenu } from "../panels/PanelAddMenu";
 import { OverflowScroller } from "../shared/OverflowScroller";
+import { OverflowText } from "../shared/OverflowText";
 import { FileIcon } from "../panels/FileIcon";
 import { IssuePresenceMark, type IssuePresence } from "../session/SessionStatusGlyph";
 import { Tooltip } from "../shared/Tooltip";
@@ -676,7 +677,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                   {...bindTab(key)}
                 >
                   <FileIcon name={name} className="file-tab-icon" />
-                  <span className="file-tab-label">{name}</span>
+                  <OverflowText className="file-tab-label" text={name} title={tab.path} />
                   <button
                     type="button"
                     className="file-tab-close"

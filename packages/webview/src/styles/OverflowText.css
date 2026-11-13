@@ -1,0 +1,38 @@
+/* One-line overflow text: fade the clipped edge, slide the full string into
+   view on hover (see OverflowText). */
+.overflow-text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+.overflow-text.is-scrolling {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 10px,
+    #000 calc(100% - 20px),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 10px,
+    #000 calc(100% - 20px),
+    transparent
+  );
+}
+
+.overflow-text-inner {
+  display: inline-block;
+  white-space: nowrap;
+  transition: transform 450ms cubic-bezier(0.2, 0, 0, 1);
+  will-change: transform;
+}

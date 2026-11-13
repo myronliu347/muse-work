@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useAssistantNotice } from "../assistant/museBotNotice";
 import { OverflowScroller } from "../shared/OverflowScroller";
+import { OverflowText } from "../shared/OverflowText";
 import { IssuePresenceMark, type IssuePresence } from "../session/SessionStatusGlyph";
 import { Tooltip } from "../shared/Tooltip";
 import {
@@ -251,7 +252,7 @@ export function BotTabs({
                     <IssuePresenceMark presence={presence[tab]} />
                   </span>
                 ) : null}
-                <span className="bot-tab-label">{title}</span>
+                <OverflowText className="bot-tab-label" text={title} />
               </button>
               <button
                 type="button"
