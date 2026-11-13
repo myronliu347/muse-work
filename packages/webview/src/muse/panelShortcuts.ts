@@ -9,8 +9,8 @@ const isMac =
  * The chord opens that panel or switches to it. It does not close it:
  * - Preview: ⇧⌘P / Ctrl+Shift+P
  * - Diff: ⇧⌘D / Ctrl+Shift+D
- * - Terminal: ⌃` / Ctrl+`
- * - File: ⇧⌘F / Ctrl+Shift+F
+ * - Terminal: ⌘` / Ctrl+` (Ctrl+` stays as a Mac alias)
+ * - File: ⇧⌘F / Ctrl+Shift+F (legacy focus; ⌘G opens a new file panel)
  * Dock fullscreen (separate): ⌃⌘F / F11
  * Dock show/hide (header 面板 button): ⌘J / Ctrl+J
  */
@@ -21,12 +21,11 @@ export function matchPanelShortcut(event: KeyboardEvent): DesktopPanelKind | nul
   const code = event.code;
 
   if (isMac) {
-    // Terminal: Control+Backtick (not Command)
+    // Terminal: Command+Backtick (Control+Backtick stays as an alias)
     if (
-      event.ctrlKey &&
-      !event.metaKey &&
       !event.shiftKey &&
-      (key === "`" || code === "Backquote")
+      (key === "`" || code === "Backquote") &&
+      ((event.metaKey && !event.ctrlKey) || (event.ctrlKey && !event.metaKey))
     ) {
       return "terminal";
     }
@@ -161,9 +160,9 @@ export function panelShortcutLabel(kind: DesktopPanelKind): string {
       case "diff":
         return "⇧⌘D";
       case "terminal":
-        return "⌃`";
+        return "⌘`";
       case "file":
-        return "⇧⌘F";
+        return "⌘G";
     }
   }
   switch (kind) {
@@ -174,6 +173,28 @@ export function panelShortcutLabel(kind: DesktopPanelKind): string {
     case "terminal":
       return "Ctrl+`";
     case "file":
-      return "Ctrl+Shift+F";
+      return "Ctrl+G";
   }
+}
+
+/** ⇧⌘J / Ctrl+Shift+J — always create a new terminal tool. */
+export function matchNewTerminalShortcut(event: KeyboardEvent): boolean {
+  if (event.altKey || event.isComposing) return false;
+  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+  if (key !== "j" || !event.shiftKey) return false;
+  if (isMac) return event.metaKey && !event.ctrlKey;
+  return event.ctrlKey && !event.metaKey;
+}
+
+export function newTerminalShortcutLabel(): string {
+  return isMac ? "⇧⌘J" : "Ctrl+Shift+J";
+}
+
+/** ⌘G / Ctrl+G — open a fresh file browser (no active file). */
+export function matchNewFilePanelShortcut(event: KeyboardEvent): boolean {
+  if (event.altKey || event.shiftKey || event.isComposing) return false;
+  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+  if (key !== "g") return false;
+  if (isMac) return event.metaKey && !event.ctrlKey;
+  return event.ctrlKey && !event.metaKey;
 }

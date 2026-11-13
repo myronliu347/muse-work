@@ -11,6 +11,8 @@ import {
 import type { DesktopHostProps, DesktopPanelKind } from "../types";
 import {
   matchPanelShortcut,
+  matchNewFilePanelShortcut,
+  matchNewTerminalShortcut,
   matchNewSessionShortcut,
   matchQuickOpenShortcut,
   matchDockFullscreenShortcut,
@@ -86,6 +88,8 @@ interface UsePanelsParams {
    * and a second press does not close it.
    */
   panelShortcutRef?: MutableRefObject<((kind: DesktopPanelKind) => boolean) | null>;
+  onNewTerminal?: () => void;
+  onNewFilePanel?: () => void;
   /** When set, a remote preview forward is stored here instead of the group record. */
   placeForwardRef?: MutableRefObject<((fwd: RemoteForwardRef) => void) | null>;
   /** Called when a kind tab is actually added, so it can sit after the current tab. */
@@ -118,6 +122,8 @@ export function usePanels({
   previewWithoutWorkdir = false,
   beforeToggleRef,
   panelShortcutRef,
+  onNewTerminal,
+  onNewFilePanel,
   placeForwardRef,
   placeKindRef,
 }: UsePanelsParams): PanelHandlers {
@@ -419,6 +425,18 @@ export function usePanels({
         toggleFullscreenRef.current();
         return;
       }
+      if (matchNewTerminalShortcut(event)) {
+        event.preventDefault();
+        event.stopPropagation();
+        onNewTerminal?.();
+        return;
+      }
+      if (matchNewFilePanelShortcut(event)) {
+        event.preventDefault();
+        event.stopPropagation();
+        onNewFilePanel?.();
+        return;
+      }
       const kind = matchPanelShortcut(event);
       if (!kind) return;
       event.preventDefault();
@@ -436,6 +454,8 @@ export function usePanels({
     host?.focusedPaneId,
     paneId,
     postToHost,
+    onNewTerminal,
+    onNewFilePanel,
   ]);
 
   // Authoritative clamp at drag time: keep the panel within [320, container -

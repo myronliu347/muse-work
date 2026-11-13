@@ -1819,6 +1819,100 @@ describe("issue tab", () => {
     ).toBeInTheDocument();
   });
 
+  it("opens a fresh file browser with the file-panel shortcut", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    seedAssistantFile("/work/radii/App.tsx", "/work/radii");
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({ issueGroups: [RADII_ISSUE] })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+
+    act(() => {
+      fireEvent.keyDown(window, { key: "g", metaKey: true });
+      fireEvent.keyDown(window, { key: "g", ctrlKey: true });
+    });
+
+    expect(
+      usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.activeFilePath,
+    ).toBeNull();
+    expect(await within(dock).findByTestId("file-tree")).toBeVisible();
+  });
+
+  it("opens a new terminal with the new-terminal shortcut", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({ issueGroups: [RADII_ISSUE] })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    await ensureAssistantDock(frame, user);
+    const terminals = () =>
+      (usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.tools ?? [])
+        .filter((tool) => tool.kind === "terminal").length;
+    expect(terminals()).toBe(0);
+
+    act(() => {
+      fireEvent.keyDown(window, { key: "j", metaKey: true, shiftKey: true });
+      fireEvent.keyDown(window, { key: "j", ctrlKey: true, shiftKey: true });
+    });
+
+    await waitFor(() => expect(terminals()).toBe(1));
+  });
+
+  it("opens or focuses a terminal with the terminal shortcut", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({ issueGroups: [RADII_ISSUE] })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    await ensureAssistantDock(frame, user);
+    const terminals = () =>
+      (usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.tools ?? [])
+        .filter((tool) => tool.kind === "terminal").length;
+
+    act(() => {
+      fireEvent.keyDown(window, {
+        key: "`",
+        code: "Backquote",
+        metaKey: true,
+      });
+      fireEvent.keyDown(window, {
+        key: "`",
+        code: "Backquote",
+        ctrlKey: true,
+      });
+    });
+
+    await waitFor(() => expect(terminals()).toBe(1));
+  });
+
   it("shows the current issue directory tree when no file is open yet", async () => {
     await withElementBox(async () => {
       resetWebviewStores();

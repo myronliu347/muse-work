@@ -392,7 +392,7 @@ describe("DesktopPanelDock", () => {
     expect(screen.getByTestId("desktop-panel-add-btn")).toBeInTheDocument();
   });
 
-  it("opens the add menu when clicking +", async () => {
+  it("opens the panel picker page when clicking +", async () => {
     const user = userEvent.setup();
     render(
       <MuseTheme>
@@ -402,8 +402,59 @@ describe("DesktopPanelDock", () => {
       </MuseTheme>,
     );
     await user.click(screen.getByTestId("desktop-panel-add-btn"));
-    expect(await screen.findByTestId("panel-add-menu")).toBeInTheDocument();
+    expect(await screen.findByTestId("panel-picker")).toBeInTheDocument();
     expect(screen.getByTestId("panel-add-item-file")).toBeInTheDocument();
+    expect(screen.getByTestId("desktop-panel-tab-new")).toBeInTheDocument();
+  });
+
+  it("turns the blank picker tab into the chosen panel", async () => {
+    const user = userEvent.setup();
+    const onAddPanel = vi.fn();
+    render(
+      <MuseTheme>
+        <DesktopPanelDock
+          {...baseProps}
+          checked={["diff"]}
+          active="diff"
+          onAddPanel={onAddPanel}
+        >
+          <div>body</div>
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+
+    await user.click(screen.getByTestId("desktop-panel-add-btn"));
+    expect(screen.getByTestId("panel-picker")).toBeInTheDocument();
+    expect(screen.getByTestId("desktop-panel-tab-new")).toBeInTheDocument();
+    expect(screen.queryByText("body")).toBeNull();
+
+    await user.click(screen.getByTestId("panel-add-item-terminal"));
+    expect(onAddPanel).toHaveBeenCalledWith("terminal");
+    expect(screen.queryByTestId("panel-picker")).toBeNull();
+    expect(screen.queryByTestId("desktop-panel-tab-new")).toBeNull();
+  });
+
+  it("closes the blank picker tab without adding a panel", async () => {
+    const user = userEvent.setup();
+    const onAddPanel = vi.fn();
+    render(
+      <MuseTheme>
+        <DesktopPanelDock
+          {...baseProps}
+          checked={["diff"]}
+          active="diff"
+          onAddPanel={onAddPanel}
+        >
+          <div>body</div>
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+
+    await user.click(screen.getByTestId("desktop-panel-add-btn"));
+    await user.click(screen.getByTestId("desktop-panel-tab-close-new"));
+    expect(onAddPanel).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("panel-picker")).toBeNull();
+    expect(screen.getByText("body")).toBeInTheDocument();
   });
 
   it("toggles fullscreen via header button", () => {

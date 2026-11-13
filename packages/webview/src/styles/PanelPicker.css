@@ -1,0 +1,102 @@
+.panel-picker {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-4);
+  overflow: auto;
+}
+
+.panel-picker-mark {
+  color: var(--gray-7);
+  font-size: 34px;
+  line-height: 1;
+}
+
+.panel-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 480px;
+}
+
+.panel-picker-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
+  background: var(--color-background);
+  color: var(--gray-12);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.panel-picker-card:hover {
+  background: var(--gray-3);
+  border-color: var(--gray-7);
+}
+
+.panel-picker-card:focus-visible {
+  outline: 1px solid var(--accent-8);
+  outline-offset: 1px;
+}
+
+.panel-picker-icon {
+  flex: none;
+  width: 22px;
+  font-size: 20px;
+  text-align: center;
+}
+
+.panel-picker-icon.is-file {
+  color: var(--amber-9, #d9a43a);
+}
+
+.panel-picker-icon.is-blue {
+  color: var(--accent-9);
+}
+
+.panel-picker-icon.is-muted {
+  color: var(--gray-10);
+}
+
+.panel-picker-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.panel-picker-title {
+  font-size: var(--font-size-2);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.panel-picker-hint {
+  overflow: hidden;
+  color: var(--gray-10);
+  font-size: var(--font-size-1);
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-picker-shortcut {
+  flex: none;
+  color: var(--gray-9);
+  font-size: var(--font-size-1);
+  letter-spacing: 0.02em;
+}

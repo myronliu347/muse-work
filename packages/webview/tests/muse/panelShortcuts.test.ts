@@ -32,9 +32,12 @@ describe("matchPanelShortcut", () => {
       configurable: true,
     });
     vi.resetModules();
-    const { matchPanelShortcut } = await import(
-      "../../src/muse/panelShortcuts.js"
-    );
+    const {
+      matchPanelShortcut,
+      matchNewFilePanelShortcut,
+      matchNewTerminalShortcut,
+      panelShortcutLabel,
+    } = await import("../../src/muse/panelShortcuts.js");
     expect(
       matchPanelShortcut(
         keyEvent({ key: "P", metaKey: true, shiftKey: true }),
@@ -52,12 +55,31 @@ describe("matchPanelShortcut", () => {
     ).toBe("file");
     expect(
       matchPanelShortcut(
+        keyEvent({ key: "`", code: "Backquote", metaKey: true }),
+      ),
+    ).toBe("terminal");
+    // Ctrl+` remains a Mac alias.
+    expect(
+      matchPanelShortcut(
         keyEvent({ key: "`", code: "Backquote", ctrlKey: true }),
       ),
     ).toBe("terminal");
     expect(
       matchPanelShortcut(keyEvent({ key: "p", metaKey: true })),
     ).toBeNull();
+    expect(
+      matchNewTerminalShortcut(
+        keyEvent({ key: "j", metaKey: true, shiftKey: true }),
+      ),
+    ).toBe(true);
+    expect(matchNewTerminalShortcut(keyEvent({ key: "j", metaKey: true }))).toBe(
+      false,
+    );
+    expect(matchNewFilePanelShortcut(keyEvent({ key: "g", metaKey: true }))).toBe(
+      true,
+    );
+    expect(panelShortcutLabel("terminal")).toBe("⌘`");
+    expect(panelShortcutLabel("file")).toBe("⌘G");
   });
 
   it("matches non-mac panel shortcuts", async () => {

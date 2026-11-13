@@ -20,7 +20,7 @@ import { dockTabsToClose, type DockTabCloseMode } from "../../muse/dockTabMenu";
 import { beginSplitDrag, widthFromRightEdge } from "../../muse/splitDrag";
 import { registerSidePanel } from "../../muse/sidePanelTabs";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
-import { PanelAddMenu } from "../panels/PanelAddMenu";
+import { PanelPicker } from "../panels/PanelPicker";
 import { OverflowScroller } from "../shared/OverflowScroller";
 import { OverflowText } from "../shared/OverflowText";
 import { FileIcon } from "../panels/FileIcon";
@@ -154,6 +154,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
 }) => {
   const dockRef = React.useRef<HTMLElement | null>(null);
   const tabsRef = React.useRef<HTMLDivElement | null>(null);
+  const [pickerOpen, setPickerOpen] = React.useState(false);
   const [entering, setEntering] = React.useState(true);
   React.useEffect(() => {
     const id = window.setTimeout(() => setEntering(false), PANEL_MOTION_MS + 50);
@@ -497,11 +498,10 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   };
   // 详情 is not a kind, so a detail-only dock still needs + to open
   // 文件、终端、浏览器、变更.
-  const canAdd = PANEL_ADD_ORDER.some(
-    (kind) =>
-      (kind === "file" || !checked.includes(kind)) &&
-      !disabledPanels.includes(kind),
+  const pickerItems = PANEL_ADD_ORDER.filter(
+    (kind) => !disabledPanels.includes(kind),
   );
+  const canAdd = pickerItems.length > 0;
   const detailLabel = detailTitle?.trim() || "详情";
   // Never paint wider than the live max — persisted widths from a larger
   // window would otherwise overflow past the pane edge.
@@ -516,10 +516,21 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
       className="desktop-panel-add-btn"
       data-testid="desktop-panel-add-btn"
       aria-label="添加面板"
+      aria-expanded={pickerOpen}
+      onClick={() => setPickerOpen(true)}
     >
       <i className="codicon codicon-add" />
     </button>
   );
+
+  const pickPanel = (kind: DesktopPanelKind) => {
+    setPickerOpen(false);
+    onAddPanel(kind);
+  };
+  const closePicker = () => {
+    setPickerOpen(false);
+    if (orderedKeys.length === 0) onCloseDock?.();
+  };
 
   const menuClicked = tabMenu?.key ?? "";
   const closeOneDisabled = dockTabsToClose(orderedKeys, menuClicked, "one").length === 0;
@@ -557,7 +568,21 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
         />
       )}
       <div className="desktop-panel-dock-header">
-        <OverflowScroller className="desktop-panel-dock-tabs" ref={tabsRef}>
+        <OverflowScroller
+          className="desktop-panel-dock-tabs"
+          ref={tabsRef}
+          onClickCapture={(event) => {
+            if (!pickerOpen) return;
+            const target = event.target;
+            if (
+              target instanceof Element &&
+              target.closest('[data-testid="desktop-panel-tab-new"]')
+            ) {
+              return;
+            }
+            setPickerOpen(false);
+          }}
+        >
           {orderedKeys.map((key) => {
             if (key === DOCK_TAB_DETAIL_KEY) {
               if (!onSelectDetail) return null;
@@ -737,15 +762,31 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
               </div>
             );
           })}
-          {canAdd && (
-            <div className="desktop-panel-add">
-              <PanelAddMenu
-                checked={checked}
-                disabled={disabledPanels}
-                onAdd={onAddPanel}
-                trigger={addButton}
-              />
+          {pickerOpen ? (
+            <div
+              className="desktop-panel-tab desktop-panel-tab--active"
+              data-testid="desktop-panel-tab-new"
+            >
+              <span className="desktop-panel-tab-label">
+                <i className="codicon codicon-add desktop-panel-tab-icon" aria-hidden />
+                <span className="desktop-panel-tab-text">新面板</span>
+              </span>
+              <button
+                type="button"
+                className="desktop-panel-tab-close"
+                data-testid="desktop-panel-tab-close-new"
+                aria-label="关闭"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  closePicker();
+                }}
+              >
+                <i className="codicon codicon-close" />
+              </button>
             </div>
+          ) : null}
+          {canAdd && (
+            <div className="desktop-panel-add">{addButton}</div>
           )}
         </OverflowScroller>
         <div className="desktop-panel-dock-actions">
@@ -769,12 +810,18 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
         </div>
       </div>
       <div className="desktop-panel-dock-body">
-        <div className="desktop-panel-dock-layer" hidden={!detailActive}>
-          {detail}
-        </div>
-        <div className="desktop-panel-dock-layer" hidden={detailActive}>
-          {children}
-        </div>
+        {pickerOpen ? (
+          <PanelPicker items={pickerItems} onPick={pickPanel} />
+        ) : (
+          <>
+            <div className="desktop-panel-dock-layer" hidden={!detailActive}>
+              {detail}
+            </div>
+            <div className="desktop-panel-dock-layer" hidden={detailActive}>
+              {children}
+            </div>
+          </>
+        )}
       </div>
     </aside>
     {tabMenu

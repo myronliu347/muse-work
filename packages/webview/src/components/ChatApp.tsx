@@ -53,7 +53,7 @@ import { useDesktopSessionListWidth } from "../hooks/useDesktopSidebarWidth";
 import "../styles/WelcomeView.css";
 import type { ChatAppProps, DesktopPanelKind } from "../types";
 import { chatReducer, initialState } from "../reducers/chatReducer";
-import { usePaneUi, usePanelGroupStore } from "../stores";
+import { emptyFileTreeState, usePaneUi, usePanelGroupStore } from "../stores";
 import { useBotIssueBoard } from "../hooks/useBotIssueBoard";
 import { useHostStartupEffects } from "../hooks/useHostStartupEffects";
 import { useChatFrame } from "../hooks/useChatFrame";
@@ -261,6 +261,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     assistantVisibleRef,
     onSessionsSurfaceRef,
     terminalWorkdirRef,
+    revealFileTree,
     dockIssueIdRef,
     vscodeRef,
     previewGroupKeyRef,
@@ -508,6 +509,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     groupKeyRef,
     setAssistantDockOpen,
   });
+  const newTerminalActionRef = useRef<() => void>(() => {});
+  const newFilePanelActionRef = useRef<() => void>(() => {});
   const panels = usePanels({
     postToHost,
     updatePanelGroup,
@@ -542,6 +545,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     panelShortcutRef,
     placeForwardRef,
     placeKindRef,
+    onNewTerminal: () => newTerminalActionRef.current(),
+    onNewFilePanel: () => newFilePanelActionRef.current(),
   });
   const {
     tryOpenPanel,
@@ -554,6 +559,38 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     handleSelectPanel,
     handleDockWidthChange,
   } = panels;
+
+  newTerminalActionRef.current = () => {
+    if (assistantVisible) {
+      setAssistantDockOpen(true);
+      openBotTerminal();
+      return;
+    }
+    handleAddPanel("terminal");
+    if (onSessionsSurface) workspace.selectDock("terminal");
+  };
+  newFilePanelActionRef.current = () => {
+    if (assistantVisible) {
+      revealFileTree();
+    } else if (groupKey) {
+      updatePanelGroup((group) => ({
+        checked: group.checked.includes("file")
+          ? group.checked
+          : [...group.checked, "file"],
+        mounted: group.mounted.includes("file")
+          ? group.mounted
+          : [...group.mounted, "file"],
+        active: "file",
+        activeFilePath: null,
+        fileTree: {
+          ...(group.fileTree ?? emptyFileTreeState()),
+          collapsed: false,
+        },
+      }));
+    }
+    handleAddPanel("file");
+    if (assistantVisible || onSessionsSurface) workspace.selectDock("file");
+  };
   const handleDockWidthChangeAndPin = useCallback(
     (width: number) => {
       handleDockWidthChange(width);
