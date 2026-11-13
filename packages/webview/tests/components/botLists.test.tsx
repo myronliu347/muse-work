@@ -491,6 +491,34 @@ describe("ChatApp pending and issue lists", () => {
     expect(within(frame).queryByRole("region", { name: "待处理队列" })).toBeNull();
   });
 
+  it("gives the narrow list tools a single right inset when the dock is open", async () => {
+    resetWebviewStores();
+    stubAssistant(QUEUE);
+    const media = installMatchMedia();
+    media.setWidth(1100);
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={listsHost().host} />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const todo = await within(frame).findByRole("button", { name: "事项" });
+    const bar = todo.closest(".bot-frame-bar");
+    expect(bar).not.toBeNull();
+    // Dock closed: the end group holds the toggle and owns the 8px inset.
+    expect(bar!.querySelector(".bot-frame-end")).not.toBeNull();
+
+    await user.click(within(frame).getByTestId("panel-toggle-btn"));
+    await within(frame).findByTestId("desktop-panel-dock");
+
+    // Dock open: an empty end group would add a second 8px after the tools,
+    // pushing the icons off the edge they share with every other title bar.
+    expect(bar!.querySelector(".bot-frame-end")).toBeNull();
+    expect(bar!.querySelector(".bot-lists-tools")).not.toBeNull();
+  });
+
   it("keeps the selected pending row when a different item is inserted at the front", async () => {
     resetWebviewStores();
     stubAssistant(QUEUE);

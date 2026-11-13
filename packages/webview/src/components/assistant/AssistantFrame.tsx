@@ -236,7 +236,10 @@ export function AssistantFrame({
             {shownIssueHeader}
           </div>
         {showCards ? null : botLists}
-        <div className="bot-frame-end">{dockToggle}</div>
+        {/* The end group owns the bar's right inset (8px). With the dock open
+            it has no toggle and an empty div would add a second 8px, pushing
+            the list tools off the edge they share with other bars. */}
+        {dockToggle ? <div className="bot-frame-end">{dockToggle}</div> : null}
       </div>
       <div className="desktop-chat-body">
         <div className="desktop-chat-main">
