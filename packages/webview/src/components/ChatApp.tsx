@@ -927,6 +927,13 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     effectiveWorkdir,
     quickOpenWorkdir,
     quickOpenWorkdirs,
+    quickOpenIssues: assistantVisible
+      ? (host?.issueGroups ?? []).map((group) => ({
+          id: group.issueId,
+          title: group.title,
+          type: group.type,
+        }))
+      : [],
     patchPane,
     handleConfigurationSave,
     handleDialogClose,

@@ -9,6 +9,8 @@ export function buildChatDialogProps(input: {
   effectiveWorkdir?: string;
   quickOpenWorkdir?: string;
   quickOpenWorkdirs?: string[];
+  /** Only the assistant search includes issues; 会话 searches files only. */
+  quickOpenIssues: Array<{ id: string; title: string; type?: string }>;
   patchPane: ChatAppCore["patchPane"];
   handleConfigurationSave: ChatDialogsProps["onConfigurationSave"];
   handleDialogClose: () => void;
@@ -34,6 +36,7 @@ export function buildChatDialogProps(input: {
     effectiveWorkdir,
     quickOpenWorkdir,
     quickOpenWorkdirs,
+    quickOpenIssues,
     patchPane,
     handleConfigurationSave,
     handleDialogClose,
@@ -85,11 +88,7 @@ export function buildChatDialogProps(input: {
     effectiveWorkdir,
     quickOpenWorkdir,
     quickOpenWorkdirs,
-    quickOpenIssues: (host?.issueGroups ?? []).map((group) => ({
-      id: group.issueId,
-      title: group.title,
-      type: group.type,
-    })),
+    quickOpenIssues,
     onQuickOpenIssue: (issueId: string) => {
       selectBotPanel({ kind: "issue", issueId });
     },
