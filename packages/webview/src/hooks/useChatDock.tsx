@@ -412,14 +412,15 @@ export function useChatDock(input: {
             const existing = store.groups[ASSISTANT_PANEL_GROUP_KEY];
             const checked = existing?.checked ?? [];
             const mounted = existing?.mounted ?? [];
+            // Keep 变更 available for the new issue, but do not pull the
+            // visible tab there: switching the issue must not steal the tab
+            // the user is reading (文件 / 详情 / 终端 ...).
             store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
               checked: checked.includes("diff") ? checked : [...checked, "diff"],
               mounted: mounted.includes("diff") ? mounted : [...mounted, "diff"],
-              active: "diff",
             });
           }
           selectBotPanel({ kind: "issue", issueId });
-          workspace.selectDock("diff");
         }
       : undefined,
     onOpenFile: handleOpenFile,
