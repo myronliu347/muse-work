@@ -2812,7 +2812,7 @@ body.is-panel-resizing-row * {
    on the message column; a full-width bar covers the floating cards. */
 .assistant-frame .assistant-page .messages-shell > .sticky-user-wrapper {
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
-  padding-right: 28px;
+  padding-right: var(--chat-right-gutter, 28px);
 }
 
 /* Cards stay out of flow. Narrowing lowers this cap so the centered column

@@ -920,6 +920,16 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         assistantWorkdir,
       ])
     : undefined;
+  // The user-message tick rail needs a 28px gutter. On a narrow chat column
+  // that gutter makes the two sides asymmetric, so drop the rail and center
+  // the message column instead.
+  const hideUserNav = leftPanelWidth > 0 && leftPanelWidth < 860;
+  useEffect(() => {
+    const el = chatContainerRef.current;
+    if (!el) return;
+    el.classList.toggle("chat-container--no-user-nav", hideUserNav);
+  }, [hideUserNav, chatContainerRef, view, assistantVisible]);
+
   const dialogProps = buildChatDialogProps({
     state,
     vscode,

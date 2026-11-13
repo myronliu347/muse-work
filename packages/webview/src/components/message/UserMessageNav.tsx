@@ -1,14 +1,20 @@
-import React from "react";
+import React, { useState } from "react";
 import type { Message } from "@muse-work/agent";
 import "../../styles/UserMessageNav.css";
 
-export type UserMessageNavEntry = { id: string; text: string };
+export type UserMessageNavEntry = {
+  id: string;
+  text: string;
+  /** Last assistant text block in the turn, shown alongside the question. */
+  reply?: string;
+};
 
 export function navEntriesFromMessages(
   messages: Message[],
 ): UserMessageNavEntry[] {
   const out: UserMessageNavEntry[] = [];
-  for (const message of messages) {
+  for (let index = 0; index < messages.length; index += 1) {
+    const message = messages[index];
     if (message.role !== "user" || message.isMeta) continue;
     const text = (message.blocks ?? [])
       .filter((b) => b.type === "text" || b.type === "compact")
@@ -16,7 +22,22 @@ export function navEntriesFromMessages(
       .join("")
       .trim();
     if (!text || !message.id) continue;
-    out.push({ id: message.id, text });
+
+    let reply = "";
+    for (let next = index + 1; next < messages.length; next += 1) {
+      const candidate = messages[next];
+      if (candidate.role === "user") break;
+      if (candidate.role !== "assistant") continue;
+      const texts = (candidate.blocks ?? []).filter(
+        (b) => b.type === "text" && (b.content || "").trim(),
+      );
+      if (texts.length > 0) {
+        reply = (
+          (texts[texts.length - 1] as { content?: string }).content ?? ""
+        ).trim();
+      }
+    }
+    out.push(reply ? { id: message.id, text, reply } : { id: message.id, text });
   }
   return out;
 }
@@ -43,10 +64,16 @@ export const UserMessageNav: React.FC<{
   activeId?: string;
   onSelect: (messageId: string) => void;
 }> = ({ entries, activeId, onSelect }) => {
+  const [hovered, setHovered] = useState(false);
   if (entries.length === 0) return null;
 
   return (
-    <nav className="user-message-nav" data-testid="user-message-nav">
+    <nav
+      className="user-message-nav"
+      data-testid="user-message-nav"
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+    >
       {entries.map((entry) => {
         const active = entry.id === activeId;
         return (
@@ -55,10 +82,17 @@ export const UserMessageNav: React.FC<{
             type="button"
             className={`user-message-nav-item${active ? " user-message-nav-item--active" : ""}`}
             data-testid={`user-message-nav-${entry.id}`}
-            title={entry.text}
+            title={entry.reply ? `${entry.text}\n\n${entry.reply}` : entry.text}
             onClick={() => onSelect(entry.id)}
           >
-            <span className="user-message-nav-label">{entry.text}</span>
+            {hovered ? (
+              <span className="user-message-nav-label">
+                <span className="user-message-nav-label-user">{entry.text}</span>
+                {entry.reply ? (
+                  <span className="user-message-nav-label-reply">{entry.reply}</span>
+                ) : null}
+              </span>
+            ) : null}
             <span className="user-message-nav-tick" aria-hidden="true" />
           </button>
         );

@@ -38,6 +38,28 @@ describe("navEntriesFromMessages", () => {
       { id: "u3", text: "open 命令系统内置么" },
     ]);
   });
+
+  it("attaches the last assistant text block to the preceding question", () => {
+    const assistant = (
+      id: string,
+      blocks: Message["blocks"],
+    ): Message => ({ id, role: "assistant", timestamp: "0", blocks });
+
+    expect(
+      navEntriesFromMessages([
+        userMsg("u1", "这个抖动怎么处理"),
+        assistant("a1", [
+          { type: "text", content: "先看第一段" },
+          { type: "text", content: "最后这段是结论" },
+        ]),
+        userMsg("u2", "接着呢"),
+        assistant("a2", [{ type: "text", content: "第二条回复" }]),
+      ]),
+    ).toEqual([
+      { id: "u1", text: "这个抖动怎么处理", reply: "最后这段是结论" },
+      { id: "u2", text: "接着呢", reply: "第二条回复" },
+    ]);
+  });
 });
 
 describe("pickActiveUserMessageId", () => {
@@ -75,6 +97,7 @@ describe("UserMessageNav", () => {
       <UserMessageNav entries={entries} activeId="u3" onSelect={() => {}} />,
     );
     expect(screen.getByTestId("user-message-nav")).toBeInTheDocument();
+    fireEvent.pointerEnter(screen.getByTestId("user-message-nav"));
     expect(screen.getByTestId("user-message-nav-u1")).toHaveTextContent(
       "mac 终端启动 iterm2",
     );
@@ -95,6 +118,29 @@ describe("UserMessageNav", () => {
     );
     fireEvent.click(long);
     expect(onSelect).toHaveBeenCalledWith("u3");
+  });
+
+  it("shows the assistant reply in the hover label and title", () => {
+    render(
+      <UserMessageNav
+        entries={[
+          {
+            id: "u1",
+            text: "这个抖动怎么处理",
+            reply: "先看第一段，最后这段是结论",
+          },
+        ]}
+        onSelect={() => {}}
+      />,
+    );
+    const item = screen.getByTestId("user-message-nav-u1");
+    fireEvent.pointerEnter(screen.getByTestId("user-message-nav"));
+    expect(item).toHaveTextContent("这个抖动怎么处理");
+    expect(item).toHaveTextContent("先看第一段，最后这段是结论");
+    expect(item).toHaveAttribute(
+      "title",
+      "这个抖动怎么处理\n\n先看第一段，最后这段是结论",
+    );
   });
 
   it("marks the active entry", () => {

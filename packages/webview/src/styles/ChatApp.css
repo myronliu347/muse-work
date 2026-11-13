@@ -10,6 +10,7 @@
 }
 
 .chat-container {
+  --chat-right-gutter: 28px;
   flex: 1;
   /* Flex item default min-width:auto prevents shrinking below content
      (e.g. a fixed-width dock). Without this the column grows past the
@@ -34,7 +35,15 @@
   flex-direction: column;
   /* Match .messages-container gutters so the 800px sender lines up with
      the message column (right 28px is the user-message-nav rail). */
-  padding: 0 28px var(--space-3) var(--space-4);
+  padding: 0 var(--chat-right-gutter, 28px) var(--space-3) var(--space-4);
+}
+
+.chat-container--no-user-nav {
+  --chat-right-gutter: var(--space-4);
+}
+
+.chat-container--no-user-nav .user-message-nav {
+  display: none;
 }
 
 /* One card. The list and the field share the outline; the seam is a
