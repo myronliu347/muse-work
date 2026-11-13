@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { act, screen } from "@testing-library/react";
+import { act, fireEvent, screen } from "@testing-library/react";
 import {
   renderChatApp,
   sendExtensionMessage,
@@ -169,6 +169,16 @@ describe("desktopFileContent multi-tab routing (messageRouter)", () => {
     expect(groupState().fileTabs).toEqual([]);
     expect(screen.getByTestId("quick-open")).toBeInTheDocument();
     expect(screen.getByTestId("quick-open-input")).toHaveValue("hello.ts");
+  });
+
+  it("hides the workdir picker on the session page", () => {
+    renderChatApp();
+    act(() => {
+      fireEvent.keyDown(window, { key: "p", metaKey: true });
+      fireEvent.keyDown(window, { key: "p", ctrlKey: true });
+    });
+    expect(screen.getByTestId("quick-open")).toBeInTheDocument();
+    expect(screen.queryByTestId("quick-open-scope")).toBeNull();
   });
 
   it("keeps the loading tab and shows the error when the file does not exist", async () => {

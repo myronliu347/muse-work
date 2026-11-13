@@ -904,18 +904,22 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const quickOpenWorkdir = assistantVisible
     ? (dockWorkdir ?? effectiveWorkdir)
     : effectiveWorkdir;
-  const quickOpenWorkdirs = uniqueWorkdirs([
-    ...(host?.issueGroups ?? []).map((group) =>
-      issueGroupSessionWorkdir(
-        group,
-        issueTabSessionId(group) ?? "",
-        host?.workdir,
-      ),
-    ),
-    ...(host?.recentWorkdirs ?? []),
-    quickOpenWorkdir,
-    assistantWorkdir,
-  ]);
+  // Only the assistant offers a workdir scope picker; on 会话 Cmd+P searches
+  // the current session directory with no extra selector.
+  const quickOpenWorkdirs = assistantVisible
+    ? uniqueWorkdirs([
+        ...(host?.issueGroups ?? []).map((group) =>
+          issueGroupSessionWorkdir(
+            group,
+            issueTabSessionId(group) ?? "",
+            host?.workdir,
+          ),
+        ),
+        ...(host?.recentWorkdirs ?? []),
+        quickOpenWorkdir,
+        assistantWorkdir,
+      ])
+    : undefined;
   const dialogProps = buildChatDialogProps({
     state,
     vscode,
