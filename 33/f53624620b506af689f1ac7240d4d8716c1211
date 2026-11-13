@@ -2,6 +2,218 @@
 {
   "schema_version": "authorship/3.0.0",
   "git_ai_version": "1.2.8-ntes.7",
-  "base_commit_sha": "69e71a8c9b4432e4834cb622036ffde0b4329d1d",
-  "prompts": {}
+  "base_commit_sha": "33f53624620b506af689f1ac7240d4d8716c1211",
+  "prompts": {
+    "37fc47e4d53e6a87": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e63f2be3-332e-42e9-a774-2f8617e5d775",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 454,
+      "total_deletions": 141,
+      "accepted_lines": 443,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 103,
+          "deletions": 44,
+          "accepted_lines": 103
+        },
+        "packages/webview/tests/muse/fileTabs.test.ts": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 18,
+          "deletions": 3,
+          "accepted_lines": 18
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 75,
+          "deletions": 11,
+          "accepted_lines": 67
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 40,
+          "deletions": 16,
+          "accepted_lines": 39
+        },
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 15,
+          "deletions": 1,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/components/desktop/botWorkspace.ts": {
+          "additions": 33,
+          "deletions": 3,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/components/DesktopApp.tsx": {
+          "additions": 58,
+          "deletions": 36,
+          "accepted_lines": 56
+        },
+        "packages/webview/src/muse/fileTabs.ts": {
+          "additions": 72,
+          "deletions": 23,
+          "accepted_lines": 72
+        },
+        "packages/webview/src/stores/index.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 12,
+          "deletions": 2,
+          "accepted_lines": 12
+        }
+      }
+    },
+    "af8a0ea212d92685": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3b417601-3404-4371-bbe4-d81f0cbc0553",
+        "model": "grok-4.7"
+      },
+      "human_author": "myronliu347",
+      "messages": [],
+      "total_additions": 673,
+      "total_deletions": 530,
+      "accepted_lines": 646,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/message/Message.tsx": {
+          "additions": 7,
+          "deletions": 17,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/hooks/useAssistantDockColumn.ts": {
+          "additions": 42,
+          "deletions": 5,
+          "accepted_lines": 41
+        },
+        "packages/webview/src/reducers/chat/transcript.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/hooks/useIssueSessionChrome.ts": {
+          "additions": 6,
+          "deletions": 3,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 35,
+          "deletions": 21,
+          "accepted_lines": 32
+        },
+        "packages/webview/src/hooks/useDockSurface.ts": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/hooks/useBotIssueBoard.tsx": {
+          "additions": 16,
+          "deletions": 31,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/hooks/useIssueTranscript.ts": {
+          "additions": 247,
+          "accepted_lines": 247
+        },
+        "packages/webview/src/reducers/chat/shared.ts": {
+          "additions": 2,
+          "deletions": 10,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/hooks/usePanelGroupWriters.ts": {
+          "additions": 1,
+          "deletions": 5,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/routes/stream.ts": {
+          "additions": 3,
+          "deletions": 6,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 77,
+          "deletions": 325,
+          "accepted_lines": 68
+        },
+        "packages/webview/src/components/message/messageBlocks.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/hooks/useShownFileTabs.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/routes/session.ts": {
+          "additions": 2,
+          "deletions": 5,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/message/messageMarkdown.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/routes/dialogs.ts": {
+          "additions": 2,
+          "deletions": 5,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/hooks/useBotDockTools.ts": {
+          "additions": 56,
+          "deletions": 7,
+          "accepted_lines": 56
+        },
+        "packages/webview/src/muse/routes/panels.ts": {
+          "additions": 7,
+          "deletions": 5,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/assistant/AssistantFrame.tsx": {
+          "additions": 46,
+          "deletions": 52,
+          "accepted_lines": 43
+        },
+        "packages/webview/src/hooks/useHostStartupEffects.ts": {
+          "additions": 80,
+          "accepted_lines": 80
+        },
+        "packages/webview/src/components/chat/ChatSessionColumn.tsx": {
+          "additions": 12,
+          "deletions": 5,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 1,
+          "deletions": 4,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/hooks/useChatFrame.tsx": {
+          "additions": 7,
+          "deletions": 2,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/hooks/useChatDock.tsx": {
+          "additions": 15,
+          "deletions": 16,
+          "accepted_lines": 10
+        }
+      }
+    }
+  }
 }
