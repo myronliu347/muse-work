@@ -2927,26 +2927,31 @@ body.is-panel-resizing-row * {
 
 /* Edge fade only on a side that still has tabs outside the viewport.
    Classes come from useScrollOverflow; a strip that fits has neither. */
-.bot-tabs,
-.desktop-panel-dock-tabs {
+.overflow-scroller {
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   --tab-edge-fade-start: 0px;
   --tab-edge-fade-end: 0px;
 }
 
-.bot-tabs.is-overflow-start,
-.desktop-panel-dock-tabs.is-overflow-start {
+.overflow-scroller::-webkit-scrollbar {
+  display: none;
+  height: 0;
+}
+
+.overflow-scroller.is-overflow-start {
   --tab-edge-fade-start: 22px;
 }
 
-.bot-tabs.is-overflow-end,
-.desktop-panel-dock-tabs.is-overflow-end {
+.overflow-scroller.is-overflow-end {
   --tab-edge-fade-end: 22px;
 }
 
-.bot-tabs.is-overflow-start,
-.bot-tabs.is-overflow-end,
-.desktop-panel-dock-tabs.is-overflow-start,
-.desktop-panel-dock-tabs.is-overflow-end {
+.overflow-scroller.is-overflow-start,
+.overflow-scroller.is-overflow-end {
   -webkit-mask-image: linear-gradient(
     to right,
     transparent 0,

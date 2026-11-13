@@ -21,6 +21,7 @@ import { beginSplitDrag, widthFromRightEdge } from "../../muse/splitDrag";
 import { registerSidePanel } from "../../muse/sidePanelTabs";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { PanelAddMenu } from "../panels/PanelAddMenu";
+import { OverflowScroller } from "../shared/OverflowScroller";
 import { FileIcon } from "../panels/FileIcon";
 import { IssuePresenceMark, type IssuePresence } from "../session/SessionStatusGlyph";
 import { Tooltip } from "../shared/Tooltip";
@@ -28,7 +29,6 @@ import { bodyPortal } from "../../utils/bodyPortal";
 import "../../styles/DesktopPanelDock.css";
 import { clampDockWidth } from "../../muse/layout";
 import { PANEL_MOTION_MS } from "../../hooks/useExitHold";
-import { useScrollOverflow } from "../../hooks/useScrollOverflow";
 
 export interface DockToolTab {
   id: string;
@@ -153,7 +153,6 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
 }) => {
   const dockRef = React.useRef<HTMLElement | null>(null);
   const tabsRef = React.useRef<HTMLDivElement | null>(null);
-  const tabOverflow = useScrollOverflow(tabsRef);
   const [entering, setEntering] = React.useState(true);
   React.useEffect(() => {
     const id = window.setTimeout(() => setEntering(false), PANEL_MOTION_MS + 50);
@@ -557,10 +556,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
         />
       )}
       <div className="desktop-panel-dock-header">
-        <div
-          className={`desktop-panel-dock-tabs${tabOverflow.start ? " is-overflow-start" : ""}${tabOverflow.end ? " is-overflow-end" : ""}`}
-          ref={tabsRef}
-        >
+        <OverflowScroller className="desktop-panel-dock-tabs" ref={tabsRef}>
           {orderedKeys.map((key) => {
             if (key === DOCK_TAB_DETAIL_KEY) {
               if (!onSelectDetail) return null;
@@ -750,7 +746,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
               />
             </div>
           )}
-        </div>
+        </OverflowScroller>
         <div className="desktop-panel-dock-actions">
           <Tooltip
             text={`${fullscreen ? "退出全屏" : "全屏"} (${dockFullscreenShortcutLabel()})`}

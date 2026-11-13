@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAssistantNotice } from "../assistant/museBotNotice";
+import { OverflowScroller } from "../shared/OverflowScroller";
 import { IssuePresenceMark, type IssuePresence } from "../session/SessionStatusGlyph";
 import { Tooltip } from "../shared/Tooltip";
 import {
@@ -28,7 +29,6 @@ import {
   readInitialBotWorkspace,
   saveBotWorkspace,
 } from "../../muse/botPageState";
-import { useScrollOverflow } from "../../hooks/useScrollOverflow";
 import { stepTab } from "../../muse/panelShortcuts";
 import { registerSidePanel } from "../../muse/sidePanelTabs";
 
@@ -162,7 +162,6 @@ export function BotTabs({
   const botUnread = useAssistantNotice().unread && state.active !== "bot";
   const tabs = ["bot", ...state.openIssueIds];
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const overflow = useScrollOverflow(scrollerRef);
   const reveal = useCallback((tab: "bot" | string) => {
     onFocus(tab);
     const root = scrollerRef.current;
@@ -207,8 +206,8 @@ export function BotTabs({
     );
   }, [lockBotTab, onClose, onFocus, scope, state.active, state.openIssueIds]);
   return (
-    <div
-      className={`bot-tabs${overflow.start ? " is-overflow-start" : ""}${overflow.end ? " is-overflow-end" : ""}`}
+    <OverflowScroller
+      className="bot-tabs"
       aria-label="灵光"
       ref={scrollerRef}
     >
@@ -269,6 +268,6 @@ export function BotTabs({
           </Tooltip>
         );
       })}
-    </div>
+    </OverflowScroller>
   );
 }
