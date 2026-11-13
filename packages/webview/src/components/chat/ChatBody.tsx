@@ -1,4 +1,4 @@
-import { forwardRef, type ReactNode } from "react";
+import { forwardRef, useEffect, useState, type ReactNode } from "react";
 import { MessageList } from "./MessageList";
 import { BackgroundTaskList } from "./BackgroundTaskList";
 import { TaskList } from "./TaskList";
@@ -72,6 +72,11 @@ export interface ChatBodyProps {
   hideWelcome?: boolean;
   /** 宿主正在加载这条会话的记录；空列表时不要露出空白消息区。 */
   transcriptPending?: boolean;
+  /**
+   * Issue 列在目标会话激活前保留 composer 和列高，只把消息区换成骨架行。
+   * 这样不会出现整列「占位 ↔ 消息 + 输入框」的布局跳变。
+   */
+  transcriptSkeleton?: boolean;
 }
 
 export const ChatBody = forwardRef<
@@ -121,6 +126,7 @@ export const ChatBody = forwardRef<
     onComposerFocus,
     hideWelcome,
     transcriptPending = false,
+    transcriptSkeleton = false,
   },
   ref,
 ) {
@@ -143,6 +149,17 @@ export const ChatBody = forwardRef<
   // Showing the empty list in that gap reads as a blank, stuck pane; keep the
   // loading mark up until the transcript (or welcome) is ready to paint.
   const awaitingTranscript = transcriptPending && !hasVisibleMessages;
+  // Warm switches finish in well under 120ms. Hold the bar until then so the
+  // old transcript just stays put instead of blinking a progress line.
+  const [showTranscriptProgress, setShowTranscriptProgress] = useState(false);
+  useEffect(() => {
+    if (!transcriptPending) {
+      setShowTranscriptProgress(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowTranscriptProgress(true), 120);
+    return () => clearTimeout(timer);
+  }, [transcriptPending]);
   const hasDirectConnectConfig = !!(
     configurationData?.apiKey && configurationData?.baseURL
   );
@@ -177,7 +194,32 @@ export const ChatBody = forwardRef<
     </div>
   ) : (
     <>
-      {awaitingTranscript ? (
+      {transcriptPending && showTranscriptProgress ? (
+        <div
+          className="chat-transcript-progress"
+          data-testid="transcript-progress"
+          role="progressbar"
+          aria-label="正在加载会话"
+        />
+      ) : null}
+      {transcriptSkeleton ? (
+        <div
+          className="transcript-skeleton"
+          data-testid="transcript-skeleton"
+          role="status"
+          aria-live="polite"
+          aria-label="正在切换会话"
+        >
+          <div className="transcript-skeleton-inner">
+            {[0, 1, 2, 3, 4].map((row) => (
+              <div
+                key={row}
+                className={`transcript-skeleton-row transcript-skeleton-row--${row % 3}`}
+              />
+            ))}
+          </div>
+        </div>
+      ) : awaitingTranscript ? (
         <LoadingLogo />
       ) : showWelcomeReady ? (
         <WelcomeView

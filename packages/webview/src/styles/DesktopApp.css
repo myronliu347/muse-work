@@ -2569,47 +2569,6 @@ body.is-panel-resizing-row * {
   min-height: 0;
 }
 
-/* The issue column's session is still being activated. Center the mark in the
-   transcript area; an unstyled text node used to sit at the column's left edge
-   and could end up under the sidebar overlay. */
-.issue-tab-loading {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  padding: var(--space-6) var(--space-4);
-  color: var(--gray-9);
-  font-size: var(--font-size-2);
-  animation: issue-tab-loading-in 160ms ease-out;
-}
-
-.issue-tab-loading .loading-logo-container {
-  flex: none;
-}
-
-.issue-tab-loading-label {
-  color: var(--gray-9);
-  user-select: none;
-}
-
-@keyframes issue-tab-loading-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .issue-tab-loading {
-    animation: none;
-  }
-}
-
 .desktop-layout > .chat-container .issue-tab-transcript > .welcome-view-shell,
 .desktop-pane-row > .desktop-pane:first-child .issue-tab-transcript > .welcome-view-shell {
   padding-top: var(--space-5);

@@ -1748,7 +1748,9 @@ describe("chatReducer", () => {
         type: "SET_CURRENT_SESSION",
         payload: session("s2"),
       });
-      expect(away.messages).toEqual([]);
+      // The previous transcript stays painted while the new one loads; the
+      // header changes immediately, the list swaps when the host answers.
+      expect(away.messages).toEqual([transcript]);
       expect(away.transcriptPending).toBe(true);
 
       const back = chatReducer(away, {

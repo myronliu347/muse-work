@@ -86,7 +86,17 @@ export function reduceSession(state: ChatState, action: Action): ChatState {
                       hasOlderMessages: false,
                     }
                   : {
-                      messages: cached ?? [],
+                      // Keep the previous conversation painted until the new
+                      // transcript lands. Clearing to [] here swapped the whole
+                      // column (loader → list) and made every switch flicker.
+                      // A draft's optimistic bubble must not leak into another
+                      // session, so that case still starts empty.
+                      messages:
+                        cached ??
+                        (state.currentSession?.id &&
+                        state.currentSession.id !== DRAFT_SESSION_ID
+                          ? state.messages
+                          : []),
                       transcriptPending: cached === undefined,
                       hasOlderMessages: false,
                     }
