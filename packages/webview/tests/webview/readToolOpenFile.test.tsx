@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { screen } from "@testing-library/react";
 import {
   renderChatApp,
   sendCommand,
@@ -96,6 +97,66 @@ describe("Read tool header click → openFile with line range", () => {
     expect(openFileMsg.startLine).toBe(42);
     // No limit → no endLine (undefined is dropped by JSON.stringify).
     expect(openFileMsg.endLine).toBeUndefined();
+  });
+
+  it("shows a toast and keeps the panel closed when the file is gone", async () => {
+    const vscode = {
+      postMessage: vi.fn((message?: {
+        command?: string;
+        requestId?: string;
+      }) => {
+        if (message?.command === "probeFileLinks" && message.requestId) {
+          queueMicrotask(() => {
+            window.dispatchEvent(
+              new MessageEvent("message", {
+                data: {
+                  command: "probeFileLinksResult",
+                  requestId: message.requestId,
+                  openable: [],
+                },
+              }),
+            );
+          });
+        }
+      }),
+      getState: vi.fn().mockReturnValue(null),
+      setState: vi.fn(),
+    };
+    renderChatApp(vscode);
+
+    sendCommand("updateMessages", {
+      messages: [
+        MockDataGenerator.createAssistantMessageWithTool(
+          "I'll write the file.",
+          WRITE_TOOL_NAME,
+          '{"file_path": "/private/tmp/gone.html", "content": "<html></html>"}',
+          "File written",
+        ),
+      ],
+    });
+    expandActivity();
+    const link = await waitFor(() => {
+      const el = document.querySelector('[data-testid="tool-file-link"]');
+      expect(el).toBeInTheDocument();
+      return el!;
+    });
+
+    await act(async () => {
+      fireEvent.click(link);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/文件不存在/)).toBeInTheDocument();
+    });
+    const cmds = (vscode.postMessage as ReturnType<typeof vi.fn>).mock.calls.map(
+      (c) => c[0] as { command?: string },
+    );
+    expect(cmds.some((m) => m.command === "openFile")).toBe(false);
+    const sent = (vscode.postMessage as ReturnType<typeof vi.fn>).mock.calls.map(
+      (c) => c[0] as { command?: string },
+    );
+    expect(sent.some((m) => m.command === "openFile")).toBe(false);
+    expect(document.querySelector('[data-testid="desktop-panel-tab-file"]')).toBeNull();
   });
 
   it("opens the file when an edit or write row is clicked", async () => {

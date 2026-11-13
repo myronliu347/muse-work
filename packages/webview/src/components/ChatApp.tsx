@@ -663,6 +663,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     handleSelectFileTab,
     handleCloseFileTab,
     handlePinFileTab,
+    postToHost,
+    workdir: effectiveWorkdir,
   });
 
   const rewind = useRewind({

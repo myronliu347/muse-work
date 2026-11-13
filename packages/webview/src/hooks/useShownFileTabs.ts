@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type React from "react";
 import { ASSISTANT_PANEL_GROUP_KEY, usePanelGroupStore } from "../stores";
 import type { DesktopPanelKind } from "../types";
@@ -20,6 +20,8 @@ export function useShownFileTabs({
   handleSelectFileTab,
   handleCloseFileTab,
   handlePinFileTab,
+  postToHost,
+  workdir,
 }: {
   assistantVisibleRef: React.MutableRefObject<boolean>;
   onSessionsSurfaceRef: React.MutableRefObject<boolean>;
@@ -38,7 +40,63 @@ export function useShownFileTabs({
   handleSelectFileTab: (path: string) => void;
   handleCloseFileTab: (path: string) => void;
   handlePinFileTab: (path: string) => void;
+  postToHost: (message: Record<string, unknown>) => void;
+  workdir?: string;
 }) {
+  // Stale transcript/tool links are common (temp files get cleaned). Probe
+  // first so a missing file never flashes a loading panel open and shut.
+  const probeSeq = useRef(0);
+  const pendingProbes = useRef(
+    new Map<string, (openable: boolean) => void>(),
+  );
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as {
+        command?: string;
+        requestId?: string;
+        openable?: unknown;
+      };
+      if (data?.command !== "probeFileLinksResult" || !data.requestId) return;
+      const resolve = pendingProbes.current.get(data.requestId);
+      if (!resolve) return;
+      pendingProbes.current.delete(data.requestId);
+      resolve(Array.isArray(data.openable) && data.openable.length > 0);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+  const probeOpenable = useCallback(
+    (path: string): Promise<boolean> => {
+      const requestId = `open-probe-${++probeSeq.current}`;
+      return new Promise((resolve) => {
+        const timer = setTimeout(() => {
+          pendingProbes.current.delete(requestId);
+          resolve(true);
+        }, 2000);
+        pendingProbes.current.set(requestId, (openable) => {
+          clearTimeout(timer);
+          resolve(openable);
+        });
+        postToHost({
+          command: "probeFileLinks",
+          requestId,
+          paths: [path],
+          ...(workdir ? { workdir } : {}),
+        });
+      });
+    },
+    [postToHost, workdir],
+  );
+  const showMissingToast = useCallback((path: string) => {
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: {
+          command: "showToast",
+          toast: { id: "file-open-missing", message: `文件不存在：${path}` },
+        },
+      }),
+    );
+  }, []);
   // 详情 doesn't change the directory group's active kind. Opening a file
   // while that kind is already "file" would update the tab and leave the
   // dock on 详情. The visible pane follows the chrome tab, so a session
@@ -74,9 +132,15 @@ export function useShownFileTabs({
   // open must not replace it.
   const openMessageFile = useCallback(
     (path: string, startLine?: number, endLine?: number) => {
-      handleOpenFile(path, startLine, endLine, true);
+      void probeOpenable(path).then((openable) => {
+        if (!openable) {
+          showMissingToast(path);
+          return;
+        }
+        handleOpenFile(path, startLine, endLine, true);
+      });
     },
-    [handleOpenFile],
+    [handleOpenFile, probeOpenable, showMissingToast],
   );
   // All file links open into the assistant's own tab list now; the file tree
   // derives its directory from the active file instead of the issue.

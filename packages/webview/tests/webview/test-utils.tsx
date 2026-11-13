@@ -43,7 +43,28 @@ global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
  */
 export function createMockVscode() {
   return {
-    postMessage: vi.fn(),
+    postMessage: vi.fn((message?: {
+      command?: string;
+      requestId?: string;
+      paths?: string[];
+    }) => {
+      // File links probe the host before opening. Reply as "openable" so a
+      // click test reaches the openFile command without a real host.
+      if (message?.command === "probeFileLinks" && message.requestId) {
+        const openable = Array.isArray(message.paths) ? message.paths : [];
+        queueMicrotask(() => {
+          window.dispatchEvent(
+            new MessageEvent("message", {
+              data: {
+                command: "probeFileLinksResult",
+                requestId: message.requestId,
+                openable,
+              },
+            }),
+          );
+        });
+      }
+    }),
     getState: vi.fn().mockReturnValue(null),
     setState: vi.fn(),
   };
