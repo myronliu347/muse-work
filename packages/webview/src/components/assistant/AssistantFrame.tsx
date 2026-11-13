@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type React from "react";
 import { AssistantPage } from "./AssistantPage";
 import {
@@ -13,6 +14,7 @@ import type { BotWorkspaceContextValue } from "../desktop/BotTabs";
 import { DesktopPanelSlots, type DesktopPanelSlotsProps } from "../desktop/DesktopPanelSlots";
 import type { PanelSelection } from "../desktop/botWorkspace";
 import { ChatBody } from "../chat/ChatBody";
+import LoadingLogo from "../chat/LoadingLogo";
 import type { MessageInputHandle } from "../chat/MessageInput";
 import { IssueSessionHeader, type IssueViewTab } from "../issue/IssueSessionHeader";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
@@ -153,6 +155,18 @@ export function AssistantFrame({
 
     botSwitchHost,
   } = board;
+  // A session that was already warm switches in well under 150ms. Waiting
+  // before painting the placeholder keeps that switch from flashing a
+  // "正在切换会话…" line for a single frame.
+  const [showIssueLoading, setShowIssueLoading] = useState(false);
+  useEffect(() => {
+    if (!issueLoading) {
+      setShowIssueLoading(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowIssueLoading(true), 150);
+    return () => clearTimeout(timer);
+  }, [issueLoading]);
   const showWideCards =
     leftPanelWidth > 0 ? botListsWideForPanel(leftPanelWidth) : botListsWide;
   const onBotHome = workspace.active === "bot";
@@ -247,13 +261,19 @@ export function AssistantFrame({
             <div className="assistant-split-passthrough">
             <div className="issue-tab-transcript" data-testid="issue-tab-transcript">
               {issueLoading ? (
-                <div
-                  className="issue-tab-loading"
-                  data-testid="issue-tab-loading"
-                  role="status"
-                >
-                  正在切换会话…
-                </div>
+                showIssueLoading ? (
+                  <div
+                    className="issue-tab-loading"
+                    data-testid="issue-tab-loading"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <LoadingLogo />
+                    <span className="issue-tab-loading-label">
+                      正在切换会话…
+                    </span>
+                  </div>
+                ) : null
               ) : (
                 <ChatBody
                   hideWelcome={!issueShowWelcome}
