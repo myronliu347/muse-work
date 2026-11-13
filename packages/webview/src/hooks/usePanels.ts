@@ -38,10 +38,16 @@ import { openDesktopNewSessionPage } from "../muse/desktopNewSessionNav";
 const PANEL_ORDER = PANEL_TAB_ORDER;
 
 export interface PanelHandlers {
-  tryOpenPanel: (kind: DesktopPanelKind) => boolean;
+  tryOpenPanel: (
+    kind: DesktopPanelKind,
+    options?: { placeAtEnd?: boolean },
+  ) => boolean;
   handleTogglePanel: (kind: DesktopPanelKind) => void;
   handleToggleDock: () => void;
-  handleAddPanel: (kind: DesktopPanelKind) => void;
+  handleAddPanel: (
+    kind: DesktopPanelKind,
+    options?: { placeAtEnd?: boolean },
+  ) => void;
   handleToggleFullscreen: () => void;
   handleSelectPanel: (kind: DesktopPanelKind) => void;
   handleDockWidthChange: (width: number) => void;
@@ -93,7 +99,9 @@ interface UsePanelsParams {
   /** When set, a remote preview forward is stored here instead of the group record. */
   placeForwardRef?: MutableRefObject<((fwd: RemoteForwardRef) => void) | null>;
   /** Called when a kind tab is actually added, so it can sit after the current tab. */
-  placeKindRef?: MutableRefObject<((kind: DesktopPanelKind) => void) | null>;
+  placeKindRef?: MutableRefObject<
+    ((kind: DesktopPanelKind, atEnd?: boolean) => void) | null
+  >;
 }
 
 export function usePanels({
@@ -204,7 +212,7 @@ export function usePanels({
   // Open a panel as a tab in the shared dock. First open must fit beside the
   // conversation; later tabs reuse the same column. Mounting is sticky.
   const tryOpenPanel = useCallback(
-    (kind: DesktopPanelKind): boolean => {
+    (kind: DesktopPanelKind, options?: { placeAtEnd?: boolean }): boolean => {
       if (checkedPanelsRef.current.includes(kind)) {
         updatePanelGroup({ active: kind });
         return true;
@@ -252,7 +260,7 @@ export function usePanels({
           }
         }
       }
-      placeKindRef?.current?.(kind);
+      placeKindRef?.current?.(kind, options?.placeAtEnd);
       updatePanelGroup((group) => ({
         checked: group.checked.includes(kind)
           ? group.checked
@@ -332,15 +340,16 @@ export function usePanels({
   toggleDockRef.current = handleToggleDock;
 
   const handleAddPanel = useCallback(
-    (kind: DesktopPanelKind) => {
+    (kind: DesktopPanelKind, options?: { placeAtEnd?: boolean }) => {
       if (panelDisabledRef.current.includes(kind)) return;
       if (checkedPanelsRef.current.includes(kind)) {
         updatePanelGroup({ active: kind });
+        if (options?.placeAtEnd) placeKindRef?.current?.(kind, true);
         return;
       }
-      tryOpenPanel(kind);
+      tryOpenPanel(kind, options);
     },
-    [tryOpenPanel, updatePanelGroup],
+    [tryOpenPanel, updatePanelGroup, placeKindRef],
   );
 
   const handleToggleFullscreen = useCallback(() => {

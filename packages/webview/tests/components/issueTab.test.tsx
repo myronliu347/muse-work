@@ -1881,6 +1881,11 @@ describe("issue tab", () => {
     expect(within(dock).getByTestId("desktop-panel-tab-file")).toHaveClass(
       "desktop-panel-tab--active",
     );
+    const tabs = Array.from(dock.querySelectorAll(".desktop-panel-tab"));
+    expect(tabs.at(-1)).toHaveAttribute(
+      "data-testid",
+      "desktop-panel-tab-file",
+    );
     expect(within(dock).getByTestId("file-tab")).toBeInTheDocument();
     expect(within(dock).getByTestId("desktop-panel-add-btn")).toBeInTheDocument();
   });

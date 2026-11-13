@@ -52,7 +52,10 @@ export function useChatDock(input: {
   focusBotTool: (id: string) => void;
   closeBotTool: (id: string) => void;
   restartBotTerminal: (id: string) => void;
-  handleAddPanel: (kind: DesktopPanelKind) => void;
+  handleAddPanel: (
+    kind: DesktopPanelKind,
+    options?: { placeAtEnd?: boolean },
+  ) => void;
   handleSelectPanel: (kind: DesktopPanelKind) => void;
   handleTogglePanel: (kind: DesktopPanelKind) => void;
   handleToggleDock: () => void;
@@ -308,10 +311,10 @@ export function useChatDock(input: {
           }));
         }
         workspace.selectDock("file");
-        handleAddPanel(kind);
+        handleAddPanel(kind, options);
         return;
       }
-      handleAddPanel(kind);
+      handleAddPanel(kind, options);
       if (assistantVisible) workspace.selectDock(kind);
       if (!onSessionsSurface || !groupKey) return;
       const opened = usePanelGroupStore.getState().groups[groupKey];

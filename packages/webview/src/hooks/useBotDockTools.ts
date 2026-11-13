@@ -81,7 +81,9 @@ export function useBotDockTools({
 }) {
   const beforeToggleRef = useRef<((kind: DesktopPanelKind) => boolean) | null>(null);
   const panelShortcutRef = useRef<((kind: DesktopPanelKind) => boolean) | null>(null);
-  const placeKindRef = useRef<((kind: DesktopPanelKind) => void) | null>(null);
+  const placeKindRef = useRef<
+    ((kind: DesktopPanelKind, atEnd?: boolean) => void) | null
+  >(null);
   const dockTabPlaceRef = useRef<{
     orderKey: string | undefined;
     present: string[];
@@ -144,7 +146,7 @@ export function useBotDockTools({
       const group = resolvePanelGroup(store.groups, ASSISTANT_PANEL_GROUP_KEY);
       return { store, group, tools: group.tools ?? EMPTY_DOCK_TOOLS };
     },
-    placeDockTab: (_newKey: string) => {},
+    placeDockTab: (_newKey: string, _atEnd?: boolean) => {},
     focusBotTool: (_id: string) => {},
     openBotTerminal: (_placeAtEnd?: boolean): boolean => false,
     openBotPreview: (_placeAtEnd?: boolean): boolean => false,
@@ -153,7 +155,7 @@ export function useBotDockTools({
     restartBotTerminal: (_id: string) => {},
   });
 
-  actionsRef.current.placeDockTab = (newKey: string) => {
+  actionsRef.current.placeDockTab = (newKey: string, atEnd = false) => {
     const placed = dockTabPlaceRef.current;
     if (!placed.orderKey) return;
     const store = usePanelGroupStore.getState();
@@ -161,7 +163,7 @@ export function useBotDockTools({
       tabOrder: insertTabAfterCurrent(
         store.groups[placed.orderKey]?.tabOrder,
         placed.present,
-        placed.current,
+        atEnd ? null : placed.current,
         newKey,
       ),
     });
@@ -277,8 +279,8 @@ export function useBotDockTools({
     selectDockRef.current("terminal");
   };
 
-  placeKindRef.current = (kind) =>
-    actionsRef.current.placeDockTab(kindTabKey(kind));
+  placeKindRef.current = (kind, atEnd = false) =>
+    actionsRef.current.placeDockTab(kindTabKey(kind), atEnd);
   focusOrOpenBotPreviewRef.current = () =>
     actionsRef.current.focusOrOpenBotPreview();
   beforeToggleRef.current = (kind) => {
