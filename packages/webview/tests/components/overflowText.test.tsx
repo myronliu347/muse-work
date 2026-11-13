@@ -54,9 +54,10 @@ describe("OverflowText", () => {
 
       fireEvent.pointerEnter(outer);
       expect(outer.className).toContain("is-scrolling");
-      expect(
-        outer.querySelector<HTMLElement>(".overflow-text-inner")?.style.transform,
-      ).toBe("translateX(-120px)");
+      const inner = outer.querySelector<HTMLElement>(".overflow-text-inner");
+      // 120px overflow + 36px end gap, at 24px/s.
+      expect(inner?.style.getPropertyValue("--overflow-shift")).toBe("-156px");
+      expect(inner?.style.getPropertyValue("--overflow-duration")).toBe("6.5s");
 
       fireEvent.pointerLeave(outer);
       expect(outer.className).not.toContain("is-scrolling");

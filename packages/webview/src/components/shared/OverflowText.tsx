@@ -43,6 +43,11 @@ export function OverflowText({
   }, [text]);
 
   const scrolling = hover && shift > 0;
+  // Leave room after the last glyph so neither the right fade nor the
+  // absolutely-positioned close button covers it.
+  const travel = shift > 0 ? shift + 36 : 0;
+  const duration = travel > 0 ? Math.max(1.2, travel / 24) : 0;
+
   return (
     <span
       ref={ref}
@@ -70,11 +75,11 @@ export function OverflowText({
       <span
         className="overflow-text-inner"
         style={
-          scrolling
-            ? {
-                transform: `translateX(-${shift}px)`,
-                transitionDuration: `${Math.min(5200, Math.max(760, shift * 26))}ms`,
-              }
+          travel > 0
+            ? ({
+                "--overflow-shift": `-${travel}px`,
+                "--overflow-duration": `${duration}s`,
+              } as React.CSSProperties)
             : undefined
         }
       >
