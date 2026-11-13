@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import "../../styles/OverflowText.css";
 
 /**
@@ -9,14 +9,25 @@ export function OverflowText({
   text,
   className,
   title,
+  hoverDelay = 400,
 }: {
   text: string;
   className?: string;
   title?: string;
+  /** Wait before sliding so merely passing over a tab does not move it. */
+  hoverDelay?: number;
 }) {
   const ref = useRef<HTMLSpanElement | null>(null);
   const [shift, setShift] = useState(0);
   const [hover, setHover] = useState(false);
+  const timer = useRef<number | null>(null);
+  const clearTimer = () => {
+    if (timer.current !== null) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+  };
+  useEffect(() => clearTimer, []);
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -39,8 +50,22 @@ export function OverflowText({
         scrolling ? " is-scrolling" : ""
       }`}
       title={title ?? text}
-      onPointerEnter={() => setHover(true)}
-      onPointerLeave={() => setHover(false)}
+      onPointerEnter={() => {
+        clearTimer();
+        if (shift <= 0) return;
+        if (hoverDelay <= 0) {
+          setHover(true);
+          return;
+        }
+        timer.current = window.setTimeout(() => {
+          timer.current = null;
+          setHover(true);
+        }, hoverDelay);
+      }}
+      onPointerLeave={() => {
+        clearTimer();
+        setHover(false);
+      }}
     >
       <span
         className="overflow-text-inner"
@@ -48,7 +73,7 @@ export function OverflowText({
           scrolling
             ? {
                 transform: `translateX(-${shift}px)`,
-                transitionDuration: `${Math.min(2600, Math.max(360, shift * 12))}ms`,
+                transitionDuration: `${Math.min(5200, Math.max(760, shift * 26))}ms`,
               }
             : undefined
         }

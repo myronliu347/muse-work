@@ -33,8 +33,8 @@ export function overflowEdgeDirection({
 }
 
 const EDGE_ZONE = 28;
-const MIN_SPEED = 2;
-const MAX_SPEED = 9;
+const MIN_SPEED = 1.5;
+const MAX_SPEED = 6;
 
 export type OverflowScrollerProps = React.HTMLAttributes<HTMLDivElement> & {
   /** Hovering the faded edge keeps scrolling until the pointer leaves. */

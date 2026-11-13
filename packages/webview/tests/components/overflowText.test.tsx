@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import React from "react";
-import { afterEach, describe, expect, it } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { OverflowText } from "../../src/components/shared/OverflowText";
 
 function stubTextWidths(scrollWidth: number, clientWidth: number) {
@@ -42,7 +42,13 @@ describe("OverflowText", () => {
   it("slides the full label into view on hover", () => {
     const restore = stubTextWidths(220, 100);
     try {
-      render(<OverflowText text="prototype-html.ts" title="src/prototype-html.ts" />);
+      render(
+        <OverflowText
+          text="prototype-html.ts"
+          title="src/prototype-html.ts"
+          hoverDelay={0}
+        />,
+      );
       const outer = screen.getByText("prototype-html.ts").parentElement as HTMLElement;
       expect(outer).toHaveAttribute("title", "src/prototype-html.ts");
 
@@ -56,6 +62,32 @@ describe("OverflowText", () => {
       expect(outer.className).not.toContain("is-scrolling");
     } finally {
       restore();
+    }
+  });
+
+  it("waits 400ms before starting the slide", () => {
+    vi.useFakeTimers();
+    const restore = stubTextWidths(220, 100);
+    try {
+      render(<OverflowText text="prototype-html.ts" />);
+      const outer = screen.getByText("prototype-html.ts").parentElement as HTMLElement;
+
+      fireEvent.pointerEnter(outer);
+      expect(outer.className).not.toContain("is-scrolling");
+      act(() => {
+        vi.advanceTimersByTime(399);
+      });
+      expect(outer.className).not.toContain("is-scrolling");
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(outer.className).toContain("is-scrolling");
+
+      fireEvent.pointerLeave(outer);
+      expect(outer.className).not.toContain("is-scrolling");
+    } finally {
+      restore();
+      vi.useRealTimers();
     }
   });
 });
