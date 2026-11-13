@@ -721,7 +721,14 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
             }
             if (!key.startsWith("kind:")) return null;
             const kind = key.slice("kind:".length) as DesktopPanelKind;
-            const selected = !detailActive && kind === active;
+            const fileBrowser =
+              kind === "file" &&
+              (!activeFilePath ||
+                !fileTabs.some((tab) => tab.path === activeFilePath));
+            const selected =
+              !detailActive &&
+              kind === active &&
+              (kind !== "file" || fileBrowser);
             const label =
               kind === "preview" && previewLabel ? previewLabel : PANEL_TAB_LABELS[kind];
             return (
@@ -768,8 +775,8 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
               data-testid="desktop-panel-tab-new"
             >
               <span className="desktop-panel-tab-label">
-                <i className="codicon codicon-add desktop-panel-tab-icon" aria-hidden />
-                <span className="desktop-panel-tab-text">新面板</span>
+                <i className="codicon codicon-compass desktop-panel-tab-icon" aria-hidden />
+                <span className="desktop-panel-tab-text">开始</span>
               </span>
               <button
                 type="button"
@@ -785,7 +792,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
               </button>
             </div>
           ) : null}
-          {canAdd && (
+          {canAdd && !pickerOpen && (
             <div className="desktop-panel-add">{addButton}</div>
           )}
         </OverflowScroller>

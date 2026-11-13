@@ -1819,6 +1819,40 @@ describe("issue tab", () => {
     ).toBeInTheDocument();
   });
 
+  it("turns the 开始 tab into a visible 文件 panel from the + picker", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    seedAssistantFile("/work/radii/App.tsx", "/work/radii");
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({ issueGroups: [RADII_ISSUE] })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
+
+    expect(within(dock).getByTestId("desktop-panel-tab-new")).toHaveTextContent(
+      "开始",
+    );
+    expect(within(dock).queryByTestId("desktop-panel-add-btn")).toBeNull();
+
+    await user.click(await screen.findByTestId("panel-add-item-file"));
+
+    expect(within(dock).queryByTestId("panel-picker")).toBeNull();
+    expect(within(dock).getByTestId("desktop-panel-tab-file")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(within(dock).getByTestId("file-tab")).toBeInTheDocument();
+    expect(within(dock).getByTestId("desktop-panel-add-btn")).toBeInTheDocument();
+  });
+
   it("opens a fresh file browser with the file-panel shortcut", async () => {
     resetWebviewStores();
     stubAssistant([]);

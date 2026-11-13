@@ -352,6 +352,11 @@ export function usePanels({
 
   const handleSelectPanel = useCallback(
     (kind: DesktopPanelKind) => {
+      if (kind === "file") {
+        // The 文件 tab is the browser; choosing it leaves the last file.
+        updatePanelGroup({ active: kind, activeFilePath: null });
+        return;
+      }
       updatePanelGroup({ active: kind });
     },
     [updatePanelGroup],

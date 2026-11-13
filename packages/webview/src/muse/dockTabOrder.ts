@@ -71,6 +71,8 @@ export function defaultDockTabKeys(source: DockTabSource): string[] {
     }
     if (kind === "file" && showFiles) {
       for (const path of source.filePaths) keys.push(fileTabKey(path));
+      // Keep the 文件 browser tab as the place to start a new file search.
+      if (source.checked.includes("file")) keys.push(kindTabKey("file"));
       continue;
     }
     if (source.checked.includes(kind)) keys.push(kindTabKey(kind));

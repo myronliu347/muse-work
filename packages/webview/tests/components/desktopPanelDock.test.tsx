@@ -499,7 +499,7 @@ describe("DesktopPanelDock", () => {
       fileTab("/w/b.ts"),
     ];
 
-    it("replaces the 文件 kind tab with file-name tabs while the file panel is active", () => {
+    it("keeps the 文件 browser tab alongside file-name tabs", () => {
       render(
         <MuseTheme>
           <DesktopPanelDock
@@ -513,8 +513,11 @@ describe("DesktopPanelDock", () => {
           </DesktopPanelDock>
         </MuseTheme>,
       );
-      // File-name tabs replace the 文件 kind tab; other kinds stay.
-      expect(screen.queryByTestId("desktop-panel-tab-file")).toBeNull();
+      // The 文件 tab is the browser; file-name tabs sit beside it.
+      expect(screen.getByTestId("desktop-panel-tab-file")).toBeInTheDocument();
+      expect(screen.getByTestId("desktop-panel-tab-file")).not.toHaveClass(
+        "desktop-panel-tab--active",
+      );
       expect(screen.getByTestId("desktop-panel-tab-preview")).toBeInTheDocument();
       const fileTabEls = screen.getAllByTestId("file-tab");
       expect(fileTabEls).toHaveLength(2);
@@ -554,7 +557,7 @@ describe("DesktopPanelDock", () => {
         </MuseTheme>,
       );
       expect(screen.getAllByTestId("file-tab")).toHaveLength(2);
-      expect(screen.queryByTestId("desktop-panel-tab-file")).toBeNull();
+      expect(screen.getByTestId("desktop-panel-tab-file")).toBeInTheDocument();
       expect(screen.getByTestId("desktop-panel-tab-preview")).toHaveClass(
         "desktop-panel-tab--active",
       );
