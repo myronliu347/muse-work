@@ -62,7 +62,7 @@
     "sync:webview": "node scripts/syncWebview.mjs",
     "brand:dev-electron": "node scripts/brandDevElectron.mjs",
     "prepare:server": "node scripts/prepareServer.mjs",
-    "dev": "pnpm -F @muse-work/agent build && pnpm -F @muse-work/provider build && pnpm -F @muse-work/plugin-sdk build && pnpm -F @muse-work/server build && pnpm -F @muse-work/webview build && pnpm run compile && pnpm run brand:dev-electron && node scripts/ensureNodePty.mjs && env -u ELECTRON_RUN_AS_NODE electron . --no-sandbox",
+    "dev": "pnpm -F @muse-work/agent build && pnpm -F @muse-work/provider build && pnpm -F @muse-work/plugin-sdk build && pnpm -F @muse-work/server build && pnpm -F @muse-work/webview build && pnpm run compile && pnpm run brand:dev-electron && node scripts/ensureNodePty.mjs && node scripts/stopDevApp.mjs && env -u ELECTRON_RUN_AS_NODE electron . --no-sandbox",
     "dist:mac": "pnpm -F @muse-work/agent build && pnpm -F @muse-work/webview build && pnpm run prepare:server && pnpm run compile && node scripts/packMac.mjs",
     "clean": "node -e \"import('fs').then(fs => ['dist', 'release', 'webview'].forEach(d => {try{fs.rmSync(d, {recursive:true, force:true})}catch(e){}}))\"",
     "type-check": "tsc --noEmit",

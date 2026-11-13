@@ -64,6 +64,22 @@ if (!app.isPackaged) {
     "userData",
     path.join(app.getPath("appData"), "muse-work-desktop-dev"),
   );
+  // Let `pnpm dev:desktop` stop a previous dev process before launching a new
+  // one; otherwise the single-instance lock just focuses the old window, which
+  // still runs the previous webview.
+  const devPidFile = path.join(app.getAppPath(), ".dev-app.pid");
+  try {
+    fs.writeFileSync(devPidFile, String(process.pid));
+  } catch {
+    // best-effort
+  }
+  app.on("will-quit", () => {
+    try {
+      fs.rmSync(devPidFile, { force: true });
+    } catch {
+      // best-effort
+    }
+  });
   // Dev: point the whole state dir (server db/sessions/auth + logs, and
   // desktop ui.json) at ~/.dev-muse-work so dev never touches production's
   // ~/.muse-work. The server child inherits this env (serverProcess merges
