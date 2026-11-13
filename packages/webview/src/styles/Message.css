@@ -151,13 +151,13 @@
   background-color: var(--gray-4);
 }
 
-/* User bubbles follow the theme accent so changing 强调色 updates the whole
-   transcript, not just one surface. */
-.message.user:not(.queued) .user-text-block {
+/* Light mode user bubbles follow the theme accent; dark mode keeps the
+   original neutral surface. */
+:root[data-theme="light"] .message.user:not(.queued) .user-text-block {
   background-color: var(--accent-3);
 }
 
-.message.user:not(.queued):hover .user-text-block {
+:root[data-theme="light"] .message.user:not(.queued):hover .user-text-block {
   background-color: var(--accent-4);
 }
 

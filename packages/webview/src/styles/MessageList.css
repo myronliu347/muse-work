@@ -94,13 +94,13 @@
   background-color: var(--gray-4);
 }
 
-/* Keep the pinned bar in step with the accent-tinted user bubble. */
-.sticky-user-message:not(.sticky-user-message--system) {
+/* Keep the light-mode pinned bar in step with the accent-tinted user bubble. */
+:root[data-theme="light"] .sticky-user-message:not(.sticky-user-message--system) {
   background-color: var(--accent-3);
   border-color: var(--accent-5);
 }
 
-.sticky-user-message:not(.sticky-user-message--system):hover {
+:root[data-theme="light"] .sticky-user-message:not(.sticky-user-message--system):hover {
   background-color: var(--accent-4);
 }
 
