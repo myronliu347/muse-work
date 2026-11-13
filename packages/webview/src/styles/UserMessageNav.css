@@ -10,7 +10,7 @@
   gap: 6px;
   width: 28px;
   box-sizing: border-box;
-  padding: var(--space-2) 6px;
+  padding: var(--space-2) 2px;
   border-radius: var(--radius-3);
   max-height: min(70%, calc(100% - var(--space-4)));
   overflow-y: auto;
@@ -45,12 +45,22 @@
   color: var(--accent-11);
 }
 
+.user-message-nav-item:hover .user-message-nav-tick,
+.user-message-nav-item--hover .user-message-nav-tick {
+  width: 20px;
+  height: 3px;
+}
+
 .user-message-nav-tick {
   flex-shrink: 0;
   width: 10px;
   height: 2px;
-  border-radius: 1px;
+  border-radius: 999px;
   background: currentColor;
+  transition:
+    width 160ms ease,
+    height 160ms ease,
+    background-color 160ms ease;
 }
 
 /* One item's preview, floating left of the rail; it never reflows the list. */
