@@ -14,6 +14,7 @@ import { issueGroupSessionWorkdir } from "../utils/issueGroups";
 import {
   ASSISTANT_PANEL_GROUP_KEY,
   EMPTY_DOCK_TOOLS,
+  emptyFileTreeState,
   usePanelGroupStore,
 } from "../stores";
 import type { IssuePresence } from "../components/session/SessionStatusGlyph";
@@ -121,6 +122,7 @@ export function useChatDock(input: {
     effectiveWorkdir,
     dockWorkdir,
     fileTreeWorkdir,
+    revealFileTree,
     sessionBaseBranch,
     paneId,
     vscode,
@@ -290,7 +292,27 @@ export function useChatDock(input: {
         openBotPreview();
         return;
       }
+      if (kind === "file") {
+        if (assistantVisible) {
+          revealFileTree();
+        } else if (groupKey) {
+          // Session dock: same browser mode, but its tree lives on the
+          // session/workdir group.
+          usePanelGroupStore.getState().patchGroup(groupKey, (group) => ({
+            fileTree: {
+              ...(group.fileTree ?? emptyFileTreeState()),
+              collapsed: false,
+            },
+            activeFilePath: null,
+            active: "file",
+          }));
+        }
+        workspace.selectDock("file");
+        handleAddPanel(kind);
+        return;
+      }
       handleAddPanel(kind);
+      if (assistantVisible) workspace.selectDock(kind);
       if (!onSessionsSurface || !groupKey) return;
       const opened = usePanelGroupStore.getState().groups[groupKey];
       if (opened?.checked.includes(kind)) workspace.selectDock(kind);

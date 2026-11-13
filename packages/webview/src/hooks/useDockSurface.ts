@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { BotWorkspaceContextValue } from "../components/desktop/BotTabs";
 import type { ShellSurface } from "../components/desktop/shellSurface";
 import { issueTabSessionId } from "../components/desktop/botWorkspace";
@@ -12,6 +12,7 @@ import type { DesktopHostProps, DesktopIssueGroup, VsCodeApi } from "../types";
 import {
   ASSISTANT_PANEL_GROUP_KEY,
   EMPTY_DOCK_TOOLS,
+  emptyFileTreeState,
   EMPTY_TAB_ORDER,
   resolvePanelGroup,
   usePanelGroup,
@@ -250,22 +251,49 @@ export function useDockSurface({
       host?.workdir,
     ],
   );
-  // With a file open the tree follows that file's known workdir. With nothing
-  // open the column must still be usable, so it falls back to the current
-  // issue directory (then the host/assistant directory) to pick a file from.
+  // With a file open the tree follows that file's known workdir. If the file
+  // lives outside those dirs (e.g. a temp report), the column still needs a
+  // usable tree, so fall back to the current issue directory (then a known /
+  // host / assistant directory) instead of leaving it blank.
+  const fallbackWorkdir =
+    dockWorkdir ??
+    knownWorkdirs[0] ??
+    host?.workdir ??
+    assistantWorkdir;
   const fileTreeWorkdir = assistantVisible
     ? shownActiveFilePath
-      ? workdirForFile(shownActiveFilePath, knownWorkdirs)
-      : (dockWorkdir ??
-        knownWorkdirs[0] ??
-        host?.workdir ??
-        assistantWorkdir)
+      ? (workdirForFile(shownActiveFilePath, knownWorkdirs) ?? fallbackWorkdir)
+      : fallbackWorkdir
     : dockWorkdir;
   // A new terminal starts where the file tree points; without a tree (no file
   // open, or the file is outside known dirs) fall back to the issue directory.
   const terminalWorkdir = fileTreeWorkdir ?? dockWorkdir;
   const terminalWorkdirRef = useRef(terminalWorkdir);
   terminalWorkdirRef.current = terminalWorkdir;
+  // The "+" menu's 文件 item should do something even when the file panel is
+  // already checked: surface the browser (tree + picker), expanding it. The
+  // collapsed flag lives on the assistant group; expanded/cache live on the
+  // tree workdir group, so only this group gets the flag.
+  const revealFileTree = useCallback(() => {
+    if (!assistantVisible) return;
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, (group) => ({
+      checked: group.checked.includes("file")
+        ? group.checked
+        : [...group.checked, "file"],
+      mounted: group.mounted.includes("file")
+        ? group.mounted
+        : [...group.mounted, "file"],
+      active: "file",
+      // Browser mode: keep the open file tabs, but show the tree and the
+      // picker placeholder instead of the last file. Choosing a file tab
+      // restores its content.
+      activeFilePath: null,
+      fileTree: {
+        ...(group.fileTree ?? emptyFileTreeState()),
+        collapsed: false,
+      },
+    }));
+  }, [assistantVisible]);
   const fileTreeGroup = usePanelGroupStore((state) =>
     fileTreeWorkdir ? state.groups[fileTreeWorkdir] : undefined,
   );
@@ -428,6 +456,7 @@ export function useDockSurface({
     assistantVisibleRef,
     onSessionsSurfaceRef,
     terminalWorkdirRef,
+    revealFileTree,
     dockIssueIdRef,
     vscodeRef,
     previewGroupKeyRef,

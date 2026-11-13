@@ -1747,7 +1747,7 @@ describe("issue tab", () => {
     );
   });
 
-  it("hides the file tree when the active file is outside known workdirs", async () => {
+  it("falls back to the current issue tree when the active file is outside known workdirs", async () => {
     resetWebviewStores();
     stubAssistant([]);
     stubWideViewport();
@@ -1775,9 +1775,48 @@ describe("issue tab", () => {
     const frame = await screen.findByTestId("assistant-frame");
     const dock = await ensureAssistantDock(frame, user);
     expect(within(dock).getByTestId("file-tab")).toBeInTheDocument();
-    expect(within(dock).queryByTestId("file-tree")).toBeNull();
-    expect(within(dock).queryByTestId("file-tree-workdir")).toBeNull();
-    expect(within(dock).queryByTestId("file-tree-expand-btn")).toBeNull();
+    expect(await within(dock).findByTestId("file-tree-workdir")).toHaveAttribute(
+      "title",
+      "/work/radii",
+    );
+    expect(within(dock).getByTestId("file-tree")).toBeInTheDocument();
+  });
+
+  it("surfaces the file tree from the + menu while a file tab is open", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      checked: ["file"],
+      mounted: ["file"],
+      active: "file",
+      fileTabs: [{ path: "/work/radii/App.tsx", host: "" }],
+      activeFilePath: "/work/radii/App.tsx",
+      fileTree: { ...emptyFileTreeState(), collapsed: true },
+    });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({ issueGroups: [RADII_ISSUE] })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
+    await user.click(await screen.findByTestId("panel-add-item-file"));
+
+    expect(within(dock).getByTestId("file-tab")).toHaveAttribute(
+      "data-active",
+      "false",
+    );
+    expect(await within(dock).findByTestId("file-tree")).toBeVisible();
+    expect(
+      within(dock).getByText("从消息或文件树打开文件"),
+    ).toBeInTheDocument();
   });
 
   it("shows the current issue directory tree when no file is open yet", async () => {
