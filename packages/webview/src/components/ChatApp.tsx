@@ -563,7 +563,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   newTerminalActionRef.current = () => {
     if (assistantVisible) {
       setAssistantDockOpen(true);
-      openBotTerminal();
+      openBotTerminal(true);
       return;
     }
     handleAddPanel("terminal");

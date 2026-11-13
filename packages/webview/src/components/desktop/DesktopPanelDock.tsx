@@ -66,7 +66,10 @@ export interface DesktopPanelDockProps {
   active: DesktopPanelKind;
   onSelect: (kind: DesktopPanelKind) => void;
   onCloseTab: (kind: DesktopPanelKind) => void;
-  onAddPanel: (kind: DesktopPanelKind) => void;
+  onAddPanel: (
+    kind: DesktopPanelKind,
+    options?: { placeAtEnd?: boolean },
+  ) => void;
   disabledPanels?: DesktopPanelKind[];
   panelToggle: PanelToggleProps;
   /** 关闭所有之后收起整个右侧面板。 */
@@ -525,7 +528,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
 
   const pickPanel = (kind: DesktopPanelKind) => {
     setPickerOpen(false);
-    onAddPanel(kind);
+    onAddPanel(kind, { placeAtEnd: true });
   };
   const closePicker = () => {
     setPickerOpen(false);

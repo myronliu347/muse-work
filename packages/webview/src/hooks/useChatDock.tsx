@@ -47,8 +47,8 @@ export function useChatDock(input: {
   paneId: string | undefined;
   vscode: VsCodeApi;
   postToHost: (message: Record<string, unknown>) => void;
-  openBotTerminal: () => boolean;
-  openBotPreview: () => boolean;
+  openBotTerminal: (placeAtEnd?: boolean) => boolean;
+  openBotPreview: (placeAtEnd?: boolean) => boolean;
   focusBotTool: (id: string) => void;
   closeBotTool: (id: string) => void;
   restartBotTerminal: (id: string) => void;
@@ -283,13 +283,13 @@ export function useChatDock(input: {
       />
     ) : undefined,
     onCloseTab: handleTogglePanel,
-    onAddPanel: (kind) => {
+    onAddPanel: (kind, options) => {
       if (assistantVisible && kind === "terminal") {
-        openBotTerminal();
+        openBotTerminal(options?.placeAtEnd);
         return;
       }
       if (assistantVisible && kind === "preview") {
-        openBotPreview();
+        openBotPreview(options?.placeAtEnd);
         return;
       }
       if (kind === "file") {

@@ -146,8 +146,8 @@ export function useBotDockTools({
     },
     placeDockTab: (_newKey: string) => {},
     focusBotTool: (_id: string) => {},
-    openBotTerminal: (): boolean => false,
-    openBotPreview: (): boolean => false,
+    openBotTerminal: (_placeAtEnd?: boolean): boolean => false,
+    openBotPreview: (_placeAtEnd?: boolean): boolean => false,
     focusOrOpenBotPreview: (): boolean => false,
     closeBotTool: (_id: string) => {},
     restartBotTerminal: (_id: string) => {},
@@ -173,7 +173,7 @@ export function useBotDockTools({
     store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, { activeToolId: id });
     selectDockRef.current(tool.kind);
   };
-  actionsRef.current.openBotTerminal = (): boolean => {
+  actionsRef.current.openBotTerminal = (placeAtEnd = false): boolean => {
     const cwd = dockWorkdirRef.current?.trim();
     if (!cwd) return false;
     const tool: DockToolInstance = {
@@ -189,14 +189,14 @@ export function useBotDockTools({
       tabOrder: insertTabAfterCurrent(
         group.tabOrder,
         placed.present,
-        placed.current,
+        placeAtEnd ? null : placed.current,
         toolTabKey(tool.id),
       ),
     });
     selectDockRef.current("terminal");
     return true;
   };
-  actionsRef.current.openBotPreview = (): boolean => {
+  actionsRef.current.openBotPreview = (placeAtEnd = false): boolean => {
     const tool: DockToolInstance = {
       id: createDockToolId("preview"),
       kind: "preview",
@@ -213,7 +213,7 @@ export function useBotDockTools({
       tabOrder: insertTabAfterCurrent(
         group.tabOrder,
         placed.present,
-        placed.current,
+        placeAtEnd ? null : placed.current,
         toolTabKey(tool.id),
       ),
     });
@@ -357,11 +357,11 @@ export function useBotDockTools({
     : null;
 
   const openBotTerminal = useCallback(
-    () => actionsRef.current.openBotTerminal(),
+    (placeAtEnd?: boolean) => actionsRef.current.openBotTerminal(placeAtEnd),
     [],
   );
   const openBotPreview = useCallback(
-    () => actionsRef.current.openBotPreview(),
+    (placeAtEnd?: boolean) => actionsRef.current.openBotPreview(placeAtEnd),
     [],
   );
   const focusBotTool = useCallback(

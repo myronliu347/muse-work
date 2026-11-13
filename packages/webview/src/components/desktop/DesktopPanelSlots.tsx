@@ -36,7 +36,10 @@ export interface DesktopPanelSlotsProps {
   dockMaxWidth: number;
   onSelect: (kind: DesktopPanelKind) => void;
   onCloseTab: (kind: DesktopPanelKind) => void;
-  onAddPanel: (kind: DesktopPanelKind) => void;
+  onAddPanel: (
+    kind: DesktopPanelKind,
+    options?: { placeAtEnd?: boolean },
+  ) => void;
   onToggleDock: () => void;
   /** Tab menu 关闭所有：收起整个右侧面板。 */
   onCloseDock?: () => void;

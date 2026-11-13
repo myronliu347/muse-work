@@ -429,7 +429,7 @@ describe("DesktopPanelDock", () => {
     expect(screen.queryByText("body")).toBeNull();
 
     await user.click(screen.getByTestId("panel-add-item-terminal"));
-    expect(onAddPanel).toHaveBeenCalledWith("terminal");
+    expect(onAddPanel).toHaveBeenCalledWith("terminal", { placeAtEnd: true });
     expect(screen.queryByTestId("panel-picker")).toBeNull();
     expect(screen.queryByTestId("desktop-panel-tab-new")).toBeNull();
   });
