@@ -250,8 +250,16 @@ export function useDockSurface({
       host?.workdir,
     ],
   );
+  // With a file open the tree follows that file's known workdir. With nothing
+  // open the column must still be usable, so it falls back to the current
+  // issue directory (then the host/assistant directory) to pick a file from.
   const fileTreeWorkdir = assistantVisible
-    ? workdirForFile(shownActiveFilePath, knownWorkdirs)
+    ? shownActiveFilePath
+      ? workdirForFile(shownActiveFilePath, knownWorkdirs)
+      : (dockWorkdir ??
+        knownWorkdirs[0] ??
+        host?.workdir ??
+        assistantWorkdir)
     : dockWorkdir;
   // A new terminal starts where the file tree points; without a tree (no file
   // open, or the file is outside known dirs) fall back to the issue directory.

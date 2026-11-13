@@ -1273,8 +1273,13 @@ describe("issue tab", () => {
     const frame = await screen.findByTestId("assistant-frame");
     const assistantDock = await ensureAssistantDock(frame, user);
     await user.click(within(assistantDock).getByRole("button", { name: "文件" }));
-    // No file is open, so the assistant has no tree workdir to show.
-    expect(within(assistantDock).queryByTestId("file-tree-workdir")).toBeNull();
+    // No file is open, so the tree falls back to the assistant's own directory.
+    await waitFor(() => {
+      expect(within(assistantDock).getByTestId("file-tree-workdir")).toHaveAttribute(
+        "title",
+        "/tmp/proj",
+      );
+    });
 
     sendHostMessage(
       fixtures.setInitialState({
@@ -1773,6 +1778,61 @@ describe("issue tab", () => {
     expect(within(dock).queryByTestId("file-tree")).toBeNull();
     expect(within(dock).queryByTestId("file-tree-workdir")).toBeNull();
     expect(within(dock).queryByTestId("file-tree-expand-btn")).toBeNull();
+  });
+
+  it("shows the current issue directory tree when no file is open yet", async () => {
+    await withElementBox(async () => {
+      resetWebviewStores();
+      stubAssistant([]);
+      stubWideViewport();
+      usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+        checked: ["file"],
+        mounted: ["file"],
+        active: "file",
+        fileTree: { ...emptyFileTreeState(), collapsed: false },
+      });
+      const vscode = createMockVscode();
+      const user = userEvent.setup();
+      render(
+        <MuseTheme>
+          <ChatApp
+            vscode={vscode}
+            host={createMockDesktopHost({
+              issueGroups: [RADII_ISSUE],
+            })}
+          />
+        </MuseTheme>,
+      );
+
+      const frame = await screen.findByTestId("assistant-frame");
+      const dock = await ensureAssistantDock(frame, user);
+      expect(await within(dock).findByTestId("file-tree-workdir")).toHaveAttribute(
+        "title",
+        "/work/radii",
+      );
+
+      await waitFor(() => {
+        expect(
+          listDirMessages(vscode).some(
+            (message) => message.dir === "" && message.workdir === "/work/radii",
+          ),
+        ).toBe(true);
+      });
+      const firstList = listDirMessages(vscode).find(
+        (message) => message.dir === "" && message.workdir === "/work/radii",
+      ) as { requestId?: string } | undefined;
+      sendExtensionMessage({
+        command: "desktopListDirResult",
+        requestId: firstList?.requestId,
+        dir: "",
+        entries: [dirEntry("App.tsx", "/work/radii", "App.tsx", false)],
+      });
+      await user.click(await within(dock).findByTestId("file-tree-row-App.tsx"));
+      expect(await within(dock).findByTestId("file-tab")).toHaveAttribute(
+        "data-path",
+        "/work/radii/App.tsx",
+      );
+    });
   });
 
   it("moves the file tree to the workdir that owns the active file", async () => {
