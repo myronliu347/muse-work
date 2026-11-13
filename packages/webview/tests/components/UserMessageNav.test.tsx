@@ -92,35 +92,41 @@ describe("UserMessageNav", () => {
     },
   ];
 
-  it("renders a tick per user message and shows text for hover", () => {
+  it("renders a tick per user message and shows one popover on hover", () => {
     render(
       <UserMessageNav entries={entries} activeId="u3" onSelect={() => {}} />,
     );
     expect(screen.getByTestId("user-message-nav")).toBeInTheDocument();
-    fireEvent.pointerEnter(screen.getByTestId("user-message-nav"));
-    expect(screen.getByTestId("user-message-nav-u1")).toHaveTextContent(
-      "mac 终端启动 iterm2",
+    expect(screen.queryByTestId("user-message-nav-popover")).toBeNull();
+
+    fireEvent.pointerEnter(screen.getByTestId("user-message-nav-u1"));
+    const popover = screen.getByTestId("user-message-nav-popover");
+    expect(popover).toHaveTextContent("mac 终端启动 iterm2");
+    expect(screen.getByTestId("user-message-nav-u1")).toHaveClass(
+      "user-message-nav-item--hover",
     );
-    expect(screen.getByTestId("user-message-nav-u3")).toHaveTextContent(
+
+    fireEvent.pointerEnter(screen.getByTestId("user-message-nav-u3"));
+    expect(screen.getByTestId("user-message-nav-popover")).toHaveTextContent(
       "能打开终端并且cd 到某个目录吗这是一段很长的用户消息",
     );
+    expect(screen.queryByText("mac 终端启动 iterm2", { selector: ".user-message-nav-popover-user" })).toBeNull();
   });
 
-  it("exposes the full message as a tooltip and scrolls on click", () => {
+  it("reveals the full message and scrolls on click", () => {
     const onSelect = vi.fn();
     render(
       <UserMessageNav entries={entries} activeId="u3" onSelect={onSelect} />,
     );
-    const long = screen.getByTestId("user-message-nav-u3");
-    expect(long).toHaveAttribute(
-      "title",
+    fireEvent.pointerEnter(screen.getByTestId("user-message-nav-u3"));
+    expect(screen.getByTestId("user-message-nav-popover")).toHaveTextContent(
       "能打开终端并且cd 到某个目录吗这是一段很长的用户消息",
     );
-    fireEvent.click(long);
+    fireEvent.click(screen.getByTestId("user-message-nav-u3"));
     expect(onSelect).toHaveBeenCalledWith("u3");
   });
 
-  it("shows the assistant reply in the hover label and title", () => {
+  it("shows the assistant reply in the popover", () => {
     render(
       <UserMessageNav
         entries={[
@@ -133,14 +139,10 @@ describe("UserMessageNav", () => {
         onSelect={() => {}}
       />,
     );
-    const item = screen.getByTestId("user-message-nav-u1");
-    fireEvent.pointerEnter(screen.getByTestId("user-message-nav"));
-    expect(item).toHaveTextContent("这个抖动怎么处理");
-    expect(item).toHaveTextContent("先看第一段，最后这段是结论");
-    expect(item).toHaveAttribute(
-      "title",
-      "这个抖动怎么处理\n\n先看第一段，最后这段是结论",
-    );
+    fireEvent.pointerEnter(screen.getByTestId("user-message-nav-u1"));
+    const popover = screen.getByTestId("user-message-nav-popover");
+    expect(popover).toHaveTextContent("这个抖动怎么处理");
+    expect(popover).toHaveTextContent("先看第一段，最后这段是结论");
   });
 
   it("marks the active entry", () => {

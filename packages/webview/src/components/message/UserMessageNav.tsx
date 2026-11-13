@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import type { Message } from "@muse-work/agent";
+import { bodyPortal } from "../../utils/bodyPortal";
 import "../../styles/UserMessageNav.css";
 
 export type UserMessageNavEntry = {
@@ -49,8 +50,8 @@ export function pickActiveUserMessageId(
   viewport: { scrollTop: number; clientHeight: number },
 ): string | undefined {
   if (items.length === 0) return undefined;
-  // Only a message that has reached the top edge counts. One still below
-  // the edge must not steal the highlight from the question being read.
+  // Only a message that has reached the top edge counts. One still below the
+  // edge must not steal the highlight from the question being read.
   const line = viewport.scrollTop + 1;
   let active = items[0]?.id;
   for (const item of items) {
@@ -59,44 +60,81 @@ export function pickActiveUserMessageId(
   return active;
 }
 
+type Popover = {
+  id: string;
+  top: number;
+  right: number;
+};
+
 export const UserMessageNav: React.FC<{
   entries: UserMessageNavEntry[];
   activeId?: string;
   onSelect: (messageId: string) => void;
 }> = ({ entries, activeId, onSelect }) => {
-  const [hovered, setHovered] = useState(false);
+  const [popover, setPopover] = useState<Popover | null>(null);
   if (entries.length === 0) return null;
 
+  const showFor = (entryId: string, target: HTMLElement) => {
+    const rect = target.getBoundingClientRect();
+    setPopover({
+      id: entryId,
+      top: Math.min(
+        Math.max(rect.top + rect.height / 2, 80),
+        Math.max(80, window.innerHeight - 80),
+      ),
+      right: Math.max(8, window.innerWidth - rect.left + 8),
+    });
+  };
+
+  const hovered = popover
+    ? entries.find((entry) => entry.id === popover.id)
+    : undefined;
+
   return (
-    <nav
-      className="user-message-nav"
-      data-testid="user-message-nav"
-      onPointerEnter={() => setHovered(true)}
-      onPointerLeave={() => setHovered(false)}
-    >
-      {entries.map((entry) => {
-        const active = entry.id === activeId;
-        return (
-          <button
-            key={entry.id}
-            type="button"
-            className={`user-message-nav-item${active ? " user-message-nav-item--active" : ""}`}
-            data-testid={`user-message-nav-${entry.id}`}
-            title={entry.reply ? `${entry.text}\n\n${entry.reply}` : entry.text}
-            onClick={() => onSelect(entry.id)}
-          >
-            {hovered ? (
-              <span className="user-message-nav-label">
-                <span className="user-message-nav-label-user">{entry.text}</span>
-                {entry.reply ? (
-                  <span className="user-message-nav-label-reply">{entry.reply}</span>
-                ) : null}
-              </span>
-            ) : null}
-            <span className="user-message-nav-tick" aria-hidden="true" />
-          </button>
-        );
-      })}
-    </nav>
+    <>
+      <nav
+        className="user-message-nav"
+        data-testid="user-message-nav"
+        onScroll={() => setPopover(null)}
+      >
+        {entries.map((entry) => {
+          const active = entry.id === activeId;
+          return (
+            <button
+              key={entry.id}
+              type="button"
+              className={`user-message-nav-item${active ? " user-message-nav-item--active" : ""}${
+                popover?.id === entry.id ? " user-message-nav-item--hover" : ""
+              }`}
+              data-testid={`user-message-nav-${entry.id}`}
+              onClick={() => onSelect(entry.id)}
+              onPointerEnter={(event) => showFor(entry.id, event.currentTarget)}
+              onPointerLeave={() => setPopover(null)}
+              onFocus={(event) => showFor(entry.id, event.currentTarget)}
+              onBlur={() => setPopover(null)}
+            >
+              <span className="user-message-nav-tick" aria-hidden="true" />
+            </button>
+          );
+        })}
+      </nav>
+      {popover && hovered
+        ? bodyPortal(
+            <div
+              className="user-message-nav-popover"
+              data-testid="user-message-nav-popover"
+              role="tooltip"
+              style={{ top: popover.top, right: popover.right }}
+            >
+              <div className="user-message-nav-popover-user">{hovered.text}</div>
+              {hovered.reply ? (
+                <div className="user-message-nav-popover-reply">
+                  {hovered.reply}
+                </div>
+              ) : null}
+            </div>,
+          )
+        : null}
+    </>
   );
 };

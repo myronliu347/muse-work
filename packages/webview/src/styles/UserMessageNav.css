@@ -26,20 +26,10 @@
   height: 0;
 }
 
-.user-message-nav:hover {
-  width: auto;
-  max-width: calc(100% - var(--space-4));
-  overflow-x: visible;
-  background: color-mix(in srgb, var(--gray-2) 88%, transparent);
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--gray-1) 45%, transparent);
-}
-
 .user-message-nav-item {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-2);
-  max-width: 240px;
   margin: 0;
   padding: 2px 0;
   border: none;
@@ -50,49 +40,9 @@
 }
 
 .user-message-nav-item:hover,
+.user-message-nav-item--hover,
 .user-message-nav-item--active {
   color: var(--accent-11);
-}
-
-.user-message-nav-label {
-  min-width: 0;
-  max-width: 0;
-  opacity: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  font-size: var(--font-size-1);
-  line-height: 1.3;
-  text-align: right;
-  pointer-events: none;
-  transition:
-    max-width 0.15s ease,
-    opacity 0.15s ease;
-}
-
-.user-message-nav-label-user {
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.user-message-nav-label-reply {
-  display: -webkit-box;
-  overflow: hidden;
-  color: var(--gray-10);
-  font-size: 11px;
-  line-height: 1.35;
-  white-space: normal;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-
-.user-message-nav:hover .user-message-nav-label {
-  max-width: 240px;
-  opacity: 1;
 }
 
 .user-message-nav-tick {
@@ -101,4 +51,41 @@
   height: 2px;
   border-radius: 1px;
   background: currentColor;
+}
+
+/* One item's preview, floating left of the rail; it never reflows the list. */
+.user-message-nav-popover {
+  position: fixed;
+  z-index: 60;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(340px, 46vw);
+  max-height: 60vh;
+  overflow: auto;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
+  background: var(--color-card, var(--gray-2));
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--gray-1) 45%, transparent);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.user-message-nav-popover-user {
+  color: var(--gray-12);
+  font-size: var(--font-size-1);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.user-message-nav-popover-reply {
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: var(--hairline) solid var(--gray-5);
+  color: var(--gray-10);
+  font-size: var(--font-size-1);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
