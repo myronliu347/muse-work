@@ -102,6 +102,7 @@ function renderPane(options?: {
   onOpenPreview?: (url: string) => void;
   /** When true, omit workdir entirely (no default). */
   noWorkdir?: boolean;
+  onRestart?: () => void;
 }) {
   const vscode = createMockVscode();
   const onClose = options?.onClose ?? vi.fn();
@@ -120,6 +121,7 @@ function renderPane(options?: {
       visible={options?.visible ?? true}
       workdir={workdir}
       onOpenPreview={onOpenPreview}
+      onRestart={options?.onRestart}
     />,
   );
   const rerenderWith = (props: {
@@ -137,6 +139,7 @@ function renderPane(options?: {
         visible={props.visible ?? true}
         workdir={"workdir" in props ? props.workdir : workdir}
         onOpenPreview={onOpenPreview}
+        onRestart={options?.onRestart}
       />,
     );
   return { ...result, rerenderWith, vscode, onClose, onOpenPreview, workdir };
@@ -332,6 +335,18 @@ describe("TerminalPane", () => {
     ]);
     expect(postsOf(vscode, "desktopTerminalCreate")).toHaveLength(2);
     expect(mockTerminals[0].resetCount).toBe(1);
+  });
+
+  it("hands restart to the parent when one is given (bot terminal rebuild)", async () => {
+    const onRestart = vi.fn();
+    const { vscode } = renderPane({ onRestart });
+    await act(async () => {});
+    fireEvent.click(screen.getByTestId("terminal-restart"));
+    expect(onRestart).toHaveBeenCalledTimes(1);
+    // The parent owns the rebuild: this pane must not kill/re-create its PTY.
+    expect(postsOf(vscode, "desktopTerminalKill")).toEqual([]);
+    expect(postsOf(vscode, "desktopTerminalCreate")).toHaveLength(1);
+    expect(mockTerminals[0].resetCount).toBe(0);
   });
 
   it("same workdir session switch does not reset or recreate PTY", async () => {

@@ -108,6 +108,8 @@ export interface DesktopPanelSlotsProps {
   activeToolId?: string | null;
   onSelectTool?: (id: string) => void;
   onCloseTool?: (id: string) => void;
+  /** Rebuild a bot terminal tab in the current issue/assistant workdir. */
+  onRestartTool?: (id: string) => void;
   tabOrder?: readonly string[];
   onTabOrderChange?: (order: string[]) => void;
   onToolPreviewNavigate?: (id: string, url: string) => void;
@@ -191,6 +193,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   activeToolId = null,
   onSelectTool,
   onCloseTool,
+  onRestartTool,
   tabOrder,
   onTabOrderChange,
   onToolPreviewNavigate,
@@ -378,6 +381,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
                 testIdScope={showing ? undefined : tool.id}
                 issues={issues}
                 homeDir={homeDir}
+                onRestart={onRestartTool ? () => onRestartTool(tool.id) : undefined}
                 onOpenPreview={openPreviewHandler}
                 {...common}
               />

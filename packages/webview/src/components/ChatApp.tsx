@@ -484,6 +484,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     openBotPreview,
     focusBotTool,
     closeBotTool,
+    restartBotTerminal,
     readAssistantTools,
   } = useBotDockTools({
     assistantVisible,
@@ -901,6 +902,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     openBotPreview,
     focusBotTool,
     closeBotTool,
+    restartBotTerminal,
     handleAddPanel,
     handleSelectPanel,
     handleTogglePanel,

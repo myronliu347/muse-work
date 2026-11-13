@@ -18,6 +18,7 @@ import {
   createDockToolId,
   nextDockToolId,
   patchDockTool,
+  rebuildTerminalTool,
   removeDockTool,
 } from "../muse/dockTools";
 import {
@@ -149,6 +150,7 @@ export function useBotDockTools({
     openBotPreview: (): boolean => false,
     focusOrOpenBotPreview: (): boolean => false,
     closeBotTool: (_id: string) => {},
+    restartBotTerminal: (_id: string) => {},
   });
 
   actionsRef.current.placeDockTab = (newKey: string) => {
@@ -249,6 +251,32 @@ export function useBotDockTools({
     selectDockRef.current(next ? next.kind : DOCK_DETAIL_TAB);
   };
 
+  actionsRef.current.restartBotTerminal = (id: string) => {
+    const { store, tools, group } = actionsRef.current.readAssistantTools();
+    const closed = tools.find((tool) => tool.id === id && tool.kind === "terminal");
+    if (!closed) return;
+    // 重建的终端按“当前事项 / 助手”的目录来：Muse Bot 选着事项时是事项目录，
+    // 没选事项时是助手自己的目录。dockWorkdir 为空才退回这个标签原来的目录。
+    const workdir = dockWorkdirRef.current?.trim() || closed.workdir;
+    if (!workdir) return;
+    // 关掉旧终端：新标签有自己的 id 和 PTY，旧进程必须显式收掉。
+    vscodeRef.current.postMessage({
+      command: "desktopTerminalKill",
+      termId: botToolTermId(id),
+    });
+    const nextId = createDockToolId("terminal");
+    const tabOrder = group.tabOrder?.map((key) =>
+      key === toolTabKey(id) ? toolTabKey(nextId) : key,
+    );
+    store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      tools: rebuildTerminalTool(tools, id, workdir, nextId),
+      activeToolId: group.activeToolId === id ? nextId : group.activeToolId,
+      ...(tabOrder ? { tabOrder } : {}),
+    });
+    setAssistantDockOpenRef.current(true);
+    selectDockRef.current("terminal");
+  };
+
   placeKindRef.current = (kind) =>
     actionsRef.current.placeDockTab(kindTabKey(kind));
   focusOrOpenBotPreviewRef.current = () =>
@@ -344,6 +372,10 @@ export function useBotDockTools({
     (id: string) => actionsRef.current.closeBotTool(id),
     [],
   );
+  const restartBotTerminal = useCallback(
+    (id: string) => actionsRef.current.restartBotTerminal(id),
+    [],
+  );
   const readAssistantTools = useCallback(
     () => actionsRef.current.readAssistantTools(),
     [],
@@ -362,6 +394,7 @@ export function useBotDockTools({
     openBotPreview,
     focusBotTool,
     closeBotTool,
+    restartBotTerminal,
     readAssistantTools,
   };
 }

@@ -89,6 +89,21 @@ export class TerminalManager {
       if (existing.buffer) this.callbacks.onData(termId, existing.buffer);
       return;
     }
+    // A deleted worktree leaves sessions pointing at a directory that no
+    // longer exists; node-pty's helper then exits 1 without printing why.
+    // Say it plainly instead of showing a bare exit code.
+    let isDirectory = false;
+    try {
+      isDirectory = fs.statSync(cwd).isDirectory();
+    } catch {
+      isDirectory = false;
+    }
+    if (!isDirectory) {
+      this.callbacks.onExit(termId, {
+        error: `工作目录不存在（可能已被删除）：${cwd}`,
+      });
+      return;
+    }
     const pty = await loadPty();
     if (!pty) {
       this.callbacks.onExit(termId, {

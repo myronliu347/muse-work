@@ -192,6 +192,9 @@ export interface TerminalPaneProps {
   /** 助手事项：选中后在这个终端里 cd 过去。 */
   issues?: TerminalIssueChoice[];
   homeDir?: string;
+  /** Parent-owned rebuild (bot terminal tabs): close this one and open a new
+   *  terminal in the current issue/assistant workdir. */
+  onRestart?: () => void;
 }
 
 /** Embedded PTY terminal panel: xterm.js frontend + node-pty in the desktop host. */
@@ -209,6 +212,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   testIdScope,
   issues,
   homeDir,
+  onRestart,
 }) => {
   const tid = (name: string) => (testIdScope ? `${name}-${testIdScope}` : name);
   const [status, setStatus] = useState<PaneStatus>({ kind: "loading" });
@@ -264,7 +268,17 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   // Bump to re-run the mount flow (chunk-load failure retry).
   const [bootNonce, setBootNonce] = useState(0);
 
+  // Parent-owned rebuild (bot terminal tab): the parent kills this tab's PTY
+  // and replaces it with a new terminal in the current workdir, so this pane
+  // only has to forward the click.
+  const onRestartRef = useRef(onRestart);
+  onRestartRef.current = onRestart;
+
   const restart = useCallback(() => {
+    if (onRestartRef.current) {
+      onRestartRef.current();
+      return;
+    }
     if (!termRef.current) {
       // The terminal was never built (chunk load failed) — re-run the mount
       // flow, which retries loadTerminalLib (its failure cache self-clears).

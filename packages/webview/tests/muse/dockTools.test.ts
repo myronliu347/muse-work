@@ -5,6 +5,7 @@ import {
   dockToolLabel,
   dockToolTitle,
   nextDockToolId,
+  rebuildTerminalTool,
 } from "../../src/muse/dockTools";
 import type { DockToolInstance } from "../../src/stores/panelGroupStore";
 
@@ -50,5 +51,19 @@ describe("bot dock tools", () => {
   it("focuses another terminal after the active one closes", () => {
     const tools = [terminal("t1", "/work/a"), terminal("t2", "/work/b")];
     expect(nextDockToolId(tools, "t2", "t2")).toBe("t1");
+  });
+
+  it("rebuilds a terminal tab in place with a fresh id and the current workdir", () => {
+    const tools = [
+      terminal("t1", "/work/quiet-river-739"),
+      { id: "b1", kind: "preview" as const, previewUrl: "https://example.com" },
+    ];
+    const next = rebuildTerminalTool(tools, "t1", "/work/assistant-chat", "t9");
+    expect(next).toEqual([
+      { id: "t9", kind: "terminal", workdir: "/work/assistant-chat" },
+      { id: "b1", kind: "preview", previewUrl: "https://example.com" },
+    ]);
+    // Other tabs and the original list are untouched.
+    expect(tools[0].id).toBe("t1");
   });
 });

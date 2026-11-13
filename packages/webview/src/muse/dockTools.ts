@@ -56,6 +56,22 @@ export function patchDockTool(
   return tools.map((tool) => (tool.id === id ? { ...tool, ...patch } : tool));
 }
 
+/**
+ * 重启终端：把这一格的终端标签换成同位置的新实例（新 id ⇒ 新 PTY），
+ * 直接落到 `workdir`（当前事项 / 助手的目录）。标签在标签栏里的位置不变，
+ * 旧 PTY 由调用方先 kill。
+ */
+export function rebuildTerminalTool(
+  tools: readonly DockToolInstance[],
+  id: string,
+  workdir: string,
+  nextId: string,
+): DockToolInstance[] {
+  return tools.map((tool) =>
+    tool.id === id ? { id: nextId, kind: "terminal", workdir } : tool,
+  );
+}
+
 /** The focused browser, or the most recently opened one. */
 export function activePreviewTool(
   tools: readonly DockToolInstance[],

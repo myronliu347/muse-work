@@ -50,6 +50,7 @@ export function useChatDock(input: {
   openBotPreview: () => boolean;
   focusBotTool: (id: string) => void;
   closeBotTool: (id: string) => void;
+  restartBotTerminal: (id: string) => void;
   handleAddPanel: (kind: DesktopPanelKind) => void;
   handleSelectPanel: (kind: DesktopPanelKind) => void;
   handleTogglePanel: (kind: DesktopPanelKind) => void;
@@ -128,6 +129,7 @@ export function useChatDock(input: {
     openBotPreview,
     focusBotTool,
     closeBotTool,
+    restartBotTerminal,
     handleAddPanel,
     handleSelectPanel,
     handleTogglePanel,
@@ -296,6 +298,7 @@ export function useChatDock(input: {
     activeToolId: assistantActiveToolId,
     onSelectTool: focusBotTool,
     onCloseTool: closeBotTool,
+    onRestartTool: restartBotTerminal,
     tabOrder: dockTabOrder,
     onTabOrderChange: (order) => {
       const key = assistantVisible ? ASSISTANT_PANEL_GROUP_KEY : groupKey;

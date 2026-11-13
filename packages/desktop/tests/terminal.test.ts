@@ -65,4 +65,15 @@ describe("TerminalManager.clear", () => {
     const mgr = new TerminalManager({ onData: vi.fn(), onExit: vi.fn() });
     expect(() => mgr.clear("nope")).not.toThrow();
   });
+
+  it("reports a missing workdir instead of spawning into it", async () => {
+    const onExit = vi.fn();
+    const mgr = new TerminalManager({ onData: vi.fn(), onExit });
+    await mgr.create("t1", "/nope/muse-missing-workdir", 80, 24);
+    // node-pty's spawn helper would exit 1 without printing why.
+    expect(mockPty.spawn).not.toHaveBeenCalled();
+    expect(onExit).toHaveBeenCalledWith("t1", {
+      error: "工作目录不存在（可能已被删除）：/nope/muse-missing-workdir",
+    });
+  });
 });
