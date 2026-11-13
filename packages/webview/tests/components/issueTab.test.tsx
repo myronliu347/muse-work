@@ -1819,6 +1819,38 @@ describe("issue tab", () => {
     ).toBeInTheDocument();
   });
 
+  it("appends a terminal chosen from the 开始 picker at the end", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({ issueGroups: [RADII_ISSUE] })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
+    await user.click(await screen.findByTestId("panel-add-item-terminal"));
+
+    const group = usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY];
+    const terminal = (group?.tools ?? []).find((tool) => tool.kind === "terminal");
+    expect(terminal).toBeDefined();
+    expect(group?.tabOrder?.at(-1)).toBe(`tool:${terminal!.id}`);
+    const toolTabs = within(dock)
+      .getAllByTestId(/^desktop-panel-tool-/)
+      .filter((el) => !el.getAttribute("data-testid")?.includes("-close-"));
+    expect(toolTabs.at(-1)).toHaveAttribute(
+      "data-testid",
+      `desktop-panel-tool-${terminal!.id}`,
+    );
+  });
+
   it("turns the 开始 tab into a visible 文件 panel from the + picker", async () => {
     resetWebviewStores();
     stubAssistant([]);
