@@ -954,7 +954,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
               ? `完成「${pendingIssueAction.title}」？`
               : `取消「${pendingIssueAction.title}」？`
           }
-          description="关闭后不能再接着做。若该 Issue 使用了 worktree，会同时删除隔离目录和对应分支。"
+          description="关闭后不能再接着做，对应的会话记录会一起删除。若该 Issue 使用了 worktree，会同时删除隔离目录和对应分支。"
           confirmText={
             pendingIssueAction.kind === "complete" ? "完成" : "取消 Issue"
           }

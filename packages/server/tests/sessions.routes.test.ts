@@ -137,12 +137,53 @@ describe("sessions HTTP routes", () => {
       issueId: issue.id,
       status: "completed",
     });
-    expect(afterClose.closedIssueGroups[0].sessions[0].id).toBe(sessionId);
+    // Closing the issue deletes its sessions.
+    expect(afterClose.closedIssueGroups[0].sessions).toEqual([]);
+    expect(app.ctx.store.get(sessionId)).toBeUndefined();
     expect(afterClose.recent.map((s: { id: string }) => s.id)).not.toContain(
       sessionId,
     );
     expect(afterClose.recent.map((s: { id: string }) => s.id)).toContain(
       normal.id,
+    );
+  });
+
+  it("grouped caps recent after removing issue sessions", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "修登录" }),
+    }).then((r) => r.json());
+    const { sessionId } = await fetch(
+      `${app.baseUrl}/issues/${issue.id}/planning-session`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ workdir: "/tmp/proj", worktreeEnabled: false }),
+      },
+    ).then((r) => r.json());
+    // The issue session is the most recent one, so it would take a slot in a
+    // cap-then-filter list and leave only 49 ordinary sessions.
+    app.ctx.store.update(sessionId, { lastActiveAt: Date.now() + 10_000 });
+    for (let i = 0; i < 55; i += 1) {
+      const normal = app.ctx.store.create({
+        workdir: "/tmp/proj",
+        model: "m1",
+        title: `普通 ${i}`,
+      });
+      app.ctx.store.update(normal.id, { lastActiveAt: Date.now() + i });
+    }
+
+    const grouped = await fetch(`${app.baseUrl}/sessions?grouped=1`).then((r) =>
+      r.json(),
+    );
+    expect(grouped.recent).toHaveLength(50);
+    expect(grouped.recent.map((s: { id: string }) => s.id)).not.toContain(
+      sessionId,
     );
   });
 
@@ -281,11 +322,10 @@ describe("sessions HTTP routes", () => {
     });
     expect(openSend.status).toBe(200);
 
-    await fetch(`${app.baseUrl}/issues/${issue.id}/complete`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ note: "做完了" }),
-    });
+    // Close through the store: the HTTP route also deletes the sessions now,
+    // while this guard still protects legacy sessions of closed issues (and a
+    // close whose session deletion failed).
+    app.ctx.issueStore.complete(issue.id, "做完了");
 
     const planningSend = await fetch(
       `${app.baseUrl}/sessions/${sessionId}/messages`,
@@ -321,11 +361,7 @@ describe("sessions HTTP routes", () => {
         body: JSON.stringify({ workdir: "/tmp/proj", worktreeEnabled: false }),
       },
     ).then((r) => r.json());
-    await fetch(`${app.baseUrl}/issues/${cancelled.id}/cancel`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ note: "不做了" }),
-    });
+    app.ctx.issueStore.cancel(cancelled.id, "不做了");
     const cancelSend = await fetch(
       `${app.baseUrl}/sessions/${opened.sessionId}/messages`,
       {

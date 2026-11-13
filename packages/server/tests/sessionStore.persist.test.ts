@@ -108,6 +108,44 @@ describe("sessionStore persistence", () => {
     expect(store.listGrouped().recent.map((s) => s.id)).toEqual([user.id]);
   });
 
+  it("applies the recent cap after excluding issue sessions", () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sess-"));
+    const store = createSessionStore({ home });
+    const excluded = new Set<string>();
+    // A closed-issue backlog must not eat the 50 recent slots: issue sessions
+    // are shown in their issue groups, not in 工作空间.
+    for (let i = 0; i < 5; i += 1) {
+      const issueSession = store.create({
+        workdir: "/tmp/issue",
+        model: "m1",
+        title: `issue ${i}`,
+      });
+      store.update(issueSession.id, { lastActiveAt: 10_000 + i });
+      excluded.add(issueSession.id);
+    }
+    for (let i = 0; i < 52; i += 1) {
+      const normal = store.create({
+        workdir: "/tmp/proj",
+        model: "m1",
+        title: `normal ${i}`,
+      });
+      store.update(normal.id, { lastActiveAt: 20_000 + i });
+    }
+
+    const grouped = store.listGrouped({ excludeSessionIds: excluded });
+    expect(grouped.recent).toHaveLength(50);
+    expect(grouped.recent.some((s) => excluded.has(s.id))).toBe(false);
+    expect(grouped.recent[0]?.title).toBe("normal 51");
+    expect(grouped.recent.at(-1)?.title).toBe("normal 2");
+
+    // An issue session still restores even though it is not listed as recent.
+    const issueOnly = [...excluded][0];
+    store.select(issueOnly);
+    expect(
+      store.listGrouped({ excludeSessionIds: excluded }).activeSessionId,
+    ).toBe(issueOnly);
+  });
+
   it("reads leftover waveSessionId and rewrites museSessionId", () => {
     home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sess-"));
     const store1 = createSessionStore({ home });

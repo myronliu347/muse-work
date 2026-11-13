@@ -90,6 +90,63 @@ describe("issues HTTP", () => {
     expect(second.sessionId).toBe(first.sessionId);
   });
 
+  it("completing an issue deletes its planning session", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "修登录" }),
+    }).then((r) => r.json());
+    const { sessionId } = await fetch(
+      `${app.baseUrl}/issues/${issue.id}/planning-session`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ workdir: "/tmp/proj", worktreeEnabled: false }),
+      },
+    ).then((r) => r.json());
+    expect(app.ctx.store.get(sessionId)).toBeDefined();
+
+    const done = await fetch(`${app.baseUrl}/issues/${issue.id}/complete`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ note: "做完了" }),
+    });
+    expect(done.status).toBe(200);
+    expect(app.ctx.store.get(sessionId)).toBeUndefined();
+    const byId = await fetch(`${app.baseUrl}/sessions/${sessionId}`);
+    expect(byId.status).toBe(404);
+  });
+
+  it("cancelling an issue deletes its planning session", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "先不做" }),
+    }).then((r) => r.json());
+    const { sessionId } = await fetch(
+      `${app.baseUrl}/issues/${issue.id}/planning-session`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ workdir: "/tmp/proj", worktreeEnabled: false }),
+      },
+    ).then((r) => r.json());
+
+    const cancelled = await fetch(`${app.baseUrl}/issues/${issue.id}/cancel`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ note: "先不做" }),
+    });
+    expect(cancelled.status).toBe(200);
+    expect(app.ctx.store.get(sessionId)).toBeUndefined();
+  });
+
   it("POST planning-session agentMode=single uses session agent and single-agent prompt", async () => {
     const app = await listenTestApp();
     server = app.server;

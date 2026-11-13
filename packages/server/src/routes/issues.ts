@@ -1,16 +1,44 @@
 import { Hono } from "hono";
 import type { HonoEnv } from "../honoEnv.js";
+import type { AppContext } from "../services/appContext.js";
 import type { Issue, IssueAgentMode, IssuePriority, IssueType } from "../services/issueStore.js";
 import {
   runnerErrorMessage,
   runnerErrorStatus,
 } from "../utils/runnerError.js";
+import { getLogger } from "../utils/logger.js";
 import { openIssueSession } from "../services/issueOpen.js";
 
 export const issuesRoutes = new Hono<HonoEnv>();
 
 function broadcastIssueChanged(ctx: { hub: { broadcastAll: (e: { type: "issue:changed" }) => void } }) {
   ctx.hub.broadcastAll({ type: "issue:changed" });
+}
+
+/**
+ * 关闭事项时连带删除它的规划 / 执行会话：会话属于这个事项，关掉后不该再
+ * 留在侧栏和会话列表里。磁盘上的 transcript 交给常规保留期清理。
+ */
+async function deleteIssueSessions(
+  ctx: AppContext,
+  issue: Pick<Issue, "planningSessionId" | "executionSessionId">,
+): Promise<void> {
+  const ids = new Set(
+    [issue.planningSessionId, issue.executionSessionId].filter(
+      (id): id is string => Boolean(id),
+    ),
+  );
+  for (const id of ids) {
+    if (!ctx.store.get(id)) continue;
+    try {
+      await ctx.runner.disposeSession(id);
+    } catch (err) {
+      getLogger().error("issue session delete failed", {
+        sessionId: id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 }
 
 function isTerminal(status: Issue["status"]): boolean {
@@ -159,6 +187,7 @@ issuesRoutes.post("/issues/:id/complete", async (c) => {
   try {
     const issue = ctx.issueStore.complete(c.req.param("id"), note);
     if (!issue) return c.json({ error: "conflict" }, 409);
+    await deleteIssueSessions(ctx, issue);
     broadcastIssueChanged(ctx);
     return c.json({ issue });
   } catch (err) {
@@ -176,6 +205,7 @@ issuesRoutes.post("/issues/:id/cancel", async (c) => {
   try {
     const issue = ctx.issueStore.cancel(c.req.param("id"), note);
     if (!issue) return c.json({ error: "conflict" }, 409);
+    await deleteIssueSessions(ctx, issue);
     broadcastIssueChanged(ctx);
     return c.json({ issue });
   } catch (err) {

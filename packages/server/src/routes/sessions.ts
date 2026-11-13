@@ -21,7 +21,6 @@ export const sessionsRoutes = new Hono<HonoEnv>();
 sessionsRoutes.get("/sessions", (c) => {
   const ctx = c.get("ctx");
   if (c.req.query("grouped") === "1") {
-    const grouped = ctx.store.listGrouped();
     const toGroup = (issue: {
       id: string;
       title: string;
@@ -70,10 +69,14 @@ sessionsRoutes.get("/sessions", (c) => {
         g.sessions.map((s) => s.id),
       ),
     );
+    // Exclude issue sessions before the 50-item recent cap: they are listed in
+    // 待办事项 / 已关闭, and a closed-issue backlog must not crowd ordinary
+    // workspace sessions out of the sidebar.
+    const grouped = ctx.store.listGrouped({
+      excludeSessionIds: issueSessionIds,
+    });
     return c.json({
       ...grouped,
-      pinned: grouped.pinned.filter((s) => !issueSessionIds.has(s.id)),
-      recent: grouped.recent.filter((s) => !issueSessionIds.has(s.id)),
       issueGroups,
       closedIssueGroups,
     });

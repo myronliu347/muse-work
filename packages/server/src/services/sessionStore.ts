@@ -89,7 +89,10 @@ export interface SessionStore {
   }): Session;
   get(id: string): Session | undefined;
   list(): Session[];
-  listGrouped(): {
+  listGrouped(options?: {
+    /** Sessions owned by issue groups; they are listed there, not in 工作空间. */
+    excludeSessionIds?: ReadonlySet<string>;
+  }): {
     pinned: Session[];
     recent: Session[];
     activeSessionId?: string;
@@ -254,7 +257,9 @@ export function createSessionStore(
       return [...sessions.values()].map(toSession);
     },
 
-    listGrouped(): {
+    listGrouped(options?: {
+      excludeSessionIds?: ReadonlySet<string>;
+    }): {
       pinned: Session[];
       recent: Session[];
       activeSessionId?: string;
@@ -267,13 +272,21 @@ export function createSessionStore(
           s.origin !== "automation" &&
           s.origin !== "assistant",
       );
-      const pinned = all
+      // Issue sessions are shown under 待办事项. Drop them before the recent
+      // cap, or a backlog of closed issues fills all 50 slots and pushes the
+      // ordinary 工作空间 sessions out of the sidebar.
+      const excluded = options?.excludeSessionIds;
+      const listed = excluded
+        ? all.filter((s) => !excluded.has(s.id))
+        : all;
+      const pinned = listed
         .filter((s) => s.pinned)
         .sort((a, b) => b.lastActiveAt - a.lastActiveAt);
-      const recent = all
+      const recent = listed
         .filter((s) => !s.pinned)
         .sort((a, b) => b.lastActiveAt - a.lastActiveAt)
         .slice(0, 50);
+      // Keep restoring an issue session that was active when the app quit.
       const activeListed =
         activeSessionId && all.some((s) => s.id === activeSessionId)
           ? activeSessionId
