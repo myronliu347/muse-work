@@ -167,6 +167,11 @@ if (!gotLock) {
 } else {
   app.on("second-instance", () => {
     if (mainWindow) {
+      // `pnpm dev:desktop` rebuilds the webview and then launches a second
+      // Electron. The single-instance lock makes that second process quit, so
+      // without a reload the old window keeps the previous bundle and appears
+      // unchanged. Reload the existing window in dev to pick up the rebuild.
+      if (!app.isPackaged) mainWindow.webContents.reloadIgnoringCache();
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
     }
