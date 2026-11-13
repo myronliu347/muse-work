@@ -94,7 +94,7 @@ describe("UserMessageNav", () => {
 
   it("renders a tick per user message and shows one popover on hover", () => {
     render(
-      <UserMessageNav entries={entries} activeId="u3" onSelect={() => {}} />,
+      <UserMessageNav entries={entries} activeId="u3" onSelect={() => {}} minEntries={1} />,
     );
     expect(screen.getByTestId("user-message-nav")).toBeInTheDocument();
     expect(screen.queryByTestId("user-message-nav-popover")).toBeNull();
@@ -116,7 +116,7 @@ describe("UserMessageNav", () => {
   it("reveals the full message and scrolls on click", () => {
     const onSelect = vi.fn();
     render(
-      <UserMessageNav entries={entries} activeId="u3" onSelect={onSelect} />,
+      <UserMessageNav entries={entries} activeId="u3" onSelect={onSelect} minEntries={1} />,
     );
     fireEvent.pointerEnter(screen.getByTestId("user-message-nav-u3"));
     expect(screen.getByTestId("user-message-nav-popover")).toHaveTextContent(
@@ -138,6 +138,7 @@ describe("UserMessageNav", () => {
           },
         ]}
         onSelect={() => {}}
+        minEntries={1}
       />,
     );
     fireEvent.pointerEnter(screen.getByTestId("user-message-nav-u1"));
@@ -146,9 +147,28 @@ describe("UserMessageNav", () => {
     expect(popover).toHaveTextContent("先看第一段，最后这段是结论");
   });
 
+  it("stays hidden until there are more than five entries", () => {
+    const five = Array.from({ length: 5 }, (_, i) => ({
+      id: `u${i}`,
+      text: `q${i}`,
+    }));
+    const { rerender } = render(
+      <UserMessageNav entries={five} onSelect={() => {}} />,
+    );
+    expect(screen.queryByTestId("user-message-nav")).toBeNull();
+
+    rerender(
+      <UserMessageNav
+        entries={[...five, { id: "u6", text: "q6" }]}
+        onSelect={() => {}}
+      />,
+    );
+    expect(screen.getByTestId("user-message-nav")).toBeInTheDocument();
+  });
+
   it("marks the active entry", () => {
     render(
-      <UserMessageNav entries={entries} activeId="u3" onSelect={() => {}} />,
+      <UserMessageNav entries={entries} activeId="u3" onSelect={() => {}} minEntries={1} />,
     );
     expect(screen.getByTestId("user-message-nav-u3")).toHaveClass(
       "user-message-nav-item--active",

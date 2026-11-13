@@ -70,9 +70,11 @@ export const UserMessageNav: React.FC<{
   entries: UserMessageNavEntry[];
   activeId?: string;
   onSelect: (messageId: string) => void;
-}> = ({ entries, activeId, onSelect }) => {
+  /** The rail is noise for short threads; show it past this many messages. */
+  minEntries?: number;
+}> = ({ entries, activeId, onSelect, minEntries = 6 }) => {
   const [popover, setPopover] = useState<Popover | null>(null);
-  if (entries.length === 0) return null;
+  if (entries.length < minEntries) return null;
 
   const showFor = (entryId: string, target: HTMLElement) => {
     const rect = target.getBoundingClientRect();

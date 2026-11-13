@@ -200,6 +200,9 @@ describe("sticky user message", () => {
           userMsg("第一条问题", "u1"),
           userMsg("第二条问题", "u2"),
           userMsg("第三条问题", "u3"),
+          userMsg("第四条问题", "u4"),
+          userMsg("第五条问题", "u5"),
+          userMsg("第六条问题", "u6"),
         ],
       });
     });
