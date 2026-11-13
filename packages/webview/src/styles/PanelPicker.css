@@ -10,7 +10,9 @@
   overflow: auto;
 }
 
-.panel-picker-mark {
+/* codicon.css uses `.codicon[class*='codicon-'] { font: 16px ... }`, so a
+   bare class cannot raise the size. */
+.panel-picker .panel-picker-mark.codicon {
   color: var(--gray-8);
   font-size: 48px;
   line-height: 1;
