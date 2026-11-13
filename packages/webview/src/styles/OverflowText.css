@@ -33,21 +33,12 @@
 .overflow-text-inner {
   display: inline-block;
   white-space: nowrap;
-  transition: transform 600ms ease;
+  transition: transform 600ms linear;
   will-change: transform;
 }
 
-/* Constant-speed marquee: out to the end, back again, while hovered. */
+/* Slide to the end at a constant speed, then stop there while hovered. */
 .overflow-text.is-scrolling .overflow-text-inner {
-  animation: overflow-text-marquee var(--overflow-duration, 4s) linear infinite
-    alternate;
-}
-
-@keyframes overflow-text-marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(var(--overflow-shift, 0));
-  }
+  transform: translateX(var(--overflow-shift, 0));
+  transition: transform var(--overflow-duration, 4s) linear;
 }

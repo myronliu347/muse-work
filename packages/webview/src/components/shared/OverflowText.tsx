@@ -46,7 +46,7 @@ export function OverflowText({
   // Leave room after the last glyph so neither the right fade nor the
   // absolutely-positioned close button covers it.
   const travel = shift > 0 ? shift + 36 : 0;
-  const duration = travel > 0 ? Math.max(1.2, travel / 24) : 0;
+  const duration = travel > 0 ? Math.max(1, travel / 32) : 0;
 
   return (
     <span
