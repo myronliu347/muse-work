@@ -151,20 +151,14 @@
   background-color: var(--gray-4);
 }
 
-/* Muse Bot transcript: light-mode user bubbles use the warm tint from the
-   session chat instead of the neutral gray used by the rest of the app. */
-:root[data-theme="light"] .assistant-frame {
-  --muse-user-bubble: #fbe6e0;
-  --muse-user-bubble-hover: #f7dcd4;
-  --muse-user-bubble-border: #f1d4cc;
+/* User bubbles follow the theme accent so changing 强调色 updates the whole
+   transcript, not just one surface. */
+.message.user:not(.queued) .user-text-block {
+  background-color: var(--accent-3);
 }
 
-:root[data-theme="light"] .assistant-frame .message.user:not(.queued) .user-text-block {
-  background-color: var(--muse-user-bubble);
-}
-
-:root[data-theme="light"] .assistant-frame .message.user:hover .user-text-block {
-  background-color: var(--muse-user-bubble-hover);
+.message.user:not(.queued):hover .user-text-block {
+  background-color: var(--accent-4);
 }
 
 .message.user.queued {
