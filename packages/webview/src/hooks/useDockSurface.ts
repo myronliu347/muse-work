@@ -5,15 +5,14 @@ import { issueTabSessionId } from "../components/desktop/botWorkspace";
 import type { MainView } from "../components/ChatApp";
 import { DOCK_DETAIL_TAB, PANEL_ADD_ORDER } from "../muse/panelTabs";
 import { botDockChromeChecked } from "../muse/dockTools";
-import { filesReferToSame, uniqueFileTabs } from "../muse/fileTabs";
+import { uniqueFileTabs } from "../muse/fileTabs";
 import { issueGroupSessionWorkdir } from "../utils/issueGroups";
+import { uniqueWorkdirs, workdirForFile } from "../utils/workdirScope";
 import type { DesktopHostProps, DesktopIssueGroup, VsCodeApi } from "../types";
 import {
   ASSISTANT_PANEL_GROUP_KEY,
   EMPTY_DOCK_TOOLS,
   EMPTY_TAB_ORDER,
-  emptyContentSearchState,
-  issueFileGroupKey,
   resolvePanelGroup,
   usePanelGroup,
   usePanelGroupStore,
@@ -21,7 +20,6 @@ import {
 } from "../stores";
 
 const EMPTY_LISTING_CACHE: PanelGroupState["fileTree"]["childrenCache"] = {};
-const EMPTY_LISTING_SEARCH = emptyContentSearchState();
 const EMPTY_FILE_TABS: PanelGroupState["fileTabs"] = [];
 const EMPTY_EXPANDED: string[] = [];
 
@@ -40,7 +38,6 @@ export function useDockSurface({
   currentSession,
   effectiveWorkdir,
   assistantWorkdir,
-  shownIssueGroup,
   vscode,
   view,
   isDraftSession,
@@ -54,7 +51,6 @@ export function useDockSurface({
   currentSession: { id?: string; workdir?: string } | undefined;
   effectiveWorkdir: string | undefined;
   assistantWorkdir: string | undefined;
-  shownIssueGroup: DesktopIssueGroup | undefined;
   vscode: VsCodeApi;
   view: MainView;
   isDraftSession: boolean;
@@ -102,38 +98,34 @@ export function useDockSurface({
       : assistantWorkdir;
   const panelWorkdir = assistantVisible ? dockWorkdir : sessionPanelWorkdir;
   const followIssueTools = assistantVisible || onSessionsSurface;
-  const groupKey =
-    dockIssueGroup && dockWorkdir
-      ? dockWorkdir
-      : assistantVisible
-        ? ASSISTANT_PANEL_GROUP_KEY
-        : panelWorkdir
-          ? panelWorkdir
-          : undefined;
+  // Tabs belong to the assistant, not to the selected issue. Detail and
+  // diff still read the issue below, but the tab strip/checked/file tabs stay
+  // on one group so an issue switch cannot add, remove or swap tabs.
+  const groupKey = assistantVisible
+    ? ASSISTANT_PANEL_GROUP_KEY
+    : panelWorkdir
+      ? panelWorkdir
+      : undefined;
   const groupKeyRef = useRef(groupKey);
   groupKeyRef.current = groupKey;
   const assistantVisibleRef = useRef(assistantVisible);
   assistantVisibleRef.current = assistantVisible;
   const onSessionsSurfaceRef = useRef(onSessionsSurface);
   onSessionsSurfaceRef.current = onSessionsSurface;
-  const dockWorkdirRef = useRef(dockWorkdir);
-  dockWorkdirRef.current = dockWorkdir;
   const dockIssueIdRef = useRef(dockIssueId);
   dockIssueIdRef.current = dockIssueId;
-  const shownIssueIdRef = useRef<string | undefined>(undefined);
-  shownIssueIdRef.current = shownIssueGroup?.issueId;
   const vscodeRef = useRef(vscode);
   vscodeRef.current = vscode;
   const previewGroupKeyRef = useRef<string | undefined>(undefined);
-  previewGroupKeyRef.current =
-    followIssueTools && dockWorkdir ? dockWorkdir : groupKey;
-  // File replies follow the open issue, not the directory group the session
-  // page shares. Otherwise a sidebar switch paints those tabs on both pages.
+  previewGroupKeyRef.current = assistantVisible
+    ? ASSISTANT_PANEL_GROUP_KEY
+    : followIssueTools && dockWorkdir
+      ? dockWorkdir
+      : groupKey;
+  // The assistant's file replies go to its own tab group now, not to a group
+  // keyed by the issue.
   const fileContentGroupKeyRef = useRef<string | undefined>(undefined);
-  fileContentGroupKeyRef.current =
-    assistantVisible && dockIssueId
-      ? issueFileGroupKey(dockIssueId)
-      : previewGroupKeyRef.current;
+  fileContentGroupKeyRef.current = previewGroupKeyRef.current;
   const {
     checked: checkedPanels,
     mounted: mountedPanels,
@@ -171,42 +163,17 @@ export function useDockSurface({
     (state) => (groupKey ? state.groups[groupKey]?.tabOrder : undefined) ?? EMPTY_TAB_ORDER,
   );
   const dockTabOrder = assistantVisible ? assistantTabOrder : groupTabOrder;
-  // With an issue selected, terminal and browser are not that directory's tabs.
-  // Without one, those bot tools still have to count as open chrome, or a click
-  // leaves the dock on 详情.
-  const issueBoundDock = assistantVisible && Boolean(dockIssueGroup);
   const residentFileOpen = assistantVisible && assistantFileTabs.length > 0;
   const chromeChecked = useMemo(() => {
     const kinds = assistantVisible
-      ? botDockChromeChecked(issueBoundDock, checkedPanels, assistantTools)
+      ? botDockChromeChecked(false, checkedPanels, assistantTools)
       : checkedPanels;
     if (!residentFileOpen || kinds.includes("file")) return kinds;
     return [...kinds, "file"];
-  }, [
-    assistantVisible,
-    issueBoundDock,
-    checkedPanels,
-    assistantTools,
-    residentFileOpen,
-  ]);
-  const chromeActive =
-    issueBoundDock && (activePanel === "terminal" || activePanel === "preview")
-      ? null
-      : activePanel;
-  const slotChecked = useMemo(
-    () =>
-      issueBoundDock
-        ? checkedPanels.filter((kind) => kind === "file" || kind === "diff")
-        : checkedPanels,
-    [issueBoundDock, checkedPanels],
-  );
-  const slotMounted = useMemo(
-    () =>
-      issueBoundDock
-        ? mountedPanels.filter((kind) => kind === "file" || kind === "diff")
-        : mountedPanels,
-    [issueBoundDock, mountedPanels],
-  );
+  }, [assistantVisible, checkedPanels, assistantTools, residentFileOpen]);
+  const chromeActive = activePanel;
+  const slotChecked = checkedPanels;
+  const slotMounted = mountedPanels;
   const slotCheckedWithFile = useMemo(
     () =>
       residentFileOpen && !slotChecked.includes("file")
@@ -246,94 +213,65 @@ export function useDockSurface({
       ? (state.previewEpochs[dockWorkdir] ?? 0)
       : 0,
   );
-  const usingIssuePreview = Boolean(followIssueTools && dockWorkdir);
-  const issueChildrenCache = usePanelGroupStore((state) =>
-    usingIssuePreview && dockWorkdir
-      ? (state.groups[dockWorkdir]?.fileTree?.childrenCache ??
-        EMPTY_LISTING_CACHE)
-      : undefined,
+  const usingIssuePreview = Boolean(
+    !assistantVisible && followIssueTools && dockWorkdir,
   );
-  const issueContentSearch = usePanelGroupStore((state) =>
-    usingIssuePreview && dockWorkdir
-      ? (state.groups[dockWorkdir]?.contentSearch ?? EMPTY_LISTING_SEARCH)
-      : undefined,
+  const shownFileTabs = useMemo(
+    () =>
+      assistantVisible
+        ? uniqueFileTabs(assistantFileTabs)
+        : uniqueFileTabs(fileTabs ?? []),
+    [assistantVisible, assistantFileTabs, fileTabs],
   );
-  const issueFileTabs = usePanelGroupStore((state) => {
-    if (!usingIssuePreview || !dockWorkdir) return undefined;
-    return state.groups[dockWorkdir]?.fileTabs ?? EMPTY_FILE_TABS;
-  });
-  const issueActiveFilePath = usePanelGroupStore((state) => {
-    if (!usingIssuePreview || !dockWorkdir) return undefined;
-    return state.groups[dockWorkdir]?.activeFilePath ?? null;
-  });
-  // Transcript files stay with that issue. The directory group is what the
-  // session page reads, so mixing them in paints the other page's tabs
-  // after a sidebar switch.
-  const shownIssueFileKey = shownIssueGroup
-    ? issueFileGroupKey(shownIssueGroup.issueId)
-    : undefined;
-  const shownIssueFileTabs = usePanelGroupStore((state) => {
-    if (!shownIssueFileKey) return EMPTY_FILE_TABS;
-    return state.groups[shownIssueFileKey]?.fileTabs ?? EMPTY_FILE_TABS;
-  });
-  const shownIssueFileActive = usePanelGroupStore((state) => {
-    if (!shownIssueFileKey) return null;
-    return state.groups[shownIssueFileKey]?.activeFilePath ?? null;
-  });
-  const issueExpanded = usePanelGroupStore((state) => {
-    if (!usingIssuePreview || !dockWorkdir) return undefined;
-    return state.groups[dockWorkdir]?.fileTree?.expanded ?? EMPTY_EXPANDED;
-  });
-  const issueSelected = usePanelGroupStore((state) => {
-    if (!usingIssuePreview || !dockWorkdir) return undefined;
-    return state.groups[dockWorkdir]?.fileTree?.selected;
-  });
-  const shownFileTabs = useMemo(() => {
-    if (!assistantVisible) return uniqueFileTabs(issueFileTabs ?? fileTabs);
-    const issueOnly = shownIssueFileTabs.filter(
-      (tab) => !assistantFileTabs.some((item) => filesReferToSame(item, tab)),
-    );
-    return uniqueFileTabs([...assistantFileTabs, ...issueOnly]);
-  }, [assistantVisible, assistantFileTabs, shownIssueFileTabs, issueFileTabs, fileTabs]);
-  const shownActiveFilePath = useMemo(() => {
-    if (!assistantVisible) {
-      return issueActiveFilePath !== undefined ? issueActiveFilePath : activeFilePath;
-    }
-    const issueOnly = shownIssueFileTabs.filter(
-      (tab) => !assistantFileTabs.some((item) => filesReferToSame(item, tab)),
-    );
-    if (
-      shownIssueFileActive &&
-      issueOnly.some((tab) => tab.path === shownIssueFileActive)
-    ) {
-      return shownIssueFileActive;
-    }
-    if (
-      assistantActiveFilePath &&
-      assistantFileTabs.some((tab) => tab.path === assistantActiveFilePath)
-    ) {
-      return assistantActiveFilePath;
-    }
-    return null;
-  }, [
-    assistantVisible,
-    assistantFileTabs,
-    assistantActiveFilePath,
-    shownIssueFileTabs,
-    shownIssueFileActive,
-    issueActiveFilePath,
-    activeFilePath,
-  ]);
-  const shownFileTree =
-    issueChildrenCache !== undefined
-      ? {
-          ...fileTree,
-          expanded: issueExpanded ?? EMPTY_EXPANDED,
-          selected: issueSelected,
-          childrenCache: issueChildrenCache,
-        }
-      : fileTree;
-  const shownContentSearch = issueContentSearch ?? contentSearch;
+  const shownActiveFilePath = assistantVisible
+    ? assistantActiveFilePath
+    : activeFilePath;
+  // The assistant's file tree follows the open file, not the selected issue:
+  // resolve the file's workdir from the issue workdirs + recent workdirs. A
+  // file outside every known directory has no tree to show.
+  const knownWorkdirs = useMemo(
+    () =>
+      assistantVisible
+        ? uniqueWorkdirs([
+            ...(host?.issueGroups ?? []).map((group) =>
+              issueGroupSessionWorkdir(
+                group,
+                issueTabSessionId(group) ?? "",
+                host?.workdir,
+              ),
+            ),
+            ...(host?.recentWorkdirs ?? []),
+          ])
+        : [],
+    [
+      assistantVisible,
+      host?.issueGroups,
+      host?.recentWorkdirs,
+      host?.workdir,
+    ],
+  );
+  const fileTreeWorkdir = assistantVisible
+    ? workdirForFile(shownActiveFilePath, knownWorkdirs)
+    : dockWorkdir;
+  // A new terminal starts where the file tree points; without a tree (no file
+  // open, or the file is outside known dirs) fall back to the issue directory.
+  const terminalWorkdir = fileTreeWorkdir ?? dockWorkdir;
+  const terminalWorkdirRef = useRef(terminalWorkdir);
+  terminalWorkdirRef.current = terminalWorkdir;
+  const fileTreeGroup = usePanelGroupStore((state) =>
+    fileTreeWorkdir ? state.groups[fileTreeWorkdir] : undefined,
+  );
+  const treeContentSearch = fileTreeGroup?.contentSearch;
+  const shownFileTree = fileTreeWorkdir
+    ? {
+        ...fileTree,
+        expanded: fileTreeGroup?.fileTree?.expanded ?? EMPTY_EXPANDED,
+        selected: fileTreeGroup?.fileTree?.selected,
+        childrenCache:
+          fileTreeGroup?.fileTree?.childrenCache ?? EMPTY_LISTING_CACHE,
+      }
+    : fileTree;
+  const shownContentSearch = treeContentSearch ?? contentSearch;
   const shownPreviewUrl = usingIssuePreview ? dockPreviewUrl : previewUrl;
   const shownForward = usingIssuePreview ? dockForward : currentForward;
   const shownForwardError = usingIssuePreview
@@ -473,15 +411,16 @@ export function useDockSurface({
     dockIssueGroup,
     onSessionsSurface,
     dockWorkdir,
+    fileTreeWorkdir,
+    knownWorkdirs,
     panelWorkdir,
     followIssueTools,
     groupKey,
     groupKeyRef,
     assistantVisibleRef,
     onSessionsSurfaceRef,
-    dockWorkdirRef,
+    terminalWorkdirRef,
     dockIssueIdRef,
-    shownIssueIdRef,
     vscodeRef,
     previewGroupKeyRef,
     fileContentGroupKeyRef,

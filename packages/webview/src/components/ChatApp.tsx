@@ -29,6 +29,9 @@ import {
 import { registerDesktopSettingsOpener } from "../muse/desktopSettingsNav";
 import { registerUnfocusedClose } from "../muse/sidePanelTabs";
 import { draftSessionMetadata } from "../utils/session";
+import { issueGroupSessionWorkdir } from "../utils/issueGroups";
+import { uniqueWorkdirs } from "../utils/workdirScope";
+import { issueTabSessionId } from "./desktop/botWorkspace";
 import {
   useProvidedShellSurface,
   useShellSurface,
@@ -50,7 +53,7 @@ import { useDesktopSessionListWidth } from "../hooks/useDesktopSidebarWidth";
 import "../styles/WelcomeView.css";
 import type { ChatAppProps, DesktopPanelKind } from "../types";
 import { chatReducer, initialState } from "../reducers/chatReducer";
-import { usePaneUi } from "../stores";
+import { usePaneUi, usePanelGroupStore } from "../stores";
 import { useBotIssueBoard } from "../hooks/useBotIssueBoard";
 import { useHostStartupEffects } from "../hooks/useHostStartupEffects";
 import { useChatFrame } from "../hooks/useChatFrame";
@@ -240,7 +243,6 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     currentSession: state.currentSession,
     effectiveWorkdir,
     assistantWorkdir,
-    shownIssueGroup,
     vscode,
     view,
     isDraftSession,
@@ -250,15 +252,16 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     dockIssueGroup,
     onSessionsSurface,
     dockWorkdir,
+    fileTreeWorkdir,
+    knownWorkdirs,
     panelWorkdir,
     followIssueTools,
     groupKey,
     groupKeyRef,
     assistantVisibleRef,
     onSessionsSurfaceRef,
-    dockWorkdirRef,
+    terminalWorkdirRef,
     dockIssueIdRef,
-    shownIssueIdRef,
     vscodeRef,
     previewGroupKeyRef,
     fileContentGroupKeyRef,
@@ -397,8 +400,6 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     usePanelGroupWriters({
       assistantVisibleRef,
       previewGroupKeyRef,
-      shownIssueIdRef,
-      dockIssueIdRef,
     });
 
   const issueSendSessionRef = useRef<string | undefined>(undefined);
@@ -498,7 +499,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     slotCheckedWithFile,
     groupKey,
     selectDockRef,
-    dockWorkdirRef,
+    dockWorkdirRef: terminalWorkdirRef,
     vscodeRef,
     dockChromeRef,
     assistantVisibleRef,
@@ -599,6 +600,15 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     openPreviewHandler,
   } = preview;
 
+  // Tree expanded/selected/cache stay on the workdir that owns the open file;
+  // the tab strip itself lives on the assistant group.
+  const updateFileTreeGroup = useCallback(
+    (patch: Parameters<typeof updatePanelGroup>[0]) => {
+      if (!fileTreeWorkdir) return;
+      usePanelGroupStore.getState().patchGroup(fileTreeWorkdir, patch);
+    },
+    [fileTreeWorkdir],
+  );
   const filePanel = useFilePanel({
     postToHost,
     updatePanelGroup,
@@ -608,9 +618,10 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     currentSession: state.currentSession,
     effectiveHost,
     effectiveWorkdir: followIssueTools ? dockWorkdir : effectiveWorkdir,
+    listingWorkdir: fileTreeWorkdir,
     groupKey,
     contentSearch: shownContentSearch,
-    updateListingGroup: updatePreviewGroup,
+    updateListingGroup: updateFileTreeGroup,
     updateFileGroup,
     resolveFileGroupKey,
   });
@@ -644,20 +655,14 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     onSessionsSurfaceRef,
     previewGroupKeyRef,
     groupKeyRef,
-    shownIssueIdRef,
-    dockIssueIdRef,
-    dockWorkdirRef,
     selectDockRef,
     setAssistantDockOpen,
     onSessionsSurface,
-    tryOpenPanel,
     openFileTabInGroup,
     handleOpenFileHistoryDiff,
     handleSelectFileTab,
     handleCloseFileTab,
     handlePinFileTab,
-    postToHost,
-    effectiveHost,
   });
 
   const rewind = useRewind({
@@ -857,11 +862,28 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
 
 
   // One assembly for the 4 return branches (desktop shell / pane / layout / web).
+  const quickOpenWorkdir = assistantVisible
+    ? (dockWorkdir ?? effectiveWorkdir)
+    : effectiveWorkdir;
+  const quickOpenWorkdirs = uniqueWorkdirs([
+    ...(host?.issueGroups ?? []).map((group) =>
+      issueGroupSessionWorkdir(
+        group,
+        issueTabSessionId(group) ?? "",
+        host?.workdir,
+      ),
+    ),
+    ...(host?.recentWorkdirs ?? []),
+    quickOpenWorkdir,
+    assistantWorkdir,
+  ]);
   const dialogProps = buildChatDialogProps({
     state,
     vscode,
     host,
     effectiveWorkdir,
+    quickOpenWorkdir,
+    quickOpenWorkdirs,
     patchPane,
     handleConfigurationSave,
     handleDialogClose,

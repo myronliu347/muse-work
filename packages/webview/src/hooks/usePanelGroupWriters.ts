@@ -1,9 +1,7 @@
 import { useCallback, type MutableRefObject } from "react";
 import { activePreviewTool, patchDockTool } from "../muse/dockTools";
-import { filesReferToSame } from "../muse/fileTabs";
 import {
   ASSISTANT_PANEL_GROUP_KEY,
-  issueFileGroupKey,
   resolvePanelGroup,
   usePanelGroupStore,
   type PanelGroupState,
@@ -16,13 +14,9 @@ import {
 export function usePanelGroupWriters({
   assistantVisibleRef,
   previewGroupKeyRef,
-  shownIssueIdRef,
-  dockIssueIdRef,
 }: {
   assistantVisibleRef: MutableRefObject<boolean>;
   previewGroupKeyRef: MutableRefObject<string | undefined>;
-  shownIssueIdRef: MutableRefObject<string | undefined>;
-  dockIssueIdRef: MutableRefObject<string | null | undefined>;
 }) {
   const updatePreviewGroup = useCallback(
     (
@@ -72,33 +66,13 @@ export function usePanelGroupWriters({
         return;
       }
       store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, patch);
-      const issueKey = previewGroupKeyRef.current;
-      if (issueKey && issueKey !== ASSISTANT_PANEL_GROUP_KEY) {
-        store.patchGroup(issueKey, { activeFilePath: null });
-      }
-      const ownedId = shownIssueIdRef.current ?? dockIssueIdRef.current;
-      if (ownedId) {
-        store.patchGroup(issueFileGroupKey(ownedId), { activeFilePath: null });
-      }
     },
     [],
   );
-  const resolveFileGroupKey = useCallback((path: string) => {
-    if (!assistantVisibleRef.current) return undefined;
-    const store = usePanelGroupStore.getState();
-    const ownedId = shownIssueIdRef.current ?? dockIssueIdRef.current;
-    const issueKey = ownedId ? issueFileGroupKey(ownedId) : undefined;
-    const onAssistant = (store.groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? []).some(
-      (tab) => filesReferToSame(tab, { path }),
-    );
-    const onIssue = Boolean(
-      issueKey &&
-        (store.groups[issueKey]?.fileTabs ?? []).some((tab) =>
-          filesReferToSame(tab, { path }),
-        ),
-    );
-    if (onIssue && !onAssistant) return issueKey;
-    return ASSISTANT_PANEL_GROUP_KEY;
+  const resolveFileGroupKey = useCallback(() => {
+    return assistantVisibleRef.current
+      ? ASSISTANT_PANEL_GROUP_KEY
+      : undefined;
   }, []);
 
   return { updatePreviewGroup, updateFileGroup, resolveFileGroupKey };

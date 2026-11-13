@@ -50,6 +50,8 @@ export interface DesktopPanelSlotsProps {
   isStreaming: boolean;
   sessionId?: string;
   workdir?: string;
+  /** Directory the file tree/preview follows; derived from the open file. */
+  fileWorkdir?: string;
   /** Branch this session's worktree was cut from. */
   baseBranch?: string;
   /** Home directory, so issue workdirs render as `~/…`. */
@@ -146,6 +148,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   isStreaming,
   sessionId,
   workdir,
+  fileWorkdir,
   baseBranch,
   homeDir,
   previewEpoch,
@@ -257,7 +260,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
       return (
         <FilePane
           fileView={fileView}
-          workdir={workdir}
+          workdir={fileWorkdir}
           vscode={vscode}
           fileTree={fileTree}
           onFileTreeChange={onFileTreeChange}

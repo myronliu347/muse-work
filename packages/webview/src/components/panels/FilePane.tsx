@@ -153,7 +153,8 @@ export const FilePane: React.FC<FilePaneProps> = ({
   const isHtml =
     fileView?.host === "local" && /\.(html?|xhtml)$/i.test(fileView.path);
   const treeCollapsed = fileTree.collapsed !== false;
-  const showTreeToggle = Boolean(onFileTreeChange);
+  // No known workdir for the open file (or none open): no tree to show.
+  const showTreeToggle = Boolean(onFileTreeChange && workdir);
   const treePresence = useExitHold(showTreeToggle && !treeCollapsed);
 
   // Find-in-file is available whenever the code/source view renders.
@@ -361,7 +362,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
               )}
             </div>
           </div>
-          {onFileTreeChange && treePresence.show && (
+          {onFileTreeChange && workdir && treePresence.show && (
             <FileTree
               key={workdir ?? ""}
               workdir={workdir}

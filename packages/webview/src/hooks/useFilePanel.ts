@@ -60,6 +60,8 @@ interface UseFilePanelParams {
   currentSession: SessionMetadata | undefined;
   effectiveHost: string;
   effectiveWorkdir?: string;
+  /** Directory the file tree / content search reads. Defaults to effectiveWorkdir. */
+  listingWorkdir?: string;
   groupKey?: string;
   contentSearch: ContentSearchState;
   updateListingGroup?: ChatAppCore["updatePanelGroup"];
@@ -81,6 +83,7 @@ export function useFilePanel({
   currentSession,
   effectiveHost,
   effectiveWorkdir,
+  listingWorkdir,
   groupKey,
   contentSearch,
   updateListingGroup,
@@ -89,6 +92,7 @@ export function useFilePanel({
 }: UseFilePanelParams): FilePanelHandlers {
   const writeListingGroup = updateListingGroup ?? updatePanelGroup;
   const writeFileGroup = updateFileGroup ?? writeListingGroup;
+  const treeWorkdir = listingWorkdir ?? effectiveWorkdir;
   // Reset file sidebar search when workdir changes (per-group memory stays
   // for tree width/expand; search mode/results start fresh). The visible
   // search lives on the listing group, so that group is cleared too.
@@ -98,9 +102,9 @@ export function useFilePanel({
   );
   useEffect(() => {
     const prev = contentSearchWorkdirRef.current;
-    contentSearchWorkdirRef.current = effectiveWorkdir;
+    contentSearchWorkdirRef.current = treeWorkdir;
     if (prev === undefined) return;
-    if (prev === effectiveWorkdir) return;
+    if (prev === treeWorkdir) return;
     if (contentSearchTimerRef.current) {
       clearTimeout(contentSearchTimerRef.current);
       contentSearchTimerRef.current = null;
@@ -111,7 +115,7 @@ export function useFilePanel({
     };
     if (groupKey) updatePanelGroup(reset);
     writeListingGroup(reset);
-  }, [effectiveWorkdir, groupKey, updatePanelGroup, writeListingGroup]);
+  }, [treeWorkdir, groupKey, updatePanelGroup, writeListingGroup]);
 
   useEffect(() => {
     return () => {
@@ -127,7 +131,7 @@ export function useFilePanel({
         clearTimeout(contentSearchTimerRef.current);
         contentSearchTimerRef.current = null;
       }
-      const startedWorkdir = effectiveWorkdir;
+      const startedWorkdir = treeWorkdir;
       const q = next.query.trim();
       if (!q || !startedWorkdir) {
         writeListingGroup({
@@ -161,7 +165,7 @@ export function useFilePanel({
         });
       }, 250);
     },
-    [effectiveWorkdir, postToHost, writeListingGroup],
+    [treeWorkdir, postToHost, writeListingGroup],
   );
 
   const handleFileSidebarModeChange = useCallback(

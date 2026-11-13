@@ -78,6 +78,50 @@ describe("QuickOpenPalette", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("searches the current issue workdir and can switch the scope", () => {
+    const postMessage = vi.fn();
+    render(
+      <QuickOpenPalette
+        open
+        workdir="/work/radii"
+        workdirs={["/work/radii", "/work/a11y", "/work/notes"]}
+        vscode={{ postMessage }}
+        onClose={vi.fn()}
+        onOpenFile={vi.fn()}
+      />,
+    );
+
+    const scope = screen.getByTestId("quick-open-scope") as HTMLSelectElement;
+    expect(scope.value).toBe("/work/radii");
+
+    fireEvent.change(screen.getByTestId("quick-open-input"), {
+      target: { value: "App" },
+    });
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(postMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        command: "requestFileSuggestions",
+        workdir: "/work/radii",
+        filterText: "App",
+      }),
+    );
+
+    postMessage.mockClear();
+    fireEvent.change(scope, { target: { value: "/work/a11y" } });
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "requestFileSuggestions",
+        workdir: "/work/a11y",
+        filterText: "App",
+      }),
+    );
+  });
+
   it("lists matching issues ahead of files and selects one", () => {
     const onSelectIssue = vi.fn();
     const onClose = vi.fn();

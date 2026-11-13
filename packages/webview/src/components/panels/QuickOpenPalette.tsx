@@ -18,7 +18,10 @@ export type QuickOpenIssue = {
 
 export type QuickOpenPaletteProps = {
   open: boolean;
+  /** Default search scope (current issue's workdir when there is one). */
   workdir: string | undefined;
+  /** Other workdirs the user can switch the search scope to. */
+  workdirs?: string[];
   vscode: { postMessage: (msg: unknown) => void };
   onClose: () => void;
   onOpenFile: (absPath: string) => void;
@@ -50,6 +53,7 @@ function matchIssues(issues: QuickOpenIssue[], query: string): QuickOpenIssue[] 
 export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
   open,
   workdir,
+  workdirs = [],
   vscode,
   onClose,
   onOpenFile,
@@ -58,11 +62,19 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
   initialQuery = "",
 }) => {
   const [query, setQuery] = useState("");
+  const [scopeWorkdir, setScopeWorkdir] = useState<string | undefined>(workdir);
   const [hits, setHits] = useState<QuickOpenHit[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const requestIdRef = useRef<string | undefined>(undefined);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const scopeOptions = useMemo(() => {
+    const out: string[] = [];
+    for (const dir of [workdir, ...workdirs]) {
+      if (dir && !out.includes(dir)) out.push(dir);
+    }
+    return out;
+  }, [workdir, workdirs]);
   const issueHits = useMemo(() => matchIssues(issues, query), [issues, query]);
   const rows: QuickOpenRow[] = [
     ...issueHits.map((issue) => ({ kind: "issue" as const, issue })),
@@ -77,9 +89,10 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
       return;
     }
     setQuery(initialQuery);
+    setScopeWorkdir(workdir);
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
     return () => window.clearTimeout(t);
-  }, [open, initialQuery]);
+  }, [open, initialQuery, workdir]);
 
   useEffect(() => {
     if (!open) return;
@@ -103,7 +116,7 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
     if (timerRef.current) clearTimeout(timerRef.current);
     const q = query.trim();
     setSelectedIndex(0);
-    if (!q || !workdir) {
+    if (!q || !scopeWorkdir) {
       setHits([]);
       requestIdRef.current = undefined;
       return;
@@ -117,14 +130,14 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
         requestId,
         filterText: q,
         dir: "",
-        workdir,
+        workdir: scopeWorkdir,
         source: "quickOpen",
       });
     }, 150);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [open, query, workdir, vscode]);
+  }, [open, query, scopeWorkdir, vscode]);
 
   if (!open) return null;
 
@@ -139,7 +152,7 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
   const trimmed = query.trim();
   const empty = !trimmed
     ? "输入文件名或事项开始搜索"
-    : !workdir && issueHits.length === 0
+    : !scopeWorkdir && issueHits.length === 0
       ? "选择工作目录后打开文件"
       : rows.length === 0
         ? "无匹配"
@@ -182,6 +195,25 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
           }
         }}
       >
+        <div className="quick-open-scope">
+          <span className="quick-open-scope-label">范围</span>
+          <select
+            className="quick-open-scope-select"
+            data-testid="quick-open-scope"
+            aria-label="搜索范围"
+            value={scopeWorkdir ?? ""}
+            onChange={(event) => {
+              setScopeWorkdir(event.target.value || undefined);
+            }}
+          >
+            {!scopeWorkdir ? <option value="">选择工作目录</option> : null}
+            {scopeOptions.map((dir) => (
+              <option key={dir} value={dir} title={dir}>
+                {dir}
+              </option>
+            ))}
+          </select>
+        </div>
         <input
           ref={inputRef}
           className="quick-open-input"

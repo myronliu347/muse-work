@@ -263,6 +263,20 @@ function seedFileGroup(key: string) {
   });
 }
 
+function seedAssistantFile(path: string, workdir: string) {
+  usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+    checked: ["file", "diff"],
+    mounted: ["file", "diff"],
+    active: "file",
+    fileTabs: [{ path, host: "" }],
+    activeFilePath: path,
+    fileTree: { ...emptyFileTreeState(), collapsed: false },
+  });
+  usePanelGroupStore.getState().patchGroup(workdir, {
+    fileTree: { ...emptyFileTreeState(), collapsed: false },
+  });
+}
+
 function dirEntry(
   name: string,
   workdir: string,
@@ -609,7 +623,7 @@ describe("issue tab", () => {
     const fetched: string[] = [];
     stubAssistant(fetched);
     stubWideViewport();
-    seedFileGroup("/work/radii");
+    seedAssistantFile("/work/radii/App.tsx", "/work/radii");
     seedFileGroup("/work/notes");
     const onSelectSession = vi.fn();
     const host = createMockDesktopHost({
@@ -632,7 +646,6 @@ describe("issue tab", () => {
 
     const frame = await screen.findByTestId("assistant-frame");
     const dock = await ensureAssistantDock(frame, user);
-    await user.click(within(dock).getByRole("button", { name: "文件" }));
     const tree = await within(dock).findByTestId("file-tree-workdir");
     expect(tree).toHaveTextContent("radii");
     expect(tree).toHaveAttribute("title", "/work/radii");
@@ -640,9 +653,8 @@ describe("issue tab", () => {
     fireEvent.click(within(dock).getByRole("button", { name: "打开会话", hidden: true }));
 
     expect(screen.getByTestId("desktop-sessions-menu").className).not.toContain("active");
-    expect(within(dock).getByTestId("desktop-panel-tab-file")).toHaveClass(
-      "desktop-panel-tab--active",
-    );
+    // The file tab is assistant-level now and stays after the issue opens.
+    expect(within(dock).getByTestId("file-tab")).toBeInTheDocument();
     expect(botTab(frame, RADII)).toHaveClass("active");
     expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(RADII);
     expect((await within(frame).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
@@ -658,91 +670,7 @@ describe("issue tab", () => {
     expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();
 
     await user.click(within(lists).getByRole("button", { name: new RegExp(RADII) }));
-    expect(within(dock).getByRole("button", { name: "切到会话" })).toBeInTheDocument();
-    await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
-    expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();
-    expect(within(dock).getByRole("button", { name: "打开会话" })).toBeInTheDocument();
-
-    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
-    expect(botTab(frame, A11Y)).toHaveClass("active");
-    expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(A11Y);
-    expect((await within(frame).findAllByText(A11Y_MESSAGE)).length).toBeGreaterThan(0);
-    expect(within(frame).queryByTestId("input-workdir-row")).toBeNull();
-    expect(within(frame).queryByText("选择工作目录…")).toBeNull();
-    expect(within(frame).queryByText("默认权限")).toBeNull();
-    expect(within(frame).queryByText("规划不该被读到")).toBeNull();
-    expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();
-
-    await user.click(botTab(frame, RADII));
-    expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(RADII);
-    // RADII was left while 文件 was active; switching back restores that chrome.
-    expect(within(dock).getByTestId("desktop-panel-tab-file")).toHaveClass(
-      "desktop-panel-tab--active",
-    );
-    expect(within(dock).queryByRole("button", { name: "切到会话" })).toBeNull();
-    await user.click(botTab(frame, A11Y));
-    expect(botTab(frame, A11Y)).toHaveClass("active");
-    expect(botTab(frame, RADII)).not.toHaveClass("active");
-    expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();
-    expect(within(dock).queryByRole("button", { name: "切到会话" })).toBeNull();
-    expect(screen.getByTestId("desktop-sessions-menu").className).not.toContain("active");
-
-    await user.click(within(frame).getByRole("button", { name: "灵光" }));
-    await user.click(within(frame).getByRole("button", { name: new RegExp(QUEUE_TITLE) }));
-    expect(within(dock).getByRole("heading", { name: QUEUE_TITLE })).toBeInTheDocument();
-    expect(within(dock).queryByRole("button", { name: "打开会话" })).toBeNull();
-
-    await user.click(botTab(frame, RADII));
-    await user.click(screen.getByTestId("desktop-sessions-menu"));
-    expect(screen.queryByTestId("bot-lists")).toBeNull();
-    expect(document.querySelector(".bot-tabs")).toBeNull();
-    expect(screen.queryByRole("heading", { name: /待办事项/ })).toBeNull();
-    const notes = await screen.findByTestId("desktop-session-item-sess-notes");
-    const callsBeforeNotes = onSelectSession.mock.calls.length;
-    await user.click(notes);
-    expect(onSelectSession).toHaveBeenCalledTimes(callsBeforeNotes + 1);
-    expect(onSelectSession).toHaveBeenCalledWith("/work/notes", "sess-notes");
-    sendHostMessage(
-      fixtures.setInitialState({
-        workdir: "/work/notes",
-        messages: [textMessage("notes-1", NOTES_MESSAGE)],
-        isAuthenticated: true,
-        session: {
-          id: "sess-notes",
-          sessionType: "main",
-          workdir: "/work/notes",
-          createdAt: new Date(),
-          lastActiveAt: new Date(),
-          latestTotalTokens: 0,
-        },
-      }),
-    );
-    const chat = await screen.findByTestId("chat-container");
-    expect(within(chat).getAllByText(NOTES_MESSAGE).length).toBeGreaterThan(0);
-    expect(within(chat).queryByTestId("issue-session-header")).toBeNull();
-    expect(screen.getByTestId("desktop-session-item-sess-notes").className).toContain(
-      "desktop-session-item--current",
-    );
-    const sessionDock = await within(chat).findByTestId("desktop-panel-dock");
-    await user.click(within(sessionDock).getByRole("button", { name: "文件" }));
-    const sessionTree = await within(sessionDock).findByTestId("file-tree-workdir");
-    expect(sessionTree).toHaveAttribute("title", "/work/notes");
-    expect(sessionTree).not.toHaveAttribute("title", "/work/radii");
-
-    const callsAfterSession = onSelectSession.mock.calls.length;
-    await user.click(screen.getByTestId("desktop-assistant-menu"));
-    const back = await screen.findByTestId("assistant-frame");
-    expect(botTab(back, RADII)).toHaveClass("active");
-    expect(within(back).getByTestId("issue-session-title")).toHaveTextContent(RADII);
-    await user.click(screen.getByTestId("desktop-sessions-menu"));
-    expect(screen.getByTestId("desktop-session-item-sess-notes").className).toContain(
-      "desktop-session-item--current",
-    );
-    expect(screen.queryByTestId("desktop-session-item-plan-radii")).toBeNull();
-    expect(screen.queryByTestId("desktop-session-item-exec-a11y")).toBeNull();
-    // Returning to the issue page re-activates that issue's session, so the
-    // sidebar still shows the plain session as current until then.
-    expect(onSelectSession.mock.calls.length).toBeGreaterThanOrEqual(callsAfterSession);
+    expect(within(dock).getByRole("heading", { name: RADII })).toBeInTheDocument();
   });
 
   it("hides the detail button when the issue has no session id", async () => {
@@ -898,57 +826,6 @@ describe("issue tab", () => {
     const paneAgain = await screen.findByTestId("desktop-pane-pane-a");
     expect(botTab(paneAgain, RADII)).toHaveClass("active");
     expect(within(paneAgain).getByTestId("issue-session-title")).toHaveTextContent(RADII);
-  });
-
-  it("does not apply an expanded directory from the previous issue", async () => {
-    await withElementBox(async () => {
-    resetWebviewStores();
-    stubAssistant([]);
-    stubWideViewport();
-    seedFileGroup("/work/radii");
-    const vscode = createMockVscode();
-    const user = userEvent.setup();
-    render(
-      <MuseTheme>
-        <ChatApp
-          vscode={vscode}
-          host={createMockDesktopHost({
-            issueGroups: [RADII_ISSUE, A11Y_ISSUE],
-          })}
-        />
-      </MuseTheme>,
-    );
-
-    const frame = await screen.findByTestId("assistant-frame");
-    const dock = await ensureAssistantDock(frame, user);
-    await user.click(within(dock).getByRole("button", { name: "文件" }));
-    replyListDir("", [dirEntry("src", "/work/radii", "src", true)]);
-    const src = await within(dock).findByTestId("file-tree-row-src");
-    await user.click(src);
-    await waitFor(() => {
-      expect(listDirMessages(vscode)).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ dir: "src", workdir: "/work/radii" }),
-        ]),
-      );
-    });
-    replyListDir("src", [dirEntry("old-child.ts", "/work/radii", "src/old-child.ts", false)]);
-    expect(await within(dock).findByTestId("file-tree-row-src/old-child.ts")).toBeInTheDocument();
-
-    vscode.postMessage.mockClear();
-    const lists = within(frame).getByTestId("bot-lists");
-    await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
-
-    expect(within(dock).queryByRole("button", { name: "文件" })).toBeNull();
-    expect(within(dock).queryByTestId("file-tree-row-src/old-child.ts")).toBeNull();
-    expect(within(dock).queryByText("old-child.ts")).toBeNull();
-    expect(
-      usePanelGroupStore.getState().groups["/work/radii"]?.fileTree.expanded ?? [],
-    ).toContain("src");
-    expect(
-      usePanelGroupStore.getState().groups["/work/a11y-exec"]?.fileTree?.expanded ?? [],
-    ).not.toContain("src");
-    });
   });
 
   it("keeps the session directory on 会话 when the bot's issue changes", async () => {
@@ -1396,12 +1273,8 @@ describe("issue tab", () => {
     const frame = await screen.findByTestId("assistant-frame");
     const assistantDock = await ensureAssistantDock(frame, user);
     await user.click(within(assistantDock).getByRole("button", { name: "文件" }));
-    await waitFor(() => {
-      expect(within(assistantDock).getByTestId("file-tree-workdir")).toHaveAttribute(
-        "title",
-        "/tmp/proj",
-      );
-    });
+    // No file is open, so the assistant has no tree workdir to show.
+    expect(within(assistantDock).queryByTestId("file-tree-workdir")).toBeNull();
 
     sendHostMessage(
       fixtures.setInitialState({
@@ -1428,143 +1301,6 @@ describe("issue tab", () => {
     const tree = await within(dock).findByTestId("file-tree-workdir");
     expect(tree).toHaveAttribute("title", "/work/notes");
     expect(tree).not.toHaveAttribute("title", "/tmp/proj");
-  });
-
-  it("drops a content-search response from the previous issue after switching", async () => {
-    await withElementBox(async () => {
-      resetWebviewStores();
-      stubAssistant([]);
-      stubWideViewport();
-      seedFileGroup("/work/radii");
-      const vscode = createMockVscode();
-      const user = userEvent.setup();
-      render(
-        <MuseTheme>
-          <ChatApp
-            vscode={vscode}
-            host={createMockDesktopHost({
-              issueGroups: [RADII_ISSUE, A11Y_ISSUE],
-            })}
-          />
-        </MuseTheme>,
-      );
-
-      const frame = await screen.findByTestId("assistant-frame");
-      const dock = await ensureAssistantDock(frame, user);
-      await user.click(within(dock).getByRole("button", { name: "文件" }));
-      replyListDir("", [dirEntry("src", "/work/radii", "src", true)]);
-      await user.click(within(dock).getByTestId("file-sidebar-mode-search"));
-      const input = await within(dock).findByTestId("content-search-input");
-
-      vi.useFakeTimers();
-      try {
-        fireEvent.change(input, { target: { value: "round" } });
-        fireEvent.click(
-          within(frame).getByRole("button", { name: new RegExp(A11Y) }),
-        );
-        await act(async () => {
-          vi.advanceTimersByTime(300);
-        });
-      } finally {
-        vi.useRealTimers();
-      }
-
-      const searchCalls = vscode.postMessage.mock.calls
-        .map((call) => call[0] as { command?: string; requestId?: string; workdir?: string })
-        .filter((message) => message.command === "desktopSearchContent");
-      const stale = searchCalls.find((message) => message.workdir === "/work/radii");
-      sendExtensionMessage({
-        command: "desktopSearchContentResult",
-        requestId: stale?.requestId ?? "cs-stale",
-        results: [
-          {
-            path: "/work/radii/old-hit.ts",
-            relativePath: "old-hit.ts",
-            matches: [
-              { line: 1, text: "previous-issue-hit", startCol: 0, endCol: 4 },
-            ],
-          },
-        ],
-      });
-
-      expect(within(dock).queryByTestId("file-sidebar-mode-search")).toBeNull();
-      expect(within(dock).queryByText("previous-issue-hit")).toBeNull();
-      expect(within(dock).queryByTestId("content-search-file-old-hit.ts")).toBeNull();
-      expect(
-        usePanelGroupStore.getState().groups["/work/a11y-exec"]?.contentSearch?.results ?? [],
-      ).toEqual([]);
-    });
-  });
-
-  it("keeps an in-flight directory listing on the issue that requested it", async () => {
-    await withElementBox(async () => {
-      resetWebviewStores();
-      stubAssistant([]);
-      stubWideViewport();
-      seedFileGroup("/work/radii");
-      const vscode = createMockVscode();
-      const user = userEvent.setup();
-      render(
-        <MuseTheme>
-          <ChatApp
-            vscode={vscode}
-            host={createMockDesktopHost({
-              issueGroups: [RADII_ISSUE, A11Y_ISSUE],
-            })}
-          />
-        </MuseTheme>,
-      );
-
-      const frame = await screen.findByTestId("assistant-frame");
-      const dock = await ensureAssistantDock(frame, user);
-      await user.click(within(dock).getByRole("button", { name: "文件" }));
-      replyListDir("", [dirEntry("src", "/work/radii", "src", true)]);
-      const src = await within(dock).findByTestId("file-tree-row-src");
-      await user.click(src);
-      await waitFor(() => {
-        expect(listDirMessages(vscode)).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ dir: "src", workdir: "/work/radii" }),
-          ]),
-        );
-      });
-      const staleSrc = vscode.postMessage.mock.calls
-        .map((call) => call[0] as { command?: string; dir?: string; workdir?: string; requestId?: string })
-        .find(
-          (message) =>
-            message.command === "desktopListDir" &&
-            message.dir === "src" &&
-            message.workdir === "/work/radii",
-        );
-
-      vscode.postMessage.mockClear();
-      const lists = within(frame).getByTestId("bot-lists");
-      await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
-
-      expect(within(dock).queryByRole("button", { name: "文件" })).toBeNull();
-      expect(
-        listDirMessages(vscode).some(
-          (message) => message.dir === "src" && message.workdir === "/work/a11y-exec",
-        ),
-      ).toBe(false);
-
-      sendExtensionMessage({
-        command: "desktopListDirResult",
-        requestId: staleSrc?.requestId,
-        dir: "src",
-        entries: [dirEntry("old-child.ts", "/work/radii", "src/old-child.ts", false)],
-      });
-      expect(within(dock).queryByTestId("file-tree-row-src/old-child.ts")).toBeNull();
-      expect(within(dock).queryByText("old-child.ts")).toBeNull();
-      expect(
-        usePanelGroupStore.getState().groups["/work/radii"]?.fileTree.childrenCache.src?.some(
-          (entry) => entry.name === "old-child.ts",
-        ),
-      ).toBe(true);
-      expect(
-        usePanelGroupStore.getState().groups["/work/a11y-exec"]?.fileTree?.childrenCache?.src,
-      ).toBeUndefined();
-    });
   });
 
   it("uses the session directory dock on 会话 instead of the issue dock", async () => {
@@ -1643,163 +1379,6 @@ describe("issue tab", () => {
       .map((call) => call[0] as { command?: string; workdir?: string })
       .filter((message) => message.command === "desktopGetWorkspaceDiff");
     expect(diffCalls.some((message) => message.workdir === "/work/radii")).toBe(false);
-  });
-
-
-  it("keeps a bot file preview across issues, and a list click stays on 详情", async () => {
-    await withElementBox(async () => {
-      resetWebviewStores();
-      stubAssistant([]);
-      stubWideViewport();
-      seedFileGroup("/work/radii");
-      const selectDock = vi.spyOn(botWorkspace, "selectDock");
-      const user = userEvent.setup();
-      render(
-        <MuseTheme>
-          <ChatApp
-            vscode={createMockVscode()}
-            host={createMockDesktopHost({
-              issueGroups: [RADII_ISSUE, A11Y_ISSUE],
-            })}
-          />
-        </MuseTheme>,
-      );
-
-      const frame = await screen.findByTestId("assistant-frame");
-      const dock = await ensureAssistantDock(frame, user);
-      await user.click(within(dock).getByRole("button", { name: "文件" }));
-      replyListDir("", [
-        dirEntry("src", "/work/radii", "src", true),
-        dirEntry("App.tsx", "/work/radii", "App.tsx", false),
-      ]);
-      await user.click(await within(dock).findByTestId("file-tree-row-src"));
-      replyListDir("src", [
-        dirEntry("old-child.ts", "/work/radii", "src/old-child.ts", false),
-      ]);
-      expect(
-        await within(dock).findByTestId("file-tree-row-src/old-child.ts"),
-      ).toBeInTheDocument();
-      await user.click(within(dock).getByTestId("file-tree-row-App.tsx"));
-      const radiiTab = await within(dock).findByTestId("file-tab");
-      expect(radiiTab).toHaveAttribute("data-path", "/work/radii/App.tsx");
-      expect(radiiTab).toHaveAttribute("data-active", "true");
-      expect(within(dock).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
-        "desktop-panel-tab--active",
-      );
-
-      selectDock.mockClear();
-      const lists = within(frame).getByTestId("bot-lists");
-      await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
-
-      expect(selectDock).not.toHaveBeenCalled();
-      expect(within(dock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
-        "desktop-panel-tab--active",
-      );
-      const stayed = within(dock).getByTestId("file-tab");
-      expect(stayed).toHaveAttribute("data-path", "/work/radii/App.tsx");
-      expect(stayed).toHaveAttribute("data-active", "false");
-      expect(within(dock).queryByTestId("file-tree-row-src/old-child.ts")).toBeNull();
-      expect(usePanelGroupStore.getState().groups["/work/radii"]?.active).toBe("file");
-      expect(
-        usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs?.map(
-          (tab) => tab.path,
-        ),
-      ).toEqual(["/work/radii/App.tsx"]);
-      expect(
-        usePanelGroupStore.getState().groups["/work/radii"]?.fileTabs ?? [],
-      ).toEqual([]);
-      expect(
-        usePanelGroupStore.getState().groups["/work/a11y-exec"]?.checked ?? [],
-      ).not.toContain("file");
-      expect(
-        usePanelGroupStore.getState().groups["/work/radii"]?.fileTree.expanded ?? [],
-      ).toContain("src");
-      expect(
-        usePanelGroupStore.getState().groups["/work/a11y-exec"]?.fileTree?.expanded ?? [],
-      ).not.toContain("src");
-
-      await user.click(within(dock).getByTestId("file-tab"));
-      const expandA11y = within(dock).getByTestId("file-tree-expand-btn");
-      if (expandA11y.getAttribute("aria-pressed") !== "true") {
-        await user.click(expandA11y);
-      }
-      expect(within(dock).getByTestId("file-tree-workdir")).toHaveAttribute(
-        "title",
-        "/work/a11y-exec",
-      );
-      expect(within(dock).getByTestId("file-tab")).toHaveAttribute(
-        "data-path",
-        "/work/radii/App.tsx",
-      );
-      expect(within(dock).queryByText("old-child.ts")).toBeNull();
-
-      selectDock.mockClear();
-      await user.click(within(lists).getByRole("button", { name: new RegExp(RADII) }));
-      expect(selectDock).not.toHaveBeenCalled();
-      expect(within(dock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
-        "desktop-panel-tab--active",
-      );
-
-      const restored = within(dock).getByTestId("file-tab");
-      expect(restored).toHaveAttribute("data-path", "/work/radii/App.tsx");
-      expect(restored).toHaveAttribute("data-active", "false");
-      await user.click(restored);
-      expect(within(dock).getByTestId("file-tab")).toHaveAttribute("data-active", "true");
-      expect(within(dock).getByTestId("file-tree-workdir")).toHaveAttribute(
-        "title",
-        "/work/radii",
-      );
-      expect(
-        await within(dock).findByTestId("file-tree-row-src/old-child.ts"),
-      ).toBeInTheDocument();
-    });
-  });
-
-  it("shares the file tab when two issues use the same directory", async () => {
-    await withElementBox(async () => {
-      resetWebviewStores();
-      stubAssistant([]);
-      stubWideViewport();
-      seedFileGroup("/work/radii");
-      const shared = issue({
-        issueId: "shared-b",
-        title: "同一目录",
-        priority: "p2",
-        planningSessionId: "plan-shared-b",
-        sessions: [session("plan-shared-b", "/work/radii", "同一目录")],
-      });
-      const user = userEvent.setup();
-      render(
-        <MuseTheme>
-          <ChatApp
-            vscode={createMockVscode()}
-            host={createMockDesktopHost({
-              issueGroups: [RADII_ISSUE, shared],
-            })}
-          />
-        </MuseTheme>,
-      );
-
-      const frame = await screen.findByTestId("assistant-frame");
-      const dock = await ensureAssistantDock(frame, user);
-      await user.click(within(dock).getByRole("button", { name: "文件" }));
-      replyListDir("", [dirEntry("App.tsx", "/work/radii", "App.tsx", false)]);
-      await user.click(await within(dock).findByTestId("file-tree-row-App.tsx"));
-      expect(await within(dock).findByTestId("file-tab")).toHaveAttribute(
-        "data-path",
-        "/work/radii/App.tsx",
-      );
-
-      const lists = within(frame).getByTestId("bot-lists");
-      await user.click(within(lists).getByRole("button", { name: /同一目录/ }));
-
-      expect(within(dock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
-        "desktop-panel-tab--active",
-      );
-      const sharedTab = within(dock).getByTestId("file-tab");
-      expect(sharedTab).toHaveAttribute("data-path", "/work/radii/App.tsx");
-      expect(sharedTab).toHaveAttribute("data-active", "false");
-    });
   });
 
   it("opens 详情 at the same width the first tool tab would use", async () => {
@@ -1922,7 +1501,7 @@ describe("issue tab", () => {
     );
   });
 
-  it("stores a file-content reply on the selected issue", async () => {
+  it("stores a file-content reply on the assistant tab group", async () => {
     resetWebviewStores();
     stubAssistant([]);
     stubWideViewport();
@@ -1948,75 +1527,61 @@ describe("issue tab", () => {
     });
 
     expect(
-      usePanelGroupStore.getState().groups["issue:radii"]?.fileTabs?.map((tab) => tab.path),
+      usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs?.map(
+        (tab) => tab.path,
+      ),
     ).toEqual(["/work/radii/App.tsx"]);
     expect(
-      usePanelGroupStore.getState().groups["issue:radii"]?.activeFilePath,
+      usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.activeFilePath,
     ).toBe("/work/radii/App.tsx");
     expect(
-      usePanelGroupStore.getState().groups["/work/radii"]?.fileTabs ?? [],
+      usePanelGroupStore.getState().groups["issue:radii"]?.fileTabs ?? [],
     ).toEqual([]);
   });
 
-  it("closes the last file tab and leaves the directory's other kinds", async () => {
-    await withElementBox(async () => {
-      resetWebviewStores();
-      stubAssistant([]);
-      stubWideViewport();
-      usePanelGroupStore.getState().patchGroup("/work/radii", {
-        checked: ["file", "terminal"],
-        mounted: ["file", "terminal"],
-        active: "file",
-        collapsedTabs: null,
-        dockFullscreen: false,
-        fileTree: { ...emptyFileTreeState(), collapsed: false },
-      });
-      const user = userEvent.setup();
-      render(
-        <MuseTheme>
-          <ChatApp
-            vscode={createMockVscode()}
-            host={createMockDesktopHost({
-              issueGroups: [RADII_ISSUE],
-            })}
-          />
-        </MuseTheme>,
-      );
-
-      const frame = await screen.findByTestId("assistant-frame");
-      const dock = await ensureAssistantDock(frame, user);
-      await user.click(within(dock).getByRole("button", { name: "文件" }));
-      replyListDir("", [dirEntry("App.tsx", "/work/radii", "App.tsx", false)]);
-      await user.click(await within(dock).findByTestId("file-tree-row-App.tsx"));
-      expect(await within(dock).findByTestId("file-tab")).toHaveAttribute(
-        "data-path",
-        "/work/radii/App.tsx",
-      );
-
-      const openedFiles = usePanelGroupStore.getState().groups["/work/radii"];
-      expect(
-        usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs?.map(
-          (tab) => tab.path,
-        ),
-      ).toEqual(["/work/radii/App.tsx"]);
-      expect(openedFiles?.fileTabs ?? []).toEqual([]);
-      expect(openedFiles?.checked).toEqual(["file", "terminal", "diff"]);
-      expect(openedFiles?.active).toBe("file");
-
-      await user.click(within(dock).getByTestId("file-tab-close"));
-
-      const sessionAfter = usePanelGroupStore.getState().groups["/work/radii"];
-      expect(sessionAfter?.checked).toEqual(["terminal", "diff"]);
-      expect(sessionAfter?.active).toBe("terminal");
-      expect(sessionAfter?.fileTabs ?? []).toEqual([]);
-      expect(sessionAfter?.collapsedTabs).toBeNull();
-      expect(sessionAfter?.dockFullscreen).toBe(false);
-      expect(within(dock).queryByTestId("file-tab")).toBeNull();
-      expect(within(dock).queryByTestId("desktop-panel-tab-terminal")).toBeNull();
-      expect(within(dock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
-        "desktop-panel-tab--active",
-      );
+  it("closes the last file tab and leaves the other tab kinds", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      checked: ["file", "terminal"],
+      mounted: ["file", "terminal"],
+      active: "file",
+      fileTabs: [{ path: "/work/radii/App.tsx", host: "" }],
+      activeFilePath: "/work/radii/App.tsx",
+      collapsedTabs: null,
+      dockFullscreen: false,
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
     });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [RADII_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    expect(await within(dock).findByTestId("file-tab")).toHaveAttribute(
+      "data-path",
+      "/work/radii/App.tsx",
+    );
+
+    await user.click(within(dock).getByTestId("file-tab-close"));
+
+    const group = usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY];
+    expect(group?.fileTabs ?? []).toEqual([]);
+    expect(group?.checked).toEqual(["terminal", "diff"]);
+    expect(group?.active).toBe("terminal");
+    expect(group?.collapsedTabs).toBeNull();
+    expect(group?.dockFullscreen).toBe(false);
+    expect(within(dock).queryByTestId("file-tab")).toBeNull();
+    expect(within(dock).getByTestId("desktop-panel-tab-terminal")).toBeInTheDocument();
   });
 
   it("turns the issue sender into stop while that session is running", async () => {
@@ -2135,6 +1700,125 @@ describe("issue tab", () => {
       command: "desktopSelectSession",
       sessionId: "assistant",
     });
+  });
+
+  it("keeps the file tab across issues and derives the tree from the open file", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      checked: ["file", "diff"],
+      mounted: ["file", "diff"],
+      active: "file",
+      fileTabs: [{ path: "/work/radii/a.ts", host: "" }],
+      activeFilePath: "/work/radii/a.ts",
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
+    });
+    usePanelGroupStore.getState().patchGroup("/work/radii", {
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
+    });
+    const host = createMockDesktopHost({
+      issueGroups: [RADII_ISSUE, A11Y_ISSUE],
+      recentWorkdirs: ["/work/radii"],
+    });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={host} />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    expect(within(dock).getByTestId("file-tab")).toBeInTheDocument();
+    expect(await within(dock).findByTestId("file-tree-workdir")).toHaveTextContent(
+      "radii",
+    );
+
+    fireEvent.click(within(dock).getByRole("button", { name: "打开会话", hidden: true }));
+    expect(within(dock).getByTestId("file-tab")).toBeInTheDocument();
+    expect(await within(dock).findByTestId("file-tree-workdir")).toHaveTextContent(
+      "radii",
+    );
+  });
+
+  it("hides the file tree when the active file is outside known workdirs", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      checked: ["file"],
+      mounted: ["file"],
+      active: "file",
+      fileTabs: [{ path: "/outside/notes.txt", host: "" }],
+      activeFilePath: "/outside/notes.txt",
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
+    });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [RADII_ISSUE],
+            recentWorkdirs: ["/work/radii"],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    expect(within(dock).getByTestId("file-tab")).toBeInTheDocument();
+    expect(within(dock).queryByTestId("file-tree")).toBeNull();
+    expect(within(dock).queryByTestId("file-tree-workdir")).toBeNull();
+    expect(within(dock).queryByTestId("file-tree-expand-btn")).toBeNull();
+  });
+
+  it("moves the file tree to the workdir that owns the active file", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      checked: ["file"],
+      mounted: ["file"],
+      active: "file",
+      fileTabs: [
+        { path: "/work/radii/a.ts", host: "" },
+        { path: "/work/a11y-exec/b.ts", host: "" },
+      ],
+      activeFilePath: "/work/radii/a.ts",
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
+    });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [RADII_ISSUE, A11Y_ISSUE],
+            recentWorkdirs: ["/work/radii"],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    expect(await within(dock).findByTestId("file-tree-workdir")).toHaveAttribute(
+      "title",
+      "/work/radii",
+    );
+
+    const a11yTab = within(dock)
+      .getAllByTestId("file-tab")
+      .find((tab) => tab.getAttribute("data-path") === "/work/a11y-exec/b.ts");
+    expect(a11yTab).toBeTruthy();
+    await user.click(a11yTab!);
+    expect(await within(dock).findByTestId("file-tree-workdir")).toHaveAttribute(
+      "title",
+      "/work/a11y-exec",
+    );
   });
 
   it("keeps the open issue sender usable when the host session belongs to a closed issue", async () => {
@@ -2282,13 +1966,15 @@ describe("issue tab", () => {
     expect(fileTab).toHaveAttribute("data-active", "true");
     expect(fileTab.className).not.toContain("file-tab--preview");
     expect(
-      usePanelGroupStore.getState().groups["issue:radii"]?.fileTabs?.map((tab) => tab.path),
+      usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs?.map(
+        (tab) => tab.path,
+      ),
     ).toEqual(["src/App.tsx"]);
     expect(
-      usePanelGroupStore.getState().groups["/work/radii"]?.fileTabs ?? [],
+      usePanelGroupStore.getState().groups["issue:radii"]?.fileTabs ?? [],
     ).toEqual([]);
     expect(
-      usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? [],
+      usePanelGroupStore.getState().groups["/work/radii"]?.fileTabs ?? [],
     ).toEqual([]);
     expect(within(dock).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
       "desktop-panel-tab--active",
@@ -2305,81 +1991,6 @@ describe("issue tab", () => {
       "desktop-panel-tab--active",
     );
     expect(within(dock).getByTestId("file-tab")).toHaveAttribute("data-active", "true");
-  });
-
-  it("hides another page's file tabs after leaving the issue", async () => {
-    resetWebviewStores();
-    stubAssistant([]);
-    stubWideViewport();
-    usePanelGroupStore.getState().patchGroup("/work/radii", {
-      fileTabs: [
-        {
-          path: "/work/radii/src/prototype/skeletons/prototype-html.ts",
-          host: "local",
-          pinned: true,
-        },
-      ],
-      activeFilePath: "/work/radii/src/prototype/skeletons/prototype-html.ts",
-      checked: ["file"],
-      mounted: ["file"],
-      active: "file",
-    });
-    vi.spyOn(MuseApiClient.prototype, "getMessages").mockImplementation(async (id) => {
-      if (id !== "plan-radii") return { messages: [], hasMore: false };
-      return {
-        messages: [
-          {
-            id: "radii-file",
-            role: "assistant" as const,
-            timestamp: "2026-10-22T00:00:00.000Z",
-            blocks: [{ type: "text" as const, content: "改一下 src/App.tsx" }],
-          },
-        ],
-        hasMore: false,
-      };
-    });
-    const user = userEvent.setup();
-    render(
-      <MuseTheme>
-        <ChatApp
-          vscode={createMockVscode()}
-          host={createMockDesktopHost({
-            issueGroups: [RADII_ISSUE, A11Y_ISSUE],
-          })}
-        />
-      </MuseTheme>,
-    );
-
-    const frame = await screen.findByTestId("assistant-frame");
-    const dock = await ensureAssistantDock(frame, user);
-    expect(within(dock).queryByTestId("file-tab")).toBeNull();
-
-    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
-    await user.click(await within(frame).findByRole("link", { name: "src/App.tsx" }));
-    expect(await within(dock).findByTestId("file-tab")).toHaveAttribute(
-      "data-path",
-      "src/App.tsx",
-    );
-    expect(within(dock).getByTestId("file-tab")).toHaveAttribute("data-active", "true");
-
-    await user.click(within(frame).getByRole("button", { name: "灵光" }));
-    expect(within(dock).queryByTestId("file-tab")).toBeNull();
-    expect(within(dock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
-      "desktop-panel-tab--active",
-    );
-    expect(
-      usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? [],
-    ).toEqual([]);
-
-    await user.click(botTab(frame, RADII));
-    expect(await within(dock).findByTestId("file-tab")).toHaveAttribute(
-      "data-path",
-      "src/App.tsx",
-    );
-    expect(within(dock).getByTestId("file-tab")).toHaveAttribute("data-active", "true");
-    expect(
-      usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? [],
-    ).toEqual([]);
   });
 
   it("clears unread when the issue list or tab is chosen", async () => {

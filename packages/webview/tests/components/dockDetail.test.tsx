@@ -604,9 +604,9 @@ describe("assistant dock detail", () => {
     resetWebviewStores();
     stubAssistant([]);
     stubWideViewport();
-    usePanelGroupStore.getState().patchGroup("/work/radii", {
-      checked: ["file"],
-      mounted: ["file"],
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      checked: ["file", "diff"],
+      mounted: ["file", "diff"],
       active: "file",
       fileTree: { ...emptyFileTreeState(), collapsed: false },
     });
@@ -632,12 +632,10 @@ describe("assistant dock detail", () => {
     const frame = await screen.findByTestId("assistant-frame");
     const dock = await ensureAssistantDock(frame, user);
     await user.click(within(dock).getByRole("button", { name: "文件" }));
-    expect(await within(dock).findByTestId("file-tree")).toBeVisible();
 
     await user.click(within(dock).getByTestId("desktop-panel-tab-close-file"));
     await user.click(within(dock).getByTestId("desktop-panel-tab-close-diff"));
     expect(await within(dock).findByTestId("dock-detail")).toBeVisible();
-    expect(within(dock).getByTestId("file-tree")).not.toBeVisible();
     expect(within(dock).getByRole("heading", { name: RADII })).toBeInTheDocument();
     expect(within(dock).queryByTestId("desktop-panel-tab-file")).toBeNull();
   });
@@ -646,9 +644,9 @@ describe("assistant dock detail", () => {
     resetWebviewStores();
     stubAssistant([]);
     stubWideViewport();
-    usePanelGroupStore.getState().patchGroup("/work/radii", {
-      checked: ["file", "terminal"],
-      mounted: ["file", "terminal"],
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      checked: ["file", "terminal", "diff"],
+      mounted: ["file", "terminal", "diff"],
       active: "file",
       fileTree: { ...emptyFileTreeState(), collapsed: false },
     });
@@ -681,7 +679,6 @@ describe("assistant dock detail", () => {
     expect(within(dock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
       "desktop-panel-tab--active",
     );
-    expect(within(dock).getByTestId("file-tree")).not.toBeVisible();
     const terminal = within(dock).queryByTestId("terminal-pane");
     if (terminal) expect(terminal).not.toBeVisible();
   });

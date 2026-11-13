@@ -120,6 +120,7 @@ export function useChatDock(input: {
     state,
     effectiveWorkdir,
     dockWorkdir,
+    fileTreeWorkdir,
     sessionBaseBranch,
     paneId,
     vscode,
@@ -368,6 +369,7 @@ export function useChatDock(input: {
         : undefined
       : state.currentSession?.id,
     workdir: (assistantVisible || onSessionsSurface ? dockWorkdir : effectiveWorkdir) || undefined,
+    fileWorkdir: fileTreeWorkdir ?? undefined,
     baseBranch:
       dockIssueId || assistantVisible ? undefined : sessionBaseBranch,
     homeDir: host?.homeDir,
@@ -407,10 +409,10 @@ export function useChatDock(input: {
             : undefined;
           if (nextWorkdir) {
             const store = usePanelGroupStore.getState();
-            const existing = store.groups[nextWorkdir];
+            const existing = store.groups[ASSISTANT_PANEL_GROUP_KEY];
             const checked = existing?.checked ?? [];
             const mounted = existing?.mounted ?? [];
-            store.patchGroup(nextWorkdir, {
+            store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
               checked: checked.includes("diff") ? checked : [...checked, "diff"],
               mounted: mounted.includes("diff") ? mounted : [...mounted, "diff"],
               active: "diff",

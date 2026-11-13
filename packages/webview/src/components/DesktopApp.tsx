@@ -4,7 +4,6 @@ import { VsCodeApi, OpenPaneOptions } from "../types";
 import { useDesktopShell } from "../stores/desktopStore";
 import {
   ASSISTANT_PANEL_GROUP_KEY,
-  issueFileGroupKey,
   prunePanelGroupCache,
   workdirTermId,
 } from "../stores/panelGroupStore";
@@ -54,7 +53,6 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
       // 还开着的 Issue 目录要留着。已经关闭的 Issue 不占右侧面板，
       // 除非这个目录仍是当前工作区或别的会话在用。
       for (const g of issueGroupsRef.current) {
-        keep.add(issueFileGroupKey(g.issueId));
         for (const s of g.sessions) {
           if (s.workdir) keep.add(s.workdir);
         }

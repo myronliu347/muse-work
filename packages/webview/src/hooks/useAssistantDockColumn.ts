@@ -65,12 +65,12 @@ export function useAssistantDockColumn({
     const justOpened = !assistantDockSeenOpen.current;
     assistantDockSeenOpen.current = true;
     if (!dockIssueId || !dockWorkdir) return;
-    const group = usePanelGroupStore.getState().groups[dockWorkdir];
+    const group = usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY];
     const checked = group?.checked ?? [];
     if (checked.includes("diff")) return;
     const untouched = checked.length === 0 && !group?.collapsedTabs;
     if (!justOpened && !untouched) return;
-    usePanelGroupStore.getState().patchGroup(dockWorkdir, {
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
       checked: [...checked, "diff"],
       mounted: group?.mounted.includes("diff")
         ? group.mounted

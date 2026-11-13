@@ -755,6 +755,33 @@
   overflow: hidden;
 }
 
+.quick-open-scope {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  padding: 6px var(--space-3);
+  border-bottom: var(--hairline) solid var(--gray-6);
+  font-size: var(--font-size-1);
+  color: var(--gray-9);
+}
+
+.quick-open-scope-label {
+  flex: none;
+}
+
+.quick-open-scope-select {
+  flex: 1;
+  min-width: 0;
+  padding: 2px var(--space-1);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-1);
+  background: var(--gray-3);
+  color: var(--gray-12);
+  font: inherit;
+  cursor: pointer;
+}
+
 .quick-open-input {
   width: 100%;
   box-sizing: border-box;

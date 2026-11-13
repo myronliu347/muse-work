@@ -49,6 +49,10 @@ export interface ChatDialogsProps {
   quickOpenQuery?: string;
   onQuickOpenClose: () => void;
   effectiveWorkdir?: string;
+  /** Default search scope for Cmd+P; falls back to effectiveWorkdir. */
+  quickOpenWorkdir?: string;
+  /** Workdirs listed in the Cmd+P scope picker. */
+  quickOpenWorkdirs?: string[];
   quickOpenIssues?: Array<{ id: string; title: string; type?: string }>;
   onQuickOpenIssue?: (issueId: string) => void;
 }
@@ -87,6 +91,8 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
   quickOpenQuery,
   onQuickOpenClose,
   effectiveWorkdir,
+  quickOpenWorkdir,
+  quickOpenWorkdirs,
   quickOpenIssues,
   onQuickOpenIssue,
 }) => {
@@ -174,7 +180,8 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
       <QuickOpenPalette
         open={quickOpenOpen}
         initialQuery={quickOpenQuery}
-        workdir={effectiveWorkdir}
+        workdir={quickOpenWorkdir ?? effectiveWorkdir}
+        workdirs={quickOpenWorkdirs}
         issues={quickOpenIssues}
         vscode={vscode}
         onClose={onQuickOpenClose}

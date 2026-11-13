@@ -7,6 +7,8 @@ export function buildChatDialogProps(input: {
   vscode: VsCodeApi;
   host: DesktopHostProps | undefined;
   effectiveWorkdir?: string;
+  quickOpenWorkdir?: string;
+  quickOpenWorkdirs?: string[];
   patchPane: ChatAppCore["patchPane"];
   handleConfigurationSave: ChatDialogsProps["onConfigurationSave"];
   handleDialogClose: () => void;
@@ -30,6 +32,8 @@ export function buildChatDialogProps(input: {
     vscode,
     host,
     effectiveWorkdir,
+    quickOpenWorkdir,
+    quickOpenWorkdirs,
     patchPane,
     handleConfigurationSave,
     handleDialogClose,
@@ -79,6 +83,8 @@ export function buildChatDialogProps(input: {
       setQuickOpenQuery("");
     },
     effectiveWorkdir,
+    quickOpenWorkdir,
+    quickOpenWorkdirs,
     quickOpenIssues: (host?.issueGroups ?? []).map((group) => ({
       id: group.issueId,
       title: group.title,
