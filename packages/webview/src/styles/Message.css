@@ -599,6 +599,24 @@
   border-color: var(--accent-9);
 }
 
+.user-image-missing {
+  width: 72px;
+  height: 72px;
+  padding: var(--space-1);
+  box-sizing: border-box;
+  border: 1px dashed var(--gray-7);
+  border-radius: var(--radius-4);
+  background: var(--gray-3);
+  color: var(--gray-9);
+  font-size: var(--font-size-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex-shrink: 0;
+  user-select: none;
+}
+
 .image-block {
   margin: var(--space-2) 0;
   display: flex;
@@ -616,6 +634,10 @@
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-1);
   max-width: 300px;
+}
+
+.image-item-message--missing {
+  color: var(--gray-9);
 }
 
 .image-item-message .image-icon {

@@ -82,6 +82,12 @@ export interface ToolBlock {
 export interface ImageBlock {
   type: "image";
   imageUrls?: string[];
+  /**
+   * Refs that were dropped because their upload file no longer exists. The
+   * webview renders「图片已清理」from this count instead of pointing `<img>` at
+   * a missing file.
+   */
+  missingImageCount?: number;
 }
 
 /** Muse webview still renders legacy bang blocks from older sessions. */

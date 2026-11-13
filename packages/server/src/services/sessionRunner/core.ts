@@ -2,6 +2,7 @@ import { EMPTY_TURN_ERROR } from "../../constants/agent.js";
 import { closeAgentLogger, getLogger } from "../../utils/logger.js";
 import { mapSdkMessages } from "../../utils/messageMapper.js";
 import { enrichFileHistory } from "../../utils/fileHistoryDiff.js";
+import { pruneMissingImageRefs } from "../../utils/pruneMissingImages.js";
 import type { CoreLayer, RunnerContext } from "./ctx.js";
 
 /**
@@ -43,7 +44,9 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     const mapped = mapSdkMessages(messages);
     hub.broadcast(sessionId, {
       type: "messages:replace",
-      messages: enrichFileHistory(mapped, session.workdir, sessionId),
+      messages: pruneMissingImageRefs(
+        enrichFileHistory(mapped, session.workdir, sessionId),
+      ),
     });
   }
 

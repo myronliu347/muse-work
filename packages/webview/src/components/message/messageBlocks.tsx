@@ -57,6 +57,19 @@ function UserImageThumb({
   );
 }
 
+/** A pasted image whose upload file is gone. No `<img>` src is rendered. */
+function MissingImagePlaceholder({ count }: { count: number }) {
+  return (
+    <div
+      className="user-image-missing"
+      data-testid="user-image-missing"
+      title={count > 1 ? `${count} 张图片已清理` : "图片已清理"}
+    >
+      <span>图片已清理</span>
+    </div>
+  );
+}
+
 export function renderToolActivity(options: {
   toolBlock: ToolBlock;
   index: number;
@@ -322,7 +335,9 @@ export function renderMessageImage(options: {
   const handleImagePreview = onPreview;
 
 const renderImageBlock = (imageBlock: ImageBlock, index: number) => {
-  if (!imageBlock.imageUrls || imageBlock.imageUrls.length === 0) {
+  const imageUrls = imageBlock.imageUrls ?? [];
+  const missingCount = imageBlock.missingImageCount ?? 0;
+  if (imageUrls.length === 0 && missingCount === 0) {
     return null;
   }
 
@@ -341,7 +356,7 @@ const renderImageBlock = (imageBlock: ImageBlock, index: number) => {
         className="user-image-block"
         data-testid="user-image-block"
       >
-        {imageBlock.imageUrls.map((imageUrl, imgIndex) => {
+        {imageUrls.map((imageUrl, imgIndex) => {
           if (!imageUrl) return null;
           const name = `图片 ${imgIndex + 1}`;
           return (
@@ -355,6 +370,9 @@ const renderImageBlock = (imageBlock: ImageBlock, index: number) => {
             />
           );
         })}
+        {missingCount > 0 ? (
+          <MissingImagePlaceholder count={missingCount} />
+        ) : null}
       </div>
     );
   }
@@ -381,7 +399,7 @@ const renderImageBlock = (imageBlock: ImageBlock, index: number) => {
 
   return (
     <div key={`image-${index}`} className="image-block">
-      {imageBlock.imageUrls.map((imageUrl, imgIndex) => (
+      {imageUrls.map((imageUrl, imgIndex) => (
         <div
           key={`img-${index}-${imgIndex}`}
           className="image-item-message"
@@ -396,6 +414,16 @@ const renderImageBlock = (imageBlock: ImageBlock, index: number) => {
           </div>
         </div>
       ))}
+      {missingCount > 0 ? (
+        <div className="image-item-message image-item-message--missing">
+          <div className="image-icon">
+            <span className="image-type">IMG</span>
+          </div>
+          <div className="image-info">
+            <span className="image-name">图片已清理</span>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

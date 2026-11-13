@@ -3,6 +3,7 @@ import { closeAgentLogger } from "../../utils/logger.js";
 import { mapSdkMessages } from "../../utils/messageMapper.js";
 import { enrichFileHistory, revertSnapshots } from "../../utils/fileHistoryDiff.js";
 import { pageTranscript, type PageMessage } from "../../utils/transcriptPage.js";
+import { pruneMissingImageRefs } from "../../utils/pruneMissingImages.js";
 import {
   isRewindTargetMessage,
   toSerializableSlashCommand,
@@ -97,7 +98,9 @@ export function createActions(ctx: RunnerContext): SessionRunner {
       mapSdkMessages(page.messages),
     );
     return {
-      messages: enrichFileHistory(nested, session.workdir, sessionId),
+      messages: pruneMissingImageRefs(
+        enrichFileHistory(nested, session.workdir, sessionId),
+      ),
       hasMore: page.hasMore,
     };
   }
@@ -108,7 +111,7 @@ export function createActions(ctx: RunnerContext): SessionRunner {
   ): void {
     hub.broadcast(sessionId, {
       type: "messages:replace",
-      messages: page.messages,
+      messages: pruneMissingImageRefs(page.messages),
       hasMore: page.hasMore,
     });
   }

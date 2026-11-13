@@ -45,6 +45,50 @@ describe("user message images", () => {
     expect(children[1]).toHaveClass("user-image-block");
   });
 
+  it("shows 图片已清理 instead of an <img> when the upload is gone", () => {
+    const message: MessageType = {
+      id: "u-gone",
+      role: "user",
+      timestamp: "2024-01-01T00:00:00.000Z",
+      blocks: [{ type: "image", imageUrls: [], missingImageCount: 1 }],
+    };
+
+    render(
+      <Message
+        message={message}
+        vscode={{ postMessage: () => {}, getState: () => null, setState: () => {} }}
+      />,
+    );
+
+    const block = screen.getByTestId("user-image-block");
+    expect(screen.getByTestId("user-image-missing")).toHaveTextContent("图片已清理");
+    // The missing ref must not reach an <img src>, or the renderer requests a
+    // file that no longer exists.
+    expect(block.querySelectorAll("img")).toHaveLength(0);
+  });
+
+  it("keeps the remaining thumbs next to the cleaned placeholder", () => {
+    const message: MessageType = {
+      id: "u-mixed",
+      role: "user",
+      timestamp: "2024-01-01T00:00:00.000Z",
+      blocks: [
+        { type: "image", imageUrls: [TINY], missingImageCount: 1 },
+      ],
+    };
+
+    render(
+      <Message
+        message={message}
+        vscode={{ postMessage: () => {}, getState: () => null, setState: () => {} }}
+      />,
+    );
+
+    const block = screen.getByTestId("user-image-block");
+    expect(block.querySelectorAll("img")).toHaveLength(1);
+    expect(screen.getByTestId("user-image-missing")).toBeInTheDocument();
+  });
+
   it("opens preview when clicking a user image thumbnail", () => {
     const message: MessageType = {
       id: "u2",
