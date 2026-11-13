@@ -620,7 +620,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                           aria-hidden
                         />
                       )}
-                      <span className="desktop-panel-tab-text">{detailLabel}</span>
+                      <OverflowText className="desktop-panel-tab-text" text={detailLabel} />
                     </button>
                   </Tooltip>
                 </div>
@@ -660,7 +660,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                         className={`codicon ${PANEL_TAB_ICONS[tool.kind]} desktop-panel-tab-icon`}
                         aria-hidden
                       />
-                      <span className="desktop-panel-tab-text">{tool.label}</span>
+                      <OverflowText className="desktop-panel-tab-text" text={tool.label} title={tool.title} />
                     </button>
                   </Tooltip>
                   <button
@@ -745,7 +745,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                     className={`codicon ${PANEL_TAB_ICONS[kind]} desktop-panel-tab-icon`}
                     aria-hidden
                   />
-                  <span className="desktop-panel-tab-text">{label}</span>
+                  <OverflowText className="desktop-panel-tab-text" text={label} />
                 </button>
                 <button
                   type="button"

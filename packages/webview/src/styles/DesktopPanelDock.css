@@ -171,20 +171,6 @@
   flex: 1 1 auto;
   min-width: 0;
   text-align: left;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.desktop-panel-tab:hover .desktop-panel-tab-text,
-.desktop-panel-tab--active .desktop-panel-tab-text {
-  text-overflow: clip;
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
-  mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
 }
 
 .desktop-panel-tab-icon {
