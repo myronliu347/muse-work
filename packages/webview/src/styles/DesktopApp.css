@@ -1338,9 +1338,18 @@ html:has(.desktop-layout) {
   align-items: center;
   gap: var(--space-1);
   padding-left: var(--space-2);
-  /* Match row hover so the time underneath is fully covered. */
-  background: var(--surface-raised);
+  /* Match the row's own state so the time underneath is fully covered
+     without showing a lighter pill on the active row. */
+  background: var(--surface-muted);
   border-radius: var(--radius-2);
+}
+
+.desktop-session-item--current .desktop-session-actions {
+  background: var(--surface-active);
+}
+
+.desktop-session-item--visible .desktop-session-actions {
+  background: var(--surface-visible);
 }
 
 .desktop-session-item:hover .desktop-session-actions,
