@@ -22,7 +22,7 @@ colors:
   body-dark: "#bbbbbb"
   muted: "#6c6c6c"
   muted-dark: "#9a9a9a"
-  hairline: "#e4e4e4"
+  hairline: "#dedede"
   hairline-dark: "#2b2b2b"
   accent: "#3e63dd"
   on-accent: "#ffffff"
@@ -161,7 +161,7 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 
 ### Hairlines
 
-- **Hairline** (`{colors.hairline}` — #d9d9d9)：卡片描边，1px `--gray-6`。
+- **Hairline** (`{colors.hairline}` — #dedede)：卡片描边，浅色取 `--gray-6` 85% + 白，深色取 `--gray-6` 75% + 黑。
 - **Hairline Dark** (`{colors.hairline-dark}` — #3a3a3a)：深色描边。
 - 列表里的分隔线用 `--hairline`：普通屏 1px，2x 屏 0.5px。
 
@@ -211,7 +211,7 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 | Overlay | `--overlay-scrim` / `--overlay-scrim-strong` | 黑 40% / 85% | 模态遮罩 / 图片与图表全屏层 |
 | | `--overlay-backdrop` | `--gray-1` 40% | quick-open 等轻背板 |
 | | `--overlay-control-soft` / `--overlay-control` | 白 10% / 20% | 图片上的悬浮控件 |
-| Border | `--border-faint` / `--border-subtle` / `--border-strong` / `--border-emphasis` | `--gray-3` / `--gray-6` / `--gray-7` / `--gray-12` | 极弱分隔 / 卡片描边 / 强描边 / 高对比选中 |
+| Border | `--border-faint` / `--border-subtle` / `--border-strong` / `--border-emphasis` | `--gray-3` / `--gray-6` 85% + 白（浅）·75% + 黑（深） / `--gray-7` / `--gray-12` | 极弱分隔 / 卡片描边 / 强描边 / 高对比选中 |
 | | `--border-focus` / `--border-selected` | `--accent-9` | 焦点、选中 |
 
 - 所有结构性 1px 分割线（会话列表、dock、设置区、下拉头）统一用 `--border-subtle`；`--border-faint` 只给 tooltip 箭头，`--border-strong` 只给控件/卡片，不要拿来做分割线。
@@ -331,7 +331,7 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 
 ### Sidebar
 
-**`sidebar`** — 会话列表用 `{colors.surface-sidebar}`，图标栏和标题栏用 `{colors.surface-rail}`，内容区用画布色。会话列表右侧和右侧 dock 左边统一用 1px `--border-subtle`；浅色不要用 `--border-strong`，否则两条线颜色会不一致。默认宽 280px，可拖 180–400。
+**`sidebar`** — 会话列表用 `{colors.surface-sidebar}`，图标栏和标题栏用 `{colors.surface-rail}`，内容区用画布色。会话列表右侧和右侧 dock 左边统一用 `var(--hairline) solid var(--border-subtle)`；浅色不要用 `--border-strong`，否则两条线颜色会不一致。默认宽 280px，可拖 180–400。
 
 - 会话列表背景从 titlebar 下面开始（`background-clip: content-box`），不要把顶部 38px 也刷成列表色；header 横贯整宽。
 

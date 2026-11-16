@@ -200,7 +200,7 @@
   --surface-strong: color-mix(in srgb, var(--gray-7) 80%, #fff);
   --surface-active: var(--gray-5);
   --surface-knob: #fff;
-  --border-subtle: color-mix(in srgb, var(--gray-6) 70%, #fff);
+  --border-subtle: color-mix(in srgb, var(--gray-6) 85%, #fff);
   --border-strong: color-mix(in srgb, var(--gray-7) 90%, #fff);
   --text-secondary: color-mix(in srgb, var(--gray-11) 94%, #000);
   --text-tertiary: color-mix(in srgb, var(--gray-11) 95%, var(--gray-1));
