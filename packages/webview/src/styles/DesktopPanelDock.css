@@ -204,6 +204,7 @@
 }
 
 .desktop-panel-tab:hover .desktop-panel-tab-close,
+.desktop-panel-tab--active .desktop-panel-tab-close,
 .desktop-panel-tab-close:focus-visible {
   opacity: 1;
   pointer-events: auto;
@@ -298,6 +299,7 @@
 }
 
 .file-tab:hover .file-tab-close,
+.file-tab--active .file-tab-close,
 .file-tab-close:focus-visible {
   opacity: 1;
   pointer-events: auto;
