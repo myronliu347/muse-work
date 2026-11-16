@@ -149,3 +149,61 @@
   --surface-user-bubble-hover: var(--gray-5);
   --status-danger-on-fill: #111111;
 }
+
+/* A ladder: deeper dark chrome, quieter light rail, accent-tinted selection.
+   Values stay derived from --gray-* so the user's gray preset still applies. */
+.radix-themes.dark {
+  --surface-canvas: color-mix(in srgb, var(--gray-1) 70%, #000);
+  --surface-rail: color-mix(in srgb, var(--gray-2) 75%, #000);
+  --surface-panel: color-mix(in srgb, var(--gray-2) 75%, #000);
+  --surface-header: color-mix(in srgb, var(--gray-2) 75%, #000);
+  --surface-card: color-mix(in srgb, var(--gray-3) 75%, #000);
+  --surface-sunken: color-mix(in srgb, var(--gray-1) 55%, #000);
+  --surface-subtle: color-mix(in srgb, var(--gray-3) 92%, #000);
+  --surface-muted: color-mix(in srgb, var(--gray-4) 85%, #000);
+  --surface-hover: rgba(255, 255, 255, 0.045);
+  --surface-visible: rgba(255, 255, 255, 0.025);
+  --surface-selected: color-mix(in srgb, var(--accent-9) 18%, var(--surface-rail));
+  --surface-code: color-mix(in srgb, var(--gray-2) 88%, #000);
+  --surface-inline-code: var(--gray-4);
+  --surface-user-bubble: color-mix(in srgb, var(--gray-4) 90%, #000);
+  --surface-user-bubble-hover: color-mix(in srgb, var(--gray-5) 92%, #000);
+  --surface-control: var(--gray-4);
+  --surface-strong: color-mix(in srgb, var(--gray-6) 90%, #000);
+  --surface-active: var(--gray-5);
+  --surface-knob: var(--gray-1);
+  --border-subtle: color-mix(in srgb, var(--gray-6) 75%, #000);
+  --border-strong: color-mix(in srgb, var(--gray-7) 80%, #000);
+  --text-secondary: color-mix(in srgb, var(--gray-11) 88%, #fff);
+  --text-tertiary: color-mix(in srgb, var(--gray-11) 84%, var(--gray-1));
+  --text-placeholder: color-mix(in srgb, var(--gray-11) 76%, var(--gray-1));
+  --accent-decorative: var(--accent-11);
+}
+
+.radix-themes.light {
+  --surface-canvas: var(--gray-1);
+  --surface-rail: var(--gray-3);
+  --surface-panel: var(--gray-3);
+  --surface-header: var(--gray-3);
+  --surface-card: var(--color-card);
+  --surface-sunken: var(--gray-1);
+  --surface-subtle: var(--gray-3);
+  --surface-muted: color-mix(in srgb, var(--gray-4) 85%, var(--gray-3));
+  --surface-hover: rgba(17, 17, 20, 0.035);
+  --surface-visible: rgba(17, 17, 20, 0.02);
+  --surface-selected: color-mix(in srgb, var(--accent-9) 8%, #fff);
+  --surface-code: color-mix(in srgb, var(--gray-3) 70%, var(--gray-2));
+  --surface-inline-code: var(--gray-3);
+  --surface-user-bubble: var(--accent-3);
+  --surface-user-bubble-hover: var(--accent-4);
+  --surface-control: color-mix(in srgb, var(--gray-5) 90%, #fff);
+  --surface-strong: color-mix(in srgb, var(--gray-7) 80%, #fff);
+  --surface-active: color-mix(in srgb, var(--gray-5) 80%, #fff);
+  --surface-knob: #fff;
+  --border-subtle: color-mix(in srgb, var(--gray-6) 70%, #fff);
+  --border-strong: color-mix(in srgb, var(--gray-7) 90%, #fff);
+  --text-secondary: color-mix(in srgb, var(--gray-11) 94%, #000);
+  --text-tertiary: color-mix(in srgb, var(--gray-11) 95%, var(--gray-1));
+  --text-placeholder: color-mix(in srgb, var(--gray-11) 90%, #fff);
+  --accent-decorative: var(--accent-8);
+}

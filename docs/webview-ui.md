@@ -4,25 +4,25 @@ name: Muse-webview
 description: 桌面端对话界面。页面是近白或近黑的底，卡片用细边框从底上抬起来，不靠投影。强调色默认靛蓝，只用于焦点和主操作。正文是 12px 系统字体。输入框、任务列表、排队消息共用一张圆角表面，中间用一条直角贴齐的分隔线切开。
 
 colors:
-  canvas: "#ffffff"
-  canvas-dark: "#111111"
+  canvas: "#fcfcfc"
+  canvas-dark: "#0c0c0c"
   canvas-fallback: "#fcfcfc"
-  canvas-fallback-dark: "#111111"
+  canvas-fallback-dark: "#0c0c0c"
   surface-card: "#ffffff"
-  surface-card-dark: "#222222"
-  surface-sidebar: "#f9f9f9"
+  surface-card-dark: "#1a1a1a"
+  surface-sidebar: "#f0f0f0"
   surface-bubble: "#f0f0f0"
   surface-bubble-dark: "#222222"
   surface-hover: "#e8e8e8"
   surface-hover-dark: "#2a2a2a"
   ink: "#202020"
   ink-dark: "#eeeeee"
-  body: "#646464"
-  body-dark: "#b4b4b4"
+  body: "#5e5e5e"
+  body-dark: "#bbbbbb"
   muted: "#6c6c6c"
-  muted-dark: "#acacac"
-  hairline: "#d9d9d9"
-  hairline-dark: "#3a3a3a"
+  muted-dark: "#9a9a9a"
+  hairline: "#e4e4e4"
+  hairline-dark: "#2b2b2b"
   accent: "#3e63dd"
   on-accent: "#ffffff"
   semantic-success: "var(--green-11)"
@@ -137,7 +137,7 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 **Key Characteristics:**
 
 - 浅色底近白，深色底近黑。卡片靠边框分开，不靠大块灰底。
-- 浅色卡片是白的 `{colors.surface-card}`。深色卡片是 `{colors.surface-card-dark}`，比页面深一档。
+- 浅色卡片是白的 `{colors.surface-card}`。深色卡片是 `{colors.surface-card-dark}`，比画布亮一档。
 - 用户消息气泡用 `--surface-user-bubble`（浅色 `--accent-3`，深色 `--gray-4`），不要跟卡片同色。
 - 输入框圆角写死 `{rounded.composer}`。其余圆角走 `{rounded.*}`，会随设置变化。
 - 对话列最宽 800px，水平居中。
@@ -145,18 +145,18 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 
 ## Colors
 
-色值是默认主题的快照：灰阶 Gray，强调色 Indigo，缩放 100%。深色列在同名 token 的 `-dark` 上。
+色值是 A 阶梯默认主题的快照：灰阶 Gray，强调色 Indigo，缩放 100%。深色列在同名 token 的 `-dark` 上。A 阶梯在 `tokens.css` 末尾按主题覆盖，仍从 `--gray-*` 派生，所以用户改灰阶继续生效。
 
 ### Surface
 
-- **Canvas** (`{colors.canvas}` — #ffffff)：浅色页面。`--color-background`。首帧还没有 Radix 变量时用 `{colors.canvas-fallback}`。
-- **Canvas Dark** (`{colors.canvas-dark}` — #111111)：深色页面。`--gray-1`。
+- **Canvas** (`{colors.canvas}` — #fcfcfc)：浅色页面，走 `--surface-canvas`（A 阶梯默认取 `--gray-1`）。首帧还没有 Radix 变量时用 `{colors.canvas-fallback}`。
+- **Canvas Dark** (`{colors.canvas-dark}` — #0c0c0c)：深色页面。`--surface-canvas`，A 阶梯取 `--gray-1` 70% + 黑。
 - **Surface Card** (`{colors.surface-card}` — #ffffff)：浅色卡片、对话框、菜单、输入框。`--color-card`，浅色等于 `--color-panel`。
-- **Surface Card Dark** (`{colors.surface-card-dark}` — #222222)：深色卡片。`--color-card`，深色等于 `--gray-3`。
-- **Surface Sidebar** (`{colors.surface-sidebar}` — #f9f9f9)：浅色侧栏。`--gray-2`，用来和对话区分。
+- **Surface Card Dark** (`{colors.surface-card-dark}` — #1a1a1a)：深色卡片。`--surface-card`，A 阶梯取 `--gray-3` 75% + 黑。
+- **Surface Sidebar** (`{colors.surface-sidebar}` — #f0f0f0)：浅色侧栏。`--surface-rail`，A 阶梯取 `--gray-3`，用来和对话区分。
 - **Surface Bubble** (`{colors.surface-bubble}` — #f0f0f0)：这是行内代码和分段控件槽的默认值，走 `--surface-inline-code`；用户消息走 `--surface-user-bubble`（浅色 `--accent-3`，深色 `--gray-4`）。
-- **Surface Code**：代码块用 `--surface-code`（`--gray-3` 75% + `--gray-2`），不要和页面同白或同黑。
-- **Surface Hover** (`{colors.surface-hover}` — #e8e8e8)：悬停。`--gray-4`。白底卡片上的悬停用 `{colors.surface-bubble}`。
+- **Surface Code**：代码块用 `--surface-code`（浅色 `--gray-3` 70% + `--gray-2`；深色 `--gray-2` 88% + 黑），不要和页面同白或同黑。
+- **Surface Hover** (`{colors.surface-hover}` — #e8e8e8)：悬停。A 阶梯浅色用 3.5% 黑，深色用 4.5% 白；白底卡片上的悬停仍用 `{colors.surface-bubble}`。
 
 ### Hairlines
 
@@ -167,8 +167,8 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 ### Text
 
 - **Ink** (`{colors.ink}` — #202020)：正文。`--gray-12`。深色是 `{colors.ink-dark}`。
-- **Body** (`{colors.body}` — #646464)：说明、路径、时间。`--gray-11`。
-- **Muted** (`{colors.muted}` — #6c6c6c)：更弱的信息。文字用 `--text-tertiary`（`--gray-11` 与 `--gray-1` 95/5），不要再用 `--gray-9` 写 12px 正文；`--gray-9` 只留 disabled 和图标。
+- **Body** (`{colors.body}` — #5e5e5e)：说明、路径、时间。`--text-secondary`（浅色 `--gray-11` 94% + 黑，深色 88% + 白）。
+- **Muted** (`{colors.muted}` — #6c6c6c)：更弱的信息。文字用 `--text-tertiary`（浅色 `--gray-11` 95% + `--gray-1`；深色 84% + `--gray-1`），不要再用 `--gray-9` 写 12px 正文；`--gray-9` 只留 disabled 和图标。
 - **On Accent** (`{colors.on-accent}` — #ffffff)：强调色上的字。
 
 ### Accent

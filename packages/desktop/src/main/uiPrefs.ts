@@ -189,5 +189,5 @@ export function resolveEffectiveTheme(
 }
 
 export function windowBackgroundFor(effective: EffectiveTheme): string {
-  return effective === "light" ? "#fcfcfc" : "#111111";
+  return effective === "light" ? "#fcfcfc" : "#0c0c0c";
 }

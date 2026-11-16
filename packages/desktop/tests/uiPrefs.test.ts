@@ -45,7 +45,7 @@ describe("uiPrefs", () => {
     expect(loaded.themeGrayColor).toBe("slate");
     expect(resolveEffectiveTheme("system", true)).toBe("dark");
     expect(windowBackgroundFor("light")).toBe("#fcfcfc");
-    expect(windowBackgroundFor("dark")).toBe("#111111");
+    expect(windowBackgroundFor("dark")).toBe("#0c0c0c");
     fs.rmSync(home, { recursive: true, force: true });
   });
 });

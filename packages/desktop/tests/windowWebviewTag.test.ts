@@ -143,12 +143,12 @@ describe("createMainWindow", () => {
     ctorOpts.length = 0;
     const win = createMainWindow({
       serverBaseUrl: "http://127.0.0.1:8787",
-      backgroundColor: "#111111",
+      backgroundColor: "#0c0c0c",
       preloadPath: "/tmp/preload.cjs",
       webviewHtmlPath: "/tmp/index.html",
     });
     expect(ctorOpts[0].show).toBe(false);
-    expect(ctorOpts[0].backgroundColor).toBe("#111111");
+    expect(ctorOpts[0].backgroundColor).toBe("#0c0c0c");
     expect(win.once).toHaveBeenCalledWith("ready-to-show", expect.any(Function));
   });
 

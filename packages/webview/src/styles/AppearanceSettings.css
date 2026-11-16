@@ -77,27 +77,27 @@
 
 .appearance-card-preview[data-preview="light"] .appearance-card-preview-sidebar,
 .appearance-card-preview-half.is-light .appearance-card-preview-sidebar {
-  background: #f4f4f4;
+  background: #f0f0f0;
 }
 
 .appearance-card-preview[data-preview="light"] .appearance-card-preview-line,
 .appearance-card-preview-half.is-light .appearance-card-preview-line {
-  background: #e2e2e2;
+  background: #e4e4e4;
 }
 
 .appearance-card-preview[data-preview="dark"],
 .appearance-card-preview-half.is-dark {
-  background: #111111;
+  background: #0c0c0c;
 }
 
 .appearance-card-preview[data-preview="dark"] .appearance-card-preview-sidebar,
 .appearance-card-preview-half.is-dark .appearance-card-preview-sidebar {
-  background: #191919;
+  background: #131313;
 }
 
 .appearance-card-preview[data-preview="dark"] .appearance-card-preview-line,
 .appearance-card-preview-half.is-dark .appearance-card-preview-line {
-  background: #3a3a3a;
+  background: #2b2b2b;
 }
 
 .appearance-card-copy {
