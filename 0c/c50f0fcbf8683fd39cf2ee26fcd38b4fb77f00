@@ -2,7 +2,7 @@
 {
   "schema_version": "authorship/3.0.0",
   "git_ai_version": "1.2.8-ntes.7",
-  "base_commit_sha": "62c588e85e3105e9fbca2683c7ff693579c4f50d",
+  "base_commit_sha": "0cc50f0fcbf8683fd39cf2ee26fcd38b4fb77f00",
   "prompts": {
     "37fc47e4d53e6a87": {
       "agent_id": {
@@ -17,20 +17,30 @@
       "accepted_lines": 443,
       "overriden_lines": 0,
       "per_file_stats": {
-        "packages/webview/src/styles/AssistantPage.css": {
-          "additions": 4,
-          "deletions": 2,
-          "accepted_lines": 4
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 40,
+          "deletions": 16,
+          "accepted_lines": 39
         },
-        "packages/webview/src/stores/panelGroupStore.ts": {
-          "additions": 18,
-          "deletions": 3,
-          "accepted_lines": 18
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 12,
+          "deletions": 2,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 103,
+          "deletions": 44,
+          "accepted_lines": 103
         },
         "packages/webview/src/components/DesktopApp.tsx": {
           "additions": 58,
           "deletions": 36,
           "accepted_lines": 56
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 18,
+          "deletions": 3,
+          "accepted_lines": 18
         },
         "packages/webview/src/styles/DesktopPanelDock.css": {
           "additions": 15,
@@ -42,6 +52,15 @@
           "deletions": 11,
           "accepted_lines": 67
         },
+        "packages/webview/src/components/desktop/botWorkspace.ts": {
+          "additions": 33,
+          "deletions": 3,
+          "accepted_lines": 33
+        },
+        "packages/webview/tests/muse/fileTabs.test.ts": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
         "packages/webview/src/stores/index.ts": {
           "additions": 1,
           "accepted_lines": 1
@@ -51,29 +70,10 @@
           "deletions": 23,
           "accepted_lines": 72
         },
-        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
-          "additions": 40,
-          "deletions": 16,
-          "accepted_lines": 39
-        },
-        "packages/webview/src/components/desktop/botWorkspace.ts": {
-          "additions": 33,
-          "deletions": 3,
-          "accepted_lines": 33
-        },
-        "packages/webview/src/components/ChatApp.tsx": {
-          "additions": 103,
-          "deletions": 44,
-          "accepted_lines": 103
-        },
-        "packages/webview/tests/muse/fileTabs.test.ts": {
-          "additions": 23,
-          "accepted_lines": 23
-        },
-        "packages/webview/src/muse/messageRouter.ts": {
-          "additions": 12,
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 4,
           "deletions": 2,
-          "accepted_lines": 12
+          "accepted_lines": 4
         }
       }
     },
@@ -93,14 +93,14 @@
         "packages/server/src/index.ts": {
           "accepted_lines": 3
         },
+        "packages/server/tests/hostPlugins.test.ts": {
+          "accepted_lines": 2
+        },
         "packages/server/src/plugins/hostPlugins.ts": {
           "accepted_lines": 1
         },
         "packages/server/src/utils/logger.ts": {
           "accepted_lines": 3
-        },
-        "packages/server/tests/hostPlugins.test.ts": {
-          "accepted_lines": 2
         }
       }
     }
