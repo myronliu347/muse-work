@@ -29,14 +29,15 @@ html:has(.desktop-layout) {
   background-color: var(--surface-canvas, #111111);
 }
 
-/* White sheet meets the gray rail and titlebar. Fill only the square outside
-   the curve so that corner reads as rounded. */
+/* The rounded corner belongs to whatever panel starts below the titlebar:
+   the session list when it is open, the content column when it is collapsed.
+   The icon rail is 52px wide, so clamp the corner to the rail edge. */
 .desktop-layout::after {
   content: "";
   position: absolute;
-  z-index: 4;
+  z-index: 6;
   top: var(--desktop-shell-titlebar-height);
-  left: var(--desktop-sidebar-width);
+  left: min(52px, var(--desktop-sidebar-width));
   width: 12px;
   height: 12px;
   pointer-events: none;
