@@ -1402,6 +1402,46 @@ html:has(.desktop-layout) {
   color: var(--text-tertiary);
 }
 
+.desktop-session-empty--rich {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: 7px 10px;
+  margin: 2px 0;
+  font-weight: 400;
+}
+
+.desktop-session-empty-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.desktop-session-empty-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.desktop-session-empty-title {
+  font-size: var(--font-size-1);
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.desktop-session-empty-hint {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+}
+
 /* ---- Worktree controls: branch selector + checkbox (FR-022/FR-023) ----
    Rendered next to the workdir selector on the input toolbar row. The branch
    dropdown reuses the .desktop-workdir-* classes; only the row layout and the

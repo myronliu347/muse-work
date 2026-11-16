@@ -545,6 +545,20 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     );
   };
 
+  const renderEmptyState = (icon: string, title: string, hint?: string) => (
+    <div className="desktop-session-empty desktop-session-empty--rich">
+      <span className="desktop-session-empty-icon" aria-hidden="true">
+        <i className={`codicon codicon-${icon}`} />
+      </span>
+      <span className="desktop-session-empty-copy">
+        <span className="desktop-session-empty-title">{title}</span>
+        {hint ? (
+          <span className="desktop-session-empty-hint">{hint}</span>
+        ) : null}
+      </span>
+    </div>
+  );
+
   const renderFlatSection = (opts: {
     sectionId: SectionId;
     title: string;
@@ -813,7 +827,11 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
         })}
         <CollapsibleBody open={open}>
           {taskSessions.length === 0 ? (
-            <div className="desktop-session-empty">无会话</div>
+            renderEmptyState(
+              "checklist",
+              "还没有任务",
+              "在会话里创建任务后会出现在这里",
+            )
           ) : (
             <ul className="desktop-session-items">
               {taskSessions.map((session) =>
@@ -840,7 +858,11 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
         })}
         <CollapsibleBody open={open}>
           {workspaceGroups.length === 0 ? (
-            <div className="desktop-session-empty">无会话</div>
+            renderEmptyState(
+              "folder",
+              "还没有工作目录",
+              "打开一个目录，会话会出现在这里",
+            )
           ) : (
             <div className="desktop-session-workdir-groups">
               {workspaceGroups.map((group) => {
