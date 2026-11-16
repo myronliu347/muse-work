@@ -77,7 +77,7 @@
 
 .appearance-card-preview[data-preview="light"] .appearance-card-preview-sidebar,
 .appearance-card-preview-half.is-light .appearance-card-preview-sidebar {
-  background: #f0f0f0;
+  background: #ececef;
 }
 
 .appearance-card-preview[data-preview="light"] .appearance-card-preview-line,
@@ -92,7 +92,7 @@
 
 .appearance-card-preview[data-preview="dark"] .appearance-card-preview-sidebar,
 .appearance-card-preview-half.is-dark .appearance-card-preview-sidebar {
-  background: #131313;
+  background: #18181c;
 }
 
 .appearance-card-preview[data-preview="dark"] .appearance-card-preview-line,

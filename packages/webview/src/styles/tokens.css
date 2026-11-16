@@ -154,7 +154,7 @@
    Values stay derived from --gray-* so the user's gray preset still applies. */
 .radix-themes.dark {
   --surface-canvas: color-mix(in srgb, var(--gray-1) 70%, #000);
-  --surface-rail: color-mix(in srgb, var(--gray-2) 75%, #000);
+  --surface-rail: color-mix(in srgb, var(--gray-2) 95%, #000);
   --surface-panel: color-mix(in srgb, var(--gray-2) 75%, #000);
   --surface-header: color-mix(in srgb, var(--gray-2) 75%, #000);
   --surface-card: color-mix(in srgb, var(--gray-3) 75%, #000);
@@ -182,7 +182,7 @@
 
 .radix-themes.light {
   --surface-canvas: var(--gray-1);
-  --surface-rail: var(--gray-3);
+  --surface-rail: color-mix(in srgb, var(--gray-3) 98%, #000);
   --surface-panel: var(--gray-3);
   --surface-header: var(--gray-3);
   --surface-card: var(--color-card);
