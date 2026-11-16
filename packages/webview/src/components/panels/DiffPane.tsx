@@ -27,30 +27,43 @@ import { getOverlayHost } from "../../utils/bodyPortal";
 import { localizeDiffHost } from "../../utils/diffSeparatorLabel";
 import "../../styles/DiffViewer.css";
 import "../../styles/DiffPane.css";
-import { useExitHold } from "../../hooks/useExitHold";
+import { PANEL_MOTION_MS, useExitHold } from "../../hooks/useExitHold";
 
 type PendingRevert = { scope: "all" } | { scope: "file"; path: string };
 
 function DiffTreeNav({
   closing,
+  animate,
   width,
   onDragStart,
+  onAnimationDone,
   children,
 }: {
   closing: boolean;
+  /** Only a click on the view toggle animates the column; data changes do not. */
+  animate: boolean;
   width: number;
   onDragStart: (event: React.PointerEvent<HTMLDivElement>) => void;
+  onAnimationDone: () => void;
   children: React.ReactNode;
 }) {
-  const [opening, setOpening] = useState(true);
+  const [opening, setOpening] = useState(animate);
+  const motion = closing
+    ? animate
+      ? " is-closing"
+      : ""
+    : opening
+      ? " is-opening"
+      : "";
   return (
     <nav
-      className={`diff-pane-tree-nav${closing ? " is-closing" : opening ? " is-opening" : ""}`}
+      className={`diff-pane-tree-nav${motion}`}
       data-testid="diff-tree-nav"
       style={{ width }}
       onAnimationEnd={(event) => {
         if (event.target !== event.currentTarget) return;
         setOpening(false);
+        onAnimationDone();
       }}
     >
       <div
@@ -421,10 +434,34 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   // too narrow falls back to the list; widening it, or files arriving, opens
   // the tree again unless the user closed it.
   const [treeDismissed, setTreeDismissed] = useState(false);
+  // Only the toolbar's view toggle animates the change-tree column. The tree
+  // also appears on its own after a hard refresh (switching issues) or when
+  // files arrive; those must paint at the final width without replaying the
+  // 280ms slide.
+  const [animateTreeToggle, setAnimateTreeToggle] = useState(false);
   const treeFits = width >= DIFF_TREE_OPEN_MIN;
   const hasChangeFiles = state.kind === "ok" && state.files.length > 0;
   const viewMode = treeFits && hasChangeFiles && !treeDismissed ? "tree" : "list";
   const treePresence = useExitHold(viewMode === "tree");
+  // Keep the column mounted for the close slide only when the user clicked the
+  // toggle. An automatic close (narrow pane, empty diff, issue switch) should
+  // swap to the list view immediately.
+  const treeClosing = treePresence.closing && animateTreeToggle;
+  const showTree = viewMode === "tree" || treeClosing;
+  useEffect(() => {
+    if (!animateTreeToggle) return;
+    // onAnimationEnd clears this in the browser; the timer covers reduced
+    // motion (no animation event) and an interrupted mount.
+    const timer = window.setTimeout(
+      () => setAnimateTreeToggle(false),
+      PANEL_MOTION_MS + 50,
+    );
+    return () => window.clearTimeout(timer);
+  }, [animateTreeToggle]);
+  // Hiding the panel mid-animation must not make the next show replay it.
+  useEffect(() => {
+    if (!visible) setAnimateTreeToggle(false);
+  }, [visible]);
   const [treeSelected, setTreeSelected] = useState<string | null>(null);
   const [collapsedDirs, setCollapsedDirs] = useState<Set<string>>(new Set());
   /** Right-side change-tree column width (tree view only); session-local. */
@@ -1281,8 +1318,10 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       </div>
       <DiffTreeNav
         closing={closing}
+        animate={animateTreeToggle}
         width={treeNavWidth}
         onDragStart={onTreeNavDragStart}
+        onAnimationDone={() => setAnimateTreeToggle(false)}
       >
         <div className="diff-pane-tree-header" data-testid="diff-tree-header">
           {treeFiles.length} 个文件变更
@@ -1442,6 +1481,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
             }
             onClick={() => {
               if (!treeFits || !hasChangeFiles) return;
+              setAnimateTreeToggle(true);
               setTreeDismissed((dismissed) => !dismissed);
             }}
           >
@@ -1541,8 +1581,8 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
             )}
           {state.kind === "ok" &&
             !(mode === "recent" && isStreaming) &&
-            (treePresence.show
-              ? renderTreeView(treePresence.closing)
+            (showTree
+              ? renderTreeView(treeClosing)
               : state.files.map(renderFile))}
         </div>
       </div>

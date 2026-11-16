@@ -1224,7 +1224,9 @@ describe("DiffPane", () => {
       const toggle = screen.getByTestId("diff-view-toggle");
       expect(toggle).toHaveAttribute("aria-pressed", "true");
       expect(toggle).toHaveAttribute("title", "列表视图");
-      expect(screen.getByTestId("diff-tree-nav")).toBeInTheDocument();
+      // The tree appears because the diff arrived, not because the user
+      // clicked the toggle, so it must not replay the slide-in animation.
+      expect(screen.getByTestId("diff-tree-nav")).not.toHaveClass("is-opening");
 
       rerenderWith({ width: 320 });
       expect(screen.getByTestId("diff-view-toggle")).toHaveAttribute(
@@ -1235,20 +1237,15 @@ describe("DiffPane", () => {
         "title",
         "宽度不足，已收起文件树",
       );
-      expect(screen.getByTestId("diff-tree-nav")).toHaveClass("is-closing");
-      await waitFor(() => {
-        expect(screen.queryByTestId("diff-tree-nav")).not.toBeInTheDocument();
-      });
+      // An automatic close swaps to the list view at once; no slide-out.
+      expect(screen.queryByTestId("diff-tree-nav")).not.toBeInTheDocument();
       expect(screen.getByTestId("diff-file-modified")).toBeInTheDocument();
 
       rerenderWith({ width: 420 });
-      expect(screen.getByTestId("diff-tree-nav")).toBeInTheDocument();
+      expect(screen.getByTestId("diff-tree-nav")).not.toHaveClass("is-opening");
 
       sendDiffResult([]);
-      expect(screen.getByTestId("diff-tree-nav")).toHaveClass("is-closing");
-      await waitFor(() => {
-        expect(screen.queryByTestId("diff-tree-nav")).not.toBeInTheDocument();
-      });
+      expect(screen.queryByTestId("diff-tree-nav")).not.toBeInTheDocument();
       expect(
         document.querySelector(".desktop-panel-placeholder"),
       ).toHaveTextContent("无改动");
@@ -1263,6 +1260,24 @@ describe("DiffPane", () => {
       await waitFor(() => {
         expect(screen.queryByTestId("diff-tree-nav")).not.toBeInTheDocument();
       });
+
+      // Reopening from the toggle is the one path that animates.
+      fireEvent.click(screen.getByTestId("diff-view-toggle"));
+      expect(screen.getByTestId("diff-tree-nav")).toHaveClass("is-opening");
+    });
+
+    it("does not replay the tree slide when the diff reloads", async () => {
+      renderPane({
+        initialMode: "recent",
+        recentFiles: [makeFile({ path: "recent.ts" })],
+      });
+      expect(screen.getByTestId("diff-tree-nav")).not.toHaveClass("is-opening");
+
+      await switchToUnstaged();
+      expect(screen.queryByTestId("diff-tree-nav")).not.toBeInTheDocument();
+
+      sendDiffResult([makeFile({ path: "work.ts" })]);
+      expect(screen.getByTestId("diff-tree-nav")).not.toHaveClass("is-opening");
     });
 
     it("switching to tree view shows the right-side tree and the first file diff on the left", () => {
@@ -1294,7 +1309,7 @@ describe("DiffPane", () => {
       renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile()]);
       const nav = screen.getByTestId("diff-tree-nav");
-      expect(nav).toHaveClass("is-opening");
+      expect(nav).not.toHaveClass("is-opening");
       expect(nav).toHaveStyle({ width: "240px" });
       const handle = screen.getByTestId("diff-tree-resize");
       fireEvent.pointerDown(handle, {
