@@ -442,6 +442,8 @@ html:has(.desktop-layout) {
   box-sizing: border-box;
   padding-top: var(--desktop-shell-titlebar-height);
   background: var(--surface-session-list);
+  /* Let the shell header paint the titlebar band; the list starts below it. */
+  background-clip: content-box;
   overflow: hidden;
 }
 
@@ -2735,6 +2737,7 @@ body.is-panel-resizing-row * {
 .desktop-layout .assistant-page .assistant-header {
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-3));
 }
+
 
 .desktop-layout .assistant-page .assistant-header {
   height: var(--desktop-shell-titlebar-height);
