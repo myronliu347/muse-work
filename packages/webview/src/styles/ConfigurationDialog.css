@@ -243,11 +243,11 @@
 }
 
 input:checked + .slider {
-  background-color: var(--accent-solid);
+  background-color: var(--selection-indicator);
 }
 
 input:focus + .slider {
-  box-shadow: 0 0 var(--space-1) var(--accent-solid);
+  box-shadow: 0 0 var(--space-1) var(--focus-ring);
 }
 
 input:checked + .slider:before {
@@ -355,7 +355,7 @@ input:checked + .slider:before {
 .muse-quota-progress-fill {
   height: 100%;
   border-radius: inherit;
-  background: var(--accent-solid);
+  background: var(--status-progress-solid);
   min-width: 0;
   transition: width 160ms ease;
 }
@@ -447,12 +447,12 @@ input:checked + .slider:before {
 }
 
 .configuration-save-btn {
-  background-color: var(--accent-solid);
-  color: var(--accent-on-solid);
+  background-color: var(--action-primary-bg);
+  color: var(--action-primary-fg);
 }
 
 .configuration-save-btn:hover {
-  background-color: var(--accent-solid-hover);
+  background-color: var(--action-primary-bg-hover);
 }
 
 .configuration-cancel-btn:disabled,

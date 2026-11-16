@@ -135,11 +135,11 @@
 }
 
 .dock-tab-drop-before {
-  box-shadow: inset 2px 0 0 var(--accent-solid);
+  box-shadow: inset 2px 0 0 var(--accent-decorative);
 }
 
 .dock-tab-drop-after {
-  box-shadow: inset -2px 0 0 var(--accent-solid);
+  box-shadow: inset -2px 0 0 var(--accent-decorative);
 }
 
 .desktop-panel-tab-label {
@@ -782,7 +782,7 @@
 }
 
 .dock-detail-check-summary span[data-status="running"] {
-  background: color-mix(in srgb, var(--accent-solid) 18%, transparent);
+  background: color-mix(in srgb, var(--status-progress-solid) 18%, transparent);
   color: var(--accent-text);
 }
 

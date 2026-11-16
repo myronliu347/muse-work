@@ -87,13 +87,13 @@
 
 /* Inline match highlights inside the code view. */
 .file-pane-search-mark {
-  background: color-mix(in srgb, var(--accent-solid) 35%, transparent);
+  background: color-mix(in srgb, var(--selection-indicator) 35%, transparent);
   color: inherit;
   padding: 0;
 }
 
 .file-pane-search-mark--current {
-  background: var(--accent-solid);
+  background: var(--selection-indicator);
   color: var(--text-on-accent);
 }
 
@@ -152,7 +152,7 @@
 }
 
 .file-pane-line--active {
-  background: color-mix(in srgb, var(--accent-solid) 30%, transparent);
+  background: color-mix(in srgb, var(--selection-indicator) 30%, transparent);
 }
 
 .file-pane-line-no {
@@ -168,7 +168,7 @@
 }
 
 .file-pane-line--active .file-pane-line-no {
-  background: color-mix(in srgb, var(--accent-solid) 30%, transparent);
+  background: color-mix(in srgb, var(--selection-indicator) 30%, transparent);
 }
 
 .file-pane-line-code {
@@ -208,7 +208,7 @@
   padding: var(--space-2) var(--space-4);
   font-size: var(--font-size-1);
   color: var(--text-secondary);
-  background: color-mix(in srgb, var(--accent-solid) 30%, transparent);
+  background: color-mix(in srgb, var(--selection-indicator) 30%, transparent);
 }
 
 /* Markdown files reuse the message markdown look, padded for the panel. */
@@ -400,7 +400,7 @@
 }
 
 .file-tree-drag-handle:hover {
-  background: var(--accent-solid);
+  background: var(--accent-decorative);
 }
 
 .file-tree-scroll {
@@ -443,7 +443,7 @@
 }
 
 .file-tree-row--selected {
-  background: color-mix(in srgb, var(--accent-solid) 25%, transparent);
+  background: color-mix(in srgb, var(--selection-indicator) 25%, transparent);
 }
 
 .file-tree-icon {
@@ -676,7 +676,7 @@
 }
 
 .file-content-search-mark {
-  background: color-mix(in srgb, var(--accent-solid) 35%, transparent);
+  background: color-mix(in srgb, var(--selection-indicator) 35%, transparent);
   color: inherit;
   padding: 0;
 }
@@ -856,7 +856,7 @@
 
 .quick-open-item--active,
 .quick-open-item:hover {
-  background: color-mix(in srgb, var(--accent-solid) 25%, transparent);
+  background: color-mix(in srgb, var(--selection-indicator) 25%, transparent);
 }
 
 .quick-open-item-path {

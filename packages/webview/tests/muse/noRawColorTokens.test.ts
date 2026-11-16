@@ -55,7 +55,7 @@ function cssViolations(file: string, text: string): string[] {
     if (rawStatus.test(line))
       hits.push(`${where} raw status color — use --status-*`);
     if (rawAccent.test(line))
-      hits.push(`${where} raw accent primitive — use --accent-solid/-text/-soft`);
+      hits.push(`${where} raw accent primitive — use --accent-decorative/-text/-soft`);
     const rawRgba = line
       .replace(/rgba\(0, 0, 0, 0\)/g, "")
       .match(/rgba?\([^)]*\)/);

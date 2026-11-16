@@ -89,7 +89,7 @@ export function beginSplitDrag(
   const handle = event.currentTarget;
   const pointerId = event.pointerId;
   const previousBackground = handle.style.background;
-  handle.style.background = "var(--accent-solid)";
+  handle.style.background = "var(--accent-decorative)";
   const draggingClass = spec.axis === "y" ? DRAGGING_ROW_CLASS : DRAGGING_CLASS;
   document.body.classList.add(draggingClass);
   activeDrags += 1;

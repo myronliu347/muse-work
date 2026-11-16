@@ -63,7 +63,7 @@
 .new-issue-textarea:focus {
   outline: none;
   border-color: var(--accent-border);
-  box-shadow: 0 0 0 3px var(--accent-wash-hover, color-mix(in srgb, var(--accent-solid) 18%, transparent));
+  box-shadow: 0 0 0 3px var(--focus-glow);
 }
 
 .new-issue-input:disabled,
@@ -87,7 +87,7 @@
 
 .new-issue-chips:focus-within {
   border-color: var(--accent-border);
-  box-shadow: 0 0 0 3px var(--accent-wash-hover, color-mix(in srgb, var(--accent-solid) 18%, transparent));
+  box-shadow: 0 0 0 3px var(--focus-glow);
 }
 
 .new-issue-chip {

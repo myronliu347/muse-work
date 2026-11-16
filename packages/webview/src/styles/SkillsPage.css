@@ -306,9 +306,9 @@
 }
 
 .skills-btn-primary {
-  background: var(--accent-solid);
-  border-color: var(--accent-solid);
-  color: var(--accent-on-solid);
+  background: var(--action-primary-bg);
+  border-color: var(--action-primary-bg);
+  color: var(--action-primary-fg);
 }
 
 .skills-btn-danger {

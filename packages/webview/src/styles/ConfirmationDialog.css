@@ -193,7 +193,7 @@
 }
 
 .option-item:focus {
-  outline: 1px solid var(--accent-solid);
+  outline: 1px solid var(--focus-ring);
   outline-offset: -var(--space-1);
 }
 
@@ -292,7 +292,7 @@
 }
 
 .other-text-input:focus {
-  outline: 1px solid var(--accent-solid);
+  outline: 1px solid var(--focus-ring);
   outline-offset: -var(--space-1);
 }
 
@@ -361,7 +361,7 @@
 }
 
 .plan-content-preview:focus {
-  outline: 1px solid var(--accent-solid);
+  outline: 1px solid var(--focus-ring);
   outline-offset: -var(--space-1);
 }
 
@@ -396,8 +396,8 @@
 }
 
 .feedback-textarea:focus {
-  outline: 1px solid var(--accent-solid);
-  border-color: var(--accent-solid);
+  outline: 1px solid var(--focus-ring);
+  border-color: var(--border-focus);
 }
 
 /* Actions */
@@ -448,12 +448,12 @@
 }
 
 .confirmation-btn-apply {
-  background-color: var(--accent-solid);
-  color: var(--accent-on-solid);
+  background-color: var(--action-primary-bg);
+  color: var(--action-primary-fg);
 }
 
 .confirmation-btn-apply:hover:not(:disabled) {
-  background-color: var(--accent-solid-hover);
+  background-color: var(--action-primary-bg-hover);
 }
 
 .confirmation-btn-apply:disabled {
@@ -489,6 +489,6 @@
 }
 
 .confirmation-btn:focus {
-  outline: 1px solid var(--accent-solid);
+  outline: 1px solid var(--focus-ring);
   outline-offset: var(--space-1);
 }

@@ -249,7 +249,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: var(--accent-solid);
+  background-color: var(--status-progress-solid);
   flex-shrink: 0;
   animation: message-list-status-dot-pulse 1.2s ease-in-out infinite;
 }
@@ -311,7 +311,7 @@
 }
 
 .agent-tool-row:focus-visible {
-  outline: 2px solid var(--accent-solid);
+  outline: 2px solid var(--focus-ring);
   outline-offset: var(--space-1);
   border-radius: var(--radius-1);
 }
@@ -592,7 +592,7 @@
 }
 
 .user-image-thumb:hover {
-  border-color: var(--accent-solid);
+  border-color: var(--accent-border);
 }
 
 .user-image-missing {
@@ -1127,8 +1127,8 @@
 .markdown-content blockquote {
   margin: var(--space-3) 0;
   padding: var(--space-2) var(--space-3);
-  border-left: 3px solid var(--accent-solid);
-  background-color: color-mix(in srgb, var(--accent-solid) 8%, var(--surface-panel));
+  border-left: 3px solid var(--accent-decorative);
+  background-color: color-mix(in srgb, var(--accent-decorative) 8%, var(--surface-panel));
   color: var(--text-primary);
   font-style: normal;
   border-radius: 0 var(--radius-2) var(--radius-2) 0;
@@ -1139,7 +1139,7 @@
 }
 
 .markdown-content blockquote.assistant-issue-quote:hover {
-  background-color: color-mix(in srgb, var(--accent-solid) 16%, var(--surface-panel));
+  background-color: color-mix(in srgb, var(--accent-decorative) 16%, var(--surface-panel));
 }
 
 .markdown-content blockquote p {

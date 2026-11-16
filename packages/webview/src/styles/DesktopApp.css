@@ -127,7 +127,7 @@ html:has(.desktop-layout) {
 
 .desktop-sidebar-resize:hover,
 .desktop-sidebar-resize--active {
-  background: var(--accent-solid);
+  background: var(--accent-decorative);
 }
 
 .desktop-sidebar-footer {
@@ -294,7 +294,7 @@ html:has(.desktop-layout) {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--accent-solid);
+  background: var(--accent-decorative);
   box-shadow: 0 0 0 2px var(--ring-color);
 }
 
@@ -1096,7 +1096,7 @@ html:has(.desktop-layout) {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--accent-solid);
+  background: var(--accent-decorative);
   flex-shrink: 0;
 }
 
@@ -1109,7 +1109,7 @@ html:has(.desktop-layout) {
 }
 
 .desktop-session-status-icon--running {
-  color: var(--accent-solid);
+  color: var(--status-progress-solid);
   fill: currentColor;
 }
 
@@ -1263,7 +1263,7 @@ html:has(.desktop-layout) {
   min-width: 0;
   margin: 0;
   padding: 0 var(--space-1);
-  border: 1px solid var(--accent-solid);
+  border: 1px solid var(--border-focus);
   border-radius: var(--radius-1);
   background: var(--surface-subtle);
   color: var(--text-primary);
@@ -1406,7 +1406,7 @@ html:has(.desktop-layout) {
 .desktop-worktree-checkbox input[type="checkbox"] {
   margin: 0;
   cursor: pointer;
-  accent-color: var(--accent-solid);
+  accent-color: var(--selection-indicator);
 }
 
 /* ---- Worktree hover card (sidebar item / chat header title) ----
@@ -1545,8 +1545,8 @@ html:has(.desktop-layout) {
 }
 
 .issue-checklist-card-mark-running {
-  border-color: var(--accent-solid);
-  background: var(--accent-solid);
+  border-color: var(--status-progress-solid);
+  background: var(--status-progress-solid);
 }
 
 .issue-checklist-card-text {
@@ -1740,7 +1740,7 @@ html:has(.desktop-layout) {
 
 /* Visible affordance on hover, matching the pane separator style. */
 .preview-pane-drag-handle:hover {
-  background: var(--accent-solid);
+  background: var(--accent-decorative);
 }
 
 /* While dragging a panel handle, lock the cursor globally so it doesn't
@@ -1815,7 +1815,7 @@ body.is-panel-resizing-row * {
 }
 
 .preview-pane-address:focus {
-  border-color: var(--accent-solid);
+  border-color: var(--border-focus);
 }
 
 .preview-pane-button {
@@ -1856,7 +1856,7 @@ body.is-panel-resizing-row * {
 }
 
 .preview-pane-button[aria-pressed="true"] .codicon-star-full {
-  color: var(--accent-solid);
+  color: var(--selection-indicator);
 }
 
 .preview-pane-links {
@@ -1880,7 +1880,7 @@ body.is-panel-resizing-row * {
 }
 
 .preview-pane-links-resize:hover {
-  background: var(--accent-solid);
+  background: var(--accent-decorative);
 }
 
 .preview-pane-links-search {
@@ -2154,12 +2154,12 @@ body.is-panel-resizing-row * {
 
 .preview-pane-error .preview-pane-button {
   padding: var(--space-1) var(--space-3);
-  background: var(--accent-solid);
-  color: var(--accent-on-solid);
+  background: var(--action-primary-bg);
+  color: var(--action-primary-fg);
 }
 
 .preview-pane-error .preview-pane-button:hover {
-  background: var(--accent-solid-hover);
+  background: var(--action-primary-bg-hover);
 }
 
 /* ---- Split-view panes (FR-032~036) ---- */
@@ -2397,7 +2397,7 @@ body.is-panel-resizing-row * {
 
 .desktop-row-separator:hover,
 .desktop-row-separator--active {
-  background: var(--accent-solid);
+  background: var(--accent-decorative);
 }
 
 /* VS Code-style translucent overlay over the half of a single-row layout
@@ -2409,8 +2409,8 @@ body.is-panel-resizing-row * {
   height: 50%;
   z-index: 7;
   pointer-events: none;
-  background: color-mix(in srgb, var(--accent-solid) 15%, transparent);
-  border: 1px dashed var(--accent-solid);
+  background: color-mix(in srgb, var(--accent-decorative) 15%, transparent);
+  border: 1px dashed var(--accent-decorative);
 }
 
 .desktop-pane-dropzone--above {
@@ -2432,7 +2432,7 @@ body.is-panel-resizing-row * {
 
 .desktop-pane-separator:hover,
 .desktop-pane-separator--active {
-  background: var(--accent-solid);
+  background: var(--accent-decorative);
 }
 
 /* Insertion marker shown while dragging a pane header to reorder. */
@@ -2442,7 +2442,7 @@ body.is-panel-resizing-row * {
   bottom: 0;
   width: 2px;
   z-index: 7;
-  background: var(--accent-solid);
+  background: var(--accent-decorative);
   pointer-events: none;
 }
 
@@ -2492,7 +2492,7 @@ body.is-panel-resizing-row * {
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--accent-solid);
+  background: var(--selection-indicator);
   z-index: 5;
   pointer-events: none;
 }
@@ -2636,13 +2636,13 @@ body.is-panel-resizing-row * {
   padding: var(--space-1) var(--space-3);
   border: none;
   border-radius: var(--radius-2);
-  background: var(--accent-solid);
-  color: var(--accent-on-solid);
+  background: var(--action-primary-bg);
+  color: var(--action-primary-fg);
   cursor: pointer;
 }
 
 .issue-tab-load-retry:hover {
-  background: var(--accent-solid-hover);
+  background: var(--action-primary-bg-hover);
 }
 
 /* Draft start page must cover the whole chat column. Flex `height: 100%`

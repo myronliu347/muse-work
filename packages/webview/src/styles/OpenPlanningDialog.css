@@ -256,7 +256,7 @@
 }
 
 .open-planning-switch input:checked + .open-planning-switch-track {
-  background: var(--accent-solid);
+  background: var(--selection-indicator);
 }
 
 .open-planning-switch input:checked + .open-planning-switch-track::after {
@@ -268,7 +268,7 @@
 }
 
 .open-planning-switch input:focus-visible + .open-planning-switch-track {
-  box-shadow: 0 0 0 3px var(--accent-wash-hover, color-mix(in srgb, var(--accent-solid) 18%, transparent));
+  box-shadow: 0 0 0 3px var(--focus-glow);
 }
 
 .open-planning-branch-wrap {

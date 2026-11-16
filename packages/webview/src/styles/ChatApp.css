@@ -177,7 +177,7 @@
   overflow: hidden;
   z-index: 6;
   pointer-events: none;
-  background: color-mix(in srgb, var(--accent-solid) 18%, transparent);
+  background: color-mix(in srgb, var(--status-progress-solid) 18%, transparent);
 }
 
 .chat-transcript-progress::after {
@@ -187,7 +187,7 @@
   bottom: 0;
   width: 32%;
   border-radius: 1px;
-  background: var(--accent-solid);
+  background: var(--status-progress-solid);
   animation: chat-transcript-progress 1.1s ease-in-out infinite;
 }
 

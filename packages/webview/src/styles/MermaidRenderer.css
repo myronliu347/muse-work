@@ -35,7 +35,7 @@
 
 .mermaid-tabs .tab-button.active {
   color: var(--text-primary);
-  border-bottom-color: var(--accent-solid);
+  border-bottom-color: var(--selection-indicator);
   background: var(--surface-subtle);
 }
 
@@ -150,7 +150,7 @@
 .loading-spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid var(--accent-solid);
+  border: 2px solid var(--status-progress-solid);
   border-top: 2px solid var(--text-on-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -337,7 +337,7 @@
 
 .control-btn:hover {
   background: var(--surface-muted);
-  border-color: var(--accent-solid);
+  border-color: var(--accent-border);
 }
 
 .zoom-info {
@@ -353,8 +353,8 @@
 }
 
 .close-btn {
-  background: var(--accent-solid);
-  color: var(--accent-on-solid);
+  background: var(--action-primary-bg);
+  color: var(--action-primary-fg);
   border: none;
   border-radius: var(--radius-2);
   padding: var(--space-2) var(--space-3);
@@ -365,7 +365,7 @@
 }
 
 .close-btn:hover {
-  background: var(--accent-solid-hover);
+  background: var(--action-primary-bg-hover);
 }
 
 .fullscreen-content {

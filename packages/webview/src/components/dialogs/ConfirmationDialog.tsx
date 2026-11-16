@@ -45,7 +45,7 @@ const OptionIndicator: React.FC<{ multiSelect: boolean; checked: boolean }> = ({
         {checked && (
           <path
             d="M4.25 8.1L6.35 9.55L11.25 4.35"
-            stroke="var(--accent-solid)"
+            stroke="var(--selection-indicator)"
             strokeWidth="1.7"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -74,7 +74,7 @@ const OptionIndicator: React.FC<{ multiSelect: boolean; checked: boolean }> = ({
         }
       />
       {checked && (
-        <circle cx="8" cy="8" r="3" fill="var(--accent-solid)" />
+        <circle cx="8" cy="8" r="3" fill="var(--selection-indicator)" />
       )}
     </svg>
   );

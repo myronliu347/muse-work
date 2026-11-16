@@ -85,7 +85,7 @@
 
 .header-button.active {
   background-color: var(--surface-hover);
-  color: var(--accent-solid);
+  color: var(--selection-indicator);
 }
 
 .header-button:hover {

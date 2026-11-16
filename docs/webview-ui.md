@@ -173,7 +173,7 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 
 ### Accent
 
-- **Indigo** (`{colors.accent}` — #3e63dd)：默认 `--accent-9`。焦点环和主操作。用户改强调色后这个 hex 会变；组件写 accent 角色（`--accent-solid` 等），不要直接写 primitive。
+- **Indigo** (`{colors.accent}` — #3e63dd)：默认 `--accent-9`。焦点环和主操作。用户改强调色后这个 hex 会变；组件写 accent 角色（`--action-primary-*` / `--selection-indicator` / `--focus-*`），不要直接写 primitive。
 
 `--color-card` 定义在 `.radix-themes` 上，不要写到 `:root`。Radix 的浅色灰阶挂在 `:root`，深色灰阶挂在 `.dark`。变量如果在 `:root` 上解析，会固定成浅色的 `#f0f0f0`，深色主题盖不住。
 
@@ -210,11 +210,14 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 | | `--overlay-control-soft` / `--overlay-control` | 白 10% / 20% | 图片上的悬浮控件 |
 | Border | `--border-faint` / `--border-subtle` / `--border-strong` / `--border-emphasis` | `--gray-3` / `--gray-6` / `--gray-7` / `--gray-12` | 极弱分隔 / 卡片描边 / 强描边 / 高对比选中 |
 | | `--border-focus` / `--border-selected` | `--accent-9` | 焦点、选中 |
-| Accent | `--accent-solid` / `--accent-solid-hover` / `--accent-on-solid` | `accent-9` / `accent-10` / `accent-contrast` | 实心强调、主操作 |
+| Accent | `--action-primary-bg` / `--action-primary-bg-hover` / `--action-primary-fg` | `accent-9` / `accent-10` / `accent-contrast` | 主操作 |
+| | `--selection-indicator` | `accent-9` | 选中/当前项 |
+| | `--focus-ring` / `--focus-glow` | `accent-9` / `accent-a4` | 焦点描边 / 焦点 glow |
 | | `--accent-text` / `--accent-border` | `accent-11` / `accent-8` | 强调文字 / 强调描边 |
+| | `--accent-decorative` | `accent-9` | drag handle、unread dot、brand 图形 |
 | | `--accent-soft` / `--accent-soft-hover` / `--accent-softest` | `accent-3` / `accent-4` / `accent-2` | 浅色强调底 |
-| | `--accent-wash` / `--accent-wash-strong` / `--accent-wash-hover` | `accent-a2` / `a3` / `a4` | alpha 强调底 |
-| | `--accent-track` / `--accent-track-strong` | `accent-5` / `accent-6` | 轨道 / 滑轨 |
+| | `--accent-wash` / `--accent-wash-strong` | `accent-a2` / `a3` | alpha 强调底 |
+| | `--accent-track` | `accent-5` | 轨道 / 滑轨 |
 | Status | `--status-{neutral,progress,success,warning,danger,info}-{text,surface,border,solid}` | 对应 Radix 色阶；彩色 text 用 12 档 | 状态徽章、运行点、错误 |
 | | `--status-danger-fill` / `fill-hover` / `on-fill` | `red-11` / `red-12` / 白·`#111` | 破坏性实心按钮 |
 
@@ -224,7 +227,7 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 - 卡片先靠 `--border-subtle` 抬起来；`--surface-*` 只负责区域之间的明度差，不叠加投影。
 - 代码块用 `--surface-code`，行内代码用 `--surface-inline-code`；两者不要再共用页面的白/黑。
 - 状态只用 `--status-*`，不要在组件里手写 `--red-11` / `color-mix(amber-9 …)`。
-- accent 只用角色层（`--accent-solid` / `--accent-text` / `--accent-soft` …），primitive（`--accent-9`、`--accent-a2`）只允许出现在 `tokens.css`。这些角色目前是宽的，下一步再拆 primary / selected / focus / running。彩色状态文字用 12 档：11 档在浅色 tinted surface 上只有 4.2:1。
+- accent 只用角色层：`--action-primary-*` / `--selection-indicator` / `--focus-*` / `--status-progress-*`；drag、unread、brand 才用 `--accent-decorative`。primitive（`--accent-9`、`--accent-a2`）只允许出现在 `tokens.css`。彩色状态文字用 12 档：11 档在浅色 tinted surface 上只有 4.2:1。
 - 破坏性实心按钮用 `--status-danger-fill` + `--status-danger-on-fill`，不要用 `--status-danger-solid` 配白字：白字 on red-9 只有 3.9:1。
 - 阴影只 token 化颜色（`--shadow-color-*`），offset / blur 留在组件；模态遮罩和图片悬浮控件用 `--overlay-*`。
 
@@ -232,7 +235,7 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 
 这一层是基础 token：组件迁移还在进行中，未迁移的样式仍会直接读 Radix step。新写或改动样式时用语义 token；`--gray-*` / `--accent-*` 只保留在 `tokens.css`、终端/预览适配器和第三方主题里。
 
-已迁移：所有页面的文字、表面、边框、状态色、阴影、遮罩和 accent 角色。剩余白名单是 tokens 定义、globals 首帧、Appearance 预览和终端/预览适配器；`noRawColorTokens` 测试防止回退。accent 角色目前是宽的，primary / selected / focus / running 的拆分是下一层设计工作。
+已迁移：所有页面的文字、表面、边框、状态色、阴影、遮罩和 accent 角色。剩余白名单是 tokens 定义、globals 首帧、Appearance 预览和终端/预览适配器；`noRawColorTokens` 测试防止回退。accent 已拆成 primary / selection / focus / progress；`--accent-text/-border/-soft/-wash/-track` 仍是宽角色，装饰才用 `--accent-decorative`。
 
 ## Typography
 

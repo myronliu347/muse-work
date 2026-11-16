@@ -153,7 +153,7 @@ describe("ConfigDialog appearance tab", () => {
     const underline = screen
       .getByRole("tab", { name: "外观" })
       .querySelector(".settings-tab-underline");
-    expect(underline).toHaveStyle({ backgroundColor: "var(--accent-solid)" });
+    expect(underline).toHaveStyle({ backgroundColor: "var(--selection-indicator)" });
   });
 
   it("hides save on instant-apply tabs and shows it for provider", () => {

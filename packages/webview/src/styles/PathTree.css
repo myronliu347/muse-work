@@ -28,7 +28,7 @@
 }
 
 .path-tree-row--selected {
-  background: color-mix(in srgb, var(--accent-solid) 25%, transparent);
+  background: color-mix(in srgb, var(--selection-indicator) 25%, transparent);
 }
 
 .path-tree-chevron {

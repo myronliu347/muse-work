@@ -25,8 +25,8 @@
 }
 
 .appearance-card[aria-pressed="true"] {
-  border-color: var(--accent-solid);
-  box-shadow: 0 0 0 var(--space-1) var(--accent-solid);
+  border-color: var(--selection-indicator);
+  box-shadow: 0 0 0 var(--space-1) var(--selection-indicator);
   background: var(--accent-softest);
 }
 
@@ -149,8 +149,8 @@
 }
 
 .appearance-scale-btn[aria-pressed="true"] {
-  border-color: var(--accent-solid);
-  box-shadow: 0 0 0 var(--space-1) var(--accent-solid);
+  border-color: var(--selection-indicator);
+  box-shadow: 0 0 0 var(--space-1) var(--selection-indicator);
   background: var(--accent-softest);
 }
 
@@ -204,7 +204,7 @@
 .appearance-gray-swatch.is-auto {
   background: linear-gradient(
     135deg,
-    var(--accent-solid) 0 50%,
+    var(--accent-decorative) 0 50%,
     var(--gray-9) 50% 100%
   );
 }
@@ -235,8 +235,8 @@
 }
 
 .appearance-radius-btn[aria-pressed="true"] {
-  border-color: var(--accent-solid);
-  box-shadow: 0 0 0 var(--space-1) var(--accent-solid);
+  border-color: var(--selection-indicator);
+  box-shadow: 0 0 0 var(--space-1) var(--selection-indicator);
   background: var(--accent-softest);
 }
 

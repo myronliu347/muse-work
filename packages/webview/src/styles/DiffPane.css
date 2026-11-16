@@ -160,7 +160,7 @@
 }
 
 .diff-line-comment-btn:hover {
-  background: var(--accent-solid);
+  background: var(--action-primary-bg);
   color: var(--text-on-accent);
 }
 
@@ -174,7 +174,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent-solid);
+  background: var(--action-primary-bg);
   border: none;
   border-radius: var(--radius-2);
   padding: 0;
@@ -206,7 +206,7 @@
 }
 
 .diff-comment-box:focus-within {
-  border-color: var(--accent-solid);
+  border-color: var(--border-focus);
 }
 
 .diff-comment-input {
@@ -264,7 +264,7 @@
 
 .diff-comment-box-send:hover:not(:disabled) {
   background: var(--surface-muted);
-  border-color: var(--accent-solid);
+  border-color: var(--accent-border);
 }
 
 .diff-comment-box-send:disabled {
@@ -615,7 +615,7 @@
 }
 
 .diff-pane-tree-drag-handle:hover {
-  background: var(--accent-solid);
+  background: var(--accent-decorative);
 }
 
 .diff-pane-tree-header {

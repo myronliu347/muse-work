@@ -196,9 +196,9 @@
 }
 
 .automations-btn-primary {
-  background: var(--accent-solid);
-  border-color: var(--accent-solid);
-  color: var(--accent-on-solid);
+  background: var(--action-primary-bg);
+  border-color: var(--action-primary-bg);
+  color: var(--action-primary-fg);
 }
 
 .automations-btn-ghost {
@@ -312,7 +312,7 @@
 }
 
 .automations-switch.on {
-  background: var(--accent-solid);
+  background: var(--selection-indicator);
 }
 
 .automations-switch i {
@@ -339,7 +339,7 @@
   background: var(--status-success-solid);
 }
 .automations-dot.run {
-  background: var(--accent-solid);
+  background: var(--status-progress-solid);
 }
 .automations-dot.fail {
   background: var(--status-danger-solid);

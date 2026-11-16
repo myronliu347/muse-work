@@ -54,11 +54,9 @@
   --surface-user-bubble: var(--accent-3);
   --surface-user-bubble-hover: var(--accent-4);
 
-  /* Accent roles. Broad on purpose: components stop reading --accent-* steps;
-     splitting these into primary / selected / focus / running is the next
-     design pass. */
-  --accent-solid: var(--accent-9);
-  --accent-solid-hover: var(--accent-10);
+  /* Broad accent roles for accent text and tints. Components never read the
+     --accent-* steps directly. */
+  --accent-decorative: var(--accent-9);
   --accent-text: var(--accent-11);
   --accent-border: var(--accent-8);
   --accent-soft: var(--accent-3);
@@ -66,9 +64,18 @@
   --accent-softest: var(--accent-2);
   --accent-wash: var(--accent-a2);
   --accent-wash-strong: var(--accent-a3);
-  --accent-wash-hover: var(--accent-a4);
   --accent-track: var(--accent-5);
-  --accent-on-solid: var(--accent-contrast);
+
+  /* Accent roles. Components read these instead of the broad --accent-decorative
+     where the meaning is clear: primary action, selected state, focus, or
+     running/progress. --accent-decorative is only for drag handles, unread dots
+     and other decorative accents. */
+  --action-primary-bg: var(--accent-9);
+  --action-primary-bg-hover: var(--accent-10);
+  --action-primary-fg: var(--accent-contrast);
+  --selection-indicator: var(--accent-9);
+  --focus-ring: var(--accent-9);
+  --focus-glow: var(--accent-a4);
 
   /* Elevation. Shadow color is tokenized; offsets/blur stay per component. */
   --shadow-color-soft: rgba(0, 0, 0, 0.18);

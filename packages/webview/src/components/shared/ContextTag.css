@@ -27,7 +27,7 @@
 }
 
 .context-tag.clickable:hover {
-  background-color: color-mix(in srgb, var(--accent-solid) 30%, transparent);
+  background-color: color-mix(in srgb, var(--selection-indicator) 30%, transparent);
   color: var(--text-primary);
   text-decoration: none;
   box-shadow: 0 var(--space-1) var(--space-1) var(--shadow-color-soft);
