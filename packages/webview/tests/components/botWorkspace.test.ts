@@ -105,17 +105,63 @@ describe("botWorkspace", () => {
     expect(closed.openIssueIds).toEqual([]);
     expect(closed.panel).toEqual({ kind: "none" });
     expect(closed.lastIssueId).toBeNull();
+    // Closing the tab must not move the right side off the tab being read.
+    expect(closed.dock).toBe("file");
+    expect(closed.docks.bot).toBe("file");
+  });
+
+  it("closing a tab keeps 变更 while another issue is still on the right", () => {
+    const opened = focusTab(
+      openIssueSession(
+        openIssueSession(initialBotWorkspace("radii"), "radii"),
+        "a11y",
+      ),
+      "radii",
+    );
+    const onDiff = selectDock(opened, "diff");
+    const closed = closeIssueTab(onDiff, "a11y");
+    expect(closed.active).toBe("radii");
+    expect(closed.openIssueIds).toEqual(["radii"]);
+    expect(closed.panel).toEqual({ kind: "issue", issueId: "radii" });
+    expect(closed.dock).toBe("diff");
+  });
+
+  it("falls back to 详情 when the closed tab was the last issue 变更 could show", () => {
+    const opened = selectDock(
+      focusTab(openIssueSession(initialBotWorkspace("radii"), "radii"), "radii"),
+      "diff",
+    );
+    const closed = closeIssueTab(opened, "radii");
+    expect(closed.panel).toEqual({ kind: "none" });
     expect(closed.dock).toBe("detail");
   });
 
+  it("selecting another issue keeps the dock tab the user is reading", () => {
+    const onDiff = selectDock(
+      selectPanel(initialBotWorkspace("radii"), {
+        kind: "issue",
+        issueId: "a11y",
+      }),
+      "diff",
+    );
+    const next = selectPanel(onDiff, { kind: "issue", issueId: "radii" });
+    expect(next.panel).toEqual({ kind: "issue", issueId: "radii" });
+    expect(next.dock).toBe("diff");
+    expect(next.docks.bot).toBe("diff");
+  });
+
   it("selecting an open issue from another issue tab focuses that tab", () => {
-    const opened = openIssueSession(
-      openIssueSession(initialBotWorkspace("radii"), "radii"),
-      "a11y",
+    const opened = selectDock(
+      openIssueSession(
+        openIssueSession(initialBotWorkspace("radii"), "radii"),
+        "a11y",
+      ),
+      "diff",
     );
     const next = selectPanel(opened, { kind: "issue", issueId: "radii" });
     expect(next.active).toBe("radii");
     expect(next.panel).toEqual({ kind: "issue", issueId: "radii" });
+    expect(next.dock).toBe("diff");
   });
 
   it("selecting an open issue from Muse Bot does not leave the home", () => {

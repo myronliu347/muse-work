@@ -489,19 +489,24 @@ export function pruneBotWorkspace(
   for (const [key, dock] of Object.entries(state.docks ?? {})) {
     if (key === "bot" || openIssueIds.includes(key)) docks[key] = dock;
   }
+  // 事项从列表里消失时只回收中间栏和详情绑定；右侧停在哪个标签不跟着变。
+  // 只有 变更 没有事项可看时才退回详情。
+  const issueLeft = panel.kind === "issue" || Boolean(lastIssueId);
+  const dock = state.dock !== "diff" || issueLeft ? state.dock : "detail";
+  docks[active] = dock;
   const docksUnchanged =
     Object.keys(docks).length === Object.keys(state.docks ?? {}).length &&
-    Object.entries(docks).every(([key, dock]) => state.docks?.[key] === dock);
+    Object.entries(docks).every(([key, value]) => state.docks?.[key] === value);
   if (
     active === state.active &&
     lastIssueId === state.lastIssueId &&
     panel === state.panel &&
     openIssueIds.length === state.openIssueIds.length &&
+    dock === state.dock &&
     docksUnchanged
   ) {
     return state;
   }
-  const dock = docks[active] ?? (active === state.active ? state.dock : "detail");
   return { ...state, active, openIssueIds, panel, lastIssueId, dock, docks };
 }
 

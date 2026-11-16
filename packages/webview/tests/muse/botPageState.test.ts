@@ -193,6 +193,41 @@ describe("bot page persistence", () => {
     });
   });
 
+  it("keeps the visible dock tab when the saved issue is no longer in the list", () => {
+    const pruned = pruneBotWorkspace(
+      {
+        ...initialBotWorkspace(null),
+        active: "gone",
+        openIssueIds: ["gone"],
+        panel: { kind: "issue", issueId: "gone" },
+        lastIssueId: "gone",
+        dock: "file",
+        docks: { gone: "file" },
+      },
+      ["radii"],
+    );
+    expect(pruned.active).toBe("bot");
+    expect(pruned.dock).toBe("file");
+    expect(pruned.docks.bot).toBe("file");
+  });
+
+  it("returns 变更 to 详情 when the removed issue leaves nothing to diff", () => {
+    const pruned = pruneBotWorkspace(
+      {
+        ...initialBotWorkspace(null),
+        active: "gone",
+        openIssueIds: ["gone"],
+        panel: { kind: "issue", issueId: "gone" },
+        lastIssueId: "gone",
+        dock: "diff",
+        docks: { gone: "diff" },
+      },
+      ["radii"],
+    );
+    expect(pruned.active).toBe("bot");
+    expect(pruned.dock).toBe("detail");
+  });
+
   it("ignores a corrupt snapshot", () => {
     localStorage.setItem(BOT_PAGE_STATE_KEY, "{");
     expect(loadBotPageSnapshot()).toBeNull();

@@ -59,21 +59,23 @@ export function selectPanel(
       (state.panel.kind === "queue" &&
         panel.kind === "queue" &&
         state.panel.id === panel.id));
-  if (
-    samePanel &&
-    state.active === active &&
-    state.dock === "detail" &&
-    state.lastIssueId === lastIssueId
-  ) {
+  if (samePanel && state.active === active && state.lastIssueId === lastIssueId) {
     return state;
   }
+  // 选中哪条 Issue 只决定右侧看什么，不决定右侧停在哪个标签。详情、变更、
+  // 文件都跟着新事项换内容；用户正在看的那个标签保持不变。切到另一条已
+  // 打开的 Issue 标签时，这条标签也记住当前标签，之后点标签回来不会再被
+  // 拉回详情。待处理条目没有对应的变更 / 文件，仍把详情带到前面。
+  const dock = panel.kind === "issue" ? state.dock : "detail";
+  const docks = { ...state.docks, [state.active]: state.dock };
+  docks[active] = dock;
   return {
     ...state,
     active,
     panel,
-    dock: "detail",
-    docks: { ...state.docks, [state.active]: state.dock, [active]: "detail" },
+    dock,
     lastIssueId,
+    docks,
   };
 }
 
@@ -117,19 +119,18 @@ export function closeIssueTab(state: BotWorkspaceState, issueId: string): BotWor
   const lastWasThis = state.lastIssueId === issueId;
   const activeWasThis = state.active === issueId;
   if (!hadTab && !panelWasThis && !lastWasThis && !activeWasThis) return state;
-  // 右侧正在看这条 Issue 时，关掉后不再选中它，回到详情。
-  const droveDock = panelWasThis;
+  // 关标签只回收中间栏和详情绑定。右侧停在哪个标签是用户的阅读状态，
+  // 不因为少了一条 Issue 就跳回详情；文件、终端、浏览器、详情都可以留着。
+  // 只有 变更 在关掉后连一个可看的事项都没有时才退回详情。
   const docks = { ...state.docks };
   delete docks[issueId];
   const active = activeWasThis ? "bot" : state.active;
-  let dock = state.dock;
-  if (activeWasThis) {
-    dock = droveDock ? "detail" : (docks.bot ?? "detail");
-    docks.bot = dock;
-  } else if (droveDock) {
-    dock = "detail";
-    docks[active] = "detail";
-  }
+  const keptPanelIssue =
+    !panelWasThis && state.panel.kind === "issue" ? state.panel.issueId : undefined;
+  const keptLastIssue = lastWasThis ? undefined : state.lastIssueId ?? undefined;
+  const issueLeft = Boolean(keptPanelIssue || keptLastIssue);
+  const dock = state.dock === "diff" && !issueLeft ? "detail" : state.dock;
+  docks[active] = dock;
   return {
     ...state,
     openIssueIds: hadTab

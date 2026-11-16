@@ -24,6 +24,11 @@ import {
 } from "../webview/test-utils";
 import type { DesktopHostProps } from "../../src/types";
 
+// Radix Select tests pointer capture; jsdom does not implement it.
+HTMLElement.prototype.hasPointerCapture ??= () => false;
+HTMLElement.prototype.setPointerCapture ??= () => {};
+HTMLElement.prototype.releasePointerCapture ??= () => {};
+
 async function ensureAssistantDock(
   scope: HTMLElement,
   user: ReturnType<typeof userEvent.setup>,
@@ -1109,6 +1114,80 @@ describe("issue tab", () => {
       expect(diffCalls.every((message) => message.workdir === "/work/radii")).toBe(true);
       expect(diffCalls.every((message) => message.baseBranch === undefined)).toBe(true);
     });
+  });
+
+  it("keeps 变更 when the issue changes from the 变更 pane", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [RADII_ISSUE, A11Y_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    const lists = within(frame).getByTestId("bot-lists");
+    await user.click(within(lists).getByRole("button", { name: new RegExp(RADII) }));
+    await user.click(
+      within(dock).getByTestId("desktop-panel-tab-diff").querySelector("button")!,
+    );
+    expect(within(dock).getByTestId("desktop-panel-tab-diff")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+
+    await user.click(within(dock).getByTestId("diff-issue-select"));
+    await user.click(await screen.findByTestId("diff-issue-option-a11y"));
+
+    expect(within(dock).getByTestId("desktop-panel-tab-diff")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(within(dock).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(within(dock).getByTestId("diff-issue-select")).toHaveTextContent(A11Y);
+  });
+
+  it("keeps the visible dock tab when an issue tab closes", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({ issueGroups: [RADII_ISSUE] })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    await user.click(
+      within(dock).getByRole("button", { name: "打开会话", hidden: true }),
+    );
+    await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
+    await user.click(await screen.findByTestId("panel-add-item-file"));
+    expect(within(dock).getByTestId("desktop-panel-tab-file")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+
+    const close = frame.querySelector<HTMLElement>(".bot-tab-close");
+    expect(close).not.toBeNull();
+    await user.click(close!);
+
+    expect(botTab(frame, "灵光")).toHaveClass("active");
+    expect(within(frame).getByTestId("desktop-panel-tab-file")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
   });
 
   it("keeps browser tabs across issues and can open another", async () => {
