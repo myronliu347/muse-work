@@ -323,12 +323,12 @@ html:has(.desktop-layout) {
 }
 
 .desktop-rail-btn:hover:not(.active) {
-  background: var(--surface-hover);
+  background: var(--surface-muted);
 }
 
 .desktop-rail-btn.desktop-rail-update:hover,
 .desktop-rail-btn.desktop-rail-update:hover:not(.active) {
-  background: var(--surface-hover);
+  background: var(--surface-muted);
   color: var(--text-primary);
 }
 
@@ -804,14 +804,20 @@ html:has(.desktop-layout) {
   background: var(--surface-muted);
 }
 
-.issue-sidebar-row--current,
-.issue-sidebar-row--visible {
-  background: var(--surface-selected);
+.issue-sidebar-row--current {
+  background: var(--surface-active);
 }
 
-.issue-sidebar-row--current:hover,
+.issue-sidebar-row--visible {
+  background: var(--surface-visible);
+}
+
+.issue-sidebar-row--current:hover {
+  background: var(--surface-active);
+}
+
 .issue-sidebar-row--visible:hover {
-  background: var(--surface-selected);
+  background: var(--surface-visible);
 }
 
 .issue-type-icon {
@@ -902,9 +908,12 @@ html:has(.desktop-layout) {
   background: var(--surface-muted);
 }
 
-.issue-sidebar-row--current:hover .issue-sidebar-meta,
+.issue-sidebar-row--current:hover .issue-sidebar-meta {
+  background: var(--surface-active);
+}
+
 .issue-sidebar-row--visible:hover .issue-sidebar-meta {
-  background: var(--surface-selected);
+  background: var(--surface-visible);
 }
 
 .issue-sidebar-row:has(.desktop-session-active-at) .issue-sidebar-title {
@@ -1068,13 +1077,17 @@ html:has(.desktop-layout) {
 }
 
 .desktop-session-item:hover {
-  background: var(--surface-hover);
+  background: var(--surface-muted);
 }
 
 .desktop-session-item--current {
-  background: var(--surface-selected);
+  background: var(--surface-active);
   color: inherit;
   font-weight: 500;
+}
+
+.desktop-session-item--current:hover {
+  background: var(--surface-active);
 }
 
 /* Weak counterpart of --current: the session is shown in a non-focused pane. */
@@ -2247,7 +2260,7 @@ body.is-panel-resizing-row * {
 }
 
 .desktop-layout > .desktop-settings-page .config-tab.active {
-  background: var(--surface-muted);
+  background: var(--surface-active);
 }
 
 .desktop-layout > .desktop-settings-page .settings-tab-underline {
@@ -3004,10 +3017,19 @@ body.is-panel-resizing-row * {
   cursor: pointer;
 }
 
-.bot-tab.active,
-.bot-tab:hover:not(:disabled) {
+.bot-tab.active {
+  background: var(--surface-active);
+  color: var(--text-primary);
+}
+
+.bot-tab:hover:not(.active):not(:disabled) {
   background: var(--surface-muted);
   color: var(--text-primary);
+}
+
+.bot-tab-group.active .bot-tab,
+.bot-tab-group.active .bot-tab:hover:not(:disabled) {
+  background: transparent;
 }
 
 .bot-tab:disabled {
@@ -3026,8 +3048,11 @@ body.is-panel-resizing-row * {
   border-radius: var(--radius-1);
 }
 
-.bot-tab-group.active,
-.bot-tab-group:hover {
+.bot-tab-group.active {
+  background: var(--surface-active);
+}
+
+.bot-tab-group:hover:not(.active) {
   background: var(--surface-muted);
 }
 

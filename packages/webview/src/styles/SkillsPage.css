@@ -46,7 +46,7 @@
 }
 
 .skills-tab[aria-selected="true"] {
-  background: var(--surface-muted);
+  background: var(--surface-active);
   color: var(--text-primary);
   font-weight: 600;
 }

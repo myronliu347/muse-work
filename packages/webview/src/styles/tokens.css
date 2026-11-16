@@ -41,7 +41,6 @@
   --surface-subtle: var(--gray-3);
   --surface-muted: var(--gray-4);
   --surface-hover: color-mix(in srgb, var(--gray-4) 78%, transparent);
-  --surface-selected: color-mix(in srgb, var(--gray-4) 88%, transparent);
   --surface-visible: color-mix(in srgb, var(--gray-4) 70%, transparent);
   --surface-raised: var(--gray-4);
   --surface-active: var(--gray-5);
@@ -163,7 +162,6 @@
   --surface-muted: color-mix(in srgb, var(--gray-4) 85%, #000);
   --surface-hover: rgba(255, 255, 255, 0.045);
   --surface-visible: rgba(255, 255, 255, 0.025);
-  --surface-selected: color-mix(in srgb, var(--accent-9) 18%, var(--surface-rail));
   --surface-code: color-mix(in srgb, var(--gray-2) 88%, #000);
   --surface-inline-code: var(--gray-4);
   --surface-user-bubble: color-mix(in srgb, var(--gray-4) 90%, #000);
@@ -191,14 +189,13 @@
   --surface-muted: color-mix(in srgb, var(--gray-4) 85%, var(--gray-3));
   --surface-hover: rgba(17, 17, 20, 0.035);
   --surface-visible: rgba(17, 17, 20, 0.02);
-  --surface-selected: color-mix(in srgb, var(--accent-9) 8%, #fff);
   --surface-code: color-mix(in srgb, var(--gray-3) 70%, var(--gray-2));
   --surface-inline-code: var(--gray-3);
   --surface-user-bubble: var(--accent-3);
   --surface-user-bubble-hover: var(--accent-4);
   --surface-control: color-mix(in srgb, var(--gray-5) 90%, #fff);
   --surface-strong: color-mix(in srgb, var(--gray-7) 80%, #fff);
-  --surface-active: color-mix(in srgb, var(--gray-5) 80%, #fff);
+  --surface-active: var(--gray-5);
   --surface-knob: #fff;
   --border-subtle: color-mix(in srgb, var(--gray-6) 70%, #fff);
   --border-strong: color-mix(in srgb, var(--gray-7) 90%, #fff);

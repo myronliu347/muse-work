@@ -149,7 +149,7 @@
 
 .config-tab.active {
   color: var(--text-primary);
-  background: var(--surface-subtle);
+  background: var(--surface-active);
 }
 
 /* Model tab hint row */

@@ -131,7 +131,7 @@
 
 .desktop-panel-tab--active {
   color: var(--text-primary);
-  background: var(--surface-muted);
+  background: var(--surface-active);
 }
 
 .dock-tab-drop-before {
@@ -242,8 +242,12 @@
   overflow: hidden;
 }
 
-.file-tab:hover,
 .file-tab--active {
+  background: var(--surface-active);
+  color: var(--text-primary);
+}
+
+.file-tab:hover:not(.file-tab--active) {
   background: var(--surface-muted);
   color: var(--text-primary);
 }

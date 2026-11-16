@@ -195,8 +195,8 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 | | `--surface-panel` | 浅色 `--gray-3`；深色 `--gray-2` 75% + 黑 | 面板、对话框 |
 | | `--surface-card` | `--color-card` | 卡片、输入框、对话框 |
 | | `--surface-sunken` / `--surface-subtle` / `--surface-muted` | `--gray-1` / `--gray-3` / `--gray-4` | 内凹底 / 低强调填充 / 悬停底 |
-| | `--surface-hover` / `--surface-selected` / `--surface-visible` | 3.5–4.5% 黑/白 / `accent-9` 8%（浅）·18%（深） / 2–2.5% | 悬停、选中、非焦点分屏 |
-| | `--surface-raised` / `--surface-active` | `--gray-4` / `--gray-5` | 浮层操作条 / 按下的导航项 |
+| | `--surface-hover` / `--surface-visible` | 3.5–4.5% 黑/白 / 2–2.5% | 悬停、非焦点分屏 |
+| | `--surface-raised` / `--surface-active` | `--gray-4` / `--gray-5` | 浮层操作条 / active tab、图标栏、选中行 |
 | | `--surface-control` / `--surface-strong` / `--surface-strong-hover` | `--gray-6` / `--gray-8` / `--gray-9` | 开关轨道 / 强填充按钮与徽章 / 其悬停 |
 | | `--surface-knob` | `#ffffff` | 开关滑块，两个主题都保持白 |
 | | `--surface-code` | `--gray-3` 75% + `--gray-2` | 代码块 |
@@ -327,6 +327,9 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 ### Sidebar
 
 **`sidebar`** — 浅色用 `{colors.surface-sidebar}`，不要改成卡片白。深色比画布亮一档；图标栏、会话列表和标题栏用同一个 `--surface-rail`，不另做分割线。
+
+- 图标栏 active、Tab active（Bot tab、面板 tab、文件 tab）、选中会话行统一用 `surface-active` 底；inactive 透明，hover 才用 `surface-muted`。
+- active 不再用 accent 浅底、白色 canvas 底或下划线，避免同一层级出现多种选中语言。
 
 ### Composer
 
