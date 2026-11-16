@@ -444,6 +444,7 @@ html:has(.desktop-layout) {
   background: var(--surface-session-list);
   /* Let the shell header paint the titlebar band; the list starts below it. */
   background-clip: content-box;
+  border-right: 1px solid var(--border-subtle);
   overflow: hidden;
 }
 

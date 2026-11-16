@@ -329,7 +329,7 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 
 ### Sidebar
 
-**`sidebar`** — 会话列表用 `{colors.surface-sidebar}`，图标栏和标题栏用 `{colors.surface-rail}`，内容区用画布色。不要给会话列表加分割线；靠这三层底色差分开。默认宽 280px，可拖 180–400。
+**`sidebar`** — 会话列表用 `{colors.surface-sidebar}`，图标栏和标题栏用 `{colors.surface-rail}`，内容区用画布色。会话列表右侧和右侧 dock 左边统一用 1px `--border-subtle`；浅色不要用 `--border-strong`，否则两条线颜色会不一致。默认宽 280px，可拖 180–400。
 
 - 会话列表背景从 titlebar 下面开始（`background-clip: content-box`），不要把顶部 38px 也刷成列表色；header 横贯整宽。
 
