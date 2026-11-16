@@ -34,15 +34,15 @@
   gap: var(--space-2);
   margin: 0 0 var(--space-1);
   padding: var(--space-2);
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
-  background: var(--gray-2);
+  background: var(--surface-panel);
   cursor: pointer;
 }
 
 .open-planning-mode-option:has(input:checked) {
-  border-color: var(--accent-8);
-  background: var(--accent-a2, var(--gray-3));
+  border-color: var(--accent-border);
+  background: var(--accent-wash, var(--surface-subtle));
 }
 
 .open-planning-mode-option input {
@@ -64,10 +64,10 @@
   min-height: 28px;
   margin: 0;
   padding: 0 var(--space-2);
-  border: 1px dashed var(--gray-7);
+  border: 1px dashed var(--border-strong);
   border-radius: var(--radius-2);
-  background: var(--gray-2);
-  color: var(--gray-11);
+  background: var(--surface-panel);
+  color: var(--text-secondary);
   font: inherit;
   font-size: var(--font-size-1);
   text-align: left;
@@ -75,14 +75,14 @@
 }
 
 .open-planning-pick:hover:not(:disabled) {
-  border-color: var(--gray-8);
-  background: var(--gray-3);
+  border-color: var(--border-strong);
+  background: var(--surface-subtle);
 }
 
 .open-planning-pick.has-path {
   border-style: solid;
-  border-color: var(--gray-6);
-  color: var(--gray-12);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
 }
 
 .open-planning-pick:disabled {
@@ -93,7 +93,7 @@
 .open-planning-pick .codicon {
   flex-shrink: 0;
   font-size: var(--font-size-1);
-  color: var(--gray-10);
+  color: var(--text-tertiary);
 }
 
 .open-planning-recents {
@@ -104,7 +104,7 @@
   margin-bottom: var(--space-1);
   font-size: var(--font-size-00);
   font-weight: 500;
-  color: var(--gray-10);
+  color: var(--text-tertiary);
 }
 
 .open-planning-recents-list {
@@ -128,18 +128,18 @@
   border: none;
   border-radius: var(--radius-2);
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
 
 .open-planning-recent-item:hover:not(:disabled) {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .open-planning-recent-item.is-selected {
-  background: var(--accent-a2, var(--gray-4));
+  background: var(--accent-wash, var(--surface-muted));
 }
 
 .open-planning-recent-item:disabled {
@@ -150,7 +150,7 @@
 .open-planning-recent-item .codicon {
   flex-shrink: 0;
   font-size: var(--font-size-1);
-  color: var(--gray-10);
+  color: var(--text-tertiary);
 }
 
 .open-planning-recent-copy {
@@ -172,7 +172,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--font-size-00);
-  color: var(--gray-10);
+  color: var(--text-tertiary);
 }
 
 .open-planning-workdir {
@@ -191,9 +191,9 @@
   gap: var(--space-2);
   margin: 0;
   padding: var(--space-2);
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
-  background: var(--gray-2);
+  background: var(--surface-panel);
   cursor: pointer;
 }
 
@@ -207,14 +207,14 @@
 .open-planning-switch-title {
   font-size: var(--font-size-1);
   font-weight: 500;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .open-planning-hint {
   margin: 0;
   font-size: var(--font-size-00);
   line-height: 1.4;
-  color: var(--gray-10);
+  color: var(--text-tertiary);
 }
 
 .open-planning-switch {
@@ -238,7 +238,7 @@
   width: 28px;
   height: 16px;
   border-radius: 999px;
-  background: var(--gray-6);
+  background: var(--surface-control);
   transition: background 0.15s ease;
 }
 
@@ -250,13 +250,13 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  background: var(--surface-knob);
+  box-shadow: 0 1px 2px var(--shadow-color-soft);
   transition: transform 0.15s ease;
 }
 
 .open-planning-switch input:checked + .open-planning-switch-track {
-  background: var(--accent-9);
+  background: var(--accent-solid);
 }
 
 .open-planning-switch input:checked + .open-planning-switch-track::after {
@@ -268,7 +268,7 @@
 }
 
 .open-planning-switch input:focus-visible + .open-planning-switch-track {
-  box-shadow: 0 0 0 3px var(--accent-a4, color-mix(in srgb, var(--accent-9) 18%, transparent));
+  box-shadow: 0 0 0 3px var(--accent-wash-hover, color-mix(in srgb, var(--accent-solid) 18%, transparent));
 }
 
 .open-planning-branch-wrap {
@@ -285,7 +285,7 @@
   pointer-events: none;
   font-size: 14px;
   line-height: 1;
-  color: var(--gray-10);
+  color: var(--text-tertiary);
 }
 
 .open-planning-branch-trigger.rt-SelectTrigger {

@@ -1,17 +1,17 @@
 /* Mermaid Renderer Component Styles */
 .mermaid-renderer {
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-3);
   overflow: hidden;
-  background: var(--gray-1);
+  background: var(--surface-sunken);
   margin: var(--space-3) 0;
 }
 
 /* Tab Navigation */
 .mermaid-tabs {
   display: flex;
-  background: var(--gray-2);
-  border-bottom: var(--hairline) solid var(--gray-6);
+  background: var(--surface-panel);
+  border-bottom: var(--hairline) solid var(--border-subtle);
   position: relative;
 }
 
@@ -21,7 +21,7 @@
   padding: var(--space-2) var(--space-4);
   font-size: var(--font-size-1);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   cursor: pointer;
   border-bottom: 2px solid transparent;
   transition: all 0.2s ease;
@@ -29,14 +29,14 @@
 }
 
 .mermaid-tabs .tab-button:hover {
-  background: var(--gray-4);
-  color: var(--gray-12);
+  background: var(--surface-muted);
+  color: var(--text-primary);
 }
 
 .mermaid-tabs .tab-button.active {
-  color: var(--gray-12);
-  border-bottom-color: var(--accent-9);
-  background: var(--gray-3);
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-solid);
+  background: var(--surface-subtle);
 }
 
 /* Tab Content */
@@ -49,7 +49,7 @@
 .mermaid-preview {
   padding: var(--space-4);
   text-align: center;
-  background: var(--gray-1);
+  background: var(--surface-sunken);
   position: relative;
 }
 
@@ -63,11 +63,11 @@
   z-index: 10;
   opacity: 0;
   transition: opacity 0.2s ease;
-  background: var(--gray-1);
+  background: var(--surface-sunken);
   padding: var(--space-1);
   border-radius: var(--radius-2);
-  border: 1px solid var(--gray-6);
-  box-shadow: 0 var(--space-1) var(--space-2) rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 var(--space-1) var(--space-2) var(--shadow-color-soft);
 }
 
 .mermaid-preview:hover .mermaid-actions {
@@ -76,7 +76,7 @@
 
 .action-button {
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   border: none;
   border-radius: var(--radius-1);
   padding: var(--space-1);
@@ -88,8 +88,8 @@
 }
 
 .action-button:hover {
-  background: var(--gray-4);
-  color: var(--gray-12);
+  background: var(--surface-muted);
+  color: var(--text-primary);
 }
 
 .action-button i.codicon {
@@ -119,14 +119,14 @@
 /* Source Tab Styles */
 .mermaid-source {
   padding: 0;
-  background: var(--gray-3);
+  background: var(--surface-subtle);
 }
 
 .source-code {
   margin: 0;
   padding: var(--space-4);
-  background: var(--gray-3);
-  color: var(--gray-12);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
   font-family: Menlo, Monaco, 'Courier New', monospace;
   font-size: 12px;
   line-height: 1.6;
@@ -142,7 +142,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-7);
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   font-size: var(--font-size-2);
 }
@@ -150,8 +150,8 @@
 .loading-spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid var(--accent-9);
-  border-top: 2px solid #ffffff;
+  border: 2px solid var(--accent-solid);
+  border-top: 2px solid var(--text-on-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: var(--space-2);
@@ -169,9 +169,9 @@
 /* Error State */
 .mermaid-error {
   padding: var(--space-4);
-  background: color-mix(in srgb, var(--red-9) 15%, transparent);
-  color: var(--red-11);
-  border-left: 4px solid var(--red-9);
+  background: var(--status-danger-surface);
+  color: var(--status-danger-text);
+  border-left: 4px solid var(--status-danger-solid);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
 }
 
@@ -193,7 +193,7 @@
 .error-message pre {
   margin: 0 0 var(--space-3) 0;
   padding: var(--space-2);
-  background: var(--gray-3);
+  background: var(--surface-subtle);
   border-radius: var(--radius-2);
   font-family: Menlo, Monaco, 'Courier New', monospace;
   font-size: var(--font-size-1);
@@ -207,7 +207,7 @@
 .mermaid-empty {
   padding: var(--space-5);
   text-align: center;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
 }
 
@@ -219,7 +219,7 @@
 /* Improved Source Tab */
 .mermaid-source {
   padding: 0;
-  background: var(--gray-3);
+  background: var(--surface-subtle);
   display: flex;
   flex-direction: column;
   min-height: 200px;
@@ -228,8 +228,8 @@
 .source-code {
   margin: 0;
   padding: var(--space-4);
-  background: var(--gray-3);
-  color: var(--gray-12);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
   font-family: Menlo, Monaco, 'Courier New', monospace;
   font-size: 12px;
   line-height: 1.6;
@@ -259,7 +259,7 @@
 
 /* High contrast theme support */
 .vscode-high-contrast .mermaid-renderer {
-  border: 2px solid var(--gray-6);
+  border: 2px solid var(--border-subtle);
 }
 
 .vscode-high-contrast .tab-button.active {
@@ -282,7 +282,7 @@
      the shell keeps a 38px hiddenInset strip for them, and without the inset
      the window buttons were painted over the zoom controls. */
   padding-top: var(--desktop-shell-titlebar-height, 0px);
-  background: rgba(0, 0, 0, 0.9);
+  background: var(--overlay-scrim-strong);
   z-index: 9999;
   display: flex;
   flex-direction: column;
@@ -305,9 +305,9 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--space-3) var(--space-4);
-  background: var(--gray-2);
-  border-bottom: var(--hairline) solid var(--gray-6);
-  box-shadow: 0 var(--space-1) var(--space-2) rgba(0, 0, 0, 0.2);
+  background: var(--surface-panel);
+  border-bottom: var(--hairline) solid var(--border-subtle);
+  box-shadow: 0 var(--space-1) var(--space-2) var(--shadow-color-soft);
 }
 
 .fullscreen-controls {
@@ -318,8 +318,8 @@
 
 .control-btn {
   background: transparent;
-  color: var(--gray-11);
-  border: 1px solid var(--gray-6);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-1);
@@ -336,13 +336,13 @@
 }
 
 .control-btn:hover {
-  background: var(--gray-4);
-  border-color: var(--accent-9);
+  background: var(--surface-muted);
+  border-color: var(--accent-solid);
 }
 
 .zoom-info {
-  background: var(--gray-8);
-  color: var(--gray-12);
+  background: var(--surface-strong);
+  color: var(--text-primary);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-5);
   font-size: var(--font-size-1);
@@ -353,8 +353,8 @@
 }
 
 .close-btn {
-  background: var(--accent-9);
-  color: var(--accent-contrast);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
   border: none;
   border-radius: var(--radius-2);
   padding: var(--space-2) var(--space-3);
@@ -365,7 +365,7 @@
 }
 
 .close-btn:hover {
-  background: var(--accent-10);
+  background: var(--accent-solid-hover);
 }
 
 .fullscreen-content {
@@ -387,37 +387,37 @@
   display: block;
   max-width: none;
   max-height: none;
-  background: var(--gray-1);
+  background: var(--surface-sunken);
   border-radius: var(--radius-4);
-  box-shadow: 0 var(--space-1) var(--space-4) rgba(0, 0, 0, 0.3);
+  box-shadow: 0 var(--space-1) var(--space-4) var(--shadow-color);
 }
 
 .fullscreen-help {
   padding: var(--space-2) var(--space-4);
-  background: var(--gray-2);
-  color: var(--gray-11);
+  background: var(--surface-panel);
+  color: var(--text-secondary);
   text-align: center;
   font-size: var(--font-size-1);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-  border-top: var(--hairline) solid var(--gray-6);
+  border-top: var(--hairline) solid var(--border-subtle);
 }
 
 /* Dark theme adjustments for fullscreen */
 .vscode-dark .fullscreen-diagram svg {
-  background: var(--gray-1);
+  background: var(--surface-sunken);
 }
 
 /* High contrast theme support for fullscreen */
 .vscode-high-contrast .mermaid-fullscreen-modal {
-  border: 2px solid var(--gray-6);
+  border: 2px solid var(--border-subtle);
 }
 
 .vscode-high-contrast .fullscreen-header {
-  border-bottom: 2px solid var(--gray-6);
+  border-bottom: 2px solid var(--border-subtle);
 }
 
 .vscode-high-contrast .fullscreen-diagram svg {
-  border: 2px solid var(--gray-6);
+  border: 2px solid var(--border-subtle);
 }
 
 /* Responsive adjustments for fullscreen */

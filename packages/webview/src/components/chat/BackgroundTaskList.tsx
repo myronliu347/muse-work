@@ -84,7 +84,7 @@ export const BackgroundTaskList: React.FC<BackgroundTaskListProps> = ({
             >
               <span
                 className="background-task-status-dot running"
-                style={{ backgroundColor: "var(--accent-11)" }}
+                style={{ backgroundColor: "var(--accent-text)" }}
                 title="进行中"
               />
               <div className="background-task-content">

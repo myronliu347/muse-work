@@ -13,7 +13,7 @@
 /* codicon.css uses `.codicon[class*='codicon-'] { font: 16px ... }`, so a
    bare class cannot raise the size. */
 .panel-picker .panel-picker-mark.codicon {
-  color: var(--gray-8);
+  color: var(--text-tertiary);
   font-size: 48px;
   line-height: 1;
 }
@@ -32,10 +32,10 @@
   gap: var(--space-3);
   width: 100%;
   padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-3);
-  background: var(--color-background);
-  color: var(--gray-12);
+  background: var(--surface-canvas);
+  color: var(--text-primary);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -45,12 +45,12 @@
 }
 
 .panel-picker-card:hover {
-  background: var(--gray-3);
-  border-color: var(--gray-7);
+  background: var(--surface-subtle);
+  border-color: var(--border-strong);
 }
 
 .panel-picker-card:focus-visible {
-  outline: 1px solid var(--accent-8);
+  outline: 1px solid var(--accent-border);
   outline-offset: 1px;
 }
 
@@ -62,15 +62,15 @@
 }
 
 .panel-picker-icon.is-file {
-  color: var(--amber-9, #d9a43a);
+  color: var(--status-warning-text);
 }
 
 .panel-picker-icon.is-blue {
-  color: var(--accent-9);
+  color: var(--accent-solid);
 }
 
 .panel-picker-icon.is-muted {
-  color: var(--gray-10);
+  color: var(--text-tertiary);
 }
 
 .panel-picker-copy {
@@ -89,7 +89,7 @@
 
 .panel-picker-hint {
   overflow: hidden;
-  color: var(--gray-10);
+  color: var(--text-tertiary);
   font-size: var(--font-size-1);
   line-height: 1.3;
   text-overflow: ellipsis;
@@ -98,7 +98,7 @@
 
 .panel-picker-shortcut {
   flex: none;
-  color: var(--gray-9);
+  color: var(--text-tertiary);
   font-size: var(--font-size-1);
   letter-spacing: 0.02em;
 }

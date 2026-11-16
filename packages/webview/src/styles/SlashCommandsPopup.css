@@ -1,9 +1,9 @@
 /* 指令弹窗 */
 .slash-commands-popup {
-  background-color: var(--color-panel);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-3);
-  box-shadow: 0 var(--space-1) var(--space-2) rgba(0, 0, 0, 0.36);
+  box-shadow: 0 var(--space-1) var(--space-2) var(--shadow-color);
   min-width: 300px;
   max-width: 400px;
   max-height: 320px;
@@ -16,7 +16,7 @@
 .slash-commands-empty {
   padding: var(--space-3);
   text-align: center;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: var(--font-size-1);
   line-height: 1.45;
 }
@@ -32,7 +32,7 @@
   padding: 0 var(--space-3);
   font-size: var(--font-size-1);
   font-weight: 600;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .slash-commands-list {
@@ -50,25 +50,25 @@
 
 .slash-command-item:hover,
 .slash-command-item.selected {
-  background-color: var(--gray-4);
+  background-color: var(--surface-muted);
 }
 
 .slash-command-item.selected .slash-command-name,
 .slash-command-item.selected .slash-command-description {
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .slash-command-name {
   font-size: var(--font-size-1);
   font-weight: 500;
   line-height: var(--line-height-1);
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .slash-command-description {
   font-size: var(--font-size-1);
   font-weight: 400;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   line-height: 1.45;
   /* 描述最多显示两行，超出省略 */
   display: -webkit-box;

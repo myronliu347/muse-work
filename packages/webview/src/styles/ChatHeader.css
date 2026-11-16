@@ -2,7 +2,7 @@
 .chat-header {
   height: 36px;
   padding: 0 var(--space-3);
-  background-color: var(--color-background);
+  background-color: var(--surface-canvas);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -15,7 +15,7 @@
   font-size: var(--font-size-1);
   font-weight: 600;
   line-height: var(--line-height-1);
-  color: var(--gray-12);
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -67,7 +67,7 @@
   height: 22px;
   padding: 0;
   background-color: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   border: none;
   border-radius: var(--radius-1);
   cursor: pointer;
@@ -84,20 +84,20 @@
 }
 
 .header-button.active {
-  background-color: var(--gray-4);
-  color: var(--accent-9);
+  background-color: var(--surface-hover);
+  color: var(--accent-solid);
 }
 
 .header-button:hover {
-  background-color: var(--gray-4);
+  background-color: var(--surface-hover);
 }
 
 .button-badge {
   position: absolute;
   top: -3px;
   right: -3px;
-  background-color: var(--gray-8);
-  color: var(--gray-12);
+  background-color: var(--surface-strong);
+  color: var(--text-primary);
   font-size: 9px;
   line-height: 1;
   min-width: 14px;

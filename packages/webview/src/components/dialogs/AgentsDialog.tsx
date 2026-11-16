@@ -127,7 +127,7 @@ const AgentsDialog: React.FC<
                       <span
                         style={{
                           fontSize: "12px",
-                          color: "var(--gray-11)",
+                          color: "var(--text-secondary)",
                         }}
                       >
                         {SCOPE_LABELS[selectedAgent.scope] ||
@@ -139,7 +139,7 @@ const AgentsDialog: React.FC<
                     <div
                       style={{
                         fontSize: "12px",
-                        color: "var(--gray-11)",
+                        color: "var(--text-secondary)",
                       }}
                     >
                       {selectedAgent.description}
@@ -184,7 +184,7 @@ const AgentsDialog: React.FC<
                     <pre
                       style={{
                         background:
-                          "var(--gray-3))",
+                          "var(--surface-code)",
                         padding: "8px",
                         borderRadius: "4px",
                         fontSize: "12px",
@@ -213,7 +213,7 @@ const AgentsDialog: React.FC<
                     style={{
                       fontSize: "12px",
                       fontWeight: "bold",
-                      color: "var(--gray-11)",
+                      color: "var(--text-secondary)",
                       margin: "8px 0 4px 0",
                     }}
                   >
@@ -233,7 +233,7 @@ const AgentsDialog: React.FC<
                             <span
                               style={{
                                 fontSize: "12px",
-                                color: "var(--gray-11)",
+                                color: "var(--text-secondary)",
                               }}
                             >
                               · {agent.model}
@@ -244,7 +244,7 @@ const AgentsDialog: React.FC<
                           <div
                             style={{
                               fontSize: "12px",
-                              color: "var(--gray-11)",
+                              color: "var(--text-secondary)",
                             }}
                           >
                             {agent.description}

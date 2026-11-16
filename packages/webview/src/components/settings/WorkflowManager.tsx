@@ -24,16 +24,16 @@ const formatTokens = (tokens: number): string => {
 const statusColor = (status: string): string => {
   switch (status) {
     case "running":
-      return "#4ec9b0";
+      return "var(--status-progress-text)";
     case "completed":
-      return "#569cd6";
+      return "var(--status-success-text)";
     case "failed":
     case "aborted":
-      return "#f48771";
+      return "var(--status-danger-text)";
     case "paused":
-      return "#dcdcaa";
+      return "var(--status-warning-text)";
     default:
-      return "var(--gray-11)";
+      return "var(--text-secondary)";
   }
 };
 
@@ -133,63 +133,63 @@ const WorkflowManager: React.FC<
             <div
               style={{
                 fontSize: "12px",
-                color: "var(--gray-11)",
+                color: "var(--text-secondary)",
               }}
             >
-              <span style={{ color: "#569cd6" }}>Run ID:</span>{" "}
+              <span style={{ color: "var(--text-primary)" }}>Run ID:</span>{" "}
               {selectedRun.runId}
             </div>
             {selectedRun.meta?.description && (
               <div
                 style={{
                   fontSize: "12px",
-                  color: "var(--gray-11)",
+                  color: "var(--text-secondary)",
                 }}
               >
-                <span style={{ color: "#569cd6" }}>Description:</span>{" "}
+                <span style={{ color: "var(--text-primary)" }}>Description:</span>{" "}
                 {selectedRun.meta.description}
               </div>
             )}
             <div
               style={{
                 fontSize: "12px",
-                color: "var(--gray-11)",
+                color: "var(--text-secondary)",
               }}
             >
-              <span style={{ color: "#569cd6" }}>Started:</span>{" "}
+              <span style={{ color: "var(--text-primary)" }}>Started:</span>{" "}
               {formatTime(selectedRun.startTime)}
               {selectedRun.endTime && (
                 <>
                   {" | "}
-                  <span style={{ color: "#569cd6" }}>Ended:</span>{" "}
+                  <span style={{ color: "var(--text-primary)" }}>Ended:</span>{" "}
                   {formatTime(selectedRun.endTime)}
                 </>
               )}
               {" | "}
-              <span style={{ color: "#569cd6" }}>Duration:</span>{" "}
+              <span style={{ color: "var(--text-primary)" }}>Duration:</span>{" "}
               {formatDuration(elapsed)}
             </div>
             <div
               style={{
                 fontSize: "12px",
-                color: "var(--gray-11)",
+                color: "var(--text-secondary)",
               }}
             >
-              <span style={{ color: "#569cd6" }}>Agents:</span>{" "}
+              <span style={{ color: "var(--text-primary)" }}>Agents:</span>{" "}
               {selectedRun.totalAgents}
               {" | "}
-              <span style={{ color: "#569cd6" }}>Tokens:</span>{" "}
+              <span style={{ color: "var(--text-primary)" }}>Tokens:</span>{" "}
               {formatTokens(selectedRun.totalTokens)}
             </div>
             {selectedRun.scriptPath && (
               <div
                 style={{
                   fontSize: "12px",
-                  color: "var(--gray-11)",
+                  color: "var(--text-secondary)",
                   wordBreak: "break-all",
                 }}
               >
-                <span style={{ color: "#569cd6" }}>Script:</span>{" "}
+                <span style={{ color: "var(--text-primary)" }}>Script:</span>{" "}
                 <button
                   type="button"
                   className="workflow-script-path"
@@ -205,11 +205,11 @@ const WorkflowManager: React.FC<
               <div
                 style={{
                   fontSize: "12px",
-                  color: "#f48771",
+                  color: "var(--status-danger-text)",
                   wordBreak: "break-all",
                 }}
               >
-                <span style={{ color: "#569cd6" }}>Error:</span>{" "}
+                <span style={{ color: "var(--text-primary)" }}>Error:</span>{" "}
                 {selectedRun.error}
               </div>
             )}
@@ -232,7 +232,7 @@ const WorkflowManager: React.FC<
             <div
               style={{
                 fontSize: "12px",
-                color: "#4ec9b0",
+                color: "var(--text-primary)",
                 marginBottom: "4px",
               }}
             >
@@ -243,12 +243,12 @@ const WorkflowManager: React.FC<
                 key={i}
                 style={{
                   fontSize: "12px",
-                  color: "var(--gray-11)",
+                  color: "var(--text-secondary)",
                   marginLeft: "8px",
                   marginBottom: "2px",
                 }}
               >
-                <span style={{ color: "#569cd6" }}>{phase.title}</span>
+                <span style={{ color: "var(--text-primary)" }}>{phase.title}</span>
                 {" — "}
                 {phase.agentCount} agents | {formatTokens(phase.tokens)} tokens
                 | {formatDuration(phase.elapsed)}
@@ -291,7 +291,7 @@ const WorkflowManager: React.FC<
                 <div
                   style={{
                     fontSize: "12px",
-                    color: "var(--gray-11)",
+                    color: "var(--text-secondary)",
                   }}
                 >
                   {run.meta.description}
@@ -300,7 +300,7 @@ const WorkflowManager: React.FC<
               <div
                 style={{
                   fontSize: "12px",
-                  color: "var(--gray-11)",
+                  color: "var(--text-secondary)",
                 }}
               >
                 {run.totalAgents} agents · {formatTokens(run.totalTokens)}{" "}
@@ -310,7 +310,7 @@ const WorkflowManager: React.FC<
                 <div
                   style={{
                     fontSize: "12px",
-                    color: "var(--gray-11)",
+                    color: "var(--text-secondary)",
                   }}
                 >
                   {phases.map((p, pi) => (

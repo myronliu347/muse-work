@@ -5,12 +5,12 @@
   display: flex;
   flex-direction: column;
   isolation: isolate;
-  background: var(--color-background, var(--gray-2));
-  color: var(--gray-12);
+  background: var(--surface-canvas, var(--surface-panel));
+  color: var(--text-primary);
 }
 
 .automations-page:not(.automations-page--editor) {
-  background: var(--color-background);
+  background: var(--surface-canvas);
 }
 
 .automations-editor {
@@ -32,7 +32,7 @@
   padding: 0;
   border: none;
   flex-shrink: 0;
-  background: var(--color-background, var(--gray-2));
+  background: var(--surface-canvas, var(--surface-panel));
   -webkit-app-region: drag;
 }
 
@@ -46,21 +46,21 @@
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: var(--font-size-1);
 }
 
 .automations-crumb button {
   border: none;
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   cursor: pointer;
   font: inherit;
   padding: 0;
 }
 
 .automations-crumb button:hover {
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .automations-crumb-sep {
@@ -68,7 +68,7 @@
 }
 
 .automations-crumb-current {
-  color: var(--gray-12);
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -95,18 +95,18 @@
   border: none;
   border-radius: var(--radius-2);
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
 .automations-more:hover {
-  background: var(--gray-4);
-  color: var(--gray-12);
+  background: var(--surface-muted);
+  color: var(--text-primary);
 }
 
 .automations-banner {
   margin: 0 0 14px;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -155,7 +155,7 @@
   font-size: var(--font-size-1, 13px);
   font-weight: 600;
   letter-spacing: 0;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .automations-page-head h1 {
@@ -163,12 +163,12 @@
   font-size: 22px;
   font-weight: 650;
   letter-spacing: -0.02em;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .automations-page-head p {
   margin: 6px 0 0;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .automations-grow {
@@ -180,9 +180,9 @@
   font-size: 12px;
   padding: 6px 12px;
   border-radius: 8px;
-  border: 1px solid var(--gray-6);
-  background: var(--gray-4);
-  color: var(--gray-12);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-muted);
+  color: var(--text-primary);
   cursor: pointer;
 }
 
@@ -196,9 +196,9 @@
 }
 
 .automations-btn-primary {
-  background: var(--accent-9);
-  border-color: var(--accent-9);
-  color: var(--accent-contrast);
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--accent-on-solid);
 }
 
 .automations-btn-ghost {
@@ -209,7 +209,7 @@
 .automations-link-btn {
   border: none;
   background: transparent;
-  color: var(--gray-10);
+  color: var(--text-tertiary);
   font: inherit;
   font-size: 12px;
   cursor: pointer;
@@ -217,21 +217,21 @@
 }
 
 .automations-link-btn:hover {
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .automations-btn-danger {
-  color: var(--red-9);
+  color: var(--status-danger-text);
   background: transparent;
 }
 
 .automations-list {
   display: flex;
   flex-direction: column;
-  border: 1px solid color-mix(in srgb, var(--gray-6) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
   border-radius: 12px;
   overflow: hidden;
-  background: var(--color-card);
+  background: var(--surface-card);
 }
 
 .automations-card {
@@ -242,7 +242,7 @@
   padding: 12px 14px;
   margin: 0;
   border: none;
-  border-bottom: var(--hairline) solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--border-subtle);
   border-radius: 0;
   cursor: pointer;
   background: transparent;
@@ -256,7 +256,7 @@
 }
 
 .automations-card:hover {
-  background: var(--gray-3);
+  background: var(--surface-subtle);
 }
 
 .automations-card.off {
@@ -275,7 +275,7 @@
 
 .automations-card-sub {
   margin-top: 4px;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 12px;
   display: flex;
   gap: 10px;
@@ -295,8 +295,8 @@
   height: 20px;
   padding: 0 7px;
   border-radius: 999px;
-  background: var(--gray-4);
-  color: var(--gray-11);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
@@ -307,12 +307,12 @@
   border: none;
   padding: 2px;
   cursor: pointer;
-  background: var(--gray-5);
+  background: var(--surface-active);
   flex-shrink: 0;
 }
 
 .automations-switch.on {
-  background: var(--accent-9);
+  background: var(--accent-solid);
 }
 
 .automations-switch i {
@@ -320,7 +320,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface-knob);
 }
 
 .automations-switch.on i {
@@ -331,21 +331,21 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--gray-8);
+  background: var(--status-neutral-solid);
   display: inline-block;
 }
 
 .automations-dot.ok {
-  background: var(--green-9);
+  background: var(--status-success-solid);
 }
 .automations-dot.run {
-  background: var(--accent-9);
+  background: var(--accent-solid);
 }
 .automations-dot.fail {
-  background: var(--red-9);
+  background: var(--status-danger-solid);
 }
 .automations-dot.skip {
-  background: var(--amber-9);
+  background: var(--status-warning-solid);
 }
 
 .automations-ed-title {
@@ -360,7 +360,7 @@
 
 .automations-ed-title:empty::before {
   content: "未命名";
-  color: var(--gray-10);
+  color: var(--text-placeholder);
 }
 
 .automations-ed-meta {
@@ -368,7 +368,7 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 12px;
   margin-bottom: 12px;
 }
@@ -376,7 +376,7 @@
 .automations-ed-meta .div {
   width: var(--hairline);
   height: 14px;
-  background: var(--gray-6);
+  background: var(--border-subtle);
 }
 
 .automations-ed-meta .desktop-workdir-container {
@@ -408,7 +408,7 @@
 
 .automations-instr {
   position: relative;
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -422,7 +422,7 @@
   background: transparent;
   resize: vertical;
   padding: 12px 14px 44px;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font: inherit;
   font-size: 13px;
   line-height: 1.5;
@@ -432,7 +432,7 @@
 .automations-tab {
   border: none;
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   padding: 4px 10px;
   border-radius: 999px;
   cursor: pointer;
@@ -441,14 +441,14 @@
 }
 
 .automations-tab.on {
-  background: var(--gray-4);
-  color: var(--gray-12);
+  background: var(--surface-muted);
+  color: var(--text-primary);
 }
 
 .automations-sec-label {
   font-size: 12px;
   font-weight: 500;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -458,7 +458,7 @@
 }
 
 .automations-hint {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 400;
 }
@@ -466,10 +466,10 @@
 .automations-add-trig,
 .automations-trig-card {
   width: 100%;
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   padding: 12px 14px;
   text-align: left;
   font: inherit;
@@ -480,8 +480,8 @@
 }
 
 .automations-add-trig:hover {
-  background: var(--gray-3);
-  color: var(--gray-12);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
 }
 
 .automations-trig-card .automations-sec-label {
@@ -510,11 +510,11 @@
   left: 0;
   margin-top: 6px;
   z-index: 5;
-  background: var(--color-background, var(--gray-2));
-  border: 1px solid var(--gray-6);
+  background: var(--surface-canvas, var(--surface-panel));
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
   min-width: 200px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 32px var(--shadow-color);
   padding: 4px;
 }
 
@@ -524,7 +524,7 @@
   text-align: left;
   border: none;
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   padding: 8px 10px;
   border-radius: 8px;
   cursor: pointer;
@@ -532,12 +532,12 @@
 }
 
 .automations-menu-pop button:hover {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .automations-seg {
   display: inline-flex;
-  background: var(--gray-3);
+  background: var(--surface-subtle);
   border-radius: 8px;
   padding: 2px;
   gap: 2px;
@@ -547,7 +547,7 @@
 .automations-seg button {
   border: none;
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   padding: 5px 12px;
   border-radius: 6px;
   cursor: pointer;
@@ -556,8 +556,8 @@
 }
 
 .automations-seg button.on {
-  background: var(--gray-5);
-  color: var(--gray-12);
+  background: var(--surface-active);
+  color: var(--text-primary);
 }
 
 .automations-freq-row {
@@ -579,7 +579,7 @@
 }
 
 .automations-clock-sep {
-  color: var(--gray-10);
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -598,7 +598,7 @@
   gap: 4px;
   font-size: 12px;
   line-height: 26px;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   background-color: transparent;
   border: none;
   box-shadow: none;
@@ -607,8 +607,8 @@
 
 .automations-instr-model .muse-model-select:hover,
 .automations-instr-model .muse-model-select:focus-visible {
-  background-color: var(--gray-3);
-  color: var(--gray-12);
+  background-color: var(--surface-subtle);
+  color: var(--text-primary);
 }
 
 .automations-run-list {
@@ -633,7 +633,7 @@
 }
 
 .automations-run:hover {
-  background: var(--gray-3);
+  background: var(--surface-subtle);
 }
 
 .automations-run-body {
@@ -645,24 +645,24 @@
 .automations-run-time {
   flex-shrink: 0;
   font-size: 12px;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .automations-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
   font-size: 11px;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .automations-error {
   padding: 12px 0;
-  color: var(--red-11);
+  color: var(--status-danger-text);
   font-size: 13px;
 }
 
 .automations-empty-inline {
   padding: 24px 0;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -687,7 +687,7 @@
 }
 
 .automations-empty-preview .automations-list {
-  background: var(--color-card);
+  background: var(--surface-card);
 }
 
 .automations-empty-preview .automations-switch {
@@ -698,14 +698,14 @@
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: var(--gray-12);
+  color: var(--text-primary);
   letter-spacing: -0.02em;
 }
 
 .automations-empty p {
   margin: 8px 0 18px;
   max-width: 22rem;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.55;
 }
@@ -718,8 +718,8 @@
 
 .automations-check {
   border: none;
-  background: var(--gray-3);
-  color: var(--gray-11);
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
   font: inherit;
   font-size: 12px;
   padding: 5px 10px;
@@ -728,8 +728,8 @@
 }
 
 .automations-check.on {
-  background: var(--gray-5);
-  color: var(--gray-12);
+  background: var(--surface-active);
+  color: var(--text-primary);
 }
 
 .automations-transcript-h {
@@ -746,7 +746,7 @@
 }
 
 .automations-note {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -754,11 +754,11 @@
 .automations-msg--user {
   padding: 10px 12px;
   border-radius: 10px;
-  background: var(--gray-3);
+  background: var(--surface-subtle);
 }
 
 .automations-msg-body {
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 1.55;
   white-space: pre-wrap;
@@ -774,14 +774,14 @@
 
 .automations-tool {
   font-size: 12px;
-  color: var(--gray-11);
-  background: var(--gray-3);
+  color: var(--text-secondary);
+  background: var(--surface-subtle);
   border-radius: 999px;
   padding: 3px 8px;
 }
 
 .automations-md {
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 1.6;
 }

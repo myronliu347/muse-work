@@ -4,8 +4,8 @@
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-2);
   font-size: var(--font-size-1);
-  background-color: var(--gray-4);
-  color: var(--gray-12);
+  background-color: var(--surface-muted);
+  color: var(--text-primary);
   margin: var(--space-1);
   user-select: none;
   max-width: 200px;
@@ -27,10 +27,10 @@
 }
 
 .context-tag.clickable:hover {
-  background-color: color-mix(in srgb, var(--accent-9) 30%, transparent);
-  color: #ffffff;
+  background-color: color-mix(in srgb, var(--accent-solid) 30%, transparent);
+  color: var(--text-primary);
   text-decoration: none;
-  box-shadow: 0 var(--space-1) var(--space-1) rgba(0, 0, 0, 0.2);
+  box-shadow: 0 var(--space-1) var(--space-1) var(--shadow-color-soft);
 }
 
 .context-tag.clickable:active {

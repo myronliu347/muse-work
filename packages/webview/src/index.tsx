@@ -14,6 +14,7 @@ import type {
 } from "./types";
 import { MuseTheme } from "./ui/theme";
 import "./styles/globals.css";
+import "./styles/tokens.css";
 import "@vscode/codicons/dist/codicon.css";
 
 declare global {

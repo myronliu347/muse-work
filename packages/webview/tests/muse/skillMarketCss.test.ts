@@ -13,12 +13,11 @@ describe("SkillsPage.css", () => {
     expect(css).toContain("height: 24px");
     expect(css).toContain("translateX(100%)");
     expect(css).toContain("border-radius: 12px");
-    expect(css).toContain("var(--accent-9)");
-    expect(css).toContain("var(--accent-contrast)");
-    expect(css).toContain("var(--gray-12)");
-    expect(css).toContain("var(--gray-11)");
-    expect(css).toContain("var(--red-9)");
-    expect(css).toContain("var(--red-11)");
+    expect(css).toContain("var(--accent-solid)");
+    expect(css).toContain("var(--accent-on-solid)");
+    expect(css).toContain("var(--text-primary)");
+    expect(css).toContain("var(--text-secondary)");
+    expect(css).toContain("var(--status-danger-text)");
     expect(css).toContain("var(--hairline)");
     expect(css).not.toMatch(/#[0-9a-fA-F]{3,8}/);
   });

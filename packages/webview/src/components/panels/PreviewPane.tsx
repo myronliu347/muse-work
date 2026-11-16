@@ -144,7 +144,7 @@ const readPalette = (el?: Element | null): Record<string, string> => {
   const pick = (name: string, fallback: string) =>
     styles.getPropertyValue(name).trim() || fallback;
   return {
-    accent: pick("--accent-9", "#c1292e"),
+    accent: pick("--accent-9", "#3e63dd"),
     accentForeground: "#ffffff",
     foreground: pick("--gray-12", "#cccccc"),
     background:

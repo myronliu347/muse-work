@@ -17,7 +17,7 @@
   min-height: 0;
   overflow: auto;
   padding: var(--space-5) var(--space-4);
-  background: var(--color-background, #111111);
+  background: var(--surface-canvas, #111111);
 }
 
 .new-session-page-column {
@@ -34,25 +34,25 @@
 }
 
 .new-session-page .input-content {
-  background: var(--color-card);
-  border-color: var(--gray-6);
-  box-shadow: 0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
+  background: var(--surface-card);
+  border-color: var(--border-subtle);
+  box-shadow: 0 3px 8px var(--shadow-glow-soft);
 }
 
 .new-session-page .input-meta-row {
   min-width: 0;
   flex: 0 0 auto;
-  background: var(--gray-2);
-  border-color: var(--gray-6);
+  background: var(--surface-panel);
+  border-color: var(--border-subtle);
 }
 
 :root[data-theme="light"] .new-session-page .input-meta-row {
-  background: var(--color-panel);
-  border-color: var(--gray-6);
+  background: var(--surface-card);
+  border-color: var(--border-subtle);
 }
 
 .chat-container:has(.new-session-page) {
-  background-color: var(--color-background);
+  background-color: var(--surface-canvas);
 }
 
 .new-session-page .input-container,
@@ -124,10 +124,10 @@
 
 @media (prefers-reduced-transparency: reduce) {
   .new-session-page .input-content {
-    background: var(--color-card);
+    background: var(--surface-card);
   }
 
   .new-session-page .input-meta-row {
-    background: var(--gray-2);
+    background: var(--surface-panel);
   }
 }

@@ -23,11 +23,11 @@
 .agent-manager-header h4 {
   margin: 0;
   font-size: var(--font-size-2);
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .agent-manager-error {
-  color: var(--red-11);
+  color: var(--status-danger-text);
   font-size: var(--font-size-1);
 }
 
@@ -47,7 +47,7 @@
 .agent-manager-scenario-label {
   flex: 0 0 112px;
   font-size: var(--font-size-2);
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .agent-manager-scenario-row .muse-model-select {

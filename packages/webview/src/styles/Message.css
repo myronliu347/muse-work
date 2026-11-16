@@ -50,14 +50,14 @@
   gap: var(--space-1);
   cursor: pointer;
   user-select: none;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: var(--font-size-1);
   line-height: var(--line-height-1);
   padding: var(--space-1) 0;
 }
 
 .assistant-work-summary-header:hover {
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .assistant-work-summary-title {
@@ -81,7 +81,7 @@
 }
 
 .message.user {
-  color: var(--gray-12);
+  color: var(--text-primary);
   overflow-wrap: break-word; /* 长词自动换行 */
   position: relative;
   align-self: stretch;
@@ -103,18 +103,14 @@
      the rest scrolls, so it cannot swallow the transcript. */
   max-height: 75px;
   overflow-y: auto;
-  background: var(--gray-2);
-  border: 1px solid var(--gray-5);
-  border-left: 3px solid var(--accent-8);
+  background: var(--surface-code);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--border-selected);
   border-radius: var(--radius-3);
   padding: var(--space-2) var(--space-3);
   box-sizing: border-box;
   font-size: var(--font-size-1);
-  color: var(--gray-11);
-}
-
-:root[data-theme="light"] .system-inject-bubble {
-  background: var(--color-panel);
+  color: var(--text-secondary);
 }
 
 .system-inject-head {
@@ -123,12 +119,12 @@
   gap: 4px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--gray-9);
+  color: var(--text-tertiary);
   margin-bottom: var(--space-1);
 }
 
 .system-inject-body {
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .system-inject-body p {
@@ -136,7 +132,7 @@
 }
 
 .user-text-block {
-  background-color: var(--gray-3);
+  background-color: var(--surface-user-bubble);
   border-radius: var(--radius-3);
   padding: var(--space-2) var(--space-3);
   transition: background-color 0.2s ease;
@@ -148,17 +144,7 @@
 }
 
 .message.user:hover .user-text-block {
-  background-color: var(--gray-4);
-}
-
-/* Light mode user bubbles follow the theme accent; dark mode keeps the
-   original neutral surface. */
-:root[data-theme="light"] .message.user:not(.queued) .user-text-block {
-  background-color: var(--accent-3);
-}
-
-:root[data-theme="light"] .message.user:not(.queued):hover .user-text-block {
-  background-color: var(--accent-4);
+  background-color: var(--surface-user-bubble-hover);
 }
 
 .message.user.queued {
@@ -178,7 +164,7 @@
 
 .message.user.queued .message-content.user-content {
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .message.user.queued .context-tag {
@@ -202,8 +188,8 @@
 
 .message-action-btn {
   background-color: transparent;
-  color: var(--gray-11);
-  border: 1px solid var(--gray-6);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
   padding: var(--space-1) var(--space-1);
   cursor: pointer;
@@ -214,11 +200,11 @@
 }
 
 .message-action-btn:hover {
-  background-color: var(--gray-4);
+  background-color: var(--surface-muted);
 }
 
 .message.assistant .error {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-style: italic;
   padding-top: var(--space-2);
   max-height: 200px;
@@ -263,14 +249,14 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: var(--accent-9);
+  background-color: var(--accent-solid);
   flex-shrink: 0;
   animation: message-list-status-dot-pulse 1.2s ease-in-out infinite;
 }
 
 .message-list-status-label {
   font-weight: 500;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 @keyframes message-list-status-dot-pulse {
@@ -295,7 +281,7 @@
 .tool-name {
   font-size: var(--font-size-1);
   font-weight: 500;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .agent-tool-row {
@@ -321,11 +307,11 @@
 
 .agent-tool-row:hover .tool-name,
 .agent-tool-row:hover .compact-params {
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .agent-tool-row:focus-visible {
-  outline: 2px solid var(--accent-9);
+  outline: 2px solid var(--accent-solid);
   outline-offset: var(--space-1);
   border-radius: var(--radius-1);
 }
@@ -388,7 +374,7 @@
 
 /* Tools */
 .tool-block {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-weight: 500;
   font-size: var(--font-size-1);
   /* 固定单行行高，吸收 streaming 时中英混排导致的字体度量差异（行框抖动） */
@@ -424,7 +410,7 @@
 
 /* Reasoning blocks */
 .reasoning-block {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 0.9em;
 }
 
@@ -434,7 +420,7 @@
 .reasoning-content {
   margin-left: var(--space-1);
   padding-left: var(--space-2);
-  border-left: var(--hairline) solid var(--gray-7);
+  border-left: var(--hairline) solid var(--border-strong);
   max-height: 200px;
   overflow-y: auto;
 }
@@ -456,20 +442,20 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: var(--gray-11);
+  background-color: var(--text-secondary);
   flex-shrink: 0;
 }
 
 .reasoning-title {
   font-size: var(--font-size-1);
   font-weight: 400;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .reasoning-chevron {
   width: 16px;
   height: 16px;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   transition: transform 0.15s ease;
 }
 
@@ -479,7 +465,7 @@
 
 /* Compact block reuses reasoning layout; only the dot color differs (brand accent). */
 .compact-dot {
-  background-color: var(--gray-8);
+  background-color: var(--surface-strong);
 }
 
 /* Write tool preview */
@@ -492,7 +478,7 @@
 .write-tool-label {
   font-size: var(--font-size-1);
   font-weight: 500;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .write-tool-path {
@@ -500,7 +486,7 @@
   flex: 1 1 auto;
   font-family: Menlo, monospace;
   font-size: var(--font-size-1);
-  color: var(--gray-12);
+  color: var(--text-primary);
   text-decoration: underline dotted;
   cursor: pointer;
   overflow-wrap: anywhere;
@@ -510,14 +496,14 @@
 .write-tool-stats {
   margin-top: var(--space-1);
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .write-preview-box {
   position: relative;
   margin: var(--space-1) 0 0 0;
-  background: var(--color-card);
-  border: 1px solid var(--gray-6);
+  background: var(--surface-code);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-3);
   overflow: hidden;
 }
@@ -533,7 +519,7 @@
   font-family: Menlo, monospace;
   font-size: var(--font-size-1);
   line-height: 1.55;
-  color: var(--gray-12);
+  color: var(--text-primary);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -547,7 +533,7 @@
   background: linear-gradient(
     to bottom,
     transparent,
-    var(--gray-1)
+    var(--surface-canvas)
   );
   pointer-events: none;
 }
@@ -563,9 +549,9 @@
   justify-content: center;
   padding: 0;
   border-radius: var(--radius-2);
-  background: var(--gray-4);
-  border: 1px solid var(--gray-6);
-  color: var(--gray-12);
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.15s ease;
@@ -589,10 +575,10 @@
   width: 72px;
   height: 72px;
   padding: 0;
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-4);
   overflow: hidden;
-  background: var(--gray-3);
+  background: var(--surface-subtle);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -606,7 +592,7 @@
 }
 
 .user-image-thumb:hover {
-  border-color: var(--accent-9);
+  border-color: var(--accent-solid);
 }
 
 .user-image-missing {
@@ -614,10 +600,10 @@
   height: 72px;
   padding: var(--space-1);
   box-sizing: border-box;
-  border: 1px dashed var(--gray-7);
+  border: 1px dashed var(--border-strong);
   border-radius: var(--radius-4);
-  background: var(--gray-3);
-  color: var(--gray-9);
+  background: var(--surface-inline-code);
+  color: var(--text-tertiary);
   font-size: var(--font-size-1);
   display: flex;
   align-items: center;
@@ -638,8 +624,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  background-color: var(--gray-8);
-  border: 1px solid var(--gray-12);
+  background-color: var(--surface-strong);
+  border: 1px solid var(--border-emphasis);
   border-radius: var(--radius-2);
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-1);
@@ -647,7 +633,7 @@
 }
 
 .image-item-message--missing {
-  color: var(--gray-9);
+  color: var(--text-tertiary);
 }
 
 .image-item-message .image-icon {
@@ -662,7 +648,7 @@
 }
 
 .image-item-message .image-type {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: var(--font-size-1);
   font-weight: bold;
   text-align: center;
@@ -677,7 +663,7 @@
 }
 
 .image-item-message .image-name {
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -685,7 +671,7 @@
 }
 
 .compact-params {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-weight: normal;
   font-size: var(--font-size-1);
   /* 与父行 .tool-block 一致的固定行高，保证 inline 混排时基线/行框稳定 */
@@ -705,18 +691,18 @@
   display: flex;
   align-items: flex-start;
   padding: var(--space-2) var(--space-3);
-  background-color: var(--color-card);
+  background-color: var(--surface-card);
   font-size: var(--font-size-1);
   line-height: 1.55;
   border-radius: var(--radius-3);
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   max-height: 120px;
   overflow-y: auto;
   font-family: Menlo, Monaco, 'Courier New', monospace;
 }
 
 .bash-command {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-family: inherit;
   white-space: pre-wrap;
   word-break: break-word;
@@ -727,7 +713,7 @@
 /* Unified bash block for input + output */
 .bash-command-unified {
   position: relative;
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-3);
   overflow: hidden;
 }
@@ -736,7 +722,7 @@
   margin-top: 0;
   border: none;
   border-radius: 0;
-  border-bottom: var(--hairline) solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--border-subtle);
 }
 
 .bash-command-unified .bash-command-output {
@@ -747,9 +733,9 @@
 
 .bash-command-output {
   padding: var(--space-2) var(--space-3);
-  background-color: var(--color-card);
-  color: var(--gray-12);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-code);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-3);
   font-size: var(--font-size-1);
   line-height: 1.55;
@@ -763,9 +749,9 @@
 
 .lsp-output {
   padding: var(--space-2) var(--space-3);
-  background-color: var(--color-card);
-  color: var(--gray-11);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-code);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-3);
   font-size: var(--font-size-1);
   line-height: 1.55;
@@ -798,12 +784,12 @@
 }
 
 .result-answer {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: var(--font-size-1);
 }
 
 .result-raw {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: var(--font-size-1);
   max-height: 100px;
   overflow-y: auto;
@@ -831,7 +817,7 @@
 }
 
 .ask-user-result-q {
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-weight: 500;
   font-size: var(--font-size-1);
   line-height: var(--line-height-1);
@@ -841,15 +827,15 @@
 }
 
 .ask-user-result-a {
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-weight: 500;
   font-size: var(--font-size-1);
   line-height: var(--line-height-1);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: normal;
-  background: var(--gray-1);
-  border: 1px solid var(--gray-6);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-3);
   padding: var(--space-2);
   width: 100%;
@@ -873,7 +859,7 @@
   padding: 0;
   border: 0;
   background: none;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font: inherit;
   font-size: var(--font-size-1);
   line-height: 1.45;
@@ -912,7 +898,7 @@
   height: 14px;
   flex-shrink: 0;
   opacity: 0;
-  color: var(--gray-9);
+  color: var(--text-tertiary);
   transition: transform 0.15s ease, opacity 0.12s ease;
 }
 
@@ -930,12 +916,12 @@
 }
 
 .activity-add {
-  color: var(--green-11);
+  color: var(--status-success-text);
   flex-shrink: 0;
 }
 
 .activity-del {
-  color: var(--red-11);
+  color: var(--status-danger-text);
   flex-shrink: 0;
 }
 
@@ -955,11 +941,11 @@
 .thought-detail {
   max-height: 200px;
   overflow-y: auto;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .tool-result-inline {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-weight: normal;
   font-size: var(--font-size-1);
   margin-left: var(--space-1);
@@ -968,7 +954,7 @@
 /* Markdown Styling for Message Content */
 .markdown-content {
   white-space: normal; /* Override pre-wrap for markdown content */
-  color: var(--gray-12);
+  color: var(--text-primary);
   /* Definite width so a wide table is 100% of the column, not its content. */
   width: 100%;
   min-width: 0;
@@ -983,7 +969,7 @@
 .markdown-content h4,
 .markdown-content h5,
 .markdown-content h6 {
-  color: var(--gray-12);
+  color: var(--text-primary);
   margin: var(--space-5) 0 var(--space-3) 0;
   font-weight: 650;
   line-height: 1.35;
@@ -993,7 +979,7 @@
 .markdown-content h1,
 .markdown-content h2 {
   padding-bottom: var(--space-2);
-  border-bottom: var(--hairline) solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--border-subtle);
 }
 
 .markdown-content h1 {
@@ -1014,14 +1000,14 @@
 }
 .markdown-content h6 {
   font-size: 0.92em;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 /* Markdown Text Formatting */
 .markdown-content strong,
 .markdown-content b {
   font-weight: 650;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .markdown-content em,
@@ -1035,8 +1021,8 @@
 
 /* Markdown Code */
 .markdown-content code {
-  background-color: var(--gray-3);
-  color: var(--gray-12);
+  background-color: var(--surface-inline-code);
+  color: var(--text-primary);
   padding: 0.1em 0.35em;
   border-radius: var(--radius-1);
   font-family: Menlo, Monaco, 'Courier New', monospace;
@@ -1044,11 +1030,11 @@
 }
 
 .markdown-content pre {
-  background-color: var(--gray-2);
-  color: var(--gray-12);
+  background-color: var(--surface-code);
+  color: var(--text-primary);
   padding: var(--space-3);
   border-radius: var(--radius-3);
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   overflow-x: auto;
   max-width: 100%;
   min-width: 0;
@@ -1056,10 +1042,6 @@
   font-size: var(--font-size-1);
   margin: var(--space-3) 0;
   line-height: 1.55;
-}
-
-:root[data-theme="light"] .markdown-content pre {
-  background-color: var(--color-panel);
 }
 
 .markdown-content pre code {
@@ -1101,7 +1083,7 @@
 }
 
 .markdown-content .task-list-item.checked {
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .markdown-content .task-list-item input[type="checkbox"] {
@@ -1145,9 +1127,9 @@
 .markdown-content blockquote {
   margin: var(--space-3) 0;
   padding: var(--space-2) var(--space-3);
-  border-left: 3px solid var(--accent-9);
-  background-color: color-mix(in srgb, var(--accent-9) 8%, var(--gray-2));
-  color: var(--gray-12);
+  border-left: 3px solid var(--accent-solid);
+  background-color: color-mix(in srgb, var(--accent-solid) 8%, var(--surface-panel));
+  color: var(--text-primary);
   font-style: normal;
   border-radius: 0 var(--radius-2) var(--radius-2) 0;
 }
@@ -1157,7 +1139,7 @@
 }
 
 .markdown-content blockquote.assistant-issue-quote:hover {
-  background-color: color-mix(in srgb, var(--accent-9) 16%, var(--gray-2));
+  background-color: color-mix(in srgb, var(--accent-solid) 16%, var(--surface-panel));
 }
 
 .markdown-content blockquote p {
@@ -1173,7 +1155,7 @@
 /* Markdown horizontal rule (---) */
 .markdown-content hr {
   border: none;
-  border-top: var(--hairline) solid var(--gray-6);
+  border-top: var(--hairline) solid var(--border-subtle);
   margin: var(--space-5) 0;
 }
 
@@ -1193,7 +1175,7 @@
   width: 100%;
   margin: var(--space-3) 0;
   font-size: 0.92em;
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
   overflow: hidden;
 }
@@ -1201,8 +1183,8 @@
 .markdown-content th,
 .markdown-content td {
   padding: var(--space-2) var(--space-3);
-  border-bottom: var(--hairline) solid var(--gray-6);
-  border-right: var(--hairline) solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--border-subtle);
+  border-right: var(--hairline) solid var(--border-subtle);
   overflow-wrap: anywhere;
   word-break: break-word;
   vertical-align: top;
@@ -1234,12 +1216,12 @@
 }
 
 .markdown-content th {
-  background-color: var(--gray-3);
+  background-color: var(--surface-subtle);
   font-weight: 650;
 }
 
 .markdown-content tbody tr:nth-child(even) {
-  background-color: color-mix(in srgb, var(--gray-3) 45%, transparent);
+  background-color: color-mix(in srgb, var(--surface-subtle) 45%, transparent);
 }
 
 .markdown-content p:first-child {

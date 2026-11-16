@@ -7,17 +7,17 @@
   font-size: var(--font-size-1);
   line-height: 1.45;
   padding: var(--space-3);
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
-  background: var(--gray-2);
-  color: var(--gray-12);
+  background: var(--surface-panel);
+  color: var(--text-primary);
 }
 
 .agent-settings-editor:focus {
-  outline: 2px solid var(--accent-9);
+  outline: 2px solid var(--accent-solid);
   outline-offset: -1px;
 }
 
 .agent-settings-editor[aria-invalid="true"] {
-  border-color: var(--red-9);
+  border-color: var(--status-danger-solid);
 }

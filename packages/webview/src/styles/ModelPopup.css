@@ -3,10 +3,10 @@
   bottom: 100%;
   margin-bottom: var(--space-2);
   z-index: 1000;
-  background-color: var(--color-panel);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-3);
-  box-shadow: 0 var(--space-1) var(--space-3) rgba(0, 0, 0, 0.2);
+  box-shadow: 0 var(--space-1) var(--space-3) var(--shadow-color-soft);
   width: 100%;
   max-width: 600px;
   min-width: 200px;
@@ -21,9 +21,9 @@
 
 .model-popup-header {
   padding: var(--space-2) var(--space-3);
-  border-bottom: var(--hairline) solid var(--gray-6);
-  background-color: var(--color-background);
-  color: var(--gray-11);
+  border-bottom: var(--hairline) solid var(--border-subtle);
+  background-color: var(--surface-canvas);
+  color: var(--text-secondary);
   font-size: var(--font-size-1);
   line-height: var(--line-height-1);
 }
@@ -53,8 +53,8 @@
 
 .model-popup-item:hover,
 .model-popup-item.selected {
-  background-color: var(--gray-4);
-  color: var(--gray-12);
+  background-color: var(--surface-muted);
+  color: var(--text-primary);
 }
 
 .model-popup-item-name {
@@ -70,7 +70,7 @@
 .model-popup-empty {
   padding: var(--space-4);
   text-align: center;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: var(--font-size-1);
   line-height: 1.45;
   display: flex;

@@ -17,10 +17,10 @@
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-3);
-  border: 1px solid var(--gray-6);
-  background: var(--color-panel);
-  color: var(--gray-12);
-  box-shadow: 0 var(--space-1) var(--space-3) rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  box-shadow: 0 var(--space-1) var(--space-3) var(--shadow-color);
   animation: toast-slide-in 0.15s ease-out;
   font-size: var(--font-size-1);
   line-height: 1.45;
@@ -48,14 +48,14 @@
   padding: var(--space-1) var(--space-2);
   border: none;
   border-radius: var(--radius-2);
-  background: var(--accent-9);
-  color: var(--accent-contrast);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
   font-size: var(--font-size-1);
   cursor: pointer;
 }
 
 .toast-action:hover {
-  background: var(--accent-10);
+  background: var(--accent-solid-hover);
 }
 
 .toast-close {
@@ -74,5 +74,5 @@
 
 .toast-close:hover {
   opacity: 1;
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }

@@ -3,10 +3,10 @@
 /* Main container */
 .diff-viewer-container {
   margin: var(--space-1) 0;
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
   overflow: hidden;
-  background-color: var(--gray-1);
+  background-color: var(--surface-sunken);
   max-height: 300px;
   display: flex;
   flex-direction: column;
@@ -22,7 +22,7 @@
 }
 
 .diff-viewer-content:focus {
-  outline: 1px solid var(--accent-9);
+  outline: 1px solid var(--accent-solid);
   outline-offset: -var(--space-1);
 }
 
@@ -62,49 +62,49 @@
 
 /* Added lines (green) */
 .diff-line-added {
-  background-color: color-mix(in srgb, var(--green-9) 18%, transparent);
+  background-color: var(--status-success-surface);
 }
 
 .diff-line-added .diff-prefix {
-  color: var(--green-11);
+  color: var(--status-success-text);
 }
 
 /* Removed lines (red) */
 .diff-line-removed {
-  background-color: color-mix(in srgb, var(--red-9) 18%, transparent);
+  background-color: var(--status-danger-surface);
 }
 
 .diff-line-removed .diff-prefix {
-  color: var(--red-11);
+  color: var(--status-danger-text);
 }
 
 /* Context lines (unchanged) */
 .diff-line-context .diff-prefix {
-  color: var(--gray-9);
+  color: var(--text-tertiary);
 }
 
 /* Word-level diff highlighting */
 .diff-word-added {
-  background-color: color-mix(in srgb, var(--green-9) 18%, transparent);
-  color: var(--green-11);
+  background-color: var(--status-success-surface);
+  color: var(--status-success-text);
 }
 
 .diff-word-removed {
-  background-color: color-mix(in srgb, var(--red-9) 18%, transparent);
-  color: var(--red-11);
+  background-color: var(--status-danger-surface);
+  color: var(--status-danger-text);
   text-decoration: line-through;
 }
 
 .diff-word-unchanged {
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 /* Error state */
 .diff-error {
   padding: var(--space-3);
-  color: var(--red-11);
-  background-color: color-mix(in srgb, var(--red-9) 15%, transparent);
-  border: 1px solid var(--red-9);
+  color: var(--status-danger-text);
+  background-color: var(--status-danger-surface);
+  border: 1px solid var(--status-danger-solid);
   border-radius: var(--radius-2);
   margin: var(--space-1);
 }
@@ -113,13 +113,13 @@
 .diff-empty {
   padding: var(--space-4);
   text-align: center;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-style: italic;
 }
 
 /* Ellipsis line for truncated context */
 .diff-line-ellipsis {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   padding: var(--space-1) var(--space-5);
   font-style: italic;
   user-select: none;

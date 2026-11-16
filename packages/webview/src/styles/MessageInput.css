@@ -1,7 +1,7 @@
 /* Input Area */
 .input-container {
   padding: 0;
-  background-color: var(--color-background);
+  background-color: var(--surface-canvas);
 }
 
 .input-wrapper {
@@ -29,11 +29,11 @@
   gap: var(--space-1);
   box-sizing: border-box;
   padding: 12px var(--space-3) 10px;
-  background-color: var(--color-card);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
   max-height: 192px;
-  box-shadow: 0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
+  box-shadow: 0 3px 8px var(--shadow-glow-soft);
   transition: border-color 0.18s ease;
   container-type: inline-size;
   container-name: composer;
@@ -42,7 +42,7 @@
 /* Focus recolors the stroke. Hover stays on the resting border. */
 .input-wrapper:focus-within .input-content,
 .input-wrapper:focus-within .input-meta-row {
-  border-color: var(--accent-8);
+  border-color: var(--border-focus);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -68,15 +68,15 @@
   padding: 22px var(--space-3) 10px;
   box-sizing: border-box;
   overflow: visible;
-  background: var(--gray-2);
-  border: 1px solid var(--gray-6);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
   border-top: 0;
   border-radius: 0 0 16px 16px;
   transition: border-color 0.18s ease;
 }
 
 :root[data-theme="light"] .input-meta-row {
-  background: var(--color-panel);
+  background: var(--surface-card);
 }
 
 .input-meta-row:has(.permission-mode-panel),
@@ -107,7 +107,7 @@
   border: none;
   border-radius: var(--radius-2);
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: var(--font-size-1);
   font-weight: 400;
   font-family: inherit;
@@ -119,8 +119,8 @@
 .input-meta-row .desktop-workdir-trigger:hover,
 .input-meta-row .permission-mode-select:hover,
 .input-meta-row .permission-mode-select:focus {
-  background-color: var(--gray-4);
-  color: var(--gray-12);
+  background-color: var(--surface-muted);
+  color: var(--text-primary);
 }
 
 .input-meta-row .desktop-workdir-trigger .codicon-folder-opened,
@@ -159,13 +159,13 @@
 
 .input-meta-row .permission-mode-select.mode-acceptEdits,
 .input-meta-row .permission-mode-select.mode-bypassPermissions {
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-weight: 400;
 }
 
 .input-meta-row .desktop-worktree-checkbox {
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .permission-mode-panel {
@@ -176,16 +176,16 @@
   box-sizing: border-box;
   width: min(240px, 72vw);
   padding: var(--space-3);
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-3);
-  background: var(--color-panel);
-  color: var(--gray-12);
-  box-shadow: 0 8px 28px color-mix(in srgb, var(--gray-1) 40%, transparent);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  box-shadow: 0 8px 28px var(--shadow-glow);
 }
 
 .permission-mode-desc {
   margin: 0 0 var(--space-3);
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: var(--font-size-1);
   line-height: 1.5;
 }
@@ -196,7 +196,7 @@
   justify-content: space-between;
   gap: var(--space-3);
   margin: 0;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: var(--font-size-1);
   cursor: pointer;
   user-select: none;
@@ -220,7 +220,7 @@
   position: absolute;
   inset: 0;
   cursor: pointer;
-  background: var(--gray-6);
+  background: var(--surface-control);
   border-radius: 999px;
   transition: background-color 0.15s ease;
 }
@@ -233,13 +233,13 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--color-background);
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--gray-1) 28%, transparent);
+  background: var(--surface-canvas);
+  box-shadow: 0 1px 2px var(--shadow-glow-soft);
   transition: transform 0.15s ease;
 }
 
 .permission-mode-switch input:checked + .permission-mode-switch-slider {
-  background: var(--accent-9);
+  background: var(--accent-solid);
 }
 
 .permission-mode-switch input:checked + .permission-mode-switch-slider:before {
@@ -255,7 +255,7 @@
   width: 100%;
   box-sizing: border-box;
   background-color: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   border: none;
   margin: 0;
   padding: 0;
@@ -272,7 +272,7 @@
 
 .content-editable-input:empty:before {
   content: attr(data-placeholder);
-  color: var(--gray-9);
+  color: var(--text-placeholder);
   pointer-events: none;
   display: block;
 }
@@ -285,7 +285,7 @@
 .send-button,
 .abort-button {
   background-color: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   border: none;
   padding: var(--space-1);
   border-radius: 50%;
@@ -309,7 +309,7 @@
 
 .send-button:hover,
 .abort-button:hover {
-  background-color: var(--gray-4);
+  background-color: var(--surface-muted);
 }
 
 .send-button:disabled {
@@ -337,34 +337,34 @@
 }
 
 .ai-send-btn {
-  background: var(--accent-9);
-  color: var(--accent-contrast);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
 }
 
 .ai-abort-btn {
-  background: var(--gray-8);
-  color: var(--gray-12);
+  background: var(--surface-strong);
+  color: var(--text-primary);
 }
 
 .ai-send-btn:hover:not(:disabled) {
-  background: var(--accent-10);
+  background: var(--accent-solid-hover);
   filter: none;
 }
 
 .ai-abort-btn:hover {
-  background: var(--gray-9);
+  background: var(--surface-strong-hover);
   filter: brightness(0.92);
 }
 
 .ai-send-btn:disabled {
-  background: var(--gray-6);
-  color: var(--gray-11);
+  background: var(--surface-control);
+  color: var(--text-secondary);
   opacity: 1;
   cursor: default;
 }
 
 .ai-send-btn:disabled:hover {
-  background-color: var(--gray-6);
+  background-color: var(--surface-control);
   filter: none;
 }
 
@@ -416,7 +416,7 @@
   gap: var(--space-1);
   font-size: var(--font-size-1);
   line-height: 26px;
-  color: var(--gray-12);
+  color: var(--text-primary);
   background-color: transparent;
   border: none;
   box-shadow: none;
@@ -427,7 +427,7 @@
 
 .input-model-select .muse-model-select.rt-SelectTrigger:hover,
 .input-model-select .muse-model-select.rt-SelectTrigger:focus-visible {
-  background-color: var(--gray-4);
+  background-color: var(--surface-muted);
 }
 
 @container composer (max-width: 420px) {
@@ -452,7 +452,7 @@
   align-items: center;
   justify-content: center;
   background-color: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   border: none;
   border-radius: 999px;
   cursor: pointer;
@@ -466,8 +466,8 @@
 }
 
 .toolbar-icon-button:hover {
-  background-color: var(--gray-4);
-  color: var(--gray-12);
+  background-color: var(--surface-muted);
+  color: var(--text-primary);
 }
 
 .toolbar-icon-button:disabled {
@@ -477,7 +477,7 @@
 
 .toolbar-icon-button:disabled:hover {
   background-color: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 /* "+" add menu — expands upward (bottom:100%) so it is not clipped at the bottom of
@@ -495,11 +495,11 @@
   margin-top: 0;
   list-style: none;
   padding: var(--space-2);
-  background: var(--color-panel);
-  color: var(--gray-12);
-  border: 1px solid var(--gray-6);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-3);
-  box-shadow: 0 var(--space-1) var(--space-2) color-mix(in srgb, var(--gray-1) 36%, transparent);
+  box-shadow: 0 var(--space-1) var(--space-2) var(--shadow-glow);
   z-index: 10000;
   width: 160px;
   white-space: nowrap;
@@ -514,12 +514,12 @@
   cursor: pointer;
   font-size: var(--font-size-1);
   font-weight: 500;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .plus-menu-item:hover {
-  background: var(--gray-4);
-  color: var(--gray-12);
+  background: var(--surface-muted);
+  color: var(--text-primary);
 }
 /* Selection Tag */
 .selection-tag {
@@ -540,20 +540,20 @@
 
 .selection-tag.enabled {
   background-color: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .selection-tag.disabled {
-  background-color: var(--gray-3);
-  color: var(--gray-11);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
   opacity: 0.7;
 }
 
 .selection-tag:hover,
 .selection-tag:focus-visible {
   opacity: 0.9;
-  outline: 1px solid var(--accent-9);
+  outline: 1px solid var(--accent-solid);
   outline-offset: var(--space-1);
 }
 
@@ -564,7 +564,7 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.85);
+  background-color: var(--overlay-scrim-strong);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -576,7 +576,7 @@
   max-width: 90%;
   max-height: 90%;
   object-fit: contain;
-  box-shadow: 0 0 var(--space-4) rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 var(--space-4) var(--shadow-color-strong);
   cursor: default;
 }
 
@@ -592,13 +592,13 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--overlay-control-soft);
   border-radius: 50%;
   transition: background-color 0.2s;
 }
 
 .image-preview-close:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: var(--overlay-control);
 }
 
 .image-preview-nav {
@@ -613,7 +613,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--overlay-control-soft);
   color: white;
   font-size: var(--font-size-5);
   cursor: pointer;
@@ -628,7 +628,7 @@
 }
 
 .image-preview-nav:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: var(--overlay-control);
 }
 
 .image-preview-count {
@@ -642,7 +642,7 @@
 }
 
 .queued-edit-chip {
-  color: var(--accent-11);
+  color: var(--accent-text);
   font-size: var(--font-size-1);
   font-weight: 500;
   user-select: none;

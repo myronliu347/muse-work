@@ -5,8 +5,8 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--color-background);
-  color: var(--gray-12);
+  background: var(--surface-canvas);
+  color: var(--text-primary);
 }
 
 .skills-page-bar {
@@ -23,7 +23,7 @@
   flex: none;
   font-size: var(--font-size-1);
   font-weight: 600;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .skills-tabs {
@@ -39,15 +39,15 @@
   border: none;
   border-radius: var(--radius-1);
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font: inherit;
   font-size: var(--font-size-1);
   cursor: pointer;
 }
 
 .skills-tab[aria-selected="true"] {
-  background: var(--gray-4);
-  color: var(--gray-12);
+  background: var(--surface-muted);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -99,10 +99,10 @@
   margin: 0 0 16px;
   padding: 0 12px;
   box-sizing: border-box;
-  border: 1px solid color-mix(in srgb, var(--gray-6) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
   border-radius: 10px;
-  background: var(--gray-2);
-  color: var(--gray-11);
+  background: var(--surface-panel);
+  color: var(--text-secondary);
 }
 
 .skills-search input {
@@ -113,22 +113,22 @@
   border: none;
   outline: none;
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font: inherit;
   font-size: var(--font-size-1);
 }
 
 .skills-search input::placeholder {
-  color: var(--gray-9);
+  color: var(--text-placeholder);
 }
 
 .skills-list {
   display: flex;
   flex-direction: column;
-  border: 1px solid color-mix(in srgb, var(--gray-6) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
   border-radius: 12px;
   overflow: hidden;
-  background: var(--gray-2);
+  background: var(--surface-panel);
 }
 
 .skills-row {
@@ -136,7 +136,7 @@
   align-items: center;
   gap: 14px;
   padding: 12px 14px;
-  border-bottom: var(--hairline) solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--border-subtle);
 }
 
 .skills-row:last-child {
@@ -145,7 +145,7 @@
 
 .skills-row.is-selected,
 .skills-row:hover {
-  background: var(--gray-3);
+  background: var(--surface-subtle);
 }
 
 .skills-row-open {
@@ -167,14 +167,14 @@
   gap: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .skills-row-sub {
   display: flex;
   gap: 10px;
   margin-top: 4px;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 12px;
   min-width: 0;
 }
@@ -199,14 +199,14 @@
   flex-direction: column;
   min-height: 132px;
   padding: 14px;
-  border: 1px solid color-mix(in srgb, var(--gray-6) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
   border-radius: 12px;
-  background: var(--gray-2);
+  background: var(--surface-panel);
 }
 
 .skills-card.is-selected,
 .skills-card:hover {
-  background: var(--gray-3);
+  background: var(--surface-subtle);
 }
 
 .skills-card-open {
@@ -229,7 +229,7 @@
 .skills-card-meta,
 .skills-card-desc {
   max-width: 100%;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -248,7 +248,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   line-height: 1.4;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .skills-card-command {
@@ -282,8 +282,8 @@
   height: 20px;
   padding: 0 7px;
   border-radius: 999px;
-  background: var(--gray-4);
-  color: var(--gray-11);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 400;
 }
@@ -293,9 +293,9 @@
   font-size: 12px;
   padding: 6px 12px;
   border-radius: 8px;
-  border: 1px solid var(--gray-6);
-  background: var(--gray-4);
-  color: var(--gray-12);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-muted);
+  color: var(--text-primary);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -306,20 +306,20 @@
 }
 
 .skills-btn-primary {
-  background: var(--accent-9);
-  border-color: var(--accent-9);
-  color: var(--accent-contrast);
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--accent-on-solid);
 }
 
 .skills-btn-danger {
-  color: var(--red-9);
+  color: var(--status-danger-text);
   background: transparent;
   border-color: transparent;
 }
 
 .skills-error {
   padding: 12px 0;
-  color: var(--red-11);
+  color: var(--status-danger-text);
   font-size: 13px;
 }
 
@@ -334,7 +334,7 @@
   gap: 6px;
   min-height: 240px;
   padding: 48px 16px;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -345,8 +345,8 @@
   height: 52px;
   margin-bottom: 8px;
   border-radius: 16px;
-  background: var(--gray-3);
-  color: var(--gray-11);
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
 }
 
 .skills-status-title,
@@ -355,7 +355,7 @@
 }
 
 .skills-status-title {
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 600;
 }
@@ -397,9 +397,9 @@
   width: min(420px, 100%);
   display: flex;
   flex-direction: column;
-  border-left: var(--hairline) solid var(--gray-6);
-  background: var(--gray-2);
-  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.22);
+  border-left: var(--hairline) solid var(--border-subtle);
+  background: var(--surface-panel);
+  box-shadow: -8px 0 24px var(--shadow-color-soft);
   transform: translateX(0);
   animation: skills-drawer-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: auto;
@@ -440,7 +440,7 @@
   font-size: 18px;
   font-weight: 650;
   letter-spacing: -0.02em;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .skills-detail-meta {
@@ -449,7 +449,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 18px 0;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -462,7 +462,7 @@
 
 .skills-detail-copy p {
   margin: 0 0 12px;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -473,7 +473,7 @@
   font-family: inherit;
   font-size: 13px;
   line-height: 1.6;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .skills-detail-actions {

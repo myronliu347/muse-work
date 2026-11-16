@@ -20,7 +20,7 @@
 }
 
 .diff-file {
-  border-bottom: var(--hairline) solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--border-subtle);
 }
 
 .diff-file-header-row {
@@ -45,8 +45,8 @@
   justify-content: space-between;
   gap: var(--space-2);
   padding: var(--space-1) var(--space-2);
-  color: var(--red-11);
-  background: var(--red-3);
+  color: var(--status-danger-text);
+  background: var(--status-danger-surface);
   font-size: var(--font-size-1);
 }
 
@@ -59,12 +59,12 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: var(--font-size-1);
 }
 
 .diff-file-header:hover {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .diff-file-header .codicon {
@@ -84,7 +84,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
-  color: var(--gray-12);
+  color: var(--text-primary);
   cursor: pointer;
 }
 
@@ -101,15 +101,15 @@
 }
 
 .diff-file-stats-add {
-  color: var(--green-11);
+  color: var(--status-success-text);
 }
 
 .diff-file-stats-del {
-  color: var(--red-11);
+  color: var(--status-danger-text);
 }
 
 .diff-file-body {
-  border-top: var(--hairline) solid var(--gray-6);
+  border-top: var(--hairline) solid var(--border-subtle);
   overflow-x: auto;
   padding: var(--space-1) 0;
   font-family: Menlo, Monaco, 'Courier New', monospace;
@@ -124,7 +124,7 @@
 
 /* Hunk header (@@ ... @@) — kept for placeholder / truncated notes */
 .diff-line-hunk {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   padding: var(--space-1) var(--space-2);
   user-select: none;
   font-style: italic;
@@ -143,11 +143,11 @@
   justify-content: center;
   width: 16px;
   height: 16px;
-  background: var(--gray-1);
+  background: var(--surface-sunken);
   border: none;
   border-radius: var(--radius-2);
   padding: 0;
-  color: var(--accent-11);
+  color: var(--accent-text);
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.1s;
@@ -160,8 +160,8 @@
 }
 
 .diff-line-comment-btn:hover {
-  background: var(--accent-9);
-  color: var(--gray-1);
+  background: var(--accent-solid);
+  color: var(--text-on-accent);
 }
 
 /* Pierre gutter-utility slot: button is only in the DOM while hovered. */
@@ -174,11 +174,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent-9);
+  background: var(--accent-solid);
   border: none;
   border-radius: var(--radius-2);
   padding: 0;
-  color: var(--gray-1);
+  color: var(--text-on-accent);
   cursor: pointer;
   line-height: 1;
 }
@@ -197,16 +197,16 @@
 .diff-comment-box {
   margin: var(--space-1) var(--space-2);
   padding: var(--space-1);
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
-  background: var(--gray-3);
+  background: var(--surface-subtle);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
 }
 
 .diff-comment-box:focus-within {
-  border-color: var(--accent-9);
+  border-color: var(--accent-solid);
 }
 
 .diff-comment-input {
@@ -215,7 +215,7 @@
   resize: vertical;
   box-sizing: border-box;
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   border: none;
   padding: 0;
   font: inherit;
@@ -230,7 +230,7 @@
 
 .diff-comment-box-tag {
   flex: 1;
-  color: var(--accent-11);
+  color: var(--accent-text);
   font-family: Menlo, Monaco, 'Courier New', monospace;
   font-size: var(--font-size-1);
   overflow: hidden;
@@ -240,8 +240,8 @@
 
 .diff-comment-box-cancel {
   background: transparent;
-  color: var(--gray-12);
-  border: 1px solid var(--gray-6);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-1);
   font-size: var(--font-size-1);
   padding: var(--space-1) var(--space-2);
@@ -249,13 +249,13 @@
 }
 
 .diff-comment-box-cancel:hover {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .diff-comment-box-send {
   background: transparent;
-  color: var(--accent-11);
-  border: 1px solid var(--gray-6);
+  color: var(--accent-text);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-1);
   font-size: var(--font-size-1);
   padding: var(--space-1) var(--space-2);
@@ -263,8 +263,8 @@
 }
 
 .diff-comment-box-send:hover:not(:disabled) {
-  background: var(--gray-4);
-  border-color: var(--accent-9);
+  background: var(--surface-muted);
+  border-color: var(--accent-solid);
 }
 
 .diff-comment-box-send:disabled {
@@ -325,7 +325,7 @@
   padding: 0 4px 0 var(--space-2);
   border: none;
   border-radius: var(--radius-2);
-  color: var(--gray-12);
+  color: var(--text-primary);
   font: inherit;
   font-size: var(--font-size-1);
   line-height: 24px;
@@ -348,7 +348,7 @@
   width: 12px;
   height: 12px;
   opacity: 1;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .diff-issue-select-title {
@@ -361,7 +361,7 @@
 .diff-issue-select .codicon {
   flex-shrink: 0;
   font-size: 12px;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .diff-issue-menu {
@@ -415,12 +415,12 @@
 
 .diff-issue-option-title {
   font-size: var(--font-size-1);
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .diff-issue-option-workdir {
   font-size: 11px;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .diff-pane-commit-select.rt-SelectTrigger {
@@ -516,7 +516,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--accent-11);
+  color: var(--accent-text);
 }
 
 .diff-commit-subject {
@@ -536,7 +536,7 @@
   overflow: visible;
   white-space: normal;
   text-overflow: unset;
-  color: var(--gray-10);
+  color: var(--text-tertiary);
   font-size: 11px;
   line-height: 1.4;
 }
@@ -567,8 +567,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-left: var(--hairline) solid var(--gray-6);
-  background: var(--color-background);
+  border-left: var(--hairline) solid var(--border-subtle);
+  background: var(--surface-canvas);
 }
 
 /* 280ms matches PANEL_MOTION_MS. Only the view-toggle button opens or closes
@@ -615,7 +615,7 @@
 }
 
 .diff-pane-tree-drag-handle:hover {
-  background: var(--accent-9);
+  background: var(--accent-solid);
 }
 
 .diff-pane-tree-header {
@@ -623,8 +623,8 @@
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-1);
   font-weight: 600;
-  color: var(--gray-12);
-  border-bottom: var(--hairline) solid var(--gray-6);
+  color: var(--text-primary);
+  border-bottom: var(--hairline) solid var(--border-subtle);
 }
 
 .diff-pane-tree-scroll {
@@ -643,7 +643,7 @@
   align-items: center;
   justify-content: center;
   font-size: var(--font-size-2);
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .diff-tree-file-status .codicon {
@@ -652,23 +652,23 @@
 }
 
 .diff-pane .diff-tree-file-status-added {
-  color: var(--green-11);
+  color: var(--status-success-text);
 }
 
 .diff-pane .diff-tree-file-status-modified {
-  color: var(--amber-11);
+  color: var(--status-warning-text);
 }
 
 .diff-pane .diff-tree-file-status-deleted {
-  color: var(--red-11);
+  color: var(--status-danger-text);
 }
 
 .diff-pane .diff-tree-file-status-renamed {
-  color: var(--accent-11);
+  color: var(--accent-text);
 }
 
 .diff-pane .diff-tree-file-status-untracked {
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .diff-tree-file-stats {
@@ -680,10 +680,10 @@
 }
 
 .diff-tree-file-stats-add {
-  color: var(--green-11);
+  color: var(--status-success-text);
 }
 
 .diff-tree-file-stats-del {
-  color: var(--red-11);
+  color: var(--status-danger-text);
 }
 

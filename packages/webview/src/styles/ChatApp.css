@@ -24,13 +24,13 @@
        column match the message list. Hosts set body to editor-background
        (the editor-area chrome), which would otherwise bleed through the
        transparent wrappers around .messages-container. */
-  background-color: var(--color-background, #111111);
+  background-color: var(--surface-canvas, #111111);
 }
 
 .input-area-container {
   position: relative;
   flex-shrink: 0;
-  background-color: var(--color-background, #111111);
+  background-color: var(--surface-canvas, #111111);
   display: flex;
   flex-direction: column;
   /* Match .messages-container gutters so the 800px sender lines up with
@@ -60,14 +60,14 @@
 }
 
 .composer-surface:has(.composer-lead > *) {
-  background: var(--color-card);
-  border: 1px solid var(--gray-6);
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
   transition: border-color 0.18s ease;
 }
 
 .composer-surface:has(.composer-lead > *):focus-within {
-  border-color: var(--accent-8);
+  border-color: var(--border-focus);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -94,7 +94,7 @@
 }
 
 .composer-surface:has(.composer-lead > *) .composer-lead > * {
-  border-bottom: 1px solid var(--gray-6);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .composer-surface:has(.composer-lead > *) .input-container,
@@ -118,15 +118,15 @@
 .composer-surface:has(.composer-lead > *) .input-meta-row {
   margin-top: 0;
   border: none;
-  border-top: 1px solid var(--gray-6);
+  border-top: 1px solid var(--border-subtle);
   border-radius: 0 0 15px 15px;
-  background: var(--gray-2);
+  background: var(--surface-panel);
 }
 
 /* The field's own border is removed here. Keep the seam on gray-6 when the
    outer card border shifts on hover or focus. */
 .composer-surface:has(.composer-lead > *) .input-wrapper:focus-within .input-meta-row {
-  border-top-color: var(--gray-6);
+  border-top-color: var(--border-subtle);
 }
 
 :root[data-theme="light"]
@@ -141,9 +141,9 @@
   gap: var(--space-2);
   padding: var(--space-1) var(--space-3);
   font-size: var(--font-size-1);
-  background-color: color-mix(in srgb, var(--amber-9) 15%, transparent);
-  border: 1px solid var(--amber-9);
-  color: var(--gray-12);
+  background-color: var(--status-warning-surface);
+  border: 1px solid var(--status-warning-solid);
+  color: var(--text-primary);
 }
 
 .queue-edit-warning-text {
@@ -159,12 +159,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
 .queue-edit-warning-close:hover {
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 /* Indeterminate 2px bar while a session's transcript is being fetched. The
@@ -177,7 +177,7 @@
   overflow: hidden;
   z-index: 6;
   pointer-events: none;
-  background: color-mix(in srgb, var(--accent-9) 18%, transparent);
+  background: color-mix(in srgb, var(--accent-solid) 18%, transparent);
 }
 
 .chat-transcript-progress::after {
@@ -187,7 +187,7 @@
   bottom: 0;
   width: 32%;
   border-radius: 1px;
-  background: var(--accent-9);
+  background: var(--accent-solid);
   animation: chat-transcript-progress 1.1s ease-in-out infinite;
 }
 
@@ -228,7 +228,7 @@
 .transcript-skeleton-row {
   height: 14px;
   border-radius: 7px;
-  background: var(--gray-4);
+  background: var(--surface-muted);
   animation: transcript-skeleton-pulse 1.3s ease-in-out infinite;
 }
 

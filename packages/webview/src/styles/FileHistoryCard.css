@@ -3,9 +3,9 @@
   margin-top: 10px;
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  background: var(--color-panel);
+  background: var(--surface-card);
   overflow: hidden;
 }
 
@@ -14,13 +14,13 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border-bottom: var(--hairline) solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--border-subtle);
   font-size: 13px;
 }
 
 .file-history-card-title {
   font-weight: 600;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .file-history-card-stats {
@@ -29,11 +29,11 @@
 }
 
 .file-history-card-stats--add {
-  color: var(--green-11);
+  color: var(--status-success-text);
 }
 
 .file-history-card-stats--del {
-  color: var(--red-11);
+  color: var(--status-danger-text);
 }
 
 .file-history-card-revert {
@@ -43,7 +43,7 @@
   gap: 4px;
   border: none;
   background: none;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 12px;
   cursor: pointer;
   padding: 2px 6px;
@@ -51,8 +51,8 @@
 }
 
 .file-history-card-revert:hover {
-  background: var(--gray-4);
-  color: var(--gray-12);
+  background: var(--surface-muted);
+  color: var(--text-primary);
 }
 
 .file-history-card-revert:disabled {
@@ -76,7 +76,7 @@
 }
 
 .file-history-card-row:hover {
-  background: var(--gray-3);
+  background: var(--surface-subtle);
 }
 
 .file-history-card-file-icon {
@@ -86,7 +86,7 @@
 }
 
 .file-history-card-file-name {
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;

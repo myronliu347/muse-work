@@ -15,12 +15,12 @@ export const FileToolHeader: React.FC<FileToolHeaderProps> = ({
 }) => {
   const toolStatusColor =
     toolBlock.stage === "running" || toolBlock.stage === "streaming"
-      ? "var(--amber-11)"
+      ? "var(--status-warning-text)"
       : toolBlock.success === true
-        ? "var(--green-11)"
+        ? "var(--status-success-text)"
         : toolBlock.error || toolBlock.success === false
-          ? "var(--red-11)"
-          : "var(--gray-11)";
+          ? "var(--status-danger-text)"
+          : "var(--text-secondary)";
 
   const header = (
     <div className="write-tool-header">

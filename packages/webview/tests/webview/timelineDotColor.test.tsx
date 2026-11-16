@@ -32,7 +32,7 @@ describe("timeline dot color by stage", () => {
       ".timeline-row",
     ) as HTMLElement;
     expect(streamingRow.style.getPropertyValue("--dot-color")).toBe(
-      "var(--amber-11)",
+      "var(--status-warning-text)",
     );
 
     // finished text → green dot
@@ -50,7 +50,7 @@ describe("timeline dot color by stage", () => {
       ".timeline-row",
     ) as HTMLElement;
     expect(doneRow.style.getPropertyValue("--dot-color")).toBe(
-      "var(--green-11)",
+      "var(--status-success-text)",
     );
   });
 
@@ -73,7 +73,7 @@ describe("timeline dot color by stage", () => {
       ".timeline-row",
     ) as HTMLElement;
     expect(streamingRow.style.getPropertyValue("--dot-color")).toBe(
-      "var(--amber-11)",
+      "var(--status-warning-text)",
     );
 
     sendCommand("updateMessages", {
@@ -90,7 +90,7 @@ describe("timeline dot color by stage", () => {
       ".timeline-row",
     ) as HTMLElement;
     expect(doneRow.style.getPropertyValue("--dot-color")).toBe(
-      "var(--green-11)",
+      "var(--status-success-text)",
     );
   });
 
@@ -109,6 +109,6 @@ describe("timeline dot color by stage", () => {
       ],
     });
     const row = getLastMessage().querySelector(".timeline-row") as HTMLElement;
-    expect(row.style.getPropertyValue("--dot-color")).toBe("var(--green-11)");
+    expect(row.style.getPropertyValue("--dot-color")).toBe("var(--status-success-text)");
   });
 });

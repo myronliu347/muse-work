@@ -19,8 +19,8 @@ colors:
   ink-dark: "#eeeeee"
   body: "#646464"
   body-dark: "#b4b4b4"
-  muted: "#8d8d8d"
-  muted-dark: "#6e6e6e"
+  muted: "#6c6c6c"
+  muted-dark: "#acacac"
   hairline: "#d9d9d9"
   hairline-dark: "#3a3a3a"
   accent: "#3e63dd"
@@ -138,7 +138,7 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 
 - 浅色底近白，深色底近黑。卡片靠边框分开，不靠大块灰底。
 - 浅色卡片是白的 `{colors.surface-card}`。深色卡片是 `{colors.surface-card-dark}`，比页面深一档。
-- 用户消息气泡保持 `{colors.surface-bubble}`，不要跟卡片用同一个白。
+- 用户消息气泡用 `--surface-user-bubble`（浅色 `--accent-3`，深色 `--gray-4`），不要跟卡片同色。
 - 输入框圆角写死 `{rounded.composer}`。其余圆角走 `{rounded.*}`，会随设置变化。
 - 对话列最宽 800px，水平居中。
 - 滚动条平时不画轨道，只有滚动时才露出滑块。
@@ -154,7 +154,8 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 - **Surface Card** (`{colors.surface-card}` — #ffffff)：浅色卡片、对话框、菜单、输入框。`--color-card`，浅色等于 `--color-panel`。
 - **Surface Card Dark** (`{colors.surface-card-dark}` — #222222)：深色卡片。`--color-card`，深色等于 `--gray-3`。
 - **Surface Sidebar** (`{colors.surface-sidebar}` — #f9f9f9)：浅色侧栏。`--gray-2`，用来和对话区分。
-- **Surface Bubble** (`{colors.surface-bubble}` — #f0f0f0)：用户消息、行内代码、分段控件的槽。`--gray-3`。
+- **Surface Bubble** (`{colors.surface-bubble}` — #f0f0f0)：这是行内代码和分段控件槽的默认值，走 `--surface-inline-code`；用户消息走 `--surface-user-bubble`（浅色 `--accent-3`，深色 `--gray-4`）。
+- **Surface Code**：代码块用 `--surface-code`（`--gray-3` 75% + `--gray-2`），不要和页面同白或同黑。
 - **Surface Hover** (`{colors.surface-hover}` — #e8e8e8)：悬停。`--gray-4`。白底卡片上的悬停用 `{colors.surface-bubble}`。
 
 ### Hairlines
@@ -167,14 +168,71 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 
 - **Ink** (`{colors.ink}` — #202020)：正文。`--gray-12`。深色是 `{colors.ink-dark}`。
 - **Body** (`{colors.body}` — #646464)：说明、路径、时间。`--gray-11`。
-- **Muted** (`{colors.muted}` — #8d8d8d)：更弱的信息。`--gray-9`。
+- **Muted** (`{colors.muted}` — #6c6c6c)：更弱的信息。文字用 `--text-tertiary`（`--gray-11` 与 `--gray-1` 95/5），不要再用 `--gray-9` 写 12px 正文；`--gray-9` 只留 disabled 和图标。
 - **On Accent** (`{colors.on-accent}` — #ffffff)：强调色上的字。
 
 ### Accent
 
-- **Indigo** (`{colors.accent}` — #3e63dd)：默认 `--accent-9`。焦点环和主操作。用户改强调色后这个 hex 会变，样式里写 `var(--accent-9)`。
+- **Indigo** (`{colors.accent}` — #3e63dd)：默认 `--accent-9`。焦点环和主操作。用户改强调色后这个 hex 会变；组件写 accent 角色（`--accent-solid` 等），不要直接写 primitive。
 
 `--color-card` 定义在 `.radix-themes` 上，不要写到 `:root`。Radix 的浅色灰阶挂在 `:root`，深色灰阶挂在 `.dark`。变量如果在 `:root` 上解析，会固定成浅色的 `#f0f0f0`，深色主题盖不住。
+
+### Semantic tokens
+
+组件不直接写 `--gray-*` / `--accent-*`。基础角色集中定义在 `packages/webview/src/styles/tokens.css`，并且**定义在 `.radix-themes` 上**——这样深色灰阶和用户选的灰阶都能生效。`.radix-themes` 的作用域原因见本节末尾。
+
+| 组 | Token | 默认映射 | 用途 |
+|---|---|---|---|
+| Text | `--text-primary` | `--gray-12` | 正文、标题 |
+| | `--text-secondary` | `--gray-11` | 说明、路径、时间 |
+| | `--text-tertiary` | `--gray-11` 95% + `--gray-1` | 低优先标签；12px 仍 ≥4.5 |
+| | `--text-placeholder` | `--text-tertiary` | 输入占位 |
+| | `--text-disabled` | `--gray-9` | 仅 disabled |
+| | `--text-on-accent` | `--accent-contrast` | 强调色上的字 |
+| | `--text-link` | `--accent-11` | 链接 |
+| Surface | `--surface-canvas` | `--color-background` | 页面、聊天列 |
+| | `--surface-rail` / `--surface-panel` / `--surface-header` | `--gray-2` | 图标栏、会话抽屉、标题栏 |
+| | `--surface-card` | `--color-card` | 卡片、输入框、对话框 |
+| | `--surface-sunken` / `--surface-subtle` / `--surface-muted` | `--gray-1` / `--gray-3` / `--gray-4` | 内凹底 / 低强调填充 / 悬停底 |
+| | `--surface-hover` / `--surface-selected` / `--surface-visible` | `--gray-4` 78% / 88% / 70% | 悬停、选中、非焦点分屏 |
+| | `--surface-raised` / `--surface-active` | `--gray-4` / `--gray-5` | 浮层操作条 / 按下的导航项 |
+| | `--surface-control` / `--surface-strong` / `--surface-strong-hover` | `--gray-6` / `--gray-8` / `--gray-9` | 开关轨道 / 强填充按钮与徽章 / 其悬停 |
+| | `--surface-knob` | `#ffffff` | 开关滑块，两个主题都保持白 |
+| | `--surface-code` | `--gray-3` 75% + `--gray-2` | 代码块 |
+| | `--surface-inline-code` | `--gray-3` | 行内代码 |
+| | `--surface-user-bubble` | `--accent-3`（浅）/ `--gray-4`（深） | 用户消息 |
+| | `--surface-user-bubble-hover` | `--accent-4`（浅）/ `--gray-5`（深） | 用户消息悬停 |
+| Shadow | `--shadow-color-soft` / `--shadow-color` / `--shadow-color-strong` | 黑 18% / 30% / 42% | 浮层阴影颜色；offset/blur 留在组件 |
+| | `--shadow-glow-soft` / `--shadow-glow` / `--shadow-glow-strong` | `--gray-1` 28% / 40% / 45% | 卡片/输入框的 canvas glow |
+| | `--ring-color` | `--gray-2` | 2px 选中环 |
+| Overlay | `--overlay-scrim` / `--overlay-scrim-strong` | 黑 40% / 85% | 模态遮罩 / 图片与图表全屏层 |
+| | `--overlay-backdrop` | `--gray-1` 40% | quick-open 等轻背板 |
+| | `--overlay-control-soft` / `--overlay-control` | 白 10% / 20% | 图片上的悬浮控件 |
+| Border | `--border-faint` / `--border-subtle` / `--border-strong` / `--border-emphasis` | `--gray-3` / `--gray-6` / `--gray-7` / `--gray-12` | 极弱分隔 / 卡片描边 / 强描边 / 高对比选中 |
+| | `--border-focus` / `--border-selected` | `--accent-9` | 焦点、选中 |
+| Accent | `--accent-solid` / `--accent-solid-hover` / `--accent-on-solid` | `accent-9` / `accent-10` / `accent-contrast` | 实心强调、主操作 |
+| | `--accent-text` / `--accent-border` | `accent-11` / `accent-8` | 强调文字 / 强调描边 |
+| | `--accent-soft` / `--accent-soft-hover` / `--accent-softest` | `accent-3` / `accent-4` / `accent-2` | 浅色强调底 |
+| | `--accent-wash` / `--accent-wash-strong` / `--accent-wash-hover` | `accent-a2` / `a3` / `a4` | alpha 强调底 |
+| | `--accent-track` / `--accent-track-strong` | `accent-5` / `accent-6` | 轨道 / 滑轨 |
+| Status | `--status-{neutral,progress,success,warning,danger,info}-{text,surface,border,solid}` | 对应 Radix 色阶；彩色 text 用 12 档 | 状态徽章、运行点、错误 |
+| | `--status-danger-fill` / `fill-hover` / `on-fill` | `red-11` / `red-12` / 白·`#111` | 破坏性实心按钮 |
+
+规则：
+
+- 正文、说明、时间、占位都用 `--text-secondary` / `--text-tertiary`，不要回退到 `--gray-9`。12px 的 AA 门槛是 4.5:1。
+- 卡片先靠 `--border-subtle` 抬起来；`--surface-*` 只负责区域之间的明度差，不叠加投影。
+- 代码块用 `--surface-code`，行内代码用 `--surface-inline-code`；两者不要再共用页面的白/黑。
+- 状态只用 `--status-*`，不要在组件里手写 `--red-11` / `color-mix(amber-9 …)`。
+- accent 只用角色层（`--accent-solid` / `--accent-text` / `--accent-soft` …），primitive（`--accent-9`、`--accent-a2`）只允许出现在 `tokens.css`。这些角色目前是宽的，下一步再拆 primary / selected / focus / running。彩色状态文字用 12 档：11 档在浅色 tinted surface 上只有 4.2:1。
+- 破坏性实心按钮用 `--status-danger-fill` + `--status-danger-on-fill`，不要用 `--status-danger-solid` 配白字：白字 on red-9 只有 3.9:1。
+- 阴影只 token 化颜色（`--shadow-color-*`），offset / blur 留在组件；模态遮罩和图片悬浮控件用 `--overlay-*`。
+
+`tests/muse/noRawColorTokens.test.ts` 会守住这条契约：CSS 里再写 raw gray / status / accent primitive / shadow / overlay / hex，或 TSX 里再写 raw gray / accent primitive / hex，测试直接失败。白名单只有 `tokens.css`、`globals.css`、`AppearanceSettings.css`、`TerminalPane.css`、`TerminalPane.tsx`、`PreviewPane.tsx`。
+
+这一层是基础 token：组件迁移还在进行中，未迁移的样式仍会直接读 Radix step。新写或改动样式时用语义 token；`--gray-*` / `--accent-*` 只保留在 `tokens.css`、终端/预览适配器和第三方主题里。
+
+已迁移：所有页面的文字、表面、边框、状态色、阴影、遮罩和 accent 角色。剩余白名单是 tokens 定义、globals 首帧、Appearance 预览和终端/预览适配器；`noRawColorTokens` 测试防止回退。accent 角色目前是宽的，primary / selected / focus / running 的拆分是下一层设计工作。
 
 ## Typography
 
@@ -236,7 +294,7 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 | Flat | `{colors.canvas}` | 页面、对话列 |
 | Sidebar | `{colors.surface-sidebar}` | 浅色侧栏 |
 | Card | `{colors.surface-card}` + 1px `{colors.hairline}` | 输入框、对话框、菜单 |
-| Bubble | `{colors.surface-bubble}` | 用户消息、行内代码 |
+| Bubble | `--surface-user-bubble` / `--surface-inline-code` | 用户消息、行内代码 |
 | Focus | 2px `{colors.accent}`，offset 2px | `:focus-visible` |
 
 ## Shapes
@@ -274,15 +332,15 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 
 ### Messages
 
-**`user-message`** — 背景 `{colors.surface-bubble}`，圆角 `{rounded.md}`，内边距 8px 12px。浅色下必须能看见这块灰。不要改成 `{colors.surface-card}`，否则和页面融在一起，悬停的 `{colors.surface-hover}` 会像突然多出来一块底。悬停只是在这块灰上再深一档。
+**`user-message`** — 背景 `--surface-user-bubble`（浅色 `--accent-3`，深色 `--gray-4`），圆角 `{rounded.md}`，内边距 8px 12px。浅色下必须能看见这层淡蓝。不要改成 `{colors.surface-card}`，否则和页面融在一起，悬停的 `{colors.surface-hover}` 会像突然多出来一块底。
 
-顶上钉住的用户消息用同一块灰，并保留 1px 边框。
+顶上钉住的用户消息用同一层底，并保留 1px 边框。
 
 ### Code
 
-**`inline-code`** — 背景 `{colors.surface-bubble}`，字号 `{typography.code}`，圆角 `{rounded.xs}`。不要改成 `{colors.surface-card}`，否则嵌在句子里看不见。
+**`inline-code`** — 背景 `--surface-inline-code`，字号 `{typography.code}`，圆角 `{rounded.xs}`。不要改成 `{colors.surface-card}`，否则嵌在句子里看不见。
 
-**`code-block`** — 背景 `{colors.surface-card}`，1px `{colors.hairline}`，圆角 `{rounded.md}`，内边距 12px，字体 `{typography.code}`。
+**`code-block`** — 背景 `--surface-code`，1px `--border-subtle`，圆角 `{rounded.md}`，内边距 12px，字体 `{typography.code}`。
 
 ### Dialogs & Menus
 

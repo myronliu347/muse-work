@@ -1,0 +1,144 @@
+/* Semantic color tokens.
+ *
+ * This file is the source of truth for UI color roles. Component CSS should
+ * read --text-*, --surface-*, --border-* and --status-*; raw Radix steps in
+ * existing component styles are legacy and migrate to these names. A palette
+ * or contrast change then lands here, not in every stylesheet. --gray-* /
+ * --accent-* stay an implementation detail (plus terminal/preview adapters
+ * that must hand raw colors to xterm/iframes).
+ *
+ * Define these on .radix-themes, not :root. Radix puts the light scale on
+ * :root and the dark scale on .dark; a token that resolves on :root bakes in
+ * the light value and the dark theme cannot override it. See the --color-card
+ * note in globals.css.
+ *
+ * Text floor: 12px text needs 4.5:1. --text-secondary is gray-11 and
+ * --text-tertiary is a 95/5 mix of gray-11 and gray-1, so both stay above
+ * the floor on canvas/sidebar/card. gray-9 is reserved for disabled states and
+ * non-text icons; do not use it for body copy, labels, timestamps or
+ * placeholders.
+ */
+
+.radix-themes {
+  /* Text */
+  --text-primary: var(--gray-12);
+  --text-secondary: var(--gray-11);
+  --text-tertiary: color-mix(in srgb, var(--gray-11) 95%, var(--gray-1));
+  --text-placeholder: var(--text-tertiary);
+  --text-disabled: var(--gray-9);
+  --text-on-accent: var(--accent-contrast);
+  --text-link: var(--accent-11);
+
+  /* Surfaces. Cards keep their 1px border; these steps only describe the
+     region/value ladder so rail, drawer, chat, card and bubble stop sharing
+     one value. */
+  --surface-canvas: var(--color-background, var(--gray-1));
+  --surface-rail: var(--gray-2);
+  --surface-panel: var(--gray-2);
+  --surface-header: var(--gray-2);
+  --surface-card: var(--color-card);
+  --surface-sunken: var(--gray-1);
+  --surface-subtle: var(--gray-3);
+  --surface-muted: var(--gray-4);
+  --surface-hover: color-mix(in srgb, var(--gray-4) 78%, transparent);
+  --surface-selected: color-mix(in srgb, var(--gray-4) 88%, transparent);
+  --surface-visible: color-mix(in srgb, var(--gray-4) 70%, transparent);
+  --surface-raised: var(--gray-4);
+  --surface-active: var(--gray-5);
+  --surface-control: var(--gray-6);
+  --surface-knob: #ffffff;
+  --surface-strong: var(--gray-8);
+  --surface-strong-hover: var(--gray-9);
+  --surface-code: color-mix(in srgb, var(--gray-3) 75%, var(--gray-2));
+  --surface-inline-code: var(--gray-3);
+  --surface-user-bubble: var(--accent-3);
+  --surface-user-bubble-hover: var(--accent-4);
+
+  /* Accent roles. Broad on purpose: components stop reading --accent-* steps;
+     splitting these into primary / selected / focus / running is the next
+     design pass. */
+  --accent-solid: var(--accent-9);
+  --accent-solid-hover: var(--accent-10);
+  --accent-text: var(--accent-11);
+  --accent-border: var(--accent-8);
+  --accent-soft: var(--accent-3);
+  --accent-soft-hover: var(--accent-4);
+  --accent-softest: var(--accent-2);
+  --accent-wash: var(--accent-a2);
+  --accent-wash-strong: var(--accent-a3);
+  --accent-wash-hover: var(--accent-a4);
+  --accent-track: var(--accent-5);
+  --accent-on-solid: var(--accent-contrast);
+
+  /* Elevation. Shadow color is tokenized; offsets/blur stay per component. */
+  --shadow-color-soft: rgba(0, 0, 0, 0.18);
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --shadow-color-strong: rgba(0, 0, 0, 0.42);
+  /* Light glow used on cards/composer; theme-aware because gray-1 is white in
+     light and near-black in dark. */
+  --shadow-glow-soft: color-mix(in srgb, var(--gray-1) 28%, transparent);
+  --shadow-glow: color-mix(in srgb, var(--gray-1) 40%, transparent);
+  --shadow-glow-strong: color-mix(in srgb, var(--gray-1) 45%, transparent);
+  --ring-color: var(--gray-2);
+
+  /* Overlays */
+  --overlay-scrim: rgba(0, 0, 0, 0.4);
+  --overlay-scrim-strong: rgba(0, 0, 0, 0.85);
+  --overlay-control-soft: rgba(255, 255, 255, 0.1);
+  --overlay-control: rgba(255, 255, 255, 0.2);
+  --overlay-backdrop: color-mix(in srgb, var(--gray-1) 40%, transparent);
+
+  /* Borders */
+  --border-faint: var(--gray-3);
+  --border-subtle: var(--gray-6);
+  --border-strong: var(--gray-7);
+  --border-emphasis: var(--gray-12);
+  --border-focus: var(--accent-9);
+  --border-selected: var(--accent-9);
+
+  /* Status: text / tinted surface / border / solid dot or icon.
+     Text uses the 12 step on purpose: 11 on a 3 surface drops below 4.5:1
+     in light mode (green 4.21, amber 4.25). Neutral keeps 11. */
+  --status-neutral-text: var(--gray-11);
+  --status-neutral-surface: var(--gray-3);
+  --status-neutral-border: var(--gray-6);
+  --status-neutral-solid: var(--gray-9);
+
+  --status-progress-text: var(--accent-11);
+  --status-progress-surface: var(--accent-3);
+  --status-progress-border: var(--accent-6);
+  --status-progress-solid: var(--accent-9);
+
+  --status-success-text: var(--green-12);
+  --status-success-surface: var(--green-3);
+  --status-success-border: var(--green-6);
+  --status-success-solid: var(--green-9);
+
+  --status-warning-text: var(--amber-12);
+  --status-warning-surface: var(--amber-3);
+  --status-warning-border: var(--amber-6);
+  --status-warning-solid: var(--amber-9);
+
+  --status-danger-text: var(--red-12);
+  --status-danger-surface: var(--red-3);
+  --status-danger-border: var(--red-6);
+  --status-danger-solid: var(--red-9);
+  --status-danger-fill: var(--red-11);
+  --status-danger-fill-hover: var(--red-12);
+  --status-danger-on-fill: #ffffff;
+
+  --status-info-text: var(--blue-12);
+  --status-info-surface: var(--blue-3);
+  --status-info-border: var(--blue-6);
+  --status-info-solid: var(--blue-9);
+  --status-info-solid-hover: var(--blue-10);
+}
+
+/* Light keeps the accent-tinted bubble; dark uses a neutral step one above the
+   card so the user turn does not disappear into the canvas. Radix adds .dark
+   together with the dark scale, so this lands before the data-theme effect. */
+.radix-themes.dark {
+  --surface-user-bubble: var(--gray-4);
+  --surface-user-bubble-hover: var(--gray-5);
+  --status-danger-on-fill: #111111;
+}

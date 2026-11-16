@@ -5,8 +5,8 @@
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-2) var(--space-3) var(--space-3);
-  background-color: var(--color-card);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-4);
   box-sizing: border-box;
   max-width: 800px;
@@ -33,7 +33,7 @@
   font-size: var(--font-size-1);
   font-weight: 500;
   line-height: var(--line-height-1);
-  color: var(--gray-12);
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
@@ -60,14 +60,14 @@
   font-size: var(--font-size-1);
   font-weight: 400;
   line-height: var(--line-height-1);
-  color: var(--gray-12);
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
 .task-list-chevron {
   width: 16px;
   height: 16px;
-  color: var(--gray-12);
+  color: var(--text-primary);
   transition: transform 0.15s ease;
 }
 
@@ -145,16 +145,16 @@
   font-weight: 400;
   line-height: var(--line-height-1);
   word-break: break-word;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .task-title.completed {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   text-decoration: line-through;
 }
 
 .task-title.deleted {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   text-decoration: line-through;
 }
 
@@ -162,7 +162,7 @@
   font-size: var(--font-size-1);
   font-weight: 600;
   line-height: var(--line-height-1);
-  color: var(--accent-11);
+  color: var(--accent-text);
 }
 
 @keyframes spin {

@@ -31,8 +31,8 @@
   gap: var(--space-2);
   flex-shrink: 0;
   padding: var(--space-1) var(--space-2);
-  border-bottom: var(--hairline) solid var(--gray-6);
-  background: var(--color-background);
+  border-bottom: var(--hairline) solid var(--border-subtle);
+  background: var(--surface-canvas);
 }
 
 .file-pane-search-input {
@@ -40,10 +40,10 @@
   min-width: 0;
   height: 24px;
   padding: 0 var(--space-2);
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-1);
-  background: var(--gray-1);
-  color: var(--gray-12);
+  background: var(--surface-sunken);
+  color: var(--text-primary);
   font-size: var(--font-size-1);
 }
 
@@ -53,7 +53,7 @@
   text-align: center;
   font-size: var(--font-size-1);
   font-family: Menlo, Monaco, monospace;
-  color: var(--gray-9);
+  color: var(--text-tertiary);
 }
 
 .file-pane-search-actions {
@@ -72,12 +72,12 @@
   border: none;
   border-radius: var(--radius-1);
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
 .file-pane-search-btn:hover:not(:disabled) {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .file-pane-search-btn:disabled {
@@ -87,14 +87,14 @@
 
 /* Inline match highlights inside the code view. */
 .file-pane-search-mark {
-  background: color-mix(in srgb, var(--accent-9) 35%, transparent);
+  background: color-mix(in srgb, var(--accent-solid) 35%, transparent);
   color: inherit;
   padding: 0;
 }
 
 .file-pane-search-mark--current {
-  background: var(--accent-9);
-  color: var(--gray-1);
+  background: var(--accent-solid);
+  color: var(--text-on-accent);
 }
 
 /* Host badge + path, shown in the (fixed) toolbar so the location stays
@@ -109,8 +109,8 @@
   padding: var(--space-1) var(--space-1);
   margin-right: var(--space-1);
   border-radius: var(--radius-1);
-  background: var(--gray-8);
-  color: var(--gray-12);
+  background: var(--surface-strong);
+  color: var(--text-primary);
 }
 
 .file-pane-path {
@@ -152,7 +152,7 @@
 }
 
 .file-pane-line--active {
-  background: color-mix(in srgb, var(--accent-9) 30%, transparent);
+  background: color-mix(in srgb, var(--accent-solid) 30%, transparent);
 }
 
 .file-pane-line-no {
@@ -162,13 +162,13 @@
   min-width: 52px;
   padding: 0 var(--space-2) 0 var(--space-2);
   text-align: right;
-  color: var(--gray-9);
-  background: var(--color-background);
+  color: var(--text-tertiary);
+  background: var(--surface-canvas);
   user-select: none;
 }
 
 .file-pane-line--active .file-pane-line-no {
-  background: color-mix(in srgb, var(--accent-9) 30%, transparent);
+  background: color-mix(in srgb, var(--accent-solid) 30%, transparent);
 }
 
 .file-pane-line-code {
@@ -183,11 +183,11 @@
   gap: 8px;
   height: 28px;
   padding: 0 10px;
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  background: var(--gray-2);
-  color: var(--gray-12);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  background: var(--surface-panel);
+  color: var(--text-primary);
+  box-shadow: 0 8px 24px var(--shadow-color-soft);
   font: inherit;
   font-size: 12px;
   font-weight: 500;
@@ -196,7 +196,7 @@
 }
 
 .file-selection-add kbd {
-  color: var(--gray-9);
+  color: var(--text-tertiary);
   font-family: inherit;
   font-size: 11px;
   font-weight: 500;
@@ -207,8 +207,8 @@
   min-width: max-content;
   padding: var(--space-2) var(--space-4);
   font-size: var(--font-size-1);
-  color: var(--gray-11);
-  background: color-mix(in srgb, var(--accent-9) 30%, transparent);
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--accent-solid) 30%, transparent);
 }
 
 /* Markdown files reuse the message markdown look, padded for the panel. */
@@ -248,12 +248,12 @@
   margin: auto;
   padding: var(--space-5) var(--space-4);
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .file-pane-status-icon {
   font-size: var(--font-size-4);
-  color: var(--red-11);
+  color: var(--status-danger-text);
 }
 
 /* Syntax-highlight palette (GitHub Dark / VS Code Dark+ style hues) driven by
@@ -311,8 +311,8 @@
   align-self: stretch;
   display: flex;
   flex-direction: column;
-  border-left: var(--hairline) solid var(--gray-6);
-  background: var(--color-background);
+  border-left: var(--hairline) solid var(--border-subtle);
+  background: var(--surface-canvas);
   min-height: 0;
 }
 
@@ -364,7 +364,7 @@
   padding: var(--space-1) var(--space-2);
   min-height: 32px;
   box-sizing: border-box;
-  border-bottom: var(--hairline) solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--border-subtle);
   flex-shrink: 0;
 }
 
@@ -386,7 +386,7 @@
   white-space: nowrap;
   font-size: var(--font-size-1);
   font-weight: 600;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .file-tree-drag-handle {
@@ -400,7 +400,7 @@
 }
 
 .file-tree-drag-handle:hover {
-  background: var(--accent-9);
+  background: var(--accent-solid);
 }
 
 .file-tree-scroll {
@@ -428,7 +428,7 @@
   font-size: 14px;
   line-height: 16px;
   text-align: center;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   opacity: 0.85;
 }
 
@@ -439,11 +439,11 @@
 }
 
 .file-tree-row:hover {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .file-tree-row--selected {
-  background: color-mix(in srgb, var(--accent-9) 25%, transparent);
+  background: color-mix(in srgb, var(--accent-solid) 25%, transparent);
 }
 
 .file-tree-icon {
@@ -459,7 +459,7 @@
 
 .file-tree-empty {
   padding: var(--space-2);
-  color: var(--gray-9);
+  color: var(--text-tertiary);
   font-size: var(--font-size-1);
 }
 
@@ -470,7 +470,7 @@
   justify-content: center;
   gap: var(--space-3);
   padding: var(--space-5);
-  color: var(--gray-11);
+  color: var(--text-secondary);
   text-align: center;
 }
 
@@ -484,7 +484,7 @@
 }
 
 .file-pane-md-toggle button[aria-pressed="true"] {
-  background: var(--gray-5);
+  background: var(--surface-active);
 }
 
 .file-path-bar {
@@ -522,17 +522,17 @@
   border: none;
   border-radius: var(--radius-1);
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
 .file-tree-mode-btn:hover {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .file-tree-mode-btn[aria-pressed="true"] {
-  background: var(--gray-5);
-  color: var(--gray-12);
+  background: var(--surface-active);
+  color: var(--text-primary);
 }
 
 .file-content-search {
@@ -549,7 +549,7 @@
   align-items: stretch;
   gap: var(--space-2);
   padding: var(--space-2);
-  border-bottom: var(--hairline) solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--border-subtle);
   flex-shrink: 0;
 }
 
@@ -558,10 +558,10 @@
   min-width: 0;
   height: 28px;
   padding: 0 var(--space-2);
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
-  background: var(--gray-1);
-  color: var(--gray-12);
+  background: var(--surface-sunken);
+  color: var(--text-primary);
   font-size: var(--font-size-1);
 }
 
@@ -585,23 +585,23 @@
   border: none;
   border-radius: var(--radius-1);
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 12px;
   font-family: Menlo, Monaco, monospace;
   cursor: pointer;
 }
 
 .file-content-search-toggle[aria-pressed="true"] {
-  background: var(--gray-5);
-  color: var(--gray-12);
+  background: var(--surface-active);
+  color: var(--text-primary);
 }
 
 .file-content-search-status {
   padding: var(--space-2);
   font-size: var(--font-size-1);
-  color: var(--gray-9);
+  color: var(--text-tertiary);
   flex-shrink: 0;
-  border-bottom: var(--hairline) solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--border-subtle);
 }
 
 .file-content-search-results {
@@ -618,14 +618,14 @@
   padding: 2px var(--space-2);
   border: none;
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: var(--font-size-1);
   text-align: left;
   cursor: pointer;
 }
 
 .file-content-search-file-header:hover {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .file-content-search-file-path {
@@ -638,7 +638,7 @@
 
 .file-content-search-file-count {
   flex-shrink: 0;
-  color: var(--gray-9);
+  color: var(--text-tertiary);
 }
 
 .file-content-search-match {
@@ -649,7 +649,7 @@
   padding: 2px var(--space-2) 2px 28px;
   border: none;
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: var(--font-size-1);
   font-family: Menlo, Monaco, monospace;
   text-align: left;
@@ -657,13 +657,13 @@
 }
 
 .file-content-search-match:hover {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .file-content-search-match-line {
   flex-shrink: 0;
   min-width: 28px;
-  color: var(--gray-9);
+  color: var(--text-tertiary);
   text-align: right;
 }
 
@@ -676,7 +676,7 @@
 }
 
 .file-content-search-mark {
-  background: color-mix(in srgb, var(--accent-9) 35%, transparent);
+  background: color-mix(in srgb, var(--accent-solid) 35%, transparent);
   color: inherit;
   padding: 0;
 }
@@ -708,14 +708,14 @@
   padding: 2px var(--space-2);
   border: none;
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: var(--font-size-1);
   text-align: left;
   cursor: pointer;
 }
 
 .file-content-search-tree-row:hover {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .file-content-search-tree-name {
@@ -735,7 +735,7 @@
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: color-mix(in srgb, var(--gray-1) 40%, transparent);
+  background: var(--overlay-backdrop);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -747,11 +747,11 @@
   max-height: min(420px, 70vh);
   display: flex;
   flex-direction: column;
-  background: var(--color-background);
-  border: 1px solid var(--gray-6);
+  background: var(--surface-canvas);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
   /* Soft lift — avoid heavy blur halo */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28), 0 12px 28px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 2px 8px var(--shadow-color), 0 12px 28px var(--shadow-color-soft);
   overflow: hidden;
 }
 
@@ -762,7 +762,7 @@
   flex-shrink: 0;
   min-width: 0;
   padding-right: 10px;
-  border-bottom: var(--hairline) solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--border-subtle);
 }
 
 .quick-open-scope {
@@ -776,7 +776,7 @@
 
 .quick-open-scope-icon {
   flex: none;
-  color: var(--gray-8);
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -787,11 +787,11 @@
   padding: 3px 18px 3px 7px;
   border: 1px solid transparent;
   border-radius: 999px;
-  background-color: var(--gray-3);
+  background-color: var(--surface-subtle);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 16 16'%3E%3Cpath fill='%23888' d='M8 10.5 3.5 6h9z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 5px center;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font: inherit;
   font-size: 11px;
   text-overflow: ellipsis;
@@ -800,8 +800,8 @@
 }
 
 .quick-open-scope-select:hover {
-  border-color: var(--gray-5);
-  background-color: var(--gray-4);
+  border-color: var(--border-subtle);
+  background-color: var(--surface-muted);
 }
 
 .quick-open-scope-select:focus {
@@ -809,8 +809,8 @@
 }
 
 .quick-open-scope-select:focus-visible {
-  border-color: var(--gray-7);
-  background-color: var(--gray-4);
+  border-color: var(--border-strong);
+  background-color: var(--surface-muted);
   outline: none;
   box-shadow: none;
 }
@@ -826,7 +826,7 @@
   border: none;
   border-radius: 0;
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: var(--font-size-2);
   line-height: 44px;
   outline: none;
@@ -848,7 +848,7 @@
   padding: 6px var(--space-3);
   border: none;
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: var(--font-size-1);
   text-align: left;
   cursor: pointer;
@@ -856,7 +856,7 @@
 
 .quick-open-item--active,
 .quick-open-item:hover {
-  background: color-mix(in srgb, var(--accent-9) 25%, transparent);
+  background: color-mix(in srgb, var(--accent-solid) 25%, transparent);
 }
 
 .quick-open-item-path {
@@ -869,7 +869,7 @@
 
 .quick-open-empty {
   padding: var(--space-3);
-  color: var(--gray-9);
+  color: var(--text-tertiary);
   font-size: var(--font-size-1);
   text-align: center;
 }

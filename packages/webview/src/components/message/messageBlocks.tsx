@@ -447,12 +447,24 @@ export function renderTaskNotificationBlock(
       : block.status === "failed"
         ? "失败"
         : "已终止";
-  const statusColor =
+  const status =
     block.status === "completed"
-      ? "#3fb950"
+      ? {
+          color: "var(--status-success-text)",
+          surface: "var(--status-success-surface)",
+          border: "var(--status-success-border)",
+        }
       : block.status === "failed"
-        ? "#f85149"
-        : "#8b949e";
+        ? {
+            color: "var(--status-danger-text)",
+            surface: "var(--status-danger-surface)",
+            border: "var(--status-danger-border)",
+          }
+        : {
+            color: "var(--status-neutral-text)",
+            surface: "var(--status-neutral-surface)",
+            border: "var(--status-neutral-border)",
+          };
   return (
     <div
       key={`task-notification-${index}`}
@@ -461,17 +473,17 @@ export function renderTaskNotificationBlock(
         padding: "8px 12px",
         margin: "4px 0",
         borderRadius: "6px",
-        border: `1px solid ${statusColor}40`,
-        background: `${statusColor}0d`,
+        border: `1px solid ${status.border}`,
+        background: status.surface,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
         <i
           className={`codicon codicon-${statusIcon}`}
-          style={{ color: statusColor }}
+          style={{ color: status.color }}
         ></i>
         <span
-          style={{ fontWeight: 500, fontSize: "12px", color: statusColor }}
+          style={{ fontWeight: 500, fontSize: "12px", color: status.color }}
         >
           {statusLabel}
         </span>
@@ -483,7 +495,11 @@ export function renderTaskNotificationBlock(
       )}
       {block.outputFile && (
         <div
-          style={{ marginTop: "4px", fontSize: "12px", color: "#8b949e" }}
+          style={{
+            marginTop: "4px",
+            fontSize: "12px",
+            color: "var(--text-secondary)",
+          }}
         >
           输出: {block.outputFile}
         </div>

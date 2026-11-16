@@ -26,7 +26,7 @@ html:has(.desktop-layout) {
   height: 100vh;
   overflow: hidden;
   position: relative;
-  background-color: var(--color-background, #111111);
+  background-color: var(--surface-canvas, #111111);
 }
 
 /* White sheet meets the gray rail and titlebar. Fill only the square outside
@@ -40,7 +40,7 @@ html:has(.desktop-layout) {
   width: 12px;
   height: 12px;
   pointer-events: none;
-  background: var(--gray-2);
+  background: var(--surface-rail);
   -webkit-mask: radial-gradient(circle at 100% 100%, transparent 11px, #000 12px);
   mask: radial-gradient(circle at 100% 100%, transparent 11px, #000 12px);
 }
@@ -71,7 +71,7 @@ html:has(.desktop-layout) {
   max-height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--gray-2);
+  background: var(--surface-rail);
   box-shadow: none;
   overflow: hidden;
   position: relative;
@@ -105,11 +105,11 @@ html:has(.desktop-layout) {
 }
 
 :root[data-theme="light"] .desktop-sidebar {
-  background: var(--gray-2);
+  background: var(--surface-rail);
 }
 
 :root[data-theme="light"] .desktop-sidebar-footer {
-  background: var(--gray-2);
+  background: var(--surface-rail);
 }
 
 .desktop-sidebar-resize {
@@ -127,7 +127,7 @@ html:has(.desktop-layout) {
 
 .desktop-sidebar-resize:hover,
 .desktop-sidebar-resize--active {
-  background: var(--accent-9);
+  background: var(--accent-solid);
 }
 
 .desktop-sidebar-footer {
@@ -135,8 +135,8 @@ html:has(.desktop-layout) {
   align-items: center;
   justify-content: space-between;
   padding: var(--space-2) var(--space-3) var(--space-3);
-  border-top: var(--hairline) solid color-mix(in srgb, var(--gray-6) 70%, transparent);
-  background: var(--gray-2);
+  border-top: var(--hairline) solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  background: var(--surface-rail);
   position: relative;
   flex-shrink: 0;
 }
@@ -168,7 +168,7 @@ html:has(.desktop-layout) {
   height: 28px;
   padding: 0;
   background-color: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   border: none;
   border-radius: var(--radius-2);
   cursor: pointer;
@@ -179,7 +179,7 @@ html:has(.desktop-layout) {
 
 .desktop-sidebar-icon-btn:hover,
 .desktop-sidebar-settings-btn:hover {
-  background-color: var(--gray-4);
+  background-color: var(--surface-muted);
 }
 
 .desktop-sidebar-icon-btn .codicon,
@@ -212,14 +212,14 @@ html:has(.desktop-layout) {
   border: none;
   border-radius: var(--radius-2);
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   cursor: pointer;
   -webkit-app-region: no-drag;
 }
 
 .desktop-sidebar-toggle:hover {
-  color: var(--gray-12);
-  background: var(--gray-4);
+  color: var(--text-primary);
+  background: var(--surface-muted);
 }
 
 .desktop-sidebar-toggle .header-icon {
@@ -253,7 +253,7 @@ html:has(.desktop-layout) {
 }
 
 .desktop-settings-update-status {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1;
   white-space: nowrap;
@@ -262,10 +262,10 @@ html:has(.desktop-layout) {
 .desktop-settings-update-check {
   height: 24px;
   padding: 0 10px;
-  border: 1px solid var(--gray-7);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-1);
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: 12px;
   line-height: 1;
   white-space: nowrap;
@@ -284,7 +284,7 @@ html:has(.desktop-layout) {
 .desktop-rail-btn.desktop-rail-update {
   margin-top: auto;
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .desktop-rail-update-dot {
@@ -294,8 +294,8 @@ html:has(.desktop-layout) {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--accent-9);
-  box-shadow: 0 0 0 2px var(--gray-2);
+  background: var(--accent-solid);
+  box-shadow: 0 0 0 2px var(--ring-color);
 }
 
 .desktop-rail-btn.desktop-rail-update + .desktop-rail-btn.desktop-rail-settings {
@@ -314,7 +314,7 @@ html:has(.desktop-layout) {
   border-radius: 8px;
   appearance: none;
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
@@ -323,18 +323,18 @@ html:has(.desktop-layout) {
 }
 
 .desktop-rail-btn:hover:not(.active) {
-  background: var(--gray-4);
+  background: var(--surface-hover);
 }
 
 .desktop-rail-btn.desktop-rail-update:hover,
 .desktop-rail-btn.desktop-rail-update:hover:not(.active) {
-  background: var(--gray-4);
-  color: var(--gray-12);
+  background: var(--surface-hover);
+  color: var(--text-primary);
 }
 
 .desktop-rail-btn.active {
-  background: var(--gray-5);
-  color: var(--gray-12);
+  background: var(--surface-active);
+  color: var(--text-primary);
 }
 
 .desktop-rail-unread {
@@ -356,7 +356,7 @@ html:has(.desktop-layout) {
 .divider {
   height: var(--hairline);
   margin: 0 var(--space-2);
-  background: var(--gray-5);
+  background: var(--surface-active);
 }
 
 /* 侧栏顶部菜单项 */
@@ -371,7 +371,7 @@ html:has(.desktop-layout) {
   appearance: none;
   -webkit-appearance: none;
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: var(--font-size-1);
   text-align: left;
@@ -398,7 +398,7 @@ html:has(.desktop-layout) {
 }
 
 .app-menu:hover:not(:disabled):not(.active) {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .app-menu:focus,
@@ -415,8 +415,8 @@ html:has(.desktop-layout) {
 .app-menu.active,
 .app-menu.active:focus,
 .app-menu.active:focus-visible {
-  background: var(--gray-5);
-  color: var(--gray-12);
+  background: var(--surface-active);
+  color: var(--text-primary);
 }
 
 .app-menu:disabled {
@@ -440,7 +440,7 @@ html:has(.desktop-layout) {
   min-height: 0;
   box-sizing: border-box;
   padding-top: var(--desktop-shell-titlebar-height);
-  background: var(--gray-2);
+  background: var(--surface-panel);
   overflow: hidden;
 }
 
@@ -469,12 +469,12 @@ html:has(.desktop-layout) {
   border: none;
   border-radius: var(--radius-2);
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
 .desktop-session-list-collapse:hover {
-  background: var(--gray-4);
+  background: var(--surface-hover);
 }
 
 .desktop-session-list-resize {
@@ -515,7 +515,7 @@ html:has(.desktop-layout) {
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-1);
   font-weight: 600;
-  color: var(--gray-10);
+  color: var(--text-secondary);
   user-select: none;
 }
 
@@ -543,7 +543,7 @@ html:has(.desktop-layout) {
   border: none;
   border-radius: var(--radius-2);
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   cursor: pointer;
   opacity: 0;
 }
@@ -554,8 +554,8 @@ html:has(.desktop-layout) {
 }
 
 .desktop-session-section-add:hover {
-  background: var(--gray-4);
-  color: var(--gray-12);
+  background: var(--surface-muted);
+  color: var(--text-primary);
 }
 
 .desktop-session-section-add .codicon {
@@ -570,7 +570,7 @@ html:has(.desktop-layout) {
   margin: 0;
   border: none;
   background: transparent;
-  color: var(--gray-10);
+  color: var(--text-secondary);
   font: inherit;
   font-size: var(--font-size-1);
   font-weight: 600;
@@ -581,7 +581,7 @@ html:has(.desktop-layout) {
 
 .desktop-session-section-header--toggle:hover {
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .desktop-session-section-title {
@@ -643,12 +643,12 @@ html:has(.desktop-layout) {
   border-radius: var(--radius-2);
   cursor: pointer;
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
   user-select: none;
 }
 
 .desktop-session-workdir-row:hover {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .desktop-session-workdir-icon-slot {
@@ -758,7 +758,7 @@ html:has(.desktop-layout) {
   border: none;
   border-radius: var(--radius-2);
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   opacity: 0;
   cursor: pointer;
   align-items: center;
@@ -774,7 +774,7 @@ html:has(.desktop-layout) {
 
 .desktop-session-workdir-add:hover {
   opacity: 1;
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .desktop-session-workdir-add .codicon {
@@ -796,22 +796,22 @@ html:has(.desktop-layout) {
   border-radius: var(--radius-2);
   cursor: pointer;
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
   user-select: none;
 }
 
 .issue-sidebar-row:hover {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .issue-sidebar-row--current,
 .issue-sidebar-row--visible {
-  background: color-mix(in srgb, var(--gray-4) 88%, transparent);
+  background: var(--surface-selected);
 }
 
 .issue-sidebar-row--current:hover,
 .issue-sidebar-row--visible:hover {
-  background: color-mix(in srgb, var(--gray-4) 88%, transparent);
+  background: var(--surface-selected);
 }
 
 .issue-type-icon {
@@ -821,7 +821,7 @@ html:has(.desktop-layout) {
   justify-content: center;
   width: 12px;
   height: 12px;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   line-height: 0;
 }
 
@@ -869,7 +869,7 @@ html:has(.desktop-layout) {
 .issue-sidebar-note {
   font-weight: 400;
   font-size: 11px;
-  color: var(--gray-10);
+  color: var(--text-secondary);
 }
 
 .issue-sidebar-title {
@@ -899,12 +899,12 @@ html:has(.desktop-layout) {
 }
 
 .issue-sidebar-row:hover .issue-sidebar-meta {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .issue-sidebar-row--current:hover .issue-sidebar-meta,
 .issue-sidebar-row--visible:hover .issue-sidebar-meta {
-  background: color-mix(in srgb, var(--gray-4) 88%, transparent);
+  background: var(--surface-selected);
 }
 
 .issue-sidebar-row:has(.desktop-session-active-at) .issue-sidebar-title {
@@ -917,7 +917,7 @@ html:has(.desktop-layout) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--gray-10);
+  color: var(--text-secondary);
   font-size: 10px;
   font-weight: 500;
   line-height: 16px;
@@ -940,19 +940,19 @@ html:has(.desktop-layout) {
 }
 
 .issue-sidebar-status-executing {
-  color: var(--accent-11);
+  color: var(--accent-text);
 }
 
 .issue-sidebar-status-review {
-  color: var(--green-11);
+  color: var(--status-success-text);
 }
 
 .issue-sidebar-priority {
   flex-shrink: 0;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--gray-4);
-  color: var(--gray-11);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -973,22 +973,22 @@ html:has(.desktop-layout) {
 }
 
 .issue-sidebar-priority-p0 {
-  background: var(--red-4);
-  color: var(--red-11);
+  background: var(--status-danger-surface);
+  color: var(--status-danger-text);
 }
 
 .issue-sidebar-priority-p1 {
-  background: var(--orange-4);
-  color: var(--orange-11);
+  background: var(--status-warning-surface);
+  color: var(--status-warning-text);
 }
 
 .issue-sidebar-priority-p2 {
-  background: var(--gray-5);
-  color: var(--gray-11);
+  background: var(--surface-active);
+  color: var(--text-secondary);
 }
 
 .issue-sidebar-section-empty {
-  color: var(--gray-10);
+  color: var(--text-tertiary);
 }
 
 
@@ -998,10 +998,10 @@ html:has(.desktop-layout) {
   min-width: 160px;
   padding: var(--space-1);
   box-sizing: border-box;
-  background: var(--color-panel, var(--gray-3));
-  border: 1px solid var(--gray-6, var(--gray-6));
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-3, var(--radius-4));
-  box-shadow: 0 var(--space-1) var(--space-2) color-mix(in srgb, var(--gray-1) 36%, transparent);
+  box-shadow: 0 var(--space-1) var(--space-2) var(--shadow-glow);
 }
 
 .desktop-context-menu-item {
@@ -1013,7 +1013,7 @@ html:has(.desktop-layout) {
   border: none;
   border-radius: var(--radius-2, var(--radius-2));
   background: transparent;
-  color: var(--gray-12, var(--gray-12));
+  color: var(--text-primary));
   font: inherit;
   font-size: var(--font-size-1);
   font-weight: 500;
@@ -1022,11 +1022,11 @@ html:has(.desktop-layout) {
 }
 
 .desktop-context-menu-item:hover {
-  background: var(--gray-4, var(--gray-4));
+  background: var(--surface-hover);
 }
 
 .desktop-context-menu-item:disabled {
-  color: var(--gray-9, var(--gray-9));
+  color: var(--text-disabled);
   cursor: default;
 }
 
@@ -1037,7 +1037,7 @@ html:has(.desktop-layout) {
 .desktop-context-menu-sep {
   height: 1px;
   margin: 4px 6px;
-  background: var(--gray-6, var(--gray-6));
+  background: var(--border-subtle);
 }
 
 .desktop-session-items {
@@ -1064,22 +1064,22 @@ html:has(.desktop-layout) {
   border-radius: var(--radius-2);
   cursor: pointer;
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .desktop-session-item:hover {
-  background: color-mix(in srgb, var(--gray-4) 78%, transparent);
+  background: var(--surface-hover);
 }
 
 .desktop-session-item--current {
-  background: color-mix(in srgb, var(--gray-4) 88%, transparent);
+  background: var(--surface-selected);
   color: inherit;
   font-weight: 500;
 }
 
 /* Weak counterpart of --current: the session is shown in a non-focused pane. */
 .desktop-session-item--visible {
-  background: color-mix(in srgb, var(--gray-4) 70%, transparent);
+  background: var(--surface-visible);
 }
 
 .desktop-session-status-slot {
@@ -1096,7 +1096,7 @@ html:has(.desktop-layout) {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--accent-9);
+  background: var(--accent-solid);
   flex-shrink: 0;
 }
 
@@ -1109,12 +1109,12 @@ html:has(.desktop-layout) {
 }
 
 .desktop-session-status-icon--running {
-  color: var(--accent-9);
+  color: var(--accent-solid);
   fill: currentColor;
 }
 
 .desktop-session-status-icon--waiting {
-  color: var(--amber-9);
+  color: var(--status-warning-text);
   fill: currentColor;
 }
 
@@ -1255,7 +1255,7 @@ html:has(.desktop-layout) {
 .desktop-popo-type {
   flex-shrink: 0;
   font-size: 11px;
-  color: var(--gray-9);
+  color: var(--text-tertiary);
 }
 
 .desktop-session-title-input {
@@ -1263,10 +1263,10 @@ html:has(.desktop-layout) {
   min-width: 0;
   margin: 0;
   padding: 0 var(--space-1);
-  border: 1px solid var(--accent-9);
+  border: 1px solid var(--accent-solid);
   border-radius: var(--radius-1);
-  background: var(--gray-3);
-  color: var(--gray-12);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
   font: inherit;
   font-size: var(--font-size-1);
   line-height: 1.3;
@@ -1287,7 +1287,7 @@ html:has(.desktop-layout) {
   margin-left: auto;
   font-size: var(--font-size-1);
   font-variant-numeric: tabular-nums;
-  color: var(--gray-10);
+  color: var(--text-tertiary);
   white-space: nowrap;
   user-select: none;
   text-align: right;
@@ -1296,7 +1296,7 @@ html:has(.desktop-layout) {
 .desktop-session-worktree-badge {
   flex-shrink: 0;
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
   display: inline-flex;
   align-items: center;
   user-select: none;
@@ -1322,7 +1322,7 @@ html:has(.desktop-layout) {
   gap: var(--space-1);
   padding-left: var(--space-2);
   /* Match row hover so the time underneath is fully covered. */
-  background: var(--gray-4);
+  background: var(--surface-raised);
   border-radius: var(--radius-2);
 }
 
@@ -1348,7 +1348,7 @@ html:has(.desktop-layout) {
   padding: 0;
   border: none;
   background: none;
-  color: var(--gray-12);
+  color: var(--text-primary);
   opacity: 0.75;
   cursor: pointer;
   font-size: var(--font-size-2);
@@ -1366,14 +1366,14 @@ html:has(.desktop-layout) {
 }
 
 .desktop-session-delete:hover {
-  color: var(--red-11);
+  color: var(--status-danger-text);
 }
 
 .desktop-session-empty {
   /* Align roughly with session titles (status/icon column + gap). */
   padding: var(--space-1) var(--space-2) var(--space-1) var(--space-5);
   font-size: var(--font-size-1);
-  color: var(--gray-10);
+  color: var(--text-tertiary);
 }
 
 /* ---- Worktree controls: branch selector + checkbox (FR-022/FR-023) ----
@@ -1397,7 +1397,7 @@ html:has(.desktop-layout) {
   align-items: center;
   gap: var(--space-1);
   font-size: var(--font-size-1);
-  color: var(--gray-12);
+  color: var(--text-primary);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -1406,7 +1406,7 @@ html:has(.desktop-layout) {
 .desktop-worktree-checkbox input[type="checkbox"] {
   margin: 0;
   cursor: pointer;
-  accent-color: var(--accent-9);
+  accent-color: var(--accent-solid);
 }
 
 /* ---- Worktree hover card (sidebar item / chat header title) ----
@@ -1431,14 +1431,14 @@ html:has(.desktop-layout) {
   align-items: flex-start;
   gap: var(--space-2);
   min-width: 0;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .desktop-worktree-card-row .codicon {
   font-size: var(--font-size-1);
   flex-shrink: 0;
   margin-top: 2px;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .desktop-worktree-card-row > span:last-child {
@@ -1449,7 +1449,7 @@ html:has(.desktop-layout) {
 .desktop-worktree-card-sub {
   display: block;
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
   opacity: 0.75;
 }
 
@@ -1472,22 +1472,22 @@ html:has(.desktop-layout) {
 
 .issue-checklist-card-issue-status {
   align-self: flex-start;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: 10px;
   font-weight: 500;
   line-height: 1;
 }
 
 .issue-checklist-card-issue-status-executing {
-  color: var(--accent-11);
+  color: var(--accent-text);
 }
 
 .issue-checklist-card-issue-status-review {
-  color: var(--green-11);
+  color: var(--status-success-text);
 }
 
 .issue-checklist-card-description {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: var(--font-size-00);
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -1499,11 +1499,11 @@ html:has(.desktop-layout) {
 .issue-checklist-card-heading {
   font-weight: 600;
   font-size: var(--font-size-00);
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .issue-checklist-card-empty {
-  color: var(--gray-10);
+  color: var(--text-tertiary);
   font-size: var(--font-size-1);
 }
 
@@ -1535,18 +1535,18 @@ html:has(.desktop-layout) {
   height: 8px;
   margin-top: 5px;
   border-radius: 999px;
-  border: 1px solid var(--gray-8);
+  border: 1px solid var(--border-strong);
   background: transparent;
 }
 
 .issue-checklist-card-mark-done {
-  border-color: var(--green-8);
-  background: var(--green-8);
+  border-color: var(--status-success-solid);
+  background: var(--status-success-solid);
 }
 
 .issue-checklist-card-mark-running {
-  border-color: var(--accent-9);
-  background: var(--accent-9);
+  border-color: var(--accent-solid);
+  background: var(--accent-solid);
 }
 
 .issue-checklist-card-text {
@@ -1556,13 +1556,13 @@ html:has(.desktop-layout) {
 }
 
 .issue-checklist-card-item-done .issue-checklist-card-text {
-  color: var(--gray-10);
+  color: var(--text-tertiary);
   text-decoration: line-through;
 }
 
 .issue-checklist-card-status {
   flex-shrink: 0;
-  color: var(--gray-10);
+  color: var(--text-tertiary);
   font-size: 10px;
 }
 
@@ -1584,17 +1584,17 @@ html:has(.desktop-layout) {
   gap: var(--space-1);
   max-width: 100%;
   cursor: pointer;
-  border: 1px solid var(--gray-6);
-  background: var(--gray-3);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
   border-radius: var(--radius-2);
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .desktop-workdir-trigger:hover {
-  background: var(--gray-4);
-  color: var(--gray-12);
+  background: var(--surface-muted);
+  color: var(--text-primary);
 }
 
 .desktop-workdir-trigger--ghost {
@@ -1628,11 +1628,11 @@ html:has(.desktop-layout) {
   min-width: 220px;
   max-width: 340px;
   padding: var(--space-1);
-  background: var(--color-panel);
-  color: var(--gray-12);
-  border: 1px solid var(--gray-6);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-3);
-  box-shadow: 0 var(--space-1) var(--space-2) color-mix(in srgb, var(--gray-1) 36%, transparent);
+  box-shadow: 0 var(--space-1) var(--space-2) var(--shadow-glow);
   z-index: 10000;
   font-size: var(--font-size-1);
 }
@@ -1648,7 +1648,7 @@ html:has(.desktop-layout) {
   padding: var(--space-1) var(--space-2) var(--space-1);
   font-size: var(--font-size-1);
   font-weight: 600;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .desktop-workdir-menu-item {
@@ -1658,11 +1658,11 @@ html:has(.desktop-layout) {
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-2);
   cursor: pointer;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .desktop-workdir-menu-item:hover {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .desktop-workdir-menu-path {
@@ -1692,7 +1692,7 @@ html:has(.desktop-layout) {
   border: none;
   background: transparent;
   cursor: pointer;
-  color: var(--gray-12);
+  color: var(--text-primary);
   opacity: 0.5;
   padding: var(--space-1);
   display: flex;
@@ -1707,7 +1707,7 @@ html:has(.desktop-layout) {
 .desktop-workdir-menu-separator {
   height: var(--hairline);
   margin: var(--space-1) 0;
-  background: var(--gray-6);
+  background: var(--border-subtle);
 }
 
 /* ---- Preview pane: localhost preview + element picker ---- */
@@ -1715,8 +1715,8 @@ html:has(.desktop-layout) {
 .preview-pane {
   position: relative;
   flex-shrink: 0;
-  border-left: var(--hairline) solid var(--gray-6);
-  background: var(--color-background);
+  border-left: var(--hairline) solid var(--border-subtle);
+  background: var(--surface-canvas);
   overflow: hidden;
   min-width: 0;
 }
@@ -1740,7 +1740,7 @@ html:has(.desktop-layout) {
 
 /* Visible affordance on hover, matching the pane separator style. */
 .preview-pane-drag-handle:hover {
-  background: var(--accent-9);
+  background: var(--accent-solid);
 }
 
 /* While dragging a panel handle, lock the cursor globally so it doesn't
@@ -1776,7 +1776,7 @@ body.is-panel-resizing-row * {
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-1);
-  border-bottom: var(--hairline) solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--border-subtle);
   flex-shrink: 0;
   position: relative;
   z-index: 4;
@@ -1785,8 +1785,8 @@ body.is-panel-resizing-row * {
 .preview-pane-hint {
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-1);
-  color: var(--gray-11);
-  border-bottom: var(--hairline) solid var(--gray-6);
+  color: var(--text-secondary);
+  border-bottom: var(--hairline) solid var(--border-subtle);
   flex-shrink: 0;
 }
 
@@ -1806,16 +1806,16 @@ body.is-panel-resizing-row * {
   height: 24px;
   box-sizing: border-box;
   padding: 0 var(--space-2);
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-1);
-  background: var(--gray-1);
-  color: var(--gray-12);
+  background: var(--surface-sunken);
+  color: var(--text-primary);
   font-size: var(--font-size-1);
   outline: none;
 }
 
 .preview-pane-address:focus {
-  border-color: var(--accent-9);
+  border-color: var(--accent-solid);
 }
 
 .preview-pane-button {
@@ -1826,13 +1826,13 @@ body.is-panel-resizing-row * {
   border: none;
   border-radius: var(--radius-2);
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .preview-pane-button:hover {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .preview-pane-button:disabled {
@@ -1845,18 +1845,18 @@ body.is-panel-resizing-row * {
 }
 
 .preview-pane-button.active {
-  background: var(--gray-5);
-  color: var(--gray-12);
+  background: var(--surface-active);
+  color: var(--text-primary);
 }
 
 /* The global .codicon rule sets an explicit icon color, which beats the
    inherited button color — give the active icon its own selection color. */
 .preview-pane-button.active .codicon {
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .preview-pane-button[aria-pressed="true"] .codicon-star-full {
-  color: var(--accent-9);
+  color: var(--accent-solid);
 }
 
 .preview-pane-links {
@@ -1865,8 +1865,8 @@ body.is-panel-resizing-row * {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-left: var(--hairline) solid var(--gray-6);
-  background: var(--color-background);
+  border-left: var(--hairline) solid var(--border-subtle);
+  background: var(--surface-canvas);
 }
 
 .preview-pane-links-resize {
@@ -1880,7 +1880,7 @@ body.is-panel-resizing-row * {
 }
 
 .preview-pane-links-resize:hover {
-  background: var(--accent-9);
+  background: var(--accent-solid);
 }
 
 .preview-pane-links-search {
@@ -1890,10 +1890,10 @@ body.is-panel-resizing-row * {
   margin: 10px 10px 4px;
   padding: 0 8px;
   height: 28px;
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  background: var(--gray-2);
-  color: var(--gray-11);
+  background: var(--surface-panel);
+  color: var(--text-secondary);
 }
 
 .preview-pane-links-search input {
@@ -1902,7 +1902,7 @@ body.is-panel-resizing-row * {
   border: none;
   outline: none;
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: var(--font-size-1);
 }
 
@@ -1918,13 +1918,13 @@ body.is-panel-resizing-row * {
   margin: 10px 8px 4px;
   font-size: 11px;
   font-weight: 500;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .preview-pane-links-group p {
   margin: 0 8px 8px;
   font-size: var(--font-size-1);
-  color: var(--gray-10);
+  color: var(--text-tertiary);
 }
 
 .preview-pane-link {
@@ -1934,7 +1934,7 @@ body.is-panel-resizing-row * {
   width: 100%;
   height: 28px;
   border-radius: 6px;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: var(--font-size-1);
 }
 
@@ -1974,14 +1974,14 @@ body.is-panel-resizing-row * {
   padding: 0;
   border: none;
   border-radius: 4px;
-  background: var(--gray-3);
-  color: var(--gray-12);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
   cursor: pointer;
 }
 
 .preview-pane-link:hover,
 .preview-pane-link:focus-within {
-  background: var(--gray-3);
+  background: var(--surface-subtle);
 }
 
 .preview-pane-link:hover .preview-pane-link-open,
@@ -1995,7 +1995,7 @@ body.is-panel-resizing-row * {
 }
 
 .preview-pane-link-delete:hover {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .preview-pane-body {
@@ -2021,7 +2021,7 @@ body.is-panel-resizing-row * {
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  border-bottom: var(--hairline) solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--border-subtle);
   flex-shrink: 0;
 }
 
@@ -2029,10 +2029,10 @@ body.is-panel-resizing-row * {
 .preview-pane-device-size {
   height: 24px;
   box-sizing: border-box;
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-1);
-  background: var(--gray-1);
-  color: var(--gray-12);
+  background: var(--surface-sunken);
+  color: var(--text-primary);
   font-size: var(--font-size-1);
 }
 
@@ -2048,7 +2048,7 @@ body.is-panel-resizing-row * {
 }
 
 .preview-pane-device-times {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: var(--font-size-1);
 }
 
@@ -2066,10 +2066,10 @@ body.is-panel-resizing-row * {
   flex-direction: column;
   min-width: 168px;
   padding: 4px;
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  background: var(--color-background);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  background: var(--surface-canvas);
+  box-shadow: 0 8px 24px var(--shadow-color);
 }
 
 .preview-pane-more-item {
@@ -2082,14 +2082,14 @@ body.is-panel-resizing-row * {
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-size: var(--font-size-1);
   text-align: left;
   cursor: pointer;
 }
 
 .preview-pane-more-item:hover:not(:disabled) {
-  background: var(--gray-3);
+  background: var(--surface-subtle);
 }
 
 .preview-pane-more-item:disabled {
@@ -2110,10 +2110,10 @@ body.is-panel-resizing-row * {
   max-width: none;
   max-height: none;
   overflow: hidden;
-  border: 1px solid var(--gray-7);
+  border: 1px solid var(--border-strong);
   border-radius: 12px;
-  background: var(--gray-1);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  background: var(--surface-sunken);
+  box-shadow: 0 8px 24px var(--shadow-color);
 }
 
 .preview-pane-viewport-inner {
@@ -2126,7 +2126,7 @@ body.is-panel-resizing-row * {
   width: 100%;
   height: 100%;
   border: none;
-  background: var(--color-background, var(--gray-2));
+  background: var(--surface-canvas, var(--surface-panel));
 }
 
 /* Empty hint overlays the guest area; must not sit in normal flow or it
@@ -2135,7 +2135,7 @@ body.is-panel-resizing-row * {
   position: absolute;
   inset: 0;
   flex: unset;
-  background: var(--color-background);
+  background: var(--surface-canvas);
 }
 
 .preview-pane-error {
@@ -2149,17 +2149,17 @@ body.is-panel-resizing-row * {
   padding: var(--space-4);
   text-align: center;
   font-size: var(--font-size-1);
-  background: var(--color-background);
+  background: var(--surface-canvas);
 }
 
 .preview-pane-error .preview-pane-button {
   padding: var(--space-1) var(--space-3);
-  background: var(--accent-9);
-  color: var(--accent-contrast);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
 }
 
 .preview-pane-error .preview-pane-button:hover {
-  background: var(--accent-10);
+  background: var(--accent-solid-hover);
 }
 
 /* ---- Split-view panes (FR-032~036) ---- */
@@ -2198,7 +2198,7 @@ body.is-panel-resizing-row * {
   border: none;
   border-radius: 0;
   box-shadow: none;
-  background: var(--color-background);
+  background: var(--surface-canvas);
   padding: 0;
   transition: padding-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -2211,7 +2211,7 @@ body.is-panel-resizing-row * {
   justify-content: flex-start;
   gap: 12px;
   border-bottom: none;
-  background: var(--gray-2);
+  background: var(--surface-header);
   -webkit-app-region: drag;
 }
 
@@ -2247,7 +2247,7 @@ body.is-panel-resizing-row * {
 }
 
 .desktop-layout > .desktop-settings-page .config-tab.active {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .desktop-layout > .desktop-settings-page .settings-tab-underline {
@@ -2303,7 +2303,7 @@ body.is-panel-resizing-row * {
   align-items: center;
   margin: 0;
   padding: 0 var(--space-4) 0 var(--desktop-shell-chrome-left);
-  background: var(--gray-2);
+  background: var(--surface-panel);
   -webkit-app-region: drag;
 }
 
@@ -2313,7 +2313,7 @@ body.is-panel-resizing-row * {
   font-weight: 600;
   letter-spacing: 0;
   line-height: 1;
-  color: var(--gray-12);
+  color: var(--text-primary);
   -webkit-app-region: no-drag;
 }
 
@@ -2328,7 +2328,7 @@ body.is-panel-resizing-row * {
   box-sizing: border-box;
   height: var(--desktop-shell-titlebar-height);
   padding: 0 var(--space-4) 0 var(--desktop-shell-chrome-left);
-  background: var(--gray-2);
+  background: var(--surface-panel);
   -webkit-app-region: drag;
 }
 
@@ -2359,7 +2359,7 @@ body.is-panel-resizing-row * {
   height: var(--desktop-shell-titlebar-height);
   padding-left: var(--desktop-shell-chrome-left);
   padding-right: var(--space-4);
-  background: var(--gray-2);
+  background: var(--surface-panel);
 }
 
 .desktop-layout > .automations-page.automations-page--editor .automations-page-scroll {
@@ -2397,7 +2397,7 @@ body.is-panel-resizing-row * {
 
 .desktop-row-separator:hover,
 .desktop-row-separator--active {
-  background: var(--accent-9);
+  background: var(--accent-solid);
 }
 
 /* VS Code-style translucent overlay over the half of a single-row layout
@@ -2409,8 +2409,8 @@ body.is-panel-resizing-row * {
   height: 50%;
   z-index: 7;
   pointer-events: none;
-  background: color-mix(in srgb, var(--accent-9) 15%, transparent);
-  border: 1px dashed var(--accent-9);
+  background: color-mix(in srgb, var(--accent-solid) 15%, transparent);
+  border: 1px dashed var(--accent-solid);
 }
 
 .desktop-pane-dropzone--above {
@@ -2432,7 +2432,7 @@ body.is-panel-resizing-row * {
 
 .desktop-pane-separator:hover,
 .desktop-pane-separator--active {
-  background: var(--accent-9);
+  background: var(--accent-solid);
 }
 
 /* Insertion marker shown while dragging a pane header to reorder. */
@@ -2442,7 +2442,7 @@ body.is-panel-resizing-row * {
   bottom: 0;
   width: 2px;
   z-index: 7;
-  background: var(--accent-9);
+  background: var(--accent-solid);
   pointer-events: none;
 }
 
@@ -2453,7 +2453,7 @@ body.is-panel-resizing-row * {
   --chat-main-min-width: var(--chat-content-min-width);
   display: flex;
   flex-direction: column;
-  border-right: var(--hairline) solid var(--gray-6);
+  border-right: var(--hairline) solid var(--border-subtle);
 }
 
 .desktop-pane-row > .desktop-pane:first-child {
@@ -2492,7 +2492,7 @@ body.is-panel-resizing-row * {
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--accent-9);
+  background: var(--accent-solid);
   z-index: 5;
   pointer-events: none;
 }
@@ -2515,14 +2515,14 @@ body.is-panel-resizing-row * {
   border: none;
   border-radius: var(--radius-2);
   background: transparent;
-  color: var(--gray-12);
+  color: var(--text-primary);
   opacity: 0.6;
   cursor: pointer;
 }
 
 .desktop-pane-close:hover {
   opacity: 1;
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 /* ---- Conversation-level panel group: title column + tabbed dock ----
@@ -2636,13 +2636,13 @@ body.is-panel-resizing-row * {
   padding: var(--space-1) var(--space-3);
   border: none;
   border-radius: var(--radius-2);
-  background: var(--accent-9);
-  color: var(--accent-contrast);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
   cursor: pointer;
 }
 
 .issue-tab-load-retry:hover {
-  background: var(--accent-10);
+  background: var(--accent-solid-hover);
 }
 
 /* Draft start page must cover the whole chat column. Flex `height: 100%`
@@ -2664,7 +2664,7 @@ body.is-panel-resizing-row * {
   right: 0;
   z-index: 2;
   height: var(--desktop-shell-titlebar-height);
-  background: var(--gray-2);
+  background: var(--surface-panel);
   pointer-events: auto;
   -webkit-app-region: drag;
 }
@@ -2700,13 +2700,13 @@ body.is-panel-resizing-row * {
      sidebar toggle (siblings cannot punch -webkit-app-region: no-drag). */
   -webkit-app-region: no-drag;
   border-bottom: none;
-  background: var(--gray-2);
+  background: var(--surface-header);
 }
 
 .desktop-layout .chat-header,
 .desktop-layout .issue-session-header:not(.issue-session-header--corner),
 .desktop-layout .popo-detail-header {
-  background: var(--gray-2);
+  background: var(--surface-header);
 }
 
 .desktop-layout .chat-header .header-title-group {
@@ -2725,7 +2725,7 @@ body.is-panel-resizing-row * {
 .desktop-layout .assistant-page .assistant-header {
   height: var(--desktop-shell-titlebar-height);
   padding-right: 28px;
-  background: var(--gray-2);
+  background: var(--surface-header);
   -webkit-app-region: no-drag;
 }
 
@@ -2746,7 +2746,7 @@ body.is-panel-resizing-row * {
   z-index: 5;
   height: var(--desktop-shell-titlebar-height);
   border-bottom: none;
-  background: var(--gray-2);
+  background: var(--surface-header);
 }
 
 /* Traffic lights sit in the top-left of the window, past the icon rail.
@@ -2997,7 +2997,7 @@ body.is-panel-resizing-row * {
   align-items: center;
   gap: 2px;
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font: inherit;
   font-size: var(--font-size-1);
   font-weight: 600;
@@ -3006,8 +3006,8 @@ body.is-panel-resizing-row * {
 
 .bot-tab.active,
 .bot-tab:hover:not(:disabled) {
-  background: var(--gray-4);
-  color: var(--gray-12);
+  background: var(--surface-muted);
+  color: var(--text-primary);
 }
 
 .bot-tab:disabled {
@@ -3028,7 +3028,7 @@ body.is-panel-resizing-row * {
 
 .bot-tab-group.active,
 .bot-tab-group:hover {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .bot-tab-group .bot-tab {
@@ -3041,7 +3041,7 @@ body.is-panel-resizing-row * {
 
 .bot-tab-group.active .bot-tab,
 .bot-tab-group:hover .bot-tab {
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .bot-tab-status {
@@ -3063,11 +3063,11 @@ body.is-panel-resizing-row * {
   gap: 4px;
   max-width: min(320px, calc(100vw - 24px));
   padding: 8px 8px 8px 12px;
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-3);
-  background: var(--gray-2);
-  color: var(--gray-12);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  background: var(--surface-panel);
+  color: var(--text-primary);
+  box-shadow: 0 8px 24px var(--shadow-color);
   transform-origin: top right;
   animation: assistant-notice-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -3108,7 +3108,7 @@ body.is-panel-resizing-row * {
   font-size: 11px;
   font-weight: 700;
   line-height: 14px;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .assistant-notice-body {
@@ -3125,13 +3125,13 @@ body.is-panel-resizing-row * {
   border: 0;
   border-radius: var(--radius-1);
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
 .assistant-notice-close:hover {
-  background: var(--gray-4);
-  color: var(--gray-12);
+  background: var(--surface-muted);
+  color: var(--text-primary);
 }
 
 .bot-tab-label {
@@ -3154,8 +3154,8 @@ body.is-panel-resizing-row * {
   place-items: center;
   flex: none;
   padding: 0;
-  background: var(--gray-2);
-  color: var(--gray-11);
+  background: var(--surface-panel);
+  color: var(--text-secondary);
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
@@ -3163,7 +3163,7 @@ body.is-panel-resizing-row * {
 
 .bot-tab-group.active .bot-tab-close,
 .bot-tab-group:hover .bot-tab-close {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .bot-tab-group:hover .bot-tab-close,
@@ -3174,8 +3174,8 @@ body.is-panel-resizing-row * {
 
 .bot-tab-close:hover,
 .bot-tab-group:hover .bot-tab-close:hover {
-  background: var(--gray-5);
-  color: var(--gray-12);
+  background: var(--surface-active);
+  color: var(--text-primary);
 }
 
 .assistant-page:has(.assistant-welcome) {
@@ -3452,7 +3452,7 @@ body.is-panel-resizing-row * {
   padding: var(--space-4);
   text-align: center;
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 /* An inline ConfirmationDialog (plan preview / permission / AskUserQuestions)

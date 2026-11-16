@@ -5,7 +5,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: var(--overlay-scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -14,9 +14,9 @@
 
 .configuration-dialog {
   position: relative;
-  background-color: var(--color-card);
-  color: var(--gray-12);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
   padding: var(--space-4);
   width: min(92vw, 680px);
@@ -25,7 +25,7 @@
   max-height: 90%;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 var(--space-1) var(--space-3) rgba(0, 0, 0, 0.3);
+  box-shadow: 0 var(--space-1) var(--space-3) var(--shadow-color);
 }
 
 .configuration-dialog-header {
@@ -35,14 +35,14 @@
   gap: var(--space-2);
   margin-bottom: var(--space-4);
   padding-bottom: var(--space-2);
-  border-bottom: var(--hairline) solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--border-subtle);
 }
 
 .configuration-dialog-header h3 {
   margin: 0;
   font-size: var(--font-size-2);
   font-weight: 600;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .workflow-script-path {
@@ -54,7 +54,7 @@
   font: inherit;
   font-family: Menlo, Monaco, 'Courier New', monospace;
   font-size: 12px;
-  color: var(--accent-11);
+  color: var(--text-link);
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
@@ -63,15 +63,15 @@
 }
 
 .workflow-script-path:hover {
-  color: var(--accent-11);
+  color: var(--text-link);
 }
 
 /* ConfigDialog (design-restored) - scoped overrides, does not affect
    plugin/mcp/status dialogs which reuse the base .configuration-dialog. */
 .config-dialog {
-  background-color: var(--color-panel);
-  color: var(--gray-12);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-4);
   padding: 0;
   width: min(92vw, 680px);
@@ -99,7 +99,7 @@
   box-sizing: border-box;
   margin-bottom: 0;
   padding: 0 var(--space-4);
-  border-bottom: var(--hairline) solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--border-subtle);
 }
 
 .configuration-close-btn {
@@ -110,12 +110,12 @@
   border: none;
   padding: var(--space-1);
   cursor: pointer;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   border-radius: var(--radius-2);
 }
 
 .configuration-close-btn:hover {
-  background-color: var(--gray-4);
+  background-color: var(--surface-muted);
 }
 
 .configuration-close-icon {
@@ -131,14 +131,14 @@
   width: 132px;
   flex-shrink: 0;
   padding: var(--space-2) 0;
-  border-right: var(--hairline) solid var(--gray-6);
+  border-right: var(--hairline) solid var(--border-subtle);
   overflow-y: auto;
 }
 
 .config-tab {
   background: none;
   border: none;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
   font-size: var(--font-size-1);
@@ -148,8 +148,8 @@
 }
 
 .config-tab.active {
-  color: var(--gray-12);
-  background: var(--gray-3);
+  color: var(--text-primary);
+  background: var(--surface-subtle);
 }
 
 /* Model tab hint row */
@@ -158,7 +158,7 @@
   align-items: flex-start;
   gap: var(--space-1);
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
@@ -166,7 +166,7 @@
   width: 16px;
   height: 16px;
   flex-shrink: 0;
-  color: var(--accent-11);
+  color: var(--accent-text);
 }
 
 /* Scoped form layout for ConfigDialog fields */
@@ -191,17 +191,17 @@
   height: 48px;
   box-sizing: border-box;
   align-items: center;
-  border-top: var(--hairline) solid var(--gray-6);
+  border-top: var(--hairline) solid var(--border-subtle);
 }
 
 .config-dialog-saved {
   font-size: var(--font-size-1);
-  color: var(--green-11);
+  color: var(--status-success-text);
 }
 
 .empty-state {
   text-align: center;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   padding: var(--space-4);
   font-style: italic;
 }
@@ -227,7 +227,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
+  background-color: var(--surface-strong);
   transition: 0.4s;
 }
 
@@ -243,11 +243,11 @@
 }
 
 input:checked + .slider {
-  background-color: var(--accent-9);
+  background-color: var(--accent-solid);
 }
 
 input:focus + .slider {
-  box-shadow: 0 0 var(--space-1) var(--accent-9);
+  box-shadow: 0 0 var(--space-1) var(--accent-solid);
 }
 
 input:checked + .slider:before {
@@ -290,11 +290,11 @@ input:checked + .slider:before {
 .configuration-field label {
   font-size: var(--font-size-1);
   font-weight: 500;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .required-star {
-  color: var(--red-11);
+  color: var(--status-danger-text);
   margin-left: var(--space-1);
 }
 
@@ -311,7 +311,7 @@ input:checked + .slider:before {
 
 .muse-quota-user {
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .muse-quota-grid {
@@ -329,7 +329,7 @@ input:checked + .slider:before {
 }
 
 .muse-quota-label {
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .muse-quota-progress {
@@ -348,14 +348,14 @@ input:checked + .slider:before {
 .muse-quota-progress-track {
   height: 6px;
   border-radius: var(--radius-6);
-  background: var(--gray-3);
+  background: var(--surface-subtle);
   overflow: hidden;
 }
 
 .muse-quota-progress-fill {
   height: 100%;
   border-radius: inherit;
-  background: var(--accent-9);
+  background: var(--accent-solid);
   min-width: 0;
   transition: width 160ms ease;
 }
@@ -370,9 +370,9 @@ input:checked + .slider:before {
 }
 
 .configuration-textarea {
-  background-color: var(--gray-3);
-  color: var(--gray-12);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-subtle);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-1);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
@@ -394,7 +394,7 @@ input:checked + .slider:before {
   gap: var(--space-1);
   cursor: pointer;
   font-size: var(--font-size-1);
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .radio-label input[type="radio"] {
@@ -406,9 +406,9 @@ input:checked + .slider:before {
 
 /* Configuration Error */
 .configuration-error {
-  background-color: color-mix(in srgb, var(--red-9) 15%, transparent);
-  color: var(--red-11);
-  border: 1px solid var(--red-9);
+  background-color: var(--status-danger-surface);
+  color: var(--status-danger-text);
+  border: 1px solid var(--status-danger-solid);
   padding: var(--space-2);
   border-radius: var(--radius-1);
   font-size: var(--font-size-1);
@@ -422,7 +422,7 @@ input:checked + .slider:before {
   justify-content: flex-end;
   margin-top: auto;
   padding-top: var(--space-3);
-  border-top: var(--hairline) solid var(--gray-6);
+  border-top: var(--hairline) solid var(--border-subtle);
   flex-shrink: 0;
 }
 
@@ -439,20 +439,20 @@ input:checked + .slider:before {
 
 .configuration-cancel-btn {
   background-color: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .configuration-cancel-btn:hover {
-  background-color: var(--gray-4);
+  background-color: var(--surface-muted);
 }
 
 .configuration-save-btn {
-  background-color: var(--accent-9);
-  color: var(--accent-contrast);
+  background-color: var(--accent-solid);
+  color: var(--accent-on-solid);
 }
 
 .configuration-save-btn:hover {
-  background-color: var(--accent-10);
+  background-color: var(--accent-solid-hover);
 }
 
 .configuration-cancel-btn:disabled,
@@ -484,8 +484,8 @@ input:checked + .slider:before {
   justify-content: space-between;
   align-items: flex-start;
   padding: var(--space-2);
-  background-color: var(--gray-2);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
 }
 
@@ -509,19 +509,19 @@ input:checked + .slider:before {
 }
 
 .mcp-status-connected {
-  color: var(--green-11);
+  color: var(--status-success-text);
 }
 
 .mcp-status-connecting {
-  color: var(--amber-11);
+  color: var(--status-warning-text);
 }
 
 .mcp-status-error {
-  color: var(--red-11);
+  color: var(--status-danger-text);
 }
 
 .mcp-status-disconnected {
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .mcp-server-name {
@@ -531,29 +531,29 @@ input:checked + .slider:before {
 
 .mcp-tool-count {
   font-size: var(--font-size-1);
-  color: var(--green-11);
-  background-color: var(--gray-8);
-  color: var(--gray-12);
+  color: var(--status-success-text);
+  background-color: var(--surface-strong);
+  color: var(--text-primary);
   padding: var(--space-1) var(--space-1);
   border-radius: var(--radius-1);
 }
 
 .mcp-server-command {
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-family: Menlo, Monaco, 'Courier New', monospace;
   word-break: break-all;
 }
 
 .mcp-server-error {
   font-size: var(--font-size-1);
-  color: var(--red-11);
+  color: var(--status-danger-text);
   word-break: break-all;
 }
 
 .mcp-server-last-connected {
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .mcp-server-actions {
@@ -566,8 +566,8 @@ input:checked + .slider:before {
 .mcp-connect-btn,
 .mcp-disconnect-btn {
   background-color: transparent;
-  color: var(--gray-11);
-  border: 1px solid var(--gray-6);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-1);
   cursor: pointer;
@@ -578,7 +578,7 @@ input:checked + .slider:before {
 
 .mcp-connect-btn:hover,
 .mcp-disconnect-btn:hover {
-  background-color: var(--gray-4);
+  background-color: var(--surface-muted);
 }
 
 .mcp-connect-btn:disabled,
@@ -589,12 +589,12 @@ input:checked + .slider:before {
 
 .mcp-hint {
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
   margin-top: var(--space-1);
 }
 
 .mcp-hint code {
-  background-color: var(--gray-3);
+  background-color: var(--surface-subtle);
   padding: var(--space-1) var(--space-1);
   border-radius: var(--radius-1);
   font-family: Menlo, Monaco, 'Courier New', monospace;

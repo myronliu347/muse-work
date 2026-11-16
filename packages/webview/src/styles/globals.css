@@ -40,6 +40,8 @@ body {
   font-size: var(--font-size-1);
   line-height: 1.45;
   background-color: var(--color-background, #111111);
+  /* body is outside .radix-themes, where the semantic tokens are defined.
+     Keep the root gray fallback here; app content is inside the theme. */
   color: var(--gray-12);
   margin: 0;
   padding: 0;
@@ -96,7 +98,7 @@ button:focus-visible,
 [role="radio"]:focus-visible,
 [role="menuitem"]:focus-visible,
 a:focus-visible {
-  outline: 2px solid var(--accent-9);
+  outline: 2px solid var(--border-focus);
   outline-offset: 2px;
 }
 
@@ -140,7 +142,7 @@ a:focus-visible {
   .text-shimmer {
     animation: none;
     background: none;
-    color: var(--gray-11);
+    color: var(--text-secondary);
     -webkit-text-fill-color: unset;
   }
 }
@@ -152,7 +154,7 @@ a:focus-visible {
   font-weight: normal;
   font-size: var(--font-size-3);
   line-height: 1;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   display: inline-block;
 }
 

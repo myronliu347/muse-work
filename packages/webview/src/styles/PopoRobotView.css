@@ -2,7 +2,7 @@
 
 .popo-config-row {
   padding: var(--space-1) 0;
-  border-bottom: var(--hairline) solid var(--gray-3);
+  border-bottom: var(--hairline) solid var(--border-faint);
 }
 
 .popo-config-row:last-child {
@@ -33,14 +33,14 @@
   border: none;
   border-radius: var(--radius-1);
   background: transparent;
-  color: var(--gray-9);
+  color: var(--text-tertiary);
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .popo-config-copy:hover {
-  background: var(--gray-4);
-  color: var(--gray-12);
+  background: var(--surface-muted);
+  color: var(--text-primary);
 }
 
 .popo-config-copy .codicon {
@@ -75,6 +75,6 @@
 }
 
 .popo-processing {
-  color: var(--gray-9);
+  color: var(--text-tertiary);
   flex-shrink: 0;
 }

@@ -1,9 +1,9 @@
 /* File Suggestion Dropdown Styles */
 .file-suggestion-dropdown {
-  background: var(--color-card);
-  border: 1px solid var(--gray-6);
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
-  box-shadow: 0 var(--space-1) var(--space-2) color-mix(in srgb, var(--gray-1) 36%, transparent);
+  box-shadow: 0 var(--space-1) var(--space-2) var(--shadow-glow);
   max-height: 300px;
   min-width: 300px;
   max-width: 500px;
@@ -20,7 +20,7 @@
   align-items: center;
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
-  border-bottom: var(--hairline) solid var(--gray-4);
+  border-bottom: var(--hairline) solid var(--border-faint);
   transition: background-color 0.1s ease;
 }
 
@@ -30,12 +30,12 @@
 
 .suggestion-item:hover,
 .suggestion-item.selected {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .suggestion-item.selected {
-  background: var(--gray-5);
-  color: var(--gray-12);
+  background: var(--surface-active);
+  color: var(--text-primary);
 }
 
 .suggestion-icon {
@@ -46,7 +46,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .suggestion-content {
@@ -73,7 +73,7 @@
 }
 
 .suggestion-name {
-  color: var(--gray-12);
+  color: var(--text-primary);
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -81,7 +81,7 @@
 }
 
 .suggestion-path {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: var(--font-size-1);
   display: block;
   white-space: nowrap;
@@ -90,15 +90,15 @@
 }
 
 .suggestion-highlight {
-  background-color: color-mix(in srgb, var(--amber-9) 35%, transparent);
-  color: var(--gray-12);
+  background-color: var(--status-warning-surface);
+  color: var(--text-primary);
   font-weight: bold;
   border-radius: var(--radius-1);
   padding: 0 var(--space-1);
 }
 
 .suggestion-empty {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-style: italic;
   cursor: default;
 }
@@ -109,26 +109,26 @@
 
 /* Knowledge base option specific styles */
 .suggestion-item.kb-option {
-  border-bottom: 2px solid var(--gray-6);
+  border-bottom: 2px solid var(--border-subtle);
   background: transparent;
 }
 
 .suggestion-item.kb-option:hover,
 .suggestion-item.kb-option.selected {
-  background: var(--gray-4);
+  background: var(--surface-muted);
 }
 
 .suggestion-item.kb-option .suggestion-icon {
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .suggestion-item.kb-option .suggestion-name {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
 .suggestion-item.kb-option .suggestion-path {
-  color: var(--gray-11);
+  color: var(--text-secondary);
   opacity: 0.8;
 }
 
@@ -141,8 +141,8 @@
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-3);
-  border-bottom: var(--hairline) solid var(--gray-6);
-  background: var(--color-card);
+  border-bottom: var(--hairline) solid var(--border-subtle);
+  background: var(--surface-card);
   font-size: var(--font-size-1);
 }
 
@@ -161,14 +161,14 @@
 .suggestion-crumb-btn {
   border: none;
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 0 var(--space-1);
   font: inherit;
 }
 
 .suggestion-crumb-btn:hover {
-  color: var(--gray-12);
+  color: var(--text-primary);
   text-decoration: underline;
 }
 
@@ -176,7 +176,7 @@
   flex-shrink: 0;
   border: none;
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   cursor: pointer;
   padding: var(--space-1);
   display: flex;
@@ -184,5 +184,5 @@
 }
 
 .suggestion-enter:hover {
-  color: var(--gray-12);
+  color: var(--text-primary);
 }

@@ -35,12 +35,12 @@
   font-size: 36px;
   font-weight: 600;
   line-height: 1.35;
-  color: var(--gray-12);
+  color: var(--text-primary);
   text-align: center;
 }
 
 :root[data-theme="light"] .welcome-headline {
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .welcome-headline-logo {
@@ -66,9 +66,9 @@
   margin: 0;
   min-height: 0;
   padding: var(--space-3);
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
-  background: var(--color-card);
+  background: var(--surface-card);
   box-shadow: none;
   color: inherit;
   font: inherit;
@@ -77,17 +77,17 @@
 }
 
 .welcome-card:hover {
-  border-color: color-mix(in srgb, var(--gray-12) 18%, transparent);
-  background: var(--gray-4);
+  border-color: var(--border-strong);
+  background: var(--surface-muted);
 }
 
 .welcome-card:focus-visible {
-  outline: 2px solid var(--accent-9);
+  outline: 2px solid var(--accent-solid);
   outline-offset: 2px;
 }
 
 :root[data-theme="light"] .welcome-card:hover {
-  background: var(--gray-3);
+  background: var(--surface-subtle);
 }
 
 .welcome-card-icon {
@@ -97,7 +97,7 @@
   width: 28px;
   height: 28px;
   margin-bottom: var(--space-1);
-  color: var(--accent-9);
+  color: var(--accent-solid);
 }
 
 .welcome-card-icon .codicon {
@@ -108,22 +108,22 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .welcome-card-desc {
   font-size: 12px;
   font-weight: 400;
   line-height: 18px;
-  color: color-mix(in srgb, var(--gray-12) 72%, transparent);
+  color: var(--text-secondary);
 }
 
 :root[data-theme="light"] .welcome-card-title {
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 :root[data-theme="light"] .welcome-card-desc {
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .welcome-login {
@@ -136,9 +136,9 @@
   box-sizing: border-box;
   margin: 0;
   padding: 10px 14px 10px 16px;
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
-  background: var(--color-card);
+  background: var(--surface-card);
 }
 
 .welcome-cards + .welcome-login {
@@ -150,16 +150,16 @@
   min-width: 0;
   font-size: 13px;
   line-height: 20px;
-  color: color-mix(in srgb, var(--gray-12) 72%, transparent);
+  color: var(--text-secondary);
   text-align: left;
 }
 
 :root[data-theme="light"] .welcome-login {
-  background: var(--color-panel);
+  background: var(--surface-card);
 }
 
 :root[data-theme="light"] .welcome-login-hint {
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .welcome-login-btn {
@@ -173,8 +173,8 @@
   padding: 0 14px;
   border: none;
   border-radius: var(--radius-3);
-  background: var(--accent-9);
-  color: var(--accent-contrast);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
   font-size: 13px;
   font-weight: 600;
   line-height: 32px;
@@ -182,16 +182,16 @@
 }
 
 .welcome-login-btn:hover {
-  background: var(--accent-10);
+  background: var(--accent-solid-hover);
 }
 
 .welcome-login-btn:focus-visible {
-  outline: 2px solid var(--accent-9);
+  outline: 2px solid var(--accent-solid);
   outline-offset: 2px;
 }
 
 :root[data-theme="light"] .welcome-login-btn:focus-visible {
-  outline-color: var(--accent-9);
+  outline-color: var(--accent-solid);
 }
 
 @media (max-width: 640px) {

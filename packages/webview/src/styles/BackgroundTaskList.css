@@ -5,8 +5,8 @@
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-2) var(--space-3) var(--space-3);
-  background-color: var(--color-card);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-4);
   box-sizing: border-box;
   max-width: 800px;
@@ -33,7 +33,7 @@
   font-size: var(--font-size-1);
   font-weight: 500;
   line-height: var(--line-height-1);
-  color: var(--gray-12);
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
@@ -60,14 +60,14 @@
   font-size: var(--font-size-1);
   font-weight: 400;
   line-height: var(--line-height-1);
-  color: var(--gray-12);
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
 .background-task-chevron {
   width: 16px;
   height: 16px;
-  color: var(--gray-12);
+  color: var(--text-primary);
   transition: transform 0.15s ease;
 }
 
@@ -143,7 +143,7 @@
   font-weight: 400;
   line-height: var(--line-height-1);
   word-break: break-word;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .background-task-command {
@@ -151,7 +151,7 @@
   font-weight: 400;
   line-height: var(--line-height-1);
   font-family: Menlo, Monaco, "Courier New", monospace;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   word-break: break-all;
 }
 
@@ -159,7 +159,7 @@
   font-size: var(--font-size-1);
   font-weight: 400;
   line-height: var(--line-height-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .background-task-stop-btn {
@@ -167,16 +167,16 @@
   height: 22px;
   padding: 0 var(--space-2);
   margin-top: -1px;
-  background-color: var(--gray-4);
-  color: var(--gray-12);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-muted);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
   font-size: var(--font-size-1);
   cursor: pointer;
 }
 
 .background-task-stop-btn:hover {
-  background-color: var(--gray-5);
+  background-color: var(--surface-active);
 }
 
 .background-task-stop-btn:disabled {

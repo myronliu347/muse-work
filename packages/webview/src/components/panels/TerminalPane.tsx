@@ -153,7 +153,7 @@ const readTerminalTheme = (el?: Element | null) => {
     pick("--gray-2", "") ||
     pick("--gray-1", "#1e1e1e");
   const foreground = pick("--gray-12", "#cccccc");
-  const accent = pick("--accent-9", "#c1292e");
+  const accent = pick("--accent-9", "#3e63dd");
   const selectionBackground = terminalSelectionBackground(accent, background);
   return {
     background,

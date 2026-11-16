@@ -13,8 +13,8 @@
   flex-shrink: 0;
   border-radius: var(--radius-4);
   overflow: hidden;
-  background: var(--gray-4);
-  border: 1px solid var(--gray-6);
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
 }
 
 .image-thumb {
@@ -34,8 +34,8 @@
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--gray-12) 72%, transparent);
-  color: var(--color-background);
+  background: color-mix(in srgb, var(--text-primary) 72%, transparent);
+  color: var(--surface-canvas);
   font-size: var(--font-size-2);
   line-height: 1;
   cursor: pointer;
@@ -50,5 +50,6 @@
 }
 
 .remove-image-btn:hover {
-  background: rgba(180, 40, 40, 0.9);
+  background: var(--status-danger-fill);
+  color: var(--status-danger-on-fill);
 }

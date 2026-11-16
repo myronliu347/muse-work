@@ -228,8 +228,8 @@ export const Message: React.FC<MessageProps> = React.memo(
     // Dot color for text/reasoning blocks: yellow while streaming, green once done.
     const getStageColor = (stage?: "streaming" | "end") =>
       stage === "streaming"
-        ? "var(--amber-11)"
-        : "var(--green-11)";
+        ? "var(--status-warning-text)"
+        : "var(--status-success-text)";
 
     const renderActivityTool = (toolBlock: ToolBlock, index: number) =>
       renderToolActivity({

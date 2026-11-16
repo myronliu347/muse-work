@@ -1,8 +1,8 @@
 /* Confirmation Dialog Styles */
 .confirmation-dialog {
-  background-color: var(--gray-2);
+  background-color: var(--surface-panel);
   padding: var(--space-3) var(--space-4);
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .confirmation-dialog-inner {
@@ -13,11 +13,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  background-color: var(--color-card);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-4);
   padding: var(--space-2) var(--space-3) var(--space-4);
-  box-shadow: 0 var(--space-1) var(--space-2) rgba(0, 0, 0, 0.36);
+  box-shadow: 0 var(--space-1) var(--space-2) var(--shadow-color);
 }
 
 .confirmation-header {
@@ -38,7 +38,7 @@
   font-size: var(--font-size-1);
   font-weight: 600;
   line-height: var(--line-height-1);
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .confirmation-close-btn {
@@ -52,13 +52,13 @@
   border: none;
   border-radius: var(--radius-2);
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
 .confirmation-close-btn:hover {
-  background: var(--gray-4);
-  color: var(--gray-12);
+  background: var(--surface-muted);
+  color: var(--text-primary);
 }
 
 .confirmation-close-btn .codicon {
@@ -66,13 +66,13 @@
 }
 
 .confirmation-command {
-  background-color: var(--gray-3);
+  background-color: var(--surface-subtle);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-2);
   font-family: Menlo, Monaco, 'Courier New', monospace;
   font-size: var(--font-size-1);
-  color: var(--gray-12);
-  border: 1px solid var(--gray-6);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   white-space: pre-wrap;
   word-break: break-all;
   max-height: 120px;
@@ -80,13 +80,13 @@
 }
 
 .confirmation-mcp-params {
-  background-color: var(--gray-3);
+  background-color: var(--surface-subtle);
   padding: var(--space-2) var(--space-2);
   border-radius: var(--radius-2);
   font-family: Menlo, Monaco, 'Courier New', monospace;
   font-size: var(--font-size-1);
-  color: var(--gray-12);
-  border: 1px solid var(--gray-6);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   white-space: pre-wrap;
   word-break: break-all;
   max-height: 200px;
@@ -110,11 +110,11 @@
   flex-shrink: 0;
   width: 40px;
   font-weight: 400;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .confirmation-file-path {
-  color: var(--accent-11);
+  color: var(--accent-text);
   font-family: Menlo, Monaco, 'Courier New', monospace;
   word-break: break-all;
 }
@@ -124,7 +124,7 @@
   margin-top: var(--space-2);
   font-size: var(--font-size-1);
   line-height: var(--line-height-1);
-  color: var(--amber-11);
+  color: var(--status-warning-text);
   word-break: break-all;
 }
 
@@ -153,7 +153,7 @@
   font-size: var(--font-size-1);
   font-weight: 600;
   line-height: var(--line-height-1);
-  color: var(--gray-12);
+  color: var(--text-primary);
   flex: 1;
   min-width: 0;
   white-space: pre-wrap;
@@ -184,7 +184,7 @@
   gap: var(--space-1);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-3);
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   cursor: pointer;
   transition:
     background-color 0.1s ease,
@@ -193,12 +193,12 @@
 }
 
 .option-item:focus {
-  outline: 1px solid var(--accent-9);
+  outline: 1px solid var(--accent-solid);
   outline-offset: -var(--space-1);
 }
 
 .option-item.selected {
-  background-color: var(--gray-5);
+  background-color: var(--surface-active);
   border-color: transparent;
 }
 
@@ -232,19 +232,19 @@
   font-size: var(--font-size-1);
   font-weight: 500;
   line-height: var(--line-height-1);
-  color: var(--gray-12);
+  color: var(--text-primary);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: normal;
 }
 
 .option-item.selected .option-label {
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .recommended-tag {
   font-size: var(--font-size-1);
-  color: var(--green-11);
+  color: var(--status-success-text);
   margin-left: var(--space-1);
   font-weight: normal;
 }
@@ -254,14 +254,14 @@
   font-size: var(--font-size-1);
   font-weight: 400;
   line-height: var(--line-height-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: normal;
 }
 
 .option-item.selected .option-description {
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .option-other-body {
@@ -274,9 +274,9 @@
 
 .other-text-input {
   width: 100%;
-  background-color: var(--gray-3);
-  color: var(--gray-12);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-subtle);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-2);
   font-size: var(--font-size-1);
@@ -292,7 +292,7 @@
 }
 
 .other-text-input:focus {
-  outline: 1px solid var(--accent-9);
+  outline: 1px solid var(--accent-solid);
   outline-offset: -var(--space-1);
 }
 
@@ -309,7 +309,7 @@
   font-size: var(--font-size-1);
   font-weight: 600;
   line-height: var(--line-height-1);
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .question-progress-nav {
@@ -322,12 +322,12 @@
   background: none;
   border: none;
   border-radius: var(--radius-1);
-  color: var(--gray-11);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
 .question-progress-nav:hover:not(:disabled) {
-  background-color: var(--gray-4);
+  background-color: var(--surface-muted);
 }
 
 .question-progress-nav:disabled {
@@ -352,8 +352,8 @@
 
 /* Plan Content Preview */
 .plan-content-preview {
-  background-color: var(--gray-1);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-sunken);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
   padding: var(--space-3);
   max-height: 300px;
@@ -361,7 +361,7 @@
 }
 
 .plan-content-preview:focus {
-  outline: 1px solid var(--accent-9);
+  outline: 1px solid var(--accent-solid);
   outline-offset: -var(--space-1);
 }
 
@@ -369,7 +369,7 @@
   font-size: var(--font-size-1);
   margin-top: 0;
   margin-bottom: var(--space-2);
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .confirmation-diff-viewer {
@@ -384,9 +384,9 @@
 .feedback-textarea {
   width: 100%;
   min-height: 32px;
-  background-color: var(--gray-3);
-  color: var(--gray-12);
-  border: 1px solid var(--gray-6);
+  background-color: var(--surface-subtle);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-2);
   font-family: inherit;
@@ -396,8 +396,8 @@
 }
 
 .feedback-textarea:focus {
-  outline: 1px solid var(--accent-9);
-  border-color: var(--accent-9);
+  outline: 1px solid var(--accent-solid);
+  border-color: var(--accent-solid);
 }
 
 /* Actions */
@@ -448,12 +448,12 @@
 }
 
 .confirmation-btn-apply {
-  background-color: var(--accent-9);
-  color: var(--accent-contrast);
+  background-color: var(--accent-solid);
+  color: var(--accent-on-solid);
 }
 
 .confirmation-btn-apply:hover:not(:disabled) {
-  background-color: var(--accent-10);
+  background-color: var(--accent-solid-hover);
 }
 
 .confirmation-btn-apply:disabled {
@@ -465,14 +465,14 @@
 .confirmation-btn-reject,
 .confirmation-btn-secondary {
   background-color: transparent;
-  color: var(--gray-11);
-  border-color: var(--gray-6);
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
 }
 
 .confirmation-btn-auto:hover,
 .confirmation-btn-reject:hover,
 .confirmation-btn-secondary:hover {
-  background-color: var(--gray-4);
+  background-color: var(--surface-muted);
 }
 
 /* Feedback is a text button: no background, no border, shorter height */
@@ -480,15 +480,15 @@
   height: 24px;
   background-color: transparent;
   border-color: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .confirmation-btn-feedback:hover {
-  background-color: var(--gray-4);
-  color: var(--gray-12);
+  background-color: var(--surface-muted);
+  color: var(--text-primary);
 }
 
 .confirmation-btn:focus {
-  outline: 1px solid var(--accent-9);
+  outline: 1px solid var(--accent-solid);
   outline-offset: var(--space-1);
 }

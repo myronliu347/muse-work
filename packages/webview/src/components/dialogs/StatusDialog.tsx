@@ -80,7 +80,7 @@ const StatusDialog: React.FC<
       <div
         style={{
           fontSize: "13px",
-          color: "var(--gray-11)",
+          color: "var(--text-secondary)",
           fontFamily: "Menlo, Monaco, 'Courier New', monospace",
           wordBreak: "break-all",
           padding: "4px 0",
@@ -117,7 +117,7 @@ const StatusDialog: React.FC<
                   alignItems: "center",
                   gap: "8px",
                   fontSize: "13px",
-                  color: "var(--gray-11)",
+                  color: "var(--text-secondary)",
                   fontFamily: "Menlo, Monaco, 'Courier New', monospace",
                   wordBreak: "break-all",
                   padding: "4px 0",

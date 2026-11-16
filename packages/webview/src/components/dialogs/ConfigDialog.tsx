@@ -95,7 +95,7 @@ const ConfigDialog = forwardRef<
     bottom: 6,
     left: 0,
     width: 2,
-    backgroundColor: "var(--accent-9)",
+    backgroundColor: "var(--accent-solid)",
   };
   savingRef.current = saving;
   const persistTab = activeTab === "agent" || activeTab === "provider";

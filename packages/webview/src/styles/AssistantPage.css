@@ -5,8 +5,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--color-background, #111111);
-  color: var(--gray-12);
+  background: var(--surface-canvas, #111111);
+  color: var(--text-primary);
 }
 
 .assistant-header {
@@ -25,7 +25,7 @@
   font-size: var(--font-size-1);
   font-weight: 600;
   line-height: var(--line-height-1);
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .assistant-header-actions {
@@ -42,7 +42,7 @@
   flex-shrink: 0;
   padding: 2px;
   border-radius: 8px;
-  background: var(--gray-3);
+  background: var(--surface-subtle);
 }
 
 .assistant-view-switch::before {
@@ -53,7 +53,7 @@
   left: 2px;
   width: calc((100% - 4px) / 2);
   border-radius: 6px;
-  background: var(--gray-5);
+  background: var(--surface-active);
   transform: translateX(0);
   transition: transform 0.18s ease;
 }
@@ -67,7 +67,7 @@
   z-index: 1;
   border: 0;
   background: transparent;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font: inherit;
   font-size: 12px;
   line-height: 1;
@@ -78,7 +78,7 @@
 }
 
 .assistant-view-switch button[aria-pressed="true"] {
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -93,7 +93,7 @@
   flex: 0 0 auto;
   margin: 0;
   padding: 0 28px 8px var(--space-4);
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .assistant-queue-card {
@@ -104,13 +104,13 @@
   overflow: auto;
   padding: 8px 10px;
   border-radius: 10px;
-  background: var(--gray-2);
+  background: var(--surface-panel);
 }
 
 .assistant-queue-title {
   font-size: 12px;
   font-weight: 600;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .assistant-queue-empty {
@@ -140,7 +140,7 @@
 .assistant-queue-kind,
 .assistant-queue-retry {
   flex: 0 0 auto;
-  color: var(--gray-9);
+  color: var(--text-tertiary);
 }
 
 .assistant-queue-label {
@@ -148,7 +148,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 .assistant-transcript {
@@ -231,7 +231,7 @@
   font-size: 12px;
   font-weight: 500;
   line-height: 1.2;
-  color: var(--gray-9);
+  color: var(--text-tertiary);
 }
 
 .assistant-bubble {
@@ -244,8 +244,8 @@
 }
 
 .assistant-bubble-user {
-  background: var(--gray-6);
-  color: var(--gray-12);
+  background: var(--surface-user-bubble);
+  color: var(--text-primary);
   border-radius: 16px 16px 4px 16px;
   /* Clip the inner scroller to the radius so the thumb stays inside the bubble. */
   overflow: hidden;
@@ -254,8 +254,8 @@
 .assistant-bubble-assistant {
   width: fit-content;
   max-width: 100%;
-  background: var(--gray-3);
-  color: var(--gray-12);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
   border-radius: 4px 16px 16px 16px;
   padding: 10px 14px;
 }
@@ -264,24 +264,24 @@
   margin-top: 6px;
   font-size: 12px;
   line-height: 1;
-  color: var(--gray-9);
+  color: var(--text-tertiary);
 }
 
 /* Light: user bubbles take a soft accent fill. Assistant keeps the gray-3
    surface so replies stay in a bubble. Inline code is gray-3 too, so lift it. */
 :root[data-theme="light"] .assistant-bubble-user {
-  background: var(--accent-4);
+  background: var(--accent-soft-hover);
   border: none;
-  color: var(--gray-12);
+  color: var(--text-primary);
 }
 
 :root[data-theme="light"] .assistant-bubble-assistant .markdown-content code {
-  background-color: var(--color-panel);
+  background-color: var(--surface-card);
 }
 
 :root[data-theme="light"] .assistant-bubble-source,
 :root[data-theme="light"] .assistant-bubble-time {
-  color: var(--gray-11);
+  color: var(--text-secondary);
 }
 
 .assistant-user-content {
@@ -358,8 +358,8 @@
   padding: 6px 10px;
   border: none;
   border-radius: 8px;
-  background: var(--gray-4);
-  color: var(--gray-12);
+  background: var(--surface-muted);
+  color: var(--text-primary);
   font: inherit;
   font-size: var(--font-size-1);
   line-height: 1.45;
@@ -390,10 +390,10 @@
   flex: 0 0 auto;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   overflow: hidden;
-  background: var(--gray-1);
+  background: var(--surface-sunken);
   cursor: zoom-in;
   line-height: 0;
 }
@@ -434,8 +434,8 @@
   object-fit: cover;
   margin: 0;
   border-radius: 8px;
-  border: 1px solid var(--gray-6);
-  background: var(--gray-1);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-sunken);
 }
 
 .assistant-page .markdown-content pre {
@@ -446,20 +446,20 @@
 .assistant-empty,
 .assistant-error {
   margin: 0;
-  color: var(--gray-11);
+  color: var(--text-secondary);
   font-size: var(--font-size-1);
 }
 
 .assistant-error {
   flex: 0 0 auto;
   padding: 0 28px 8px var(--space-4);
-  color: var(--red-11, #c00);
+  color: var(--status-danger-text);
 }
 
 .assistant-composer {
   flex: 0 0 auto;
   box-sizing: border-box;
-  background-color: var(--color-background, #111111);
+  background-color: var(--surface-canvas, #111111);
   padding: 0 28px var(--space-3) var(--space-4);
 }
 
