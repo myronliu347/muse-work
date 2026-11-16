@@ -168,8 +168,8 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
   );
 
   const workdir = workdirState?.workdir;
-  const recentWorkdirs = workdirState?.recentWorkdirs;
-  const host = workdirState?.host;
+  const recentWorkdirs = workdirState?.recentWorkdirs ?? [];
+  const host = workdirState?.host ?? "local";
   const desktopHost = useMemo(
     () => ({
       type: "desktop" as const,

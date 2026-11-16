@@ -91,11 +91,12 @@ function queueTypeKey(type: unknown): string {
  * how many earlier rows share that pair — not the source-array index, so a
  * different item inserted at the front does not renumber an existing row. */
 function queueClientKey(
-  item: { id?: unknown; type?: unknown; title: string },
+  item: { id?: unknown; type?: unknown; title?: unknown },
   occurrence: number,
 ): string {
   if (typeof item.id === "string" && item.id.length > 0) return item.id;
-  return `${queueTypeKey(item.type)}\0${item.title}\0${occurrence}`;
+  const title = typeof item.title === "string" ? item.title : "";
+  return `${queueTypeKey(item.type)}\0${title}\0${occurrence}`;
 }
 
 export function readBotQueue(items: readonly unknown[]): BotListQueueItem[] {

@@ -8,6 +8,7 @@ import {
   type MouseEvent,
   type ReactNode,
   type Ref,
+  type MutableRefObject,
 } from "react";
 import { createPortal } from "react-dom";
 import { marked } from "marked";
@@ -307,7 +308,7 @@ function assignInputRef(
     ref(value);
     return;
   }
-  ref.current = value;
+  (ref as MutableRefObject<MessageInputHandle | null>).current = value;
 }
 
 function AssistantComposer({
@@ -326,7 +327,7 @@ function AssistantComposer({
     images?: Array<{ data: string; mediaType: string }>,
   ) => void;
 }) {
-  const focusRef = useRef<MessageInputHandle>(null);
+  const focusRef = useRef<MessageInputHandle | null>(null);
   // 挂载时拍一份草稿。输入过程中不把草稿再传回 inputContent，避免光标被重置。
   const [initialDraft] = useState(() => readAssistantComposerDraft());
   const persistDraft = useCallback((draft: AssistantComposerDraft) => {

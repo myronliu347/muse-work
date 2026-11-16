@@ -13,7 +13,7 @@ export interface ChatModule {
   emitChatWs: (event: MuseWsEvent) => void;
   resetChatStreaming: () => void;
   handleSendMessage: (msg: { text?: string; images?: unknown }) => Promise<void>;
-  handleAbortMessage: () => Promise<void>;
+  handleAbortMessage: (msg?: { sessionId?: string }) => Promise<void>;
   handleDeleteQueuedMessageById: (msg: { id?: string }) => Promise<void>;
   handleUpdateQueuedMessage: (msg: { id?: string; text?: string; images?: unknown }) => Promise<void>;
   handleRequestSlashCommands: () => Promise<void>;

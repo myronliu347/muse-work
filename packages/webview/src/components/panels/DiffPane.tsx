@@ -117,11 +117,15 @@ function DiffSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <Select.Root value={value} onValueChange={onChange} disabled={disabled}>
+    <Select.Root
+      value={value}
+      onValueChange={onChange}
+      disabled={disabled}
+      size="1"
+    >
       <Select.Trigger
         variant="ghost"
         color="gray"
-        size="1"
         aria-label={label}
         data-testid={testId}
         placeholder={placeholder}
@@ -274,11 +278,14 @@ function DiffIssueSelect({
   if (!current) return null;
   const workdirLabel = (workdir: string) => displayHomePath(workdir, homeDir);
   return (
-    <Select.Root value={current.id} onValueChange={(id) => onSelectIssue?.(id)}>
+    <Select.Root
+      value={current.id}
+      onValueChange={(id) => onSelectIssue?.(id)}
+      size="1"
+    >
       <Select.Trigger
         variant="ghost"
         color="gray"
-        size="1"
         className="diff-issue-select"
         data-testid="diff-issue-select"
         aria-label="切换事项"
