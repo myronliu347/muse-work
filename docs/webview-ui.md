@@ -345,7 +345,7 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 
 ### Messages
 
-**`user-message`** — 背景 `--surface-user-bubble`（浅色 `--accent-3`，深色 `--gray-4`），圆角 `{rounded.md}`，内边距 8px 12px。浅色下必须能看见这层淡蓝。不要改成 `{colors.surface-card}`，否则和页面融在一起，悬停的 `{colors.surface-hover}` 会像突然多出来一块底。
+**`user-message`** — 背景 `--surface-user-bubble`（浅色 `--accent-3`，深色 `--gray-4`），圆角 `{rounded.md}`，内边距 8px 12px。宽度自适应内容，上限 `min(680px, 85%)`，右对齐；吸顶用户条同样处理；系统注入行仍占满整列。浅色下必须能看见这层淡蓝。不要改成 `{colors.surface-card}`，否则和页面融在一起，悬停的 `{colors.surface-hover}` 会像突然多出来一块底。
 
 顶上钉住的用户消息用同一层底，并保留 1px 边框。
 

@@ -72,6 +72,9 @@
 }
 
 .sticky-user-message {
+  width: fit-content;
+  max-width: min(680px, 85%);
+  margin-left: auto;
   position: relative;
   z-index: 20;
   pointer-events: auto;
@@ -105,6 +108,9 @@
 }
 
 .sticky-user-message--system {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
   background: transparent;
   border: none;
   padding: 0;
