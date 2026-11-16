@@ -2,7 +2,7 @@
 {
   "schema_version": "authorship/3.0.0",
   "git_ai_version": "1.2.8-ntes.7",
-  "base_commit_sha": "7208881c811e73f905fcc34eea938ac1a82aa5fe",
+  "base_commit_sha": "39c64f336bfcfed6650b1245d997dfc0347e7576",
   "prompts": {
     "77f2456c8992f900": {
       "agent_id": {
@@ -20,14 +20,14 @@
         "packages/server/src/index.ts": {
           "accepted_lines": 3
         },
-        "packages/server/src/utils/logger.ts": {
-          "accepted_lines": 3
-        },
         "packages/server/src/plugins/hostPlugins.ts": {
           "accepted_lines": 1
         },
         "packages/server/tests/hostPlugins.test.ts": {
           "accepted_lines": 2
+        },
+        "packages/server/src/utils/logger.ts": {
+          "accepted_lines": 3
         }
       }
     }
