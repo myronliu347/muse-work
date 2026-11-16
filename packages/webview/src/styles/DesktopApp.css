@@ -3052,6 +3052,12 @@ body.is-panel-resizing-row * {
   background: var(--surface-active);
 }
 
+/* One tab has nothing to distinguish from; let the title stand alone. */
+.bot-tabs--single .bot-tab.active,
+.bot-tabs--single .bot-tab-group.active {
+  background: transparent;
+}
+
 .bot-tab-group:hover:not(.active) {
   background: var(--surface-muted);
 }

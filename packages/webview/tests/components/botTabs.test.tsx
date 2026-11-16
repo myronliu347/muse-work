@@ -69,6 +69,26 @@ function stubEmptyAssistant() {
 }
 
 describe("BotTabs", () => {
+  it("drops tab chrome when only one tab is visible", () => {
+    const state = initialBotWorkspace(null);
+    const onFocus = vi.fn();
+    const onClose = vi.fn();
+    const { container, rerender } = render(
+      <BotTabs state={state} titles={{}} onFocus={onFocus} onClose={onClose} />,
+    );
+    expect(container.querySelector(".bot-tabs")?.classList.contains("bot-tabs--single")).toBe(true);
+
+    rerender(
+      <BotTabs
+        state={openIssueSession(state, ISSUE_ID)}
+        titles={{ [ISSUE_ID]: ISSUE_TITLE }}
+        onFocus={onFocus}
+        onClose={onClose}
+      />,
+    );
+    expect(container.querySelector(".bot-tabs")?.classList.contains("bot-tabs--single")).toBe(false);
+  });
+
   it("switches the focused side column's tab with Cmd+[ ]", () => {
     const onFocus = vi.fn();
     const onClose = vi.fn();

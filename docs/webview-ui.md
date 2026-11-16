@@ -329,6 +329,7 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 **`sidebar`** — 浅色用 `{colors.surface-sidebar}`，不要改成卡片白。深色比画布亮一档；图标栏、会话列表和标题栏用同一个 `--surface-rail`，不另做分割线。
 
 - 图标栏 active、Tab active（Bot tab、面板 tab、文件 tab）、选中会话行统一用 `surface-active` 底；inactive 透明，hover 才用 `surface-muted`。
+- Bot tab 只有一个可见 tab 时不画 active 底（`bot-tabs--single`），没有对比对象时不要出现一块灰。
 - active 不再用 accent 浅底、白色 canvas 底或下划线，避免同一层级出现多种选中语言。
 
 ### Composer

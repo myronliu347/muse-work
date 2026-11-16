@@ -162,6 +162,12 @@ export function BotTabs({
 }: BotTabsProps) {
   const botUnread = useAssistantNotice().unread && state.active !== "bot";
   const tabs = ["bot", ...state.openIssueIds];
+  const visibleTabs = tabs.filter((tab) => {
+    if (scope === "bot" && tab !== "bot") return false;
+    if (scope === "issues" && tab === "bot") return false;
+    return true;
+  });
+  const singleTab = visibleTabs.length <= 1;
   const scrollerRef = useRef<HTMLDivElement>(null);
   const reveal = useCallback((tab: "bot" | string) => {
     onFocus(tab);
@@ -208,7 +214,7 @@ export function BotTabs({
   }, [lockBotTab, onClose, onFocus, scope, state.active, state.openIssueIds]);
   return (
     <OverflowScroller
-      className="bot-tabs"
+      className={`bot-tabs${singleTab ? " bot-tabs--single" : ""}`}
       aria-label="灵光"
       ref={scrollerRef}
     >
