@@ -2316,7 +2316,7 @@ body.is-panel-resizing-row * {
   align-items: center;
   margin: 0;
   padding: 0 var(--space-4) 0 var(--desktop-shell-chrome-left);
-  background: var(--surface-panel);
+  background: var(--surface-header);
   -webkit-app-region: drag;
 }
 
@@ -2341,7 +2341,7 @@ body.is-panel-resizing-row * {
   box-sizing: border-box;
   height: var(--desktop-shell-titlebar-height);
   padding: 0 var(--space-4) 0 var(--desktop-shell-chrome-left);
-  background: var(--surface-panel);
+  background: var(--surface-header);
   -webkit-app-region: drag;
 }
 
@@ -2372,7 +2372,7 @@ body.is-panel-resizing-row * {
   height: var(--desktop-shell-titlebar-height);
   padding-left: var(--desktop-shell-chrome-left);
   padding-right: var(--space-4);
-  background: var(--surface-panel);
+  background: var(--surface-header);
 }
 
 .desktop-layout > .automations-page.automations-page--editor .automations-page-scroll {
@@ -2677,7 +2677,7 @@ body.is-panel-resizing-row * {
   right: 0;
   z-index: 2;
   height: var(--desktop-shell-titlebar-height);
-  background: var(--surface-panel);
+  background: var(--surface-header);
   pointer-events: auto;
   -webkit-app-region: drag;
 }
