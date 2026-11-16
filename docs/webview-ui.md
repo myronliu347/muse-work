@@ -153,7 +153,7 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 - **Canvas Dark** (`{colors.canvas-dark}` — #0c0c0c)：深色页面。`--surface-canvas`，A 阶梯取 `--gray-1` 70% + 黑。
 - **Surface Card** (`{colors.surface-card}` — #ffffff)：浅色卡片、对话框、菜单、输入框。`--color-card`，浅色等于 `--color-panel`。
 - **Surface Card Dark** (`{colors.surface-card-dark}` — #1a1a1a)：深色卡片。`--surface-card`，A 阶梯取 `--gray-3` 75% + 黑。
-- **Surface Sidebar** (`{colors.surface-sidebar}` — #ececef)：图标栏和会话列表统一用 `--surface-rail`；浅色取 `--gray-3` 98% + 黑，深色取 `--gray-2` 95% + 黑。面板和标题栏仍走 `--surface-panel` / `--surface-header`，不跟侧栏绑死。
+- **Surface Sidebar** (`{colors.surface-sidebar}` — #ececef)：图标栏、会话列表和标题栏统一用 `--surface-rail`；浅色取 `--gray-3` 98% + 黑，深色取 `--gray-2` 95% + 黑。面板仍走 `--surface-panel`，和顶部 chrome 分开。
 - **Surface Bubble** (`{colors.surface-bubble}` — #f0f0f0)：这是行内代码和分段控件槽的默认值，走 `--surface-inline-code`；用户消息走 `--surface-user-bubble`（浅色 `--accent-3`，深色 `--gray-4`）。
 - **Surface Code**：代码块用 `--surface-code`（浅色 `--gray-3` 70% + `--gray-2`；深色 `--gray-2` 88% + 黑），不要和页面同白或同黑。
 - **Surface Hover** (`{colors.surface-hover}` — #e8e8e8)：悬停。A 阶梯浅色用 3.5% 黑，深色用 4.5% 白；白底卡片上的悬停仍用 `{colors.surface-bubble}`。
@@ -191,8 +191,8 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 | | `--text-on-accent` | `--accent-contrast` | 强调色上的字 |
 | | `--text-link` | `--accent-11` | 链接 |
 | Surface | `--surface-canvas` | `--color-background` | 页面、聊天列 |
-| | `--surface-rail` | 浅色 `--gray-3` 98% + 黑；深色 `--gray-2` 95% + 黑 | 图标栏、会话列表 |
-| | `--surface-panel` / `--surface-header` | 浅色 `--gray-3`；深色 `--gray-2` 75% + 黑 | 面板、标题栏 |
+| | `--surface-rail` / `--surface-header` | 浅色 `--gray-3` 98% + 黑；深色 `--gray-2` 95% + 黑 | 图标栏、会话列表、标题栏 |
+| | `--surface-panel` | 浅色 `--gray-3`；深色 `--gray-2` 75% + 黑 | 面板、对话框 |
 | | `--surface-card` | `--color-card` | 卡片、输入框、对话框 |
 | | `--surface-sunken` / `--surface-subtle` / `--surface-muted` | `--gray-1` / `--gray-3` / `--gray-4` | 内凹底 / 低强调填充 / 悬停底 |
 | | `--surface-hover` / `--surface-selected` / `--surface-visible` | 3.5–4.5% 黑/白 / `accent-9` 8%（浅）·18%（深） / 2–2.5% | 悬停、选中、非焦点分屏 |
@@ -326,7 +326,7 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 
 ### Sidebar
 
-**`sidebar`** — 浅色用 `{colors.surface-sidebar}`，不要改成卡片白。深色比画布亮一档；图标栏和会话列表用同一个 `--surface-rail`，不另做分割线。
+**`sidebar`** — 浅色用 `{colors.surface-sidebar}`，不要改成卡片白。深色比画布亮一档；图标栏、会话列表和标题栏用同一个 `--surface-rail`，不另做分割线。
 
 ### Composer
 

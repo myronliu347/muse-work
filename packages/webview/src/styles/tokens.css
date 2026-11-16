@@ -156,7 +156,7 @@
   --surface-canvas: color-mix(in srgb, var(--gray-1) 70%, #000);
   --surface-rail: color-mix(in srgb, var(--gray-2) 95%, #000);
   --surface-panel: color-mix(in srgb, var(--gray-2) 75%, #000);
-  --surface-header: color-mix(in srgb, var(--gray-2) 75%, #000);
+  --surface-header: var(--surface-rail);
   --surface-card: color-mix(in srgb, var(--gray-3) 75%, #000);
   --surface-sunken: color-mix(in srgb, var(--gray-1) 55%, #000);
   --surface-subtle: color-mix(in srgb, var(--gray-3) 92%, #000);
@@ -184,7 +184,7 @@
   --surface-canvas: var(--gray-1);
   --surface-rail: color-mix(in srgb, var(--gray-3) 98%, #000);
   --surface-panel: var(--gray-3);
-  --surface-header: var(--gray-3);
+  --surface-header: var(--surface-rail);
   --surface-card: var(--color-card);
   --surface-sunken: var(--gray-1);
   --surface-subtle: var(--gray-3);
