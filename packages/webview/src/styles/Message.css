@@ -439,7 +439,7 @@
 .reasoning-content {
   margin-left: var(--space-1);
   padding-left: var(--space-2);
-  border-left: var(--hairline) solid var(--border-strong);
+  border-left: var(--hairline) solid var(--border-subtle);
   max-height: 200px;
   overflow-y: auto;
 }

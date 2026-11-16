@@ -213,6 +213,8 @@ Muse 的界面是一块安静的工作台，不是营销页。底色用 `{colors
 | | `--overlay-control-soft` / `--overlay-control` | 白 10% / 20% | 图片上的悬浮控件 |
 | Border | `--border-faint` / `--border-subtle` / `--border-strong` / `--border-emphasis` | `--gray-3` / `--gray-6` / `--gray-7` / `--gray-12` | 极弱分隔 / 卡片描边 / 强描边 / 高对比选中 |
 | | `--border-focus` / `--border-selected` | `--accent-9` | 焦点、选中 |
+
+- 所有结构性 1px 分割线（会话列表、dock、设置区、下拉头）统一用 `--border-subtle`；`--border-faint` 只给 tooltip 箭头，`--border-strong` 只给控件/卡片，不要拿来做分割线。
 | Accent | `--action-primary-bg` / `--action-primary-bg-hover` / `--action-primary-fg` | `accent-9` / `accent-10` / `accent-contrast` | 主操作 |
 | | `--selection-indicator` | `accent-9` | 选中/当前项 |
 | | `--focus-ring` / `--focus-glow` | `accent-9` / `accent-a4` | 焦点描边 / 焦点 glow |

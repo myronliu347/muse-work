@@ -136,7 +136,7 @@ html:has(.desktop-layout) {
   align-items: center;
   justify-content: space-between;
   padding: var(--space-2) var(--space-3) var(--space-3);
-  border-top: var(--hairline) solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  border-top: var(--hairline) solid var(--border-subtle);
   background: var(--surface-rail);
   position: relative;
   flex-shrink: 0;
