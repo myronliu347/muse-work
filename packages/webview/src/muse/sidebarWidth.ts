@@ -65,7 +65,7 @@ export function resetDesktopSidebarWidth(): void {
 }
 
 /** Default width of the session list beside the icon rail. */
-const SESSION_LIST_DEFAULT_WIDTH = 232;
+const SESSION_LIST_DEFAULT_WIDTH = 280;
 const SESSION_LIST_WIDTH_STORAGE_KEY = "muse.desktopSessionListWidth";
 
 const sessionListListeners = new Set<() => void>();
@@ -77,7 +77,11 @@ function readStoredSessionListWidth(): number {
     if (raw == null || raw === "") return SESSION_LIST_DEFAULT_WIDTH;
     const parsed = Number(raw);
     if (!Number.isFinite(parsed)) return SESSION_LIST_DEFAULT_WIDTH;
-    return clampSidebarWidth(parsed);
+    // 232 was the old default. Treat it as "never customised" and migrate it
+    // to the new default; explicit custom widths are preserved.
+    return clampSidebarWidth(
+      parsed === 232 ? SESSION_LIST_DEFAULT_WIDTH : parsed,
+    );
   } catch {
     return SESSION_LIST_DEFAULT_WIDTH;
   }

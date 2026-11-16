@@ -440,7 +440,7 @@ html:has(.desktop-layout) {
   min-height: 0;
   box-sizing: border-box;
   padding-top: var(--desktop-shell-titlebar-height);
-  background: var(--surface-rail);
+  background: var(--surface-session-list);
   overflow: hidden;
 }
 

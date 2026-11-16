@@ -34,6 +34,7 @@
      one value. */
   --surface-canvas: var(--color-background, var(--gray-1));
   --surface-rail: var(--gray-2);
+  --surface-session-list: var(--surface-panel);
   --surface-panel: var(--gray-2);
   --surface-header: var(--gray-2);
   --surface-card: var(--color-card);
@@ -154,6 +155,7 @@
 .radix-themes.dark {
   --surface-canvas: color-mix(in srgb, var(--gray-1) 70%, #000);
   --surface-rail: color-mix(in srgb, var(--gray-2) 95%, #000);
+  --surface-session-list: color-mix(in srgb, var(--gray-3) 50%, var(--gray-2));
   --surface-panel: color-mix(in srgb, var(--gray-2) 75%, #000);
   --surface-header: var(--surface-rail);
   --surface-card: color-mix(in srgb, var(--gray-3) 75%, #000);
@@ -181,6 +183,7 @@
 .radix-themes.light {
   --surface-canvas: var(--gray-1);
   --surface-rail: color-mix(in srgb, var(--gray-3) 98%, #000);
+  --surface-session-list: color-mix(in srgb, var(--gray-3) 90%, #fff);
   --surface-panel: var(--gray-3);
   --surface-header: var(--surface-rail);
   --surface-card: var(--color-card);
