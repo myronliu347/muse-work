@@ -1018,6 +1018,12 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     respondIssuePermission: async (sessionId, permissionId, decision) => {
       await museApi.respondPermission(sessionId, permissionId, decision);
     },
+    completeIssue: async (issueId, note) => {
+      await museApi.completeIssue(issueId, note);
+    },
+    cancelIssue: async (issueId, note) => {
+      await museApi.cancelIssue(issueId, note);
+    },
     revealOpenedFile,
     handleRefreshOpenFile,
     sendIssueMessage,

@@ -86,6 +86,8 @@ export function useChatDock(input: {
     permissionId: string,
     decision: "allow" | "deny",
   ) => Promise<void>;
+  completeIssue?: (issueId: string, note: string) => Promise<void>;
+  cancelIssue?: (issueId: string, note: string) => Promise<void>;
   revealOpenedFile: () => void;
   handleRefreshOpenFile: (path: string) => void;
   sendIssueMessage: (text: string) => void;
@@ -172,6 +174,8 @@ export function useChatDock(input: {
     openArtifactInBrowser,
     loadIssueUpdates,
     respondIssuePermission,
+    completeIssue,
+    cancelIssue,
     revealOpenedFile,
     handleRefreshOpenFile,
     sendIssueMessage,
@@ -310,6 +314,8 @@ export function useChatDock(input: {
         onOpenArtifactInBrowser={openArtifactInBrowser}
         onLoadUpdates={loadIssueUpdates}
         onRespondPermission={respondIssuePermission}
+        onCompleteIssue={completeIssue}
+        onCancelIssue={cancelIssue}
       />
     ) : undefined,
     onCloseTab: handleTogglePanel,

@@ -1472,6 +1472,41 @@ describe("assistant dock detail", () => {
     );
   });
 
+  it("completes an issue directly with a generated note", async () => {
+    const user = userEvent.setup();
+    const onCompleteIssue = vi.fn().mockResolvedValue(undefined);
+    const radii = {
+      ...issue({ issueId: "radii", title: RADII, priority: "p1" }),
+      updates: [
+        {
+          id: "u1",
+          at: Date.now(),
+          kind: "assistant" as const,
+          summary: "圆角和间距都修完了",
+        },
+      ],
+      updateCount: 1,
+    };
+    render(
+      <MuseTheme>
+        <DockDetail
+          selection={{ kind: "issue", issue: radii }}
+          actionLabel={null}
+          onOpenSession={() => {}}
+          onCompleteIssue={onCompleteIssue}
+        />
+      </MuseTheme>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "完成" }));
+    expect(screen.getByTestId("dock-detail-close-note")).toHaveValue(
+      "圆角和间距都修完了",
+    );
+    await user.click(screen.getByTestId("confirm-dialog-confirm"));
+    expect(onCompleteIssue).toHaveBeenCalledWith("radii", "圆角和间距都修完了");
+    expect(screen.queryByTestId("confirm-dialog-overlay")).toBeNull();
+  });
+
   it("loads the full update history on demand", async () => {
     const user = userEvent.setup();
     const now = Date.now();

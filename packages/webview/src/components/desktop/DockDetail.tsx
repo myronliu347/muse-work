@@ -10,6 +10,7 @@ import { Disclosure } from "../shared/Disclosure";
 import type { IssuePresence } from "../session/SessionStatusGlyph";
 import { MarkdownView } from "../message/MarkdownView";
 import { Tooltip } from "../shared/Tooltip";
+import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { issueTabSessionId } from "./botWorkspace";
 
 /** Floating issue column. It sits in the right margin and must not cover the sheet. */
@@ -168,6 +169,9 @@ export interface DockDetailProps {
     permissionId: string,
     decision: "allow" | "deny",
   ) => Promise<void>;
+  /** 直接完成/取消 Issue，不需要再发一轮消息。 */
+  onCompleteIssue?: (issueId: string, note: string) => Promise<void>;
+  onCancelIssue?: (issueId: string, note: string) => Promise<void>;
 }
 
 function priorityText(priority: string): string {
@@ -303,6 +307,8 @@ export function DockDetail({
   onOpenArtifactInBrowser,
   onLoadUpdates,
   onRespondPermission,
+  onCompleteIssue,
+  onCancelIssue,
 }: DockDetailProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
@@ -318,6 +324,10 @@ export function DockDetail({
   const [resolvingPermission, setResolvingPermission] = useState<string | null>(null);
   const [resolvedPermissions, setResolvedPermissions] = useState<Set<string>>(new Set());
   const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [closeKind, setCloseKind] = useState<"complete" | "cancel" | null>(null);
+  const [closeNote, setCloseNote] = useState("");
+  const [closeBusy, setCloseBusy] = useState(false);
+  const [closeError, setCloseError] = useState<string | null>(null);
   const showColumn = open && fits && issues.length > 0 && selection.kind === "issue";
   const showPeek = peek && !fits && issues.length > 0 && selection.kind === "issue";
 
@@ -332,6 +342,10 @@ export function DockDetail({
     setResolvingPermission(null);
     setResolvedPermissions(new Set());
     setPermissionError(null);
+    setCloseKind(null);
+    setCloseNote("");
+    setCloseBusy(false);
+    setCloseError(null);
   }, [selection.kind === "issue" ? selection.issue.issueId : ""]);
 
   useEffect(() => {
@@ -431,6 +445,42 @@ export function DockDetail({
           entry.permissionId === update.permissionId,
       ),
   );
+  const closable =
+    issue.status !== "completed" && issue.status !== "cancelled";
+  const suggestedCloseNote =
+    [...updates]
+      .filter((update) => update.kind === "assistant" || update.kind === "result")
+      .sort((a, b) => b.at - a.at)
+      .find((update) => update.summary.trim())?.summary.trim() ??
+    (changedFiles.length > 0
+      ? `完成，改动 ${changedFiles.length} 个文件`
+      : "已完成");
+
+  const openClose = (kind: "complete" | "cancel") => {
+    setCloseKind(kind);
+    setCloseNote(kind === "complete" ? suggestedCloseNote : "");
+    setCloseError(null);
+  };
+
+  const submitClose = async (): Promise<void> => {
+    if (!closeKind || closeBusy) return;
+    const note = closeNote.trim();
+    if (!note) return;
+    setCloseBusy(true);
+    setCloseError(null);
+    try {
+      if (closeKind === "complete") {
+        await onCompleteIssue?.(issue.issueId, note);
+      } else {
+        await onCancelIssue?.(issue.issueId, note);
+      }
+      setCloseKind(null);
+    } catch (err) {
+      setCloseError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCloseBusy(false);
+    }
+  };
 
   const loadAllUpdates = async (): Promise<void> => {
     if (updatesExpanded) {
@@ -482,6 +532,24 @@ export function DockDetail({
           </div>
         </div>
         <div className="dock-detail-actions">
+          {closable && onCompleteIssue ? (
+            <button
+              type="button"
+              className="dock-detail-complete"
+              onClick={() => openClose("complete")}
+            >
+              完成
+            </button>
+          ) : null}
+          {closable && onCancelIssue ? (
+            <button
+              type="button"
+              className="dock-detail-cancel"
+              onClick={() => openClose("cancel")}
+            >
+              取消
+            </button>
+          ) : null}
           {actionLabel ? (
             <DetailIconButton
               label={actionLabel}
@@ -790,6 +858,41 @@ export function DockDetail({
           </div>
         ) : null}
       </div>
+
+      {closeKind ? (
+        <ConfirmDialog
+          title={
+            closeKind === "complete"
+              ? `完成「${issue.title}」？`
+              : `取消「${issue.title}」？`
+          }
+          description={
+            closeKind === "complete"
+              ? "结果说明会写进这条 Issue 的最终进展。"
+              : "取消原因会写进这条 Issue 的最终进展。"
+          }
+          confirmText={closeKind === "complete" ? "完成" : "取消 Issue"}
+          confirmDisabled={closeBusy || !closeNote.trim()}
+          onCancel={() => {
+            if (!closeBusy) setCloseKind(null);
+          }}
+          onConfirm={() => void submitClose()}
+        >
+          <textarea
+            className="dock-detail-close-note"
+            data-testid="dock-detail-close-note"
+            value={closeNote}
+            onChange={(event) => setCloseNote(event.target.value)}
+            placeholder={
+              closeKind === "complete" ? "一句结果结论" : "一句取消原因"
+            }
+            autoFocus
+          />
+          {closeError ? (
+            <p className="dock-detail-close-error">{closeError}</p>
+          ) : null}
+        </ConfirmDialog>
+      ) : null}
     </div>
   );
 }
