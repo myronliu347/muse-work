@@ -33,6 +33,19 @@ export type AssistantIssueEvent = {
   turnError?: string;
 };
 
+export type AssistantIssueClosedEvent = {
+  type: "issue-closed";
+  issueId: string;
+  title: string;
+  workdir: string;
+  status: "completed" | "cancelled";
+  /** 结果结论（完成）或原因（取消）。 */
+  note: string;
+  timestamp?: number;
+  retry?: 1;
+  turnError?: string;
+};
+
 export type AssistantAutomationEvent = {
   type: "automation";
   automationId: string;
@@ -72,6 +85,7 @@ export type AssistantPermissionEvent = {
 export type AssistantEvent =
   | AssistantChatEvent
   | AssistantIssueEvent
+  | AssistantIssueClosedEvent
   | AssistantAutomationEvent
   | AssistantPermissionEvent;
 
@@ -129,6 +143,18 @@ export function viewAssistantEvent(
   if (event.type === "issue") {
     return queueView(
       { type: "issue", title: event.title || event.issueId, ...retry },
+      event.timestamp,
+    );
+  }
+  if (event.type === "issue-closed") {
+    return queueView(
+      {
+        type: "issue",
+        title: `${event.title || event.issueId} · ${
+          event.status === "completed" ? "已完成" : "已取消"
+        }`,
+        ...retry,
+      },
       event.timestamp,
     );
   }
@@ -218,6 +244,16 @@ export function formatAssistantEvent(event: AssistantEvent): string {
       ["replyPending", event.replyPending ? "true" : undefined],
       ["userPresent", event.userPresent ? "true" : undefined],
       ["replyNote", event.replyNote],
+    ]);
+  } else if (event.type === "issue-closed") {
+    body = linesOf([
+      ["type", "issue-closed"],
+      ["timestamp", event.timestamp === undefined ? undefined : formatEventTimestamp(event.timestamp)],
+      ["issueId", event.issueId],
+      ["title", event.title],
+      ["workdir", event.workdir],
+      ["status", event.status],
+      ["note", event.note],
     ]);
   } else if (event.type === "permission") {
     const description = truncateCodePoints(event.description, ASSISTANT_TEXT_MAX);

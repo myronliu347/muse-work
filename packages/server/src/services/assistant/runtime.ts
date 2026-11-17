@@ -159,7 +159,9 @@ export function createAssistantRuntime(options: {
     const issueIds = [
       ...new Set(
         batch.flatMap((event) =>
-          event.type === "issue" || event.type === "permission"
+          event.type === "issue" ||
+          event.type === "issue-closed" ||
+          event.type === "permission"
             ? [event.issueId]
             : [],
         ),

@@ -65,6 +65,32 @@ describe("issues HTTP", () => {
     expect(askBtw).toHaveBeenCalledOnce();
   });
 
+  it("notifies the assistant when an issue is completed directly", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "直接关闭事件" }),
+    }).then((r) => r.json());
+    const enqueue = vi.spyOn(app.ctx.assistantRuntime, "enqueue");
+    const res = await fetch(`${app.baseUrl}/issues/${issue.id}/complete`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ note: "已经做完" }),
+    });
+    expect(res.status).toBe(200);
+    expect(enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "issue-closed",
+        issueId: issue.id,
+        status: "completed",
+        note: "已经做完",
+      }),
+    );
+  });
+
   it("POST /issues can create with checklist items", async () => {
     const app = await listenTestApp();
     server = app.server;

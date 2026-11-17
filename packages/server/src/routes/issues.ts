@@ -219,6 +219,15 @@ issuesRoutes.post("/issues/:id/complete", async (c) => {
     );
     await deleteIssueSessions(ctx, issue);
     broadcastIssueChanged(ctx);
+    ctx.assistantRuntime.enqueue({
+      type: "issue-closed",
+      issueId: issue.id,
+      title: issue.title,
+      workdir: issue.workdir ?? "",
+      status: "completed",
+      note: note.trim(),
+      timestamp: Date.now(),
+    });
     return c.json({ issue });
   } catch (err) {
     return c.json(
@@ -284,6 +293,15 @@ issuesRoutes.post("/issues/:id/cancel", async (c) => {
     );
     await deleteIssueSessions(ctx, issue);
     broadcastIssueChanged(ctx);
+    ctx.assistantRuntime.enqueue({
+      type: "issue-closed",
+      issueId: issue.id,
+      title: issue.title,
+      workdir: issue.workdir ?? "",
+      status: "cancelled",
+      note: note.trim(),
+      timestamp: Date.now(),
+    });
     return c.json({ issue });
   } catch (err) {
     return c.json(
