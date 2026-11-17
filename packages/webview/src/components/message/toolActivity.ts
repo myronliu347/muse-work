@@ -465,7 +465,7 @@ function bucketPhrase(
   lead: boolean,
 ): string {
   if (bucket === "edit") {
-    return lead ? `编辑 ${count} 个文件` : `编辑了 ${count} 个文件`;
+    return `编辑了 ${count} 个文件`;
   }
   if (bucket === "file") {
     return lead ? `检索 ${count} 个文件` : `查看了 ${count} 个文件`;
@@ -480,7 +480,7 @@ function bucketPhrase(
     return lead ? `子任务 ${count} 个` : `${count} 个子任务`;
   }
   if (bucket === "command") {
-    return lead ? `执行 ${count} 条命令` : `运行了 ${count} 条命令`;
+    return `执行了 ${count} 条命令`;
   }
   return lead ? `执行 ${count} 次操作` : `${count} 次操作`;
 }
@@ -533,7 +533,12 @@ export function summarizeRefs(
   counts.edit = edits.size;
 
   const parts: string[] = [];
+  // 命令和文件编辑是这轮工作的主句，固定按「执行了…，编辑了…」的顺序；
+  // 其它检索/浏览类活动跟在后面。
+  if (counts.command > 0) parts.push(`执行了 ${counts.command} 条命令`);
+  if (counts.edit > 0) parts.push(`编辑了 ${counts.edit} 个文件`);
   for (const bucket of BUCKET_ORDER) {
+    if (bucket === "command" || bucket === "edit") continue;
     const count = counts[bucket];
     if (count <= 0) continue;
     parts.push(bucketPhrase(bucket, count, parts.length === 0));
