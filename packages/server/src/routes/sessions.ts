@@ -526,6 +526,15 @@ session.post("/permissions/:permissionId", async (c) => {
           ? body.newPermissionRule
           : undefined,
     });
+    const issue = ctx.issueStore.getBySession(sessionId);
+    if (issue) {
+      ctx.recordIssueUpdate(issue.id, {
+        kind: "status",
+        summary: behavior === "allow" ? "已批准权限申请" : "已拒绝权限申请",
+        permissionId,
+        status: issue.status,
+      });
+    }
     return c.json(result);
   } catch (err) {
     return c.json(

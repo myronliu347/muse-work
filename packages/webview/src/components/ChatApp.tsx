@@ -1013,6 +1013,10 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       handleOpenFile(path);
     },
     openArtifact: (path) => handleOpenFile(path),
+    loadIssueUpdates: (issueId, opts) => museApi.listIssueUpdates(issueId, opts),
+    respondIssuePermission: async (sessionId, permissionId, decision) => {
+      await museApi.respondPermission(sessionId, permissionId, decision);
+    },
     revealOpenedFile,
     handleRefreshOpenFile,
     sendIssueMessage,

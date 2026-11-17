@@ -292,6 +292,7 @@ export interface DesktopIssueUpdate {
   next?: string;
   status?: string;
   turnId?: string;
+  permissionId?: string;
   userPresent?: true;
 }
 

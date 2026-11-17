@@ -162,6 +162,7 @@ export function enqueueIssuePermission(args: {
     summary: `等待批准：${args.toolName}`,
     detail: description.text,
     sessionId: args.sessionId,
+    permissionId: args.permissionId,
     status: issue.status,
   });
   args.enqueue({

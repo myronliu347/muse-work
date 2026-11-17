@@ -1171,3 +1171,117 @@
   color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
+
+/* Reading measure: the dock can be wide, prose should not be. */
+.dock-detail-progress-text,
+.dock-detail-progress-full,
+.dock-detail-description-body,
+.dock-detail-update-text {
+  max-width: 70ch;
+}
+.dock-detail-artifacts-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--border-subtle);
+}
+.dock-detail-artifacts-label {
+  color: var(--text-tertiary);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.dock-detail-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 4px 7px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+.dock-detail-file-chip:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-muted);
+  color: var(--text-primary);
+}
+.dock-detail-file-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dock-detail-file-chip-icon {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+}
+.dock-detail-updates-more {
+  margin-left: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+.dock-detail-updates-more:disabled {
+  color: var(--text-tertiary);
+  cursor: default;
+}
+.dock-detail-permission {
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid var(--status-warning-border);
+  border-radius: 10px;
+  background: var(--status-warning-surface);
+}
+.dock-detail-permission-actions {
+  display: flex;
+  gap: 7px;
+  margin-top: 10px;
+}
+.dock-detail-permission-allow,
+.dock-detail-permission-deny {
+  padding: 6px 10px;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 10.5px;
+  cursor: pointer;
+}
+.dock-detail-permission-allow {
+  border: 1px solid var(--accent-border);
+  background: var(--action-primary-bg);
+  color: var(--action-primary-fg);
+}
+.dock-detail-permission-deny {
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-card);
+  color: var(--text-secondary);
+}
+.dock-detail-permission-allow:disabled,
+.dock-detail-permission-deny:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.dock-detail-permission-error {
+  margin: 7px 0 0;
+  color: var(--status-danger-text);
+  font-size: 10.5px;
+}
+.dock-detail-description-preview {
+  margin-left: 8px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

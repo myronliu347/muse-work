@@ -22,6 +22,7 @@ import type {
   ChatState,
   DesktopHostProps,
   DesktopIssueGroup,
+  DesktopIssueUpdate,
   DesktopPanelKind,
   DiffViewState,
   VsCodeApi,
@@ -75,6 +76,15 @@ export function useChatDock(input: {
   handleOpenFilePin: (path: string) => void;
   openChangedFile: (path: string) => void;
   openArtifact: (path: string) => void;
+  loadIssueUpdates?: (
+    issueId: string,
+    opts?: { limit?: number; before?: string },
+  ) => Promise<{ updates: DesktopIssueUpdate[]; hasMore: boolean }>;
+  respondIssuePermission?: (
+    sessionId: string,
+    permissionId: string,
+    decision: "allow" | "deny",
+  ) => Promise<void>;
   revealOpenedFile: () => void;
   handleRefreshOpenFile: (path: string) => void;
   sendIssueMessage: (text: string) => void;
@@ -158,6 +168,8 @@ export function useChatDock(input: {
     handleOpenFilePin,
     openChangedFile,
     openArtifact,
+    loadIssueUpdates,
+    respondIssuePermission,
     revealOpenedFile,
     handleRefreshOpenFile,
     sendIssueMessage,
@@ -289,6 +301,8 @@ export function useChatDock(input: {
         onSelectIssue={(issueId) => selectBotPanel({ kind: "issue", issueId })}
         onOpenChangedFile={openChangedFile}
         onOpenArtifact={openArtifact}
+        onLoadUpdates={loadIssueUpdates}
+        onRespondPermission={respondIssuePermission}
       />
     ) : undefined,
     onCloseTab: handleTogglePanel,

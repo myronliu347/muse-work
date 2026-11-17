@@ -68,6 +68,17 @@ function formatUpdateTime(at: number): string {
   ).padStart(2, "0")}`;
 }
 
+function mergeUpdates(
+  base: DesktopIssueUpdate[],
+  extra: DesktopIssueUpdate[],
+): DesktopIssueUpdate[] {
+  const byId = new Map<string, DesktopIssueUpdate>();
+  for (const update of [...base, ...extra]) {
+    if (!byId.has(update.id)) byId.set(update.id, update);
+  }
+  return [...byId.values()].sort((a, b) => b.at - a.at);
+}
+
 function uniquePaths(paths: Array<string | undefined>): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
@@ -138,6 +149,17 @@ export interface DockDetailProps {
   onOpenChangedFile?: (path: string) => void;
   /** 点击产物附件：打开文件/预览。 */
   onOpenArtifact?: (path: string) => void;
+  /** 加载这个 Issue 的完整进展（详情默认只拿到最近 8 条）。 */
+  onLoadUpdates?: (
+    issueId: string,
+    opts?: { limit?: number; before?: string },
+  ) => Promise<{ updates: DesktopIssueUpdate[]; hasMore: boolean }>;
+  /** 行内处理审批。 */
+  onRespondPermission?: (
+    sessionId: string,
+    permissionId: string,
+    decision: "allow" | "deny",
+  ) => Promise<void>;
 }
 
 function priorityText(priority: string): string {
@@ -265,6 +287,8 @@ export function DockDetail({
   onSelectIssue,
   onOpenChangedFile,
   onOpenArtifact,
+  onLoadUpdates,
+  onRespondPermission,
 }: DockDetailProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
@@ -274,6 +298,12 @@ export function DockDetail({
   const [open, setOpen] = useState(true);
   const [peek, setPeek] = useState(false);
   const [latestExpanded, setLatestExpanded] = useState(false);
+  const [extraUpdates, setExtraUpdates] = useState<DesktopIssueUpdate[]>([]);
+  const [updatesExpanded, setUpdatesExpanded] = useState(false);
+  const [loadingUpdates, setLoadingUpdates] = useState(false);
+  const [resolvingPermission, setResolvingPermission] = useState<string | null>(null);
+  const [resolvedPermissions, setResolvedPermissions] = useState<Set<string>>(new Set());
+  const [permissionError, setPermissionError] = useState<string | null>(null);
   const showColumn = open && fits && issues.length > 0 && selection.kind === "issue";
   const showPeek = peek && !fits && issues.length > 0 && selection.kind === "issue";
 
@@ -283,6 +313,11 @@ export function DockDetail({
 
   useEffect(() => {
     setLatestExpanded(false);
+    setExtraUpdates([]);
+    setUpdatesExpanded(false);
+    setResolvingPermission(null);
+    setResolvedPermissions(new Set());
+    setPermissionError(null);
   }, [selection.kind === "issue" ? selection.issue.issueId : ""]);
 
   useEffect(() => {
@@ -330,13 +365,20 @@ export function DockDetail({
       ?.sessionStatus,
   });
   const description = issue.description?.trim() ?? "";
+  const descriptionPreview = description
+    .split("\n")
+    .map((line) => line.trim())
+    .find(Boolean)
+    ?.replace(/^#+\s*/, "")
+    .slice(0, 80);
   const environment = issueEnvironment(issue);
   const workdir = environment.workdir;
 
   const priority = priorityText(issue.priority);
   const priorityKey = priority.toLowerCase();
 
-  const updates = issue.updates ?? [];
+  const baseUpdates = issue.updates ?? [];
+  const updates = mergeUpdates(baseUpdates, extraUpdates);
   const primaryUpdate =
     updates.find(
       (update) => update.kind === "assistant" || update.kind === "result",
@@ -350,16 +392,68 @@ export function DockDetail({
   const artifactFiles = uniquePaths(updates.flatMap((update) => update.files ?? []));
   // 主卡已经展示最新一条；时间线只留历史增量。空回合标记没有信息量，
   // 全部从时间线隐藏，避免“回合结束”刷屏；最新的 turn 仍由主卡兜底。
-  const visibleUpdates = updates
-    .filter(
-      (update) =>
-        update.id !== primaryUpdate?.id &&
-        update.kind !== "turn",
-    )
-    .slice(0, 8);
+  const timelineUpdates = updates.filter(
+    (update) => update.id !== primaryUpdate?.id && update.kind !== "turn",
+  );
+  const visibleUpdates = timelineUpdates.slice(0, updatesExpanded ? 30 : 8);
   const latestHasMore =
     Boolean(primaryUpdate) &&
     (primaryUpdate!.summary.length > 180 || Boolean(primaryUpdate!.detail));
+  const canLoadMore = Boolean(onLoadUpdates) && (
+    updatesExpanded
+      ? updates.length > 8
+      : (issue.updateCount ?? baseUpdates.length) > baseUpdates.length ||
+        timelineUpdates.length > 8
+  );
+  const permissionUpdate = updates.find(
+    (update) =>
+      update.kind === "permission" &&
+      Boolean(update.permissionId) &&
+      Boolean(update.sessionId) &&
+      !resolvedPermissions.has(update.permissionId!) &&
+      !updates.some(
+        (entry) =>
+          entry.kind === "status" &&
+          entry.permissionId === update.permissionId,
+      ),
+  );
+
+  const loadAllUpdates = async (): Promise<void> => {
+    if (updatesExpanded) {
+      setUpdatesExpanded(false);
+      return;
+    }
+    if (!onLoadUpdates || loadingUpdates) return;
+    setLoadingUpdates(true);
+    try {
+      const page = await onLoadUpdates(issue.issueId, { limit: 30 });
+      setExtraUpdates(page.updates);
+      setUpdatesExpanded(true);
+    } finally {
+      setLoadingUpdates(false);
+    }
+  };
+
+  const resolvePermission = async (decision: "allow" | "deny"): Promise<void> => {
+    if (!permissionUpdate?.permissionId || !permissionUpdate.sessionId || !onRespondPermission) {
+      return;
+    }
+    const permissionId = permissionUpdate.permissionId;
+    setResolvingPermission(permissionId);
+    setPermissionError(null);
+    try {
+      await onRespondPermission(
+        permissionUpdate.sessionId,
+        permissionId,
+        decision,
+      );
+      setResolvedPermissions((current) => new Set(current).add(permissionId));
+    } catch (err) {
+      setPermissionError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setResolvingPermission(null);
+    }
+  };
 
   return (
     <div className="dock-detail" data-testid="dock-detail" ref={rootRef}>
@@ -468,6 +562,59 @@ export function DockDetail({
                     <p>{nextStep}</p>
                   </div>
                 ) : null}
+                {artifactFiles.length > 0 ? (
+                  <div className="dock-detail-artifacts-inline" data-testid="dock-detail-artifacts">
+                    <span className="dock-detail-artifacts-label">产物</span>
+                    {artifactFiles.map((filePath) => (
+                      <button
+                        key={filePath}
+                        type="button"
+                        className="dock-detail-file-chip"
+                        title={filePath}
+                        onClick={() => onOpenArtifact?.(filePath)}
+                      >
+                        <FileIcon name={fileName(filePath)} className="dock-detail-file-chip-icon" />
+                        <span>{fileName(filePath)}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
+
+            {permissionUpdate ? (
+              <section className="dock-detail-permission" data-testid="dock-detail-permission">
+                <div className="dock-detail-progress-head">
+                  <span className="dock-detail-section">待你批准</span>
+                  <span className="dock-detail-progress-time">
+                    {formatUpdateTime(permissionUpdate.at)}
+                  </span>
+                </div>
+                <p className="dock-detail-progress-text">{permissionUpdate.summary}</p>
+                {permissionUpdate.detail ? (
+                  <p className="dock-detail-progress-note">{permissionUpdate.detail}</p>
+                ) : null}
+                <div className="dock-detail-permission-actions">
+                  <button
+                    type="button"
+                    className="dock-detail-permission-allow"
+                    disabled={resolvingPermission !== null}
+                    onClick={() => void resolvePermission("allow")}
+                  >
+                    允许
+                  </button>
+                  <button
+                    type="button"
+                    className="dock-detail-permission-deny"
+                    disabled={resolvingPermission !== null}
+                    onClick={() => void resolvePermission("deny")}
+                  >
+                    拒绝
+                  </button>
+                </div>
+                {permissionError ? (
+                  <p className="dock-detail-permission-error">{permissionError}</p>
+                ) : null}
               </section>
             ) : null}
 
@@ -512,6 +659,16 @@ export function DockDetail({
                   <span className="dock-detail-progress-time">
                     {visibleUpdates.length} 条
                   </span>
+                  {canLoadMore ? (
+                    <button
+                      type="button"
+                      className="dock-detail-updates-more"
+                      disabled={loadingUpdates}
+                      onClick={() => void loadAllUpdates()}
+                    >
+                      {loadingUpdates ? "加载中…" : updatesExpanded ? "收起" : "查看全部"}
+                    </button>
+                  ) : null}
                 </div>
                 <ol className="dock-detail-update-list">
                   {visibleUpdates.map((update) => (
@@ -525,37 +682,20 @@ export function DockDetail({
               </section>
             ) : null}
 
-            {artifactFiles.length > 0 ? (
-              <section className="dock-detail-artifacts" data-testid="dock-detail-artifacts">
-                <div className="dock-detail-progress-head">
-                  <span className="dock-detail-section">产物</span>
-                </div>
-                <div className="dock-detail-file-list">
-                  {artifactFiles.map((filePath) => (
-                    <button
-                      key={filePath}
-                      type="button"
-                      className="dock-detail-file-row"
-                      title={filePath}
-                      onClick={() => onOpenArtifact?.(filePath)}
-                    >
-                      <span className="dock-detail-file-icon" aria-hidden>
-                        <FileIcon name={fileName(filePath)} className="dock-detail-file-icon-img" />
-                      </span>
-                      <span className="dock-detail-file-name">{fileName(filePath)}</span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
             {description ? (
               <details
                 className="dock-detail-description"
                 data-testid="dock-detail-description"
                 open={updates.length === 0}
               >
-                <summary>任务说明</summary>
+                <summary>
+                  <span>任务说明</span>
+                  {descriptionPreview ? (
+                    <span className="dock-detail-description-preview">
+                      {descriptionPreview}
+                    </span>
+                  ) : null}
+                </summary>
                 <div className="dock-detail-description-body">
                   <DetailMarkdown text={description} />
                 </div>

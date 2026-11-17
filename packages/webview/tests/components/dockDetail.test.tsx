@@ -1427,6 +1427,84 @@ describe("assistant dock detail", () => {
     expect(onOpenArtifact).toHaveBeenCalledWith("/work/radii/report.html");
   });
 
+  it("resolves a pending permission inline", async () => {
+    const user = userEvent.setup();
+    const onRespondPermission = vi.fn().mockResolvedValue(undefined);
+    const now = Date.now();
+    const radii = {
+      ...issue({ issueId: "radii", title: RADII, priority: "p1" }),
+      updates: [
+        {
+          id: "perm-1",
+          at: now,
+          kind: "permission" as const,
+          summary: "等待批准：Bash",
+          detail: "运行 npm test",
+          sessionId: "plan-radii",
+          permissionId: "perm-1",
+        },
+      ],
+      updateCount: 1,
+    };
+    render(
+      <MuseTheme>
+        <DockDetail
+          selection={{ kind: "issue", issue: radii }}
+          actionLabel={null}
+          onOpenSession={() => {}}
+          onRespondPermission={onRespondPermission}
+        />
+      </MuseTheme>,
+    );
+
+    expect(screen.getByTestId("dock-detail-permission")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "允许" }));
+    expect(onRespondPermission).toHaveBeenCalledWith("plan-radii", "perm-1", "allow");
+    await waitFor(() =>
+      expect(screen.queryByTestId("dock-detail-permission")).toBeNull(),
+    );
+  });
+
+  it("loads the full update history on demand", async () => {
+    const user = userEvent.setup();
+    const now = Date.now();
+    const base = Array.from({ length: 8 }, (_, index) => ({
+      id: `u-${index}`,
+      at: now - index,
+      kind: "status" as const,
+      summary: `状态 ${index}`,
+    }));
+    const more = Array.from({ length: 10 }, (_, index) => ({
+      id: `u-${index}`,
+      at: now - index,
+      kind: "status" as const,
+      summary: `状态 ${index}`,
+    }));
+    const onLoadUpdates = vi.fn().mockResolvedValue({
+      updates: more,
+      hasMore: false,
+    });
+    const radii = {
+      ...issue({ issueId: "radii", title: RADII, priority: "p1" }),
+      updates: base,
+      updateCount: 10,
+    };
+    render(
+      <MuseTheme>
+        <DockDetail
+          selection={{ kind: "issue", issue: radii }}
+          actionLabel={null}
+          onOpenSession={() => {}}
+          onLoadUpdates={onLoadUpdates}
+        />
+      </MuseTheme>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "查看全部" }));
+    expect(onLoadUpdates).toHaveBeenCalledWith("radii", { limit: 30 });
+    expect(await screen.findByRole("button", { name: "收起" })).toBeInTheDocument();
+  });
+
 describe("session dock detail", () => {
   afterEach(() => {
     cleanup();

@@ -44,6 +44,8 @@ export interface IssueUpdate {
   sourceKey?: string;
   /** assistant 本轮 id；P1 回执卡按它分组。 */
   turnId?: string;
+  /** 审批进度：等待批准的那次 permission 请求 id。 */
+  permissionId?: string;
   /** 用户正看着这个会话时产生，不计未读。 */
   userPresent?: true;
 }
@@ -124,6 +126,7 @@ function normalizeInput(input: IssueUpdateInput): IssueUpdateInput | undefined {
     ...(input.status ? { status: input.status } : {}),
     ...(input.sourceKey ? { sourceKey: input.sourceKey.trim() } : {}),
     ...(input.turnId ? { turnId: input.turnId.trim() } : {}),
+    ...(input.permissionId ? { permissionId: input.permissionId.trim() } : {}),
     ...(input.userPresent ? { userPresent: true as const } : {}),
   };
 }
@@ -164,6 +167,9 @@ function parseUpdate(raw: string): IssueUpdate | undefined {
       ...(value.status ? { status: value.status } : {}),
       ...(typeof value.sourceKey === "string" ? { sourceKey: value.sourceKey } : {}),
       ...(typeof value.turnId === "string" ? { turnId: value.turnId } : {}),
+      ...(typeof value.permissionId === "string"
+        ? { permissionId: value.permissionId }
+        : {}),
       ...(value.userPresent === true ? { userPresent: true as const } : {}),
     });
     if (!normalized) return undefined;

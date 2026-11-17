@@ -176,6 +176,7 @@ export interface MuseIssueUpdate {
   next?: string;
   status?: MuseIssueStatus;
   turnId?: string;
+  permissionId?: string;
   userPresent?: true;
 }
 
@@ -938,6 +939,20 @@ export class MuseApiClient {
 
   async listIssues(): Promise<{ issues: MuseIssue[] }> {
     const res = await this.request("/issues");
+    return parseJson(res);
+  }
+
+  async listIssueUpdates(
+    id: string,
+    opts?: { limit?: number; before?: string },
+  ): Promise<{ updates: MuseIssueUpdate[]; hasMore: boolean }> {
+    const params = new URLSearchParams();
+    if (opts?.limit !== undefined) params.set("limit", String(opts.limit));
+    if (opts?.before) params.set("before", opts.before);
+    const query = params.toString();
+    const res = await this.request(
+      `/issues/${encodeURIComponent(id)}/updates${query ? `?${query}` : ""}`,
+    );
     return parseJson(res);
   }
 
