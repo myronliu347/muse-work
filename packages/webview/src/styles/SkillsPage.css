@@ -491,3 +491,19 @@
   padding-left: 18px;
   padding-right: 18px;
 }
+
+/* Light: the skills page is a content surface, not a panel. Gray panel/card
+   fills read as muddy here; keep the fills white and let borders define rows. */
+:root[data-theme="light"] .skills-search,
+:root[data-theme="light"] .skills-list,
+:root[data-theme="light"] .skills-card,
+:root[data-theme="light"] .skills-detail {
+  background: var(--surface-card);
+}
+
+:root[data-theme="light"] .skills-row.is-selected,
+:root[data-theme="light"] .skills-row:hover,
+:root[data-theme="light"] .skills-card.is-selected,
+:root[data-theme="light"] .skills-card:hover {
+  background: var(--surface-subtle);
+}
