@@ -1585,6 +1585,44 @@ describe("assistant dock detail", () => {
     expect(onGenerateSummary).toHaveBeenCalledOnce();
   });
 
+  it("deduplicates an in-flight summary request", async () => {
+    const user = userEvent.setup();
+    let resolveSummary!: (value: string) => void;
+    const onGenerateSummary = vi.fn(
+      () => new Promise<string>((resolve) => { resolveSummary = resolve; }),
+    );
+    const dedupeIssue = {
+      ...issue({ issueId: "dedupe-test", title: "去重测试", priority: "p1" }),
+      updates: [
+        {
+          id: "dedupe-u1",
+          at: Date.now(),
+          kind: "assistant" as const,
+          summary: "fallback",
+        },
+      ],
+      updateCount: 1,
+    };
+    render(
+      <MuseTheme>
+        <DockDetail
+          selection={{ kind: "issue", issue: dedupeIssue }}
+          actionLabel={null}
+          onOpenSession={() => {}}
+          onCompleteIssue={vi.fn()}
+          onGenerateSummary={onGenerateSummary}
+        />
+      </MuseTheme>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "完成" }));
+    await user.click(screen.getByTestId("confirm-dialog-cancel"));
+    await user.click(screen.getByRole("button", { name: "完成" }));
+    expect(onGenerateSummary).toHaveBeenCalledOnce();
+    resolveSummary("共享的总结");
+    expect(await screen.findByText("共享的总结")).toBeInTheDocument();
+  });
+
   it("loads the full update history on demand", async () => {
     const user = userEvent.setup();
     const now = Date.now();

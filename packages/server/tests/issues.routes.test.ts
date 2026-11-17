@@ -63,14 +63,9 @@ describe("issues HTTP", () => {
       summary: "把入口和路由都梳理完了。",
     });
     expect(askBtw).toHaveBeenCalledOnce();
-    expect(askBtw).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.stringContaining("生成完成总结"),
-    );
-    expect(askBtw).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.stringContaining("最终结论"),
-    );
+    expect(askBtw.mock.calls[0]?.[1]).toContain("生成完成总结");
+    expect(askBtw.mock.calls[0]?.[1]).toContain("最终结论");
+    expect(askBtw.mock.calls[0]?.[2]).toBeInstanceOf(AbortSignal);
   });
 
   it("notifies the assistant when an issue is completed directly", async () => {
@@ -97,6 +92,53 @@ describe("issues HTTP", () => {
         note: "已经做完",
       }),
     );
+  });
+
+  it("keeps close Markdown in detail but strips it from the timeline summary", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "Markdown 结论" }),
+    }).then((r) => r.json());
+    const note = "# 结论\n\n- **完成**了\n\n| 项 | 结果 |\n| --- | --- |\n| 测试 | 通过 |";
+    await fetch(`${app.baseUrl}/issues/${issue.id}/complete`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ note }),
+    });
+    const updates = await fetch(
+      `${app.baseUrl}/issues/${issue.id}/updates`,
+    ).then((r) => r.json());
+    const result = updates.updates.find(
+      (update: { kind: string }) => update.kind === "result",
+    );
+    expect(result.detail).toBe(note);
+    expect(result.summary).not.toContain("#");
+    expect(result.summary).not.toContain("*");
+    expect(result.summary).not.toContain("|");
+  });
+
+  it("does not summarize a closed issue", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "已关闭" }),
+    }).then((r) => r.json());
+    await fetch(`${app.baseUrl}/issues/${issue.id}/complete`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ note: "做完了" }),
+    });
+    const res = await fetch(`${app.baseUrl}/issues/${issue.id}/summary`, {
+      method: "POST",
+    });
+    expect(res.status).toBe(409);
   });
 
   it("POST /issues can create with checklist items", async () => {

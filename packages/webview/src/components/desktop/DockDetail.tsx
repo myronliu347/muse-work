@@ -53,6 +53,10 @@ function useBoxWidth(ref: { current: HTMLElement | null }, watch: unknown): numb
 
 /** The issue AI summary only changes when the Issue gets new progress. */
 const closeSummaryCache = new Map<string, { key: string; summary: string }>();
+const closeSummaryRequests = new Map<
+  string,
+  { key: string; promise: Promise<string> }
+>();
 
 const CHECK_STATUS_ORDER = ["running", "pending", "done"] as const;
 
@@ -466,7 +470,11 @@ export function DockDetail({
     (changedFiles.length > 0
       ? `完成，改动 ${changedFiles.length} 个文件`
       : "已完成");
-  const progressCacheKey = updates[0]?.id ?? "empty";
+  const progressCacheKey = [
+    updates[0]?.id ?? "empty",
+    issue.title,
+    issue.description ?? "",
+  ].join("\0");
 
   const openClose = (kind: "complete" | "cancel") => {
     const requestId = closeRequestRef.current + 1;
@@ -483,7 +491,32 @@ export function DockDetail({
       return;
     }
     setCloseLoading(true);
-    void onGenerateSummary(issue.issueId)
+    const pending = closeSummaryRequests.get(issue.issueId);
+    let request: Promise<string>;
+    if (pending?.key === progressCacheKey) {
+      request = pending.promise;
+    } else {
+      request = onGenerateSummary(issue.issueId);
+      closeSummaryRequests.set(issue.issueId, {
+        key: progressCacheKey,
+        promise: request,
+      });
+      void request.then(
+        () => {
+          const current = closeSummaryRequests.get(issue.issueId);
+          if (current?.promise === request) {
+            closeSummaryRequests.delete(issue.issueId);
+          }
+        },
+        () => {
+          const current = closeSummaryRequests.get(issue.issueId);
+          if (current?.promise === request) {
+            closeSummaryRequests.delete(issue.issueId);
+          }
+        },
+      );
+    }
+    void request
       .then((summary) => {
         const next = summary.trim();
         if (!next) return;

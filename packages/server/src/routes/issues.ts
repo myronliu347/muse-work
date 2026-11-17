@@ -200,6 +200,25 @@ async function readCloseNote(c: { req: { json: () => Promise<unknown> } }): Prom
   }
 }
 
+/** One-line timeline summary; the full Markdown note stays in detail. */
+function plainCloseSummary(note: string): string {
+  const plain = note
+    .split("\n")
+    .map((line) =>
+      line
+        .replace(/^#{1,6}\s+/, "")
+        .replace(/^\s*[-*+]\s+/, "")
+        .replace(/^\s*\d+\.\s+/, "")
+        .trim(),
+    )
+    .filter(Boolean)
+    .join(" ")
+    .replace(/[*_`>|#]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return plain.slice(0, 120) || "已完成";
+}
+
 /** POST /issues/:id/complete — note 是结果结论；cancelled → 409 */
 issuesRoutes.post("/issues/:id/complete", async (c) => {
   const ctx = c.get("ctx");
@@ -211,7 +230,7 @@ issuesRoutes.post("/issues/:id/complete", async (c) => {
       issue.id,
       {
         kind: "result",
-        summary: `已完成：${note.trim().slice(0, 120)}`,
+        summary: `已完成：${plainCloseSummary(note)}`,
         detail: note.trim(),
         status: "completed",
       },
@@ -242,6 +261,9 @@ issuesRoutes.post("/issues/:id/summary", async (c) => {
   const ctx = c.get("ctx");
   const issue = ctx.issueStore.get(c.req.param("id"));
   if (!issue) return c.json({ error: "not found" }, 404);
+  if (issue.status === "completed" || issue.status === "cancelled") {
+    return c.json({ error: "issue closed" }, 409);
+  }
   const execution = issue.executionSessionId;
   const planning = issue.planningSessionId;
   const sessionId =
@@ -257,6 +279,8 @@ issuesRoutes.post("/issues/:id/summary", async (c) => {
   if (!ctx.runner.askBtw) {
     return c.json({ error: "askBtw unavailable" }, 501);
   }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25_000);
   try {
     const description = issue.description.trim().slice(0, 2000);
     const summary = (
@@ -269,6 +293,7 @@ issuesRoutes.post("/issues/:id/summary", async (c) => {
           "不要复述过程、不要写「我先/我在/我做了」、不要列文件路径或命令；",
           "用 Markdown 写给人看的最终结论；可以用短列表或表格组织，但不要铺过程。",
         ].join("\n"),
+        controller.signal,
       )
     ).trim();
     if (!summary) return c.json({ error: "empty summary" }, 502);
@@ -292,7 +317,7 @@ issuesRoutes.post("/issues/:id/cancel", async (c) => {
       issue.id,
       {
         kind: "result",
-        summary: `已取消：${note.trim().slice(0, 120)}`,
+        summary: `已取消：${plainCloseSummary(note)}`,
         detail: note.trim(),
         status: "cancelled",
       },
