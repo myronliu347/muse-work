@@ -276,7 +276,7 @@
 .diff-pane .preview-pane-toolbar {
   flex-wrap: wrap;
   gap: var(--space-2);
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-1) var(--space-3);
 }
 
 .diff-pane-toolbar-actions {
@@ -620,7 +620,7 @@
 
 .diff-pane-tree-header {
   flex-shrink: 0;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-1) var(--space-3);
   font-size: var(--font-size-1);
   font-weight: 600;
   color: var(--text-primary);
