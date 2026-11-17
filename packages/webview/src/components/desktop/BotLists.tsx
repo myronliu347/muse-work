@@ -260,6 +260,41 @@ function QueueRows({
   );
 }
 
+export function IssueRowContent({ issue }: { issue: BotListIssue }) {
+  return (
+    <>
+      <span className="bot-list-icon-slot">
+        <IssueTypeIcon type={issue.type} />
+        {issue.presence ? (
+          <span className="issue-sidebar-status-cover" aria-hidden="true">
+            <IssuePresenceMark presence={issue.presence} />
+          </span>
+        ) : null}
+      </span>
+      <span className="bot-list-main">
+        <span className="bot-list-title-line">
+          <span className="bot-list-title">{issue.title}</span>
+          {issue.unreadCount ? (
+            <span className="bot-list-unread">{issue.unreadCount}</span>
+          ) : null}
+        </span>
+        {issue.latestUpdate ? (
+          <span className="bot-list-preview">
+            <span className="bot-list-preview-text">{issue.latestUpdate.summary}</span>
+            <span className="bot-list-preview-time">
+              {formatUpdateTime(issue.latestUpdate.at)}
+            </span>
+          </span>
+        ) : null}
+      </span>
+      {issue.statusLabel ? (
+        <span className="bot-list-status">{issue.statusLabel}</span>
+      ) : null}
+      <span className="bot-list-priority">{priorityLabel(issue.priority)}</span>
+    </>
+  );
+}
+
 function IssueRows({
   issues,
   selected,
@@ -298,34 +333,7 @@ function IssueRows({
                 onOpenDock?.();
               }}
             >
-              <span className="bot-list-icon-slot">
-                <IssueTypeIcon type={issue.type} />
-                {issue.presence ? (
-                  <span className="issue-sidebar-status-cover" aria-hidden="true">
-                    <IssuePresenceMark presence={issue.presence} />
-                  </span>
-                ) : null}
-              </span>
-              <span className="bot-list-main">
-                <span className="bot-list-title-line">
-                  <span className="bot-list-title">{issue.title}</span>
-                  {issue.unreadCount ? (
-                    <span className="bot-list-unread">{issue.unreadCount}</span>
-                  ) : null}
-                </span>
-                {issue.latestUpdate ? (
-                  <span className="bot-list-preview">
-                    <span className="bot-list-preview-text">{issue.latestUpdate.summary}</span>
-                    <span className="bot-list-preview-time">
-                      {formatUpdateTime(issue.latestUpdate.at)}
-                    </span>
-                  </span>
-                ) : null}
-              </span>
-              {issue.statusLabel ? (
-                <span className="bot-list-status">{issue.statusLabel}</span>
-              ) : null}
-              <span className="bot-list-priority">{priorityLabel(issue.priority)}</span>
+              <IssueRowContent issue={issue} />
             </button>
             {issue.openLabel && onOpenIssue ? (
               <button

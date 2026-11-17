@@ -296,6 +296,10 @@ export function useChatDock(input: {
           issueId: item.issueId,
           title: item.title,
           type: item.type,
+          priority: item.priority,
+          ...(item.statusLabel ? { statusLabel: item.statusLabel } : {}),
+          ...(item.latestUpdate ? { latestUpdate: item.latestUpdate } : {}),
+          ...(item.unreadCount ? { unreadCount: item.unreadCount } : {}),
           presence: item.presence,
         }))}
         onSelectIssue={(issueId) => selectBotPanel({ kind: "issue", issueId })}

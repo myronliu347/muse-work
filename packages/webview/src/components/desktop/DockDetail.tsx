@@ -3,9 +3,9 @@ import DOMPurify from "dompurify";
 import { marked } from "marked";
 import type { DesktopIssueGroup, DesktopIssueUpdate } from "../../types";
 import { issueSidebarStatusLabel } from "../../utils/issueStatusLabel";
-import { IssueTypeIcon } from "../issue/IssueTypeIcon";
 import { FileIcon } from "../panels/FileIcon";
-import { IssuePresenceMark, type IssuePresence } from "../session/SessionStatusGlyph";
+import { IssueRowContent, type BotListIssue } from "./BotLists";
+import type { IssuePresence } from "../session/SessionStatusGlyph";
 import { MarkdownView } from "../message/MarkdownView";
 import { Tooltip } from "../shared/Tooltip";
 import { issueTabSessionId } from "./botWorkspace";
@@ -27,6 +27,10 @@ export type DockDetailIssue = {
   issueId: string;
   title: string;
   type?: string;
+  priority?: string;
+  statusLabel?: string;
+  latestUpdate?: { summary: string; at: number };
+  unreadCount?: number;
   presence?: IssuePresence | null;
 };
 
@@ -259,15 +263,20 @@ function IssueRail({
                 aria-current={current ? "true" : undefined}
                 onClick={() => onSelect(issue.issueId)}
               >
-                <span className="issue-sidebar-icon-slot">
-                  <IssueTypeIcon type={issue.type} />
-                  {issue.presence ? (
-                    <span className="issue-sidebar-status-cover" aria-hidden="true">
-                      <IssuePresenceMark presence={issue.presence} />
-                    </span>
-                  ) : null}
-                </span>
-                <span className="dock-detail-rail-name">{issue.title}</span>
+                <IssueRowContent
+                  issue={
+                    {
+                      issueId: issue.issueId,
+                      title: issue.title,
+                      priority: issue.priority ?? "p1",
+                      type: issue.type,
+                      presence: issue.presence ?? null,
+                      ...(issue.statusLabel ? { statusLabel: issue.statusLabel } : {}),
+                      ...(issue.latestUpdate ? { latestUpdate: issue.latestUpdate } : {}),
+                      ...(issue.unreadCount ? { unreadCount: issue.unreadCount } : {}),
+                    } satisfies BotListIssue
+                  }
+                />
               </button>
             </li>
           );
