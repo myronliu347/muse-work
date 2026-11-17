@@ -1273,6 +1273,10 @@ html:has(.desktop-layout) {
   gap: var(--space-1);
 }
 
+.desktop-session-title-wrap {
+  display: block;
+  min-width: 0;
+}
 .desktop-session-title {
   overflow: hidden;
   text-overflow: ellipsis;

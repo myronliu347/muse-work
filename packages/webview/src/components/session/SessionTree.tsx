@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { OverflowText } from "../shared/OverflowText";
 import { Tooltip } from "../shared/Tooltip";
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { WorktreeInfoCard } from "../shared/WorktreeInfoCard";
@@ -419,8 +420,8 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
             />
           ) : (
             <span
-              className="desktop-session-title"
-              title={canRename ? "双击修改标题" : undefined}
+              className="desktop-session-title-wrap"
+              title={canRename ? "双击修改标题" : listTitle}
               onDoubleClick={(e) => {
                 if (!canRename || !onRenameSession) return;
                 e.stopPropagation();
@@ -428,7 +429,11 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                 setEditingTitle(session.title || "新对话");
               }}
             >
-              {listTitle}
+              <OverflowText
+                className="desktop-session-title"
+                text={listTitle}
+                nativeTitle={false}
+              />
             </span>
           )}
           {!opts?.hideWorkdir && shortName ? (
