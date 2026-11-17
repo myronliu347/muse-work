@@ -350,15 +350,14 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     const listTitle = opts?.displayTitle || session.title || "新对话";
     const canRename =
       Boolean(onRenameSession) && (opts?.allowRename ?? !opts?.hideActions);
-    const worktreeInfo =
-      session.hasWorktree && (session.worktreeName || session.worktreeBranch)
-        ? {
-            title: listTitle,
-            branch: session.worktreeBranch,
-            worktreeName: session.worktreeName,
-            workdir: session.workdir,
-          }
-        : null;
+    const hoverInfo = {
+      title: listTitle,
+      workdir: session.workdir,
+      ...(session.worktreeBranch ? { branch: session.worktreeBranch } : {}),
+      ...(session.hasWorktree && session.worktreeName
+        ? { worktreeName: session.worktreeName }
+        : {}),
+    };
 
     const row = (
       <li
@@ -504,21 +503,19 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
       </li>
     );
 
-    // Worktree rows show a hover card on the right (matches the Cursor
-    // metadata popover). `wrap={false}` keeps the <li> a direct flex child
-    // of `.desktop-session-items`; the box renders as a fixed sibling.
-    return worktreeInfo ? (
+    // Every session row exposes its full title / workdir / branch on the
+    // right. `wrap={false}` keeps the <li> a direct flex child of
+    // `.desktop-session-items`; the card renders as a fixed sibling.
+    return (
       <Tooltip
         key={session.sessionId}
         text=""
-        content={<WorktreeInfoCard {...worktreeInfo} />}
+        content={<WorktreeInfoCard {...hoverInfo} />}
         position="right"
         wrap={false}
       >
         {row}
       </Tooltip>
-    ) : (
-      row
     );
   };
 
@@ -957,6 +954,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
             title: "置顶",
             testId: "desktop-session-section-pin",
             sessions: pinnedSessions,
+            hideWorkdir: true,
           })
         : null}
       {issueGroups?.length ? renderIssuesSection() : null}

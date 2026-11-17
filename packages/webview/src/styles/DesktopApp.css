@@ -1501,9 +1501,8 @@ html:has(.desktop-layout) {
 
 .desktop-worktree-card-title {
   font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .desktop-worktree-card-row {

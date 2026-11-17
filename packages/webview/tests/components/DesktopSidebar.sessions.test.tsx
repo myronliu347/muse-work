@@ -205,8 +205,8 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(
       screen.getByTestId("desktop-session-section-tasks"),
     ).toHaveTextContent("任务");
-    // Pin keeps workdir subtitle.
-    expect(screen.getByTestId("desktop-session-item-p1")).toHaveTextContent(
+    // Pin is flat: workdir lives in the hover card now.
+    expect(screen.getByTestId("desktop-session-item-p1")).not.toHaveTextContent(
       "alpha",
     );
     // Workspace: workdir is the group header; nested sessions omit subtitle.
@@ -406,24 +406,30 @@ describe("DesktopSidebar pin/recent sessions", () => {
     const pinBtn = screen.getByTestId("desktop-session-pin-p1");
     const pinWrap = pinBtn.closest(".tooltip-container") as HTMLElement;
     fireEvent.mouseEnter(pinWrap);
-    expect(document.querySelector(".tooltip-box.visible")).toHaveTextContent(
-      "取消置顶",
-    );
+    expect(
+      [...document.querySelectorAll(".tooltip-box.visible")].some((el) =>
+        el.textContent?.includes("取消置顶"),
+      ),
+    ).toBe(true);
     fireEvent.mouseLeave(pinWrap);
 
     const deleteBtn = screen.getByTestId("desktop-session-delete-p1");
     const deleteWrap = deleteBtn.closest(".tooltip-container") as HTMLElement;
     fireEvent.mouseEnter(deleteWrap);
-    expect(document.querySelector(".tooltip-box.visible")).toHaveTextContent(
-      "删除会话",
-    );
+    expect(
+      [...document.querySelectorAll(".tooltip-box.visible")].some((el) =>
+        el.textContent?.includes("删除会话"),
+      ),
+    ).toBe(true);
     fireEvent.mouseLeave(deleteWrap);
 
     const addBtn = screen.getByTestId("desktop-session-workdir-add-/repo/beta");
     fireEvent.mouseEnter(addBtn.closest(".tooltip-container") as HTMLElement);
-    expect(document.querySelector(".tooltip-box.visible")).toHaveTextContent(
-      "在此目录新建对话",
-    );
+    expect(
+      [...document.querySelectorAll(".tooltip-box.visible")].some((el) =>
+        el.textContent?.includes("在此目录新建对话"),
+      ),
+    ).toBe(true);
   });
 
   it("calls onNewSessionInWorkdir from workdir group + button", () => {
