@@ -66,6 +66,14 @@ describe("issues HTTP", () => {
     expect(askBtw.mock.calls[0]?.[1]).toContain("生成完成总结");
     expect(askBtw.mock.calls[0]?.[1]).toContain("最终结论");
     expect(askBtw.mock.calls[0]?.[2]).toBeInstanceOf(AbortSignal);
+
+    const cached = await fetch(`${app.baseUrl}/issues/${issue.id}/summary`, {
+      method: "POST",
+    });
+    await expect(cached.json()).resolves.toEqual({
+      summary: "把入口和路由都梳理完了。",
+    });
+    expect(askBtw).toHaveBeenCalledOnce();
   });
 
   it("notifies the assistant when an issue is completed directly", async () => {
@@ -89,9 +97,9 @@ describe("issues HTTP", () => {
         type: "issue-closed",
         issueId: issue.id,
         status: "completed",
-        note: "已经做完",
       }),
     );
+    expect(enqueue.mock.calls[0]?.[0]).not.toHaveProperty("note");
   });
 
   it("keeps close Markdown in detail but strips it from the timeline summary", async () => {

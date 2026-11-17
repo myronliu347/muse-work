@@ -69,6 +69,34 @@ export function createIssueTools(deps: AssistantToolDeps) {
       () => "",
     ),
     tool(
+      "GetIssue",
+      "读取一个 Issue 的详情，包括已关闭 Issue 的 closeNote（用户的最终结论或取消原因）。issue-closed 事件只带 id/title/status，不带 note；需要判断关闭后的后续时用这个读取，不要猜。",
+      {
+        type: "object",
+        properties: {
+          issueId: { type: "string" },
+        },
+        required: ["issueId"],
+      },
+      async (args) => {
+        const issue = deps.issues.get(text(args.issueId));
+        if (!issue) return fail("not found");
+        return ok({
+          id: issue.id,
+          title: issue.title,
+          description: issue.description,
+          type: issue.type,
+          priority: issue.priority,
+          status: issue.status,
+          workdir: issue.workdir,
+          ...(issue.closeNote ? { closeNote: issue.closeNote } : {}),
+          ...(issue.replyNote ? { replyNote: issue.replyNote } : {}),
+          ...(issue.replyPending ? { replyPending: true as const } : {}),
+        });
+      },
+      (params) => compactText(params.issueId),
+    ),
+    tool(
       "ListWorkdirs",
       "列出仍存在于磁盘的已知工作目录。",
       { type: "object", properties: {} },

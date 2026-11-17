@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+import fs from "node:fs";
+import path from "node:path";
 import type { HonoEnv } from "../honoEnv.js";
 import type { AppContext } from "../services/appContext.js";
 import type { Issue, IssueAgentMode, IssuePriority, IssueType } from "../services/issueStore.js";
@@ -13,6 +15,32 @@ export const issuesRoutes = new Hono<HonoEnv>();
 
 function broadcastIssueChanged(ctx: { hub: { broadcastAll: (e: { type: "issue:changed" }) => void } }) {
   ctx.hub.broadcastAll({ type: "issue:changed" });
+}
+
+/** Give the user a short window before the assistant picks up the close. */
+const CLOSE_EVENT_DELAY_MS = process.env.VITEST ? 0 : 5_000;
+
+function scheduleIssueClosedEvent(
+  ctx: { assistantRuntime: { enqueue: (event: { type: "issue-closed"; issueId: string; title: string; workdir: string; status: "completed" | "cancelled"; timestamp: number }) => void } },
+  issue: { id: string; title: string; workdir?: string },
+  status: "completed" | "cancelled",
+): void {
+  const event = {
+    type: "issue-closed" as const,
+    issueId: issue.id,
+    title: issue.title,
+    workdir: issue.workdir ?? "",
+    status,
+    timestamp: Date.now(),
+  };
+  if (CLOSE_EVENT_DELAY_MS <= 0) {
+    ctx.assistantRuntime.enqueue(event);
+    return;
+  }
+  const timer = setTimeout(() => {
+    ctx.assistantRuntime.enqueue(event);
+  }, CLOSE_EVENT_DELAY_MS);
+  timer.unref?.();
 }
 
 /**
@@ -219,6 +247,43 @@ function plainCloseSummary(note: string): string {
   return plain.slice(0, 120) || "已完成";
 }
 
+type IssueSummaryCache = { key: string; summary: string };
+
+function issueSummaryCachePath(home: string, issueId: string): string {
+  return path.join(home, "db", "issue-summaries", `${encodeURIComponent(issueId)}.json`);
+}
+
+function readIssueSummaryCache(
+  home: string,
+  issueId: string,
+  key: string,
+): string | undefined {
+  try {
+    const raw = fs.readFileSync(issueSummaryCachePath(home, issueId), "utf8");
+    const parsed = JSON.parse(raw) as Partial<IssueSummaryCache>;
+    if (parsed.key === key && typeof parsed.summary === "string") {
+      return parsed.summary;
+    }
+  } catch {
+    /* missing or invalid cache */
+  }
+  return undefined;
+}
+
+function writeIssueSummaryCache(
+  home: string,
+  issueId: string,
+  cache: IssueSummaryCache,
+): void {
+  try {
+    const file = issueSummaryCachePath(home, issueId);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, JSON.stringify(cache), "utf8");
+  } catch {
+    /* cache is best effort */
+  }
+}
+
 /** POST /issues/:id/complete — note 是结果结论；cancelled → 409 */
 issuesRoutes.post("/issues/:id/complete", async (c) => {
   const ctx = c.get("ctx");
@@ -238,15 +303,7 @@ issuesRoutes.post("/issues/:id/complete", async (c) => {
     );
     await deleteIssueSessions(ctx, issue);
     broadcastIssueChanged(ctx);
-    ctx.assistantRuntime.enqueue({
-      type: "issue-closed",
-      issueId: issue.id,
-      title: issue.title,
-      workdir: issue.workdir ?? "",
-      status: "completed",
-      note: note.trim(),
-      timestamp: Date.now(),
-    });
+    scheduleIssueClosedEvent(ctx, issue, "completed");
     return c.json({ issue });
   } catch (err) {
     return c.json(
@@ -264,6 +321,14 @@ issuesRoutes.post("/issues/:id/summary", async (c) => {
   if (issue.status === "completed" || issue.status === "cancelled") {
     return c.json({ error: "issue closed" }, 409);
   }
+  const latest = ctx.issueProgress.latest(issue.id);
+  const cacheKey = [
+    latest?.id ?? "empty",
+    issue.title,
+    issue.description,
+  ].join("\0");
+  const cached = readIssueSummaryCache(ctx.home, issue.id, cacheKey);
+  if (cached) return c.json({ summary: cached });
   const execution = issue.executionSessionId;
   const planning = issue.planningSessionId;
   const sessionId =
@@ -297,6 +362,7 @@ issuesRoutes.post("/issues/:id/summary", async (c) => {
       )
     ).trim();
     if (!summary) return c.json({ error: "empty summary" }, 502);
+    writeIssueSummaryCache(ctx.home, issue.id, { key: cacheKey, summary });
     return c.json({ summary });
   } catch (err) {
     return c.json(
@@ -325,15 +391,7 @@ issuesRoutes.post("/issues/:id/cancel", async (c) => {
     );
     await deleteIssueSessions(ctx, issue);
     broadcastIssueChanged(ctx);
-    ctx.assistantRuntime.enqueue({
-      type: "issue-closed",
-      issueId: issue.id,
-      title: issue.title,
-      workdir: issue.workdir ?? "",
-      status: "cancelled",
-      note: note.trim(),
-      timestamp: Date.now(),
-    });
+    scheduleIssueClosedEvent(ctx, issue, "cancelled");
     return c.json({ issue });
   } catch (err) {
     return c.json(

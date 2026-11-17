@@ -39,8 +39,6 @@ export type AssistantIssueClosedEvent = {
   title: string;
   workdir: string;
   status: "completed" | "cancelled";
-  /** 结果结论（完成）或原因（取消）。 */
-  note: string;
   timestamp?: number;
   retry?: 1;
   turnError?: string;
@@ -253,7 +251,6 @@ export function formatAssistantEvent(event: AssistantEvent): string {
       ["title", event.title],
       ["workdir", event.workdir],
       ["status", event.status],
-      ["note", event.note],
     ]);
   } else if (event.type === "permission") {
     const description = truncateCodePoints(event.description, ASSISTANT_TEXT_MAX);

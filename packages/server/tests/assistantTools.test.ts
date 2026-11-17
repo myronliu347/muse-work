@@ -223,6 +223,16 @@ describe("assistant tools", () => {
     expect(closed.success).toBe(true);
     expect(issues.get(issue.id)?.status).toBe("completed");
     expect(issues.get(issue.id)?.closeNote).toBe("登录修好了");
+    const fetched = await tool(tools, "GetIssue").execute(
+      { issueId: issue.id },
+      context,
+    );
+    expect(fetched.success).toBe(true);
+    expect(JSON.parse(fetched.content)).toMatchObject({
+      id: issue.id,
+      status: "completed",
+      closeNote: "登录修好了",
+    });
     const resolved = await tool(tools, "ResolvePermission").execute(
       { permissionId: "perm-1", sessionId: "s1", behavior: "allow" },
       context,
@@ -239,6 +249,7 @@ describe("assistant tools", () => {
 
     expect(tools.map((entry) => entry.name)).toEqual([
       "ListIssues",
+      "GetIssue",
       "ListWorkdirs",
       "CreateIssue",
       "UpdateIssue",
