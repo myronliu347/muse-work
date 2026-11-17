@@ -92,6 +92,21 @@ describe("UserMessageNav", () => {
     },
   ];
 
+  it("hides the rail below three messages by default", () => {
+    const { rerender } = render(
+      <UserMessageNav
+        entries={entries.slice(0, 2)}
+        activeId="u1"
+        onSelect={() => {}}
+      />,
+    );
+    expect(screen.queryByTestId("user-message-nav")).toBeNull();
+    rerender(
+      <UserMessageNav entries={entries} activeId="u1" onSelect={() => {}} />,
+    );
+    expect(screen.getByTestId("user-message-nav")).toBeInTheDocument();
+  });
+
   it("renders a tick per user message and shows one popover on hover", () => {
     render(
       <UserMessageNav entries={entries} activeId="u3" onSelect={() => {}} minEntries={1} />,
@@ -147,19 +162,19 @@ describe("UserMessageNav", () => {
     expect(popover).toHaveTextContent("先看第一段，最后这段是结论");
   });
 
-  it("stays hidden until there are more than five entries", () => {
-    const five = Array.from({ length: 5 }, (_, i) => ({
+  it("stays hidden until there are three entries", () => {
+    const two = Array.from({ length: 2 }, (_, i) => ({
       id: `u${i}`,
       text: `q${i}`,
     }));
     const { rerender } = render(
-      <UserMessageNav entries={five} onSelect={() => {}} />,
+      <UserMessageNav entries={two} onSelect={() => {}} />,
     );
     expect(screen.queryByTestId("user-message-nav")).toBeNull();
 
     rerender(
       <UserMessageNav
-        entries={[...five, { id: "u6", text: "q6" }]}
+        entries={[...two, { id: "u2", text: "q2" }]}
         onSelect={() => {}}
       />,
     );

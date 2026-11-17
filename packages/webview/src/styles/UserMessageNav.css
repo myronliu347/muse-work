@@ -51,6 +51,11 @@
   height: 3px;
 }
 
+.user-message-nav-item--active .user-message-nav-tick {
+  width: 22px;
+  height: 3px;
+}
+
 .user-message-nav-tick {
   flex-shrink: 0;
   width: 10px;
