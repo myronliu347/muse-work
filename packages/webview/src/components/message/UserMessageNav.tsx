@@ -27,7 +27,12 @@ export function navEntriesFromMessages(
     let reply = "";
     for (let next = index + 1; next < messages.length; next += 1) {
       const candidate = messages[next];
-      if (candidate.role === "user") break;
+      if (candidate.role === "user") {
+        // A system-injected user row is not a new turn; keep looking for the
+        // assistant's final text block after it.
+        if (candidate.isMeta) continue;
+        break;
+      }
       if (candidate.role !== "assistant") continue;
       const texts = (candidate.blocks ?? []).filter(
         (b) => b.type === "text" && (b.content || "").trim(),

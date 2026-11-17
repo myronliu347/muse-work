@@ -39,6 +39,33 @@ describe("navEntriesFromMessages", () => {
     ]);
   });
 
+  it("looks past a meta user row for the final assistant text", () => {
+    const assistant = (
+      id: string,
+      content: string,
+    ): Message => ({
+      id,
+      role: "assistant",
+      timestamp: "0",
+      blocks: [{ type: "text", content }],
+    });
+    expect(
+      navEntriesFromMessages([
+        userMsg("u1", "先看结构"),
+        assistant("a1", "开始做：先读入口"),
+        { ...userMsg("u-meta", "继续"), isMeta: true },
+        assistant("a2", "9 个非合并提交，另有 7 个合并提交。现在读结构与入口。"),
+      ]),
+    ).toEqual([
+      {
+        id: "u1",
+        text: "先看结构",
+        reply:
+          "9 个非合并提交，另有 7 个合并提交。现在读结构与入口。",
+      },
+    ]);
+  });
+
   it("attaches the last assistant text block to the preceding question", () => {
     const assistant = (
       id: string,
