@@ -532,7 +532,7 @@
 }
 
 .dock-detail-sheet {
-  width: min(100%, 560px);
+  width: min(100%, 680px);
   max-width: 100%;
   min-width: 0;
   margin: 0 auto;

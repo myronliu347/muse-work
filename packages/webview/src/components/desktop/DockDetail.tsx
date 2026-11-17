@@ -15,7 +15,7 @@ import { issueTabSessionId } from "./botWorkspace";
 
 /** Floating issue column. It sits in the right margin and must not cover the sheet. */
 export const DOCK_DETAIL_RAIL_WIDTH = 232;
-export const DOCK_DETAIL_SHEET_MAX = 560;
+export const DOCK_DETAIL_SHEET_MAX = 680;
 export const DOCK_DETAIL_RAIL_GAP = 20;
 
 /** True when the right margin can hold the issue column without covering the sheet. */

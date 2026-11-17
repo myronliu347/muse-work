@@ -366,7 +366,8 @@ describe("dock detail tab", () => {
   it("keeps the title and actions in the toolbar and lists issues beside the sheet", async () => {
     expect(dockDetailRailFits(0)).toBe(false);
     expect(dockDetailRailFits(700)).toBe(false);
-    expect(dockDetailRailFits(1100)).toBe(true);
+    expect(dockDetailRailFits(1100)).toBe(false);
+    expect(dockDetailRailFits(1200)).toBe(true);
 
     const user = userEvent.setup();
     const onSelectIssue = vi.fn();
@@ -380,7 +381,7 @@ describe("dock detail tab", () => {
       { issueId: "radii", title: RADII, type: "bug", presence: "running" as const },
       { issueId: "a11y", title: A11Y, type: "review", presence: null },
     ];
-    const restore = stubClientWidth(1100);
+    const restore = stubClientWidth(1200);
     try {
       render(
         <DockDetail
