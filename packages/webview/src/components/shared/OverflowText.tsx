@@ -10,12 +10,15 @@ export function OverflowText({
   className,
   title,
   hoverDelay = 400,
+  scrollOnHover = true,
 }: {
   text: string;
   className?: string;
   title?: string;
   /** Wait before sliding so merely passing over a tab does not move it. */
   hoverDelay?: number;
+  /** Set false when the surrounding control already has a hover tooltip. */
+  scrollOnHover?: boolean;
 }) {
   const ref = useRef<HTMLSpanElement | null>(null);
   const [shift, setShift] = useState(0);
@@ -42,7 +45,7 @@ export function OverflowText({
     return () => observer.disconnect();
   }, [text]);
 
-  const scrolling = hover && shift > 0;
+  const scrolling = scrollOnHover && hover && shift > 0;
   // Leave room after the last glyph so neither the right fade nor the
   // absolutely-positioned close button covers it.
   const travel = shift > 0 ? shift + 36 : 0;
@@ -57,7 +60,7 @@ export function OverflowText({
       title={title ?? text}
       onPointerEnter={() => {
         clearTimer();
-        if (shift <= 0) return;
+        if (!scrollOnHover || shift <= 0) return;
         if (hoverDelay <= 0) {
           setHover(true);
           return;

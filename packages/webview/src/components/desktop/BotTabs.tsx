@@ -262,7 +262,11 @@ export function BotTabs({
                     <IssuePresenceMark presence={presence[tab]} />
                   </span>
                 ) : null}
-                <OverflowText className="bot-tab-label" text={title} />
+                <OverflowText
+                  className="bot-tab-label"
+                  text={title}
+                  scrollOnHover={false}
+                />
               </button>
               <button
                 type="button"

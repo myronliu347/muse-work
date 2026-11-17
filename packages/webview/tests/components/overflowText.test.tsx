@@ -66,6 +66,28 @@ describe("OverflowText", () => {
     }
   });
 
+  it("stays clipped when the caller already has a hover tooltip", () => {
+    const restore = stubTextWidths(220, 100);
+    try {
+      render(
+        <OverflowText
+          text="prototype-html.ts"
+          title="src/prototype-html.ts"
+          hoverDelay={0}
+          scrollOnHover={false}
+        />,
+      );
+      const outer = screen.getByText("prototype-html.ts").parentElement as HTMLElement;
+      fireEvent.pointerEnter(outer);
+      expect(outer.className).not.toContain("is-scrolling");
+      expect(
+        outer.querySelector<HTMLElement>(".overflow-text-inner")?.style.transform,
+      ).toBe("");
+    } finally {
+      restore();
+    }
+  });
+
   it("waits 400ms before starting the slide", () => {
     vi.useFakeTimers();
     const restore = stubTextWidths(220, 100);
