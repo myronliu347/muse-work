@@ -87,11 +87,15 @@
 }
 
 .user-message-nav-popover-user {
+  display: -webkit-box;
+  overflow: hidden;
   color: var(--text-primary);
   font-size: var(--font-size-1);
   line-height: 1.4;
   white-space: pre-wrap;
   word-break: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .user-message-nav-popover-reply {
