@@ -656,3 +656,13 @@
 .assistant-turn-receipt-messages .assistant-bubble-row {
   margin-top: 8px;
 }
+
+/* Dark: the file chip sits on the assistant bubble; a raised translucent
+   surface plus a hairline keeps it from looking like a cut-out. */
+.radix-themes.dark .assistant-file-chip {
+  background: color-mix(in srgb, var(--text-on-accent) 8%, transparent);
+  border: 1px solid var(--border-subtle);
+}
+.radix-themes.dark .assistant-file-chip:hover {
+  background: color-mix(in srgb, var(--text-on-accent) 12%, transparent);
+}
