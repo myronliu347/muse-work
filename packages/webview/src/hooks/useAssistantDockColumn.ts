@@ -106,33 +106,6 @@ export function useAssistantDockColumn({
     layoutChatMin,
     updateMuseWidthGroup,
   ]);
-  // The splitter drag pins the chat column so the dock can keep its width.
-  // That pin is React state, so it is lost when the assistant surface unmounts
-  // (switching to a session and back). Restore it from the persisted dock width
-  // once the frame has been measured, but only for a dock the user resized —
-  // a first-open/default dock should still follow the responsive grid.
-  useLayoutEffect(() => {
-    if (!assistantVisible || !assistantDockOpen || dockFullscreen) return;
-    if (chatPaneWidth != null) return;
-    const resized = Object.values(assistantWidths).some(
-      (width) => width !== PANEL_DEFAULT_WIDTH,
-    );
-    if (!resized) return;
-    const frame = chatContainerRef.current;
-    const containerW =
-      frame?.clientWidth || frame?.getBoundingClientRect().width || 0;
-    const dockW = assistantWidths.preview;
-    if (!(containerW > 0) || !(dockW > 0)) return;
-    setChatPaneWidth(Math.max(0, Math.round(containerW - dockW)));
-  }, [
-    assistantVisible,
-    assistantDockOpen,
-    dockFullscreen,
-    chatPaneWidth,
-    assistantWidths,
-    chatContainerRef,
-  ]);
-
   useLayoutEffect(() => {
     if (!assistantVisible || !assistantDockOpen || dockFullscreen) {
       setChatPaneWidth(null);
