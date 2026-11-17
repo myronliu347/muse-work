@@ -559,27 +559,33 @@ export function DockDetail({
           </div>
         </div>
         <div className="dock-detail-actions">
-          {closable && onCompleteIssue ? (
-            <button
-              type="button"
-              className="dock-detail-complete"
-              aria-label="完成"
-              title="完成"
-              onClick={() => openClose("complete")}
-            >
-              <i className="codicon codicon-check" aria-hidden />
-            </button>
-          ) : null}
-          {closable && onCancelIssue ? (
-            <button
-              type="button"
-              className="dock-detail-cancel"
-              aria-label="取消"
-              title="取消"
-              onClick={() => openClose("cancel")}
-            >
-              <i className="codicon codicon-close" aria-hidden />
-            </button>
+          {closable && (onCompleteIssue || onCancelIssue) ? (
+            <div className="dock-detail-close-actions">
+              {onCompleteIssue ? (
+                <Tooltip text="完成" position="bottom" wrap={false}>
+                  <button
+                    type="button"
+                    className="dock-detail-complete"
+                    aria-label="完成"
+                    onClick={() => openClose("complete")}
+                  >
+                    <i className="codicon codicon-check" aria-hidden />
+                  </button>
+                </Tooltip>
+              ) : null}
+              {onCancelIssue ? (
+                <Tooltip text="取消" position="bottom" wrap={false}>
+                  <button
+                    type="button"
+                    className="dock-detail-cancel"
+                    aria-label="取消"
+                    onClick={() => openClose("cancel")}
+                  >
+                    <i className="codicon codicon-close" aria-hidden />
+                  </button>
+                </Tooltip>
+              ) : null}
+            </div>
           ) : null}
           {actionLabel ? (
             <DetailIconButton

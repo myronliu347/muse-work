@@ -1336,6 +1336,14 @@
 }
 
 
+.dock-detail-close-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 3px;
+  padding-right: 6px;
+  border-right: 1px solid var(--border-subtle);
+}
 .dock-detail-complete,
 .dock-detail-cancel {
   flex: 0 0 auto;
@@ -1344,25 +1352,27 @@
   display: grid;
   place-items: center;
   padding: 0;
+  border: 1px solid transparent;
   border-radius: 6px;
+  background: transparent;
   font-size: 14px;
   cursor: pointer;
 }
 .dock-detail-complete {
-  border: 1px solid var(--accent-border);
-  background: var(--action-primary-bg);
-  color: var(--action-primary-fg);
-}
-.dock-detail-complete:hover {
-  background: var(--action-primary-bg-hover);
+  color: var(--status-success-text);
 }
 .dock-detail-cancel {
-  border: 1px solid var(--border-subtle);
-  background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
+}
+.dock-detail-complete:hover,
+.dock-detail-cancel:hover {
+  border-color: var(--border-subtle);
+  background: var(--surface-muted);
+}
+.dock-detail-complete:hover {
+  color: var(--status-success-text);
 }
 .dock-detail-cancel:hover {
-  background: var(--surface-muted);
   color: var(--text-primary);
 }
 .dock-detail-close-note {

@@ -63,6 +63,14 @@ describe("issues HTTP", () => {
       summary: "把入口和路由都梳理完了。",
     });
     expect(askBtw).toHaveBeenCalledOnce();
+    expect(askBtw).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringContaining("生成完成总结"),
+    );
+    expect(askBtw).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringContaining("最终结论"),
+    );
   });
 
   it("notifies the assistant when an issue is completed directly", async () => {

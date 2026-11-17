@@ -258,10 +258,17 @@ issuesRoutes.post("/issues/:id/summary", async (c) => {
     return c.json({ error: "askBtw unavailable" }, 501);
   }
   try {
+    const description = issue.description.trim().slice(0, 2000);
     const summary = (
       await ctx.runner.askBtw(
         sessionId,
-        "请用一两句话总结这条 Issue 这一轮实际做成了什么，作为完成说明。只写结论，不要寒暄、不要 Markdown 标题，尽量控制在 80 字以内。",
+        [
+          `这条 Issue 的标题是：「${issue.title}」。`,
+          description ? `Issue 描述：\n${description}` : "这条 Issue 没有补充描述。",
+          "请只给这条 Issue 的最终结论：这件事的答案/结果是什么。",
+          "不要复述过程、不要写「我先/我在/我做了」、不要列文件路径或命令；",
+          "用 1–3 句中文说清结论；如果目前只有过程、结论还不成立，就明确说结论缺口。",
+        ].join("\n"),
       )
     ).trim();
     if (!summary) return c.json({ error: "empty summary" }, 502);
