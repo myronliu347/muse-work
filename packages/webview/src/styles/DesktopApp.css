@@ -31,8 +31,8 @@ html:has(.desktop-layout) {
      a positioned pseudo-element would sit above headers that are not in a
      stacking context and hide their content. */
   background-image: linear-gradient(
-    var(--surface-header),
-    var(--surface-header)
+    var(--surface-rail),
+    var(--surface-rail)
   );
   background-repeat: no-repeat;
   background-size: 100% var(--desktop-shell-titlebar-height);
