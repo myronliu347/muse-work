@@ -497,7 +497,9 @@ export function DockDetail({
     closeRequestRef.current = requestId;
     setCloseKind(kind);
     setCloseNote(kind === "complete" ? suggestedCloseNote : "");
-    setClosePreview(true);
+    // Completion reads the generated conclusion; cancellation starts as an
+    // editable reason because there is no AI summary to preview.
+    setClosePreview(kind === "complete");
     setCloseError(null);
     setCloseLoading(false);
     if (kind !== "complete" || !onGenerateSummary) return;
