@@ -1499,6 +1499,13 @@ html:has(.desktop-layout) {
   max-width: 340px;
 }
 
+/* Light: the generic tooltip uses a gray fill, which reads as a dirty card
+   behind full session titles and paths. Lift just this metadata card. */
+:root[data-theme="light"] .tooltip-box:has(.desktop-worktree-card) {
+  background-color: var(--surface-card);
+  border-color: var(--border-subtle);
+}
+
 .desktop-worktree-card-title {
   font-weight: 600;
   white-space: normal;
