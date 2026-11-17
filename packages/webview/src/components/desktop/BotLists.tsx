@@ -55,6 +55,10 @@ export type BotListIssue = {
   statusLabel?: string;
   /** 悬停时盖在行右侧。已经停在这条会话上时为空。 */
   openLabel?: "打开会话" | "切到会话" | null;
+  /** 最近一条进展。 */
+  latestUpdate?: { summary: string; at: number };
+  /** 未读进展条数。 */
+  unreadCount?: number;
 };
 
 export interface BotListsProps {
@@ -179,6 +183,10 @@ function formatQueueTime(time: number | undefined): string {
   return `${hours}:${minutes}`;
 }
 
+function formatUpdateTime(time: number | undefined): string {
+  return formatQueueTime(time);
+}
+
 function InboxIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -298,7 +306,22 @@ function IssueRows({
                   </span>
                 ) : null}
               </span>
-              <span className="bot-list-title">{issue.title}</span>
+              <span className="bot-list-main">
+                <span className="bot-list-title-line">
+                  <span className="bot-list-title">{issue.title}</span>
+                  {issue.unreadCount ? (
+                    <span className="bot-list-unread">{issue.unreadCount}</span>
+                  ) : null}
+                </span>
+                {issue.latestUpdate ? (
+                  <span className="bot-list-preview">
+                    <span className="bot-list-preview-text">{issue.latestUpdate.summary}</span>
+                    <span className="bot-list-preview-time">
+                      {formatUpdateTime(issue.latestUpdate.at)}
+                    </span>
+                  </span>
+                ) : null}
+              </span>
               {issue.statusLabel ? (
                 <span className="bot-list-status">{issue.statusLabel}</span>
               ) : null}

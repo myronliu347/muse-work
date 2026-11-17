@@ -9,6 +9,12 @@ import {
 import { issueGroupActivity } from "../components/session/SessionStatusGlyph";
 import type { MuseApiClient } from "../muse/apiClient";
 import type { ChatState, DesktopHostProps } from "../types";
+import {
+  isIssueUpdateUnread,
+  markIssueSeen,
+  markIssuesSeen,
+  useIssueSeen,
+} from "../muse/issueSeen";
 
 /** Muse Bot queue, issue rows, and which issue column is on screen. */
 export function useBotIssueBoard({
@@ -53,6 +59,7 @@ export function useBotIssueBoard({
       window.removeEventListener("message", onMessage);
     };
   }, [assistantVisible, museApi]);
+  const seen = useIssueSeen();
   const issueActivityById = new Map(
     (host?.issueGroups ?? []).map((group) => [
       group.issueId,
@@ -65,6 +72,12 @@ export function useBotIssueBoard({
   const botIssues = (host?.issueGroups ?? []).map((group) => {
     const activity = issueActivityById.get(group.issueId);
     const presence = activity?.presence ?? null;
+    const latest = group.latestUpdate;
+    const unreadCount = (group.updates ?? []).filter(
+      (update) =>
+        !update.userPresent &&
+        isIssueUpdateUnread(group.issueId, update.at, seen),
+    ).length;
     return {
       issueId: group.issueId,
       title: group.title,
@@ -78,6 +91,10 @@ export function useBotIssueBoard({
       openLabel: issueTabSessionId(group)
         ? sessionActionLabel(workspace, group.issueId)
         : null,
+      ...(latest
+        ? { latestUpdate: { summary: latest.summary, at: latest.at } }
+        : {}),
+      ...(unreadCount > 0 ? { unreadCount } : {}),
     };
   });
   const issueTabPresence: Record<string, ReturnType<typeof issueGroupActivity>["presence"]> = {};
@@ -102,10 +119,26 @@ export function useBotIssueBoard({
     (panel: Exclude<PanelSelection, { kind: "none" }>) => {
       workspace.selectPanel(panel);
       setBotMenu(null);
-      if (panel.kind === "issue") clearIssueUnreadRef.current(panel.issueId);
+      if (panel.kind === "issue") {
+        clearIssueUnreadRef.current(panel.issueId);
+        markIssueSeen(panel.issueId);
+      }
     },
     [workspace],
   );
+  useEffect(() => {
+    if (workspace.panel.kind === "issue") markIssueSeen(workspace.panel.issueId);
+    if (workspace.active !== "bot") markIssueSeen(workspace.active);
+  }, [workspace.panel, workspace.active]);
+
+  const markAllProgressSeen = useCallback(() => {
+    markIssuesSeen(
+      botIssues
+        .filter((issue) => (issue.unreadCount ?? 0) > 0)
+        .map((issue) => issue.issueId),
+    );
+  }, [botIssues]);
+
   const openIssueGroup =
     workspace.active === "bot"
       ? undefined
@@ -125,6 +158,7 @@ export function useBotIssueBoard({
     clearIssueUnreadRef,
     selectBotPanel,
     shownIssueGroup,
+    markAllProgressSeen,
   };
 }
 

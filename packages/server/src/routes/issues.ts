@@ -73,6 +73,21 @@ issuesRoutes.get("/issues/:id", (c) => {
   return c.json({ issue });
 });
 
+/** GET /issues/:id/updates — progress history, newest first. */
+issuesRoutes.get("/issues/:id/updates", (c) => {
+  const ctx = c.get("ctx");
+  const issue = ctx.issueStore.get(c.req.param("id"));
+  if (!issue) return c.json({ error: "not found" }, 404);
+  const limitRaw = Number(c.req.query("limit") ?? "30");
+  const limit = Number.isFinite(limitRaw) ? limitRaw : 30;
+  return c.json(
+    ctx.issueProgress.list(issue.id, {
+      limit,
+      ...(c.req.query("before") ? { before: c.req.query("before")! } : {}),
+    }),
+  );
+});
+
 /** POST /issues */
 issuesRoutes.post("/issues", async (c) => {
   const ctx = c.get("ctx");
@@ -161,6 +176,11 @@ issuesRoutes.post("/issues/:id/ready", (c) => {
   try {
     const issue = ctx.issueStore.markReady(existing.id);
     if (!issue) return c.json({ error: "conflict" }, 409);
+    ctx.recordIssueUpdate(issue.id, {
+      kind: "status",
+      summary: "这一轮做完，等你确认",
+      status: issue.status,
+    });
     broadcastIssueChanged(ctx);
     return c.json({ issue });
   } catch (err) {
@@ -187,6 +207,16 @@ issuesRoutes.post("/issues/:id/complete", async (c) => {
   try {
     const issue = ctx.issueStore.complete(c.req.param("id"), note);
     if (!issue) return c.json({ error: "conflict" }, 409);
+    ctx.recordIssueUpdate(
+      issue.id,
+      {
+        kind: "result",
+        summary: `已完成：${note.trim().slice(0, 120)}`,
+        detail: note.trim(),
+        status: "completed",
+      },
+      { allowClosed: true },
+    );
     await deleteIssueSessions(ctx, issue);
     broadcastIssueChanged(ctx);
     return c.json({ issue });
@@ -205,6 +235,16 @@ issuesRoutes.post("/issues/:id/cancel", async (c) => {
   try {
     const issue = ctx.issueStore.cancel(c.req.param("id"), note);
     if (!issue) return c.json({ error: "conflict" }, 409);
+    ctx.recordIssueUpdate(
+      issue.id,
+      {
+        kind: "result",
+        summary: `已取消：${note.trim().slice(0, 120)}`,
+        detail: note.trim(),
+        status: "cancelled",
+      },
+      { allowClosed: true },
+    );
     await deleteIssueSessions(ctx, issue);
     broadcastIssueChanged(ctx);
     return c.json({ issue });
@@ -270,6 +310,11 @@ issuesRoutes.post("/issues/:id/items", async (c) => {
   if (!issue) {
     return c.json({ error: "not found" }, 404);
   }
+  ctx.recordIssueUpdate(issue.id, {
+    kind: "checklist",
+    summary: `清单新增 ${toAdd.length} 项`,
+    status: issue.status,
+  });
   broadcastIssueChanged(ctx);
   return c.json({ issue });
 });
@@ -306,6 +351,11 @@ issuesRoutes.put("/issues/:id/items", async (c) => {
   if (!issue) {
     return c.json({ error: "not found" }, 404);
   }
+  ctx.recordIssueUpdate(issue.id, {
+    kind: "checklist",
+    summary: `清单新增 ${toAdd.length} 项`,
+    status: issue.status,
+  });
   broadcastIssueChanged(ctx);
   return c.json({ issue });
 });
@@ -341,10 +391,16 @@ issuesRoutes.post("/issues/:id/items/:itemId/accept", (c) => {
     return c.json({ error: "issue is terminal" }, 409);
   }
   try {
+    const item = existing.items.find((entry) => entry.id === itemId);
     const issue = ctx.issueStore.acceptItem(id, itemId);
     if (!issue) {
       return c.json({ error: "not found" }, 404);
     }
+    ctx.recordIssueUpdate(issue.id, {
+      kind: "checklist",
+      summary: item ? `清单项完成：${item.content}` : "清单项完成",
+      status: issue.status,
+    });
     broadcastIssueChanged(ctx);
     return c.json({ issue });
   } catch (err) {

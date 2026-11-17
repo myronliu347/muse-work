@@ -149,7 +149,8 @@ export function isStartedSession(session: Session): boolean {
   return (
     Boolean(session.museSessionId) ||
     session.title !== "新对话" ||
-    session.lastActiveAt > session.createdAt
+    session.lastActiveAt > session.createdAt ||
+    session.status === "running"
   );
 }
 

@@ -8,6 +8,8 @@ import type { createAssistantMessageLog } from "../messages.js";
 import { openIssueSession } from "../../issueOpen.js";
 import type { ServerWorktree } from "../../gitWorktree.js";
 import type { TavilyOptions } from "../tavily.js";
+import type { IssueUpdate, IssueUpdateInput } from "../../issueProgress.js";
+import type { AssistantTurnContext } from "../runtime.js";
 
 type Log = ReturnType<typeof createAssistantMessageLog>;
 
@@ -19,6 +21,11 @@ export type AssistantToolDeps = {
   automations: AutomationStore;
   log: Log;
   hub: WsHub;
+  recordIssueUpdate?: (
+    issueId: string,
+    input: IssueUpdateInput,
+  ) => IssueUpdate | undefined;
+  getTurnContext?: () => AssistantTurnContext | undefined;
   apps?: import("@muse-work/plugin-sdk").AssistantApp[];
   extraTools?: import("@muse-work/plugin-sdk").AssistantTool[];
   openIssue?: typeof openIssueSession;

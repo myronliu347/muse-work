@@ -73,6 +73,8 @@ export function useChatDock(input: {
   setAssistantDockOpen: (open: boolean) => void;
   handleOpenFile: (path: string, startLine?: number, endLine?: number, pinned?: boolean) => void;
   handleOpenFilePin: (path: string) => void;
+  openChangedFile: (path: string) => void;
+  openArtifact: (path: string) => void;
   revealOpenedFile: () => void;
   handleRefreshOpenFile: (path: string) => void;
   sendIssueMessage: (text: string) => void;
@@ -154,6 +156,8 @@ export function useChatDock(input: {
     setAssistantDockOpen,
     handleOpenFile,
     handleOpenFilePin,
+    openChangedFile,
+    openArtifact,
     revealOpenedFile,
     handleRefreshOpenFile,
     sendIssueMessage,
@@ -283,6 +287,8 @@ export function useChatDock(input: {
           presence: item.presence,
         }))}
         onSelectIssue={(issueId) => selectBotPanel({ kind: "issue", issueId })}
+        onOpenChangedFile={openChangedFile}
+        onOpenArtifact={openArtifact}
       />
     ) : undefined,
     onCloseTab: handleTogglePanel,

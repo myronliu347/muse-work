@@ -1,0 +1,1780 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>灵光 · 事项进展原型</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0b0b0d;
+    --rail: #09090b;
+    --panel: #121214;
+    --panel-2: #17171a;
+    --panel-3: #1c1c20;
+    --line: rgba(255, 255, 255, 0.075);
+    --line-strong: rgba(255, 255, 255, 0.13);
+    --text: #f0f0f2;
+    --muted: #9a9aa2;
+    --faint: #66666e;
+    --accent: #a7b8ff;
+    --accent-soft: rgba(140, 160, 255, 0.14);
+    --amber: #e9bd78;
+    --amber-soft: rgba(233, 189, 120, 0.12);
+    --green: #86d2a2;
+    --green-soft: rgba(134, 210, 162, 0.12);
+    --red: #e59a9a;
+    --red-soft: rgba(229, 154, 154, 0.12);
+    --purple: #c4a7ff;
+    --purple-soft: rgba(196, 167, 255, 0.12);
+    --radius: 14px;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font-family: inherit; }
+  ::selection { background: rgba(167, 184, 255, 0.28); }
+
+  .app {
+    height: 100vh;
+    min-width: 1180px;
+    display: flex;
+    background: var(--bg);
+  }
+
+  /* left rail */
+  .rail {
+    width: 56px;
+    flex: 0 0 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    padding: 11px 0 12px;
+    background: var(--rail);
+    border-right: 1px solid var(--line);
+  }
+  .rail-logo {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,.22), transparent 45%),
+      linear-gradient(145deg, #34343a, #17171a);
+    border: 1px solid rgba(255,255,255,.1);
+    color: #fff;
+    font-size: 15px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.25);
+  }
+  .rail-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #77777f;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: background .16s ease, color .16s ease, border-color .16s ease;
+  }
+  .rail-btn svg { width: 18px; height: 18px; }
+  .rail-btn:hover { color: #d7d7de; background: rgba(255,255,255,.05); }
+  .rail-btn.active {
+    color: #fff;
+    background: rgba(255,255,255,.08);
+    border-color: rgba(255,255,255,.1);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .rail-spacer { flex: 1; }
+
+  /* workspace */
+  .workspace {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .topbar {
+    flex: 0 0 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 14px 0 16px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #101012, #0d0d0f);
+  }
+  .tabs {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: stretch;
+    gap: 3px;
+    height: 100%;
+    overflow: hidden;
+  }
+  .tab {
+    position: relative;
+    min-width: 0;
+    max-width: 220px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #888890;
+    font-size: 12.5px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color .15s ease, background .15s ease;
+  }
+  .tab:hover { color: #d6d6dd; background: rgba(255,255,255,.04); }
+  .tab.active { color: #f2f2f5; background: rgba(255,255,255,.065); }
+  .tab-glyph { color: var(--accent); font-size: 13px; }
+  .tab-label { overflow: hidden; text-overflow: ellipsis; }
+  .tab-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(167,184,255,.8);
+    flex: 0 0 auto;
+  }
+  .tab-close {
+    margin-left: 1px;
+    width: 16px;
+    height: 16px;
+    border-radius: 5px;
+    display: grid;
+    place-items: center;
+    color: #777780;
+    font-size: 13px;
+    line-height: 1;
+  }
+  .tab-close:hover { background: rgba(255,255,255,.08); color: #fff; }
+
+  .top-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+  .view-switch {
+    display: inline-flex;
+    padding: 2px;
+    gap: 2px;
+    border-radius: 8px;
+    background: #19191c;
+    border: 1px solid var(--line);
+  }
+  .view-switch button {
+    border: 0;
+    background: transparent;
+    color: #777780;
+    font-size: 11.5px;
+    padding: 4px 9px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .view-switch button.active { color: #efeff2; background: #303037; box-shadow: 0 1px 0 rgba(255,255,255,.06) inset; }
+  .top-btn {
+    height: 29px;
+    padding: 0 11px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #18181b;
+    color: #c8c8d0;
+    font-size: 11.5px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .top-btn:hover { background: #202024; border-color: var(--line-strong); color: #fff; }
+  .top-btn.primary {
+    color: #101014;
+    background: #d9d9e1;
+    border-color: transparent;
+    font-weight: 600;
+  }
+  .top-btn.primary:hover { background: #fff; }
+  .top-btn.ghost { border-color: transparent; background: transparent; color: #85858d; padding: 0 8px; }
+  .top-btn.ghost:hover { color: #d8d8df; background: rgba(255,255,255,.05); }
+  .proto-pill {
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px dashed rgba(255,255,255,.16);
+    color: #777780;
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    user-select: none;
+  }
+
+  /* body / columns */
+  .body {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 250px 410px;
+    background: var(--bg);
+  }
+
+  /* chat */
+  .chat {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background:
+      radial-gradient(900px 420px at 48% -12%, rgba(124, 140, 220, 0.07), transparent 70%),
+      var(--bg);
+  }
+  .catchup {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 43px;
+    padding: 8px 20px 8px 24px;
+    border-bottom: 1px solid rgba(167, 184, 255, 0.14);
+    background:
+      linear-gradient(90deg, rgba(167, 184, 255, 0.085), rgba(167, 184, 255, 0.025) 62%, transparent);
+  }
+  .catchup-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #c3cbef;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 rgba(167,184,255,.5);
+    animation: pulse 2.2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(167,184,255,.38); }
+    70% { box-shadow: 0 0 0 7px rgba(167,184,255,0); }
+    100% { box-shadow: 0 0 0 0 rgba(167,184,255,0); }
+  }
+  .catchup-chips { display: flex; gap: 5px; min-width: 0; overflow: hidden; flex: 1; }
+  .catchup-chip {
+    min-width: 0;
+    max-width: 190px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 9px;
+    border-radius: 7px;
+    border: 1px solid rgba(167, 184, 255, 0.17);
+    background: rgba(167, 184, 255, 0.06);
+    color: #d6dcf7;
+    font-size: 11.5px;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .catchup-chip:hover { background: rgba(167, 184, 255, 0.13); border-color: rgba(167,184,255,.3); }
+  .catchup-chip .chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .catchup-chip .unread-count {
+    flex: 0 0 auto;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 4px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: rgba(167,184,255,.2);
+    color: #dfe5ff;
+    font-size: 9.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .catchup .link {
+    flex: 0 0 auto;
+    border: 0;
+    background: transparent;
+    color: #8e96b8;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 4px 2px;
+  }
+  .catchup .link:hover { color: #d8defa; }
+
+  .chat-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #313137 transparent;
+  }
+  .chat-inner {
+    width: min(100%, 760px);
+    margin: 0 auto;
+    padding: 22px 34px 26px;
+  }
+  .day-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #5f5f68;
+    font-size: 10.5px;
+    margin: 2px 0 20px;
+  }
+  .day-divider::before, .day-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
+  }
+
+  .msg { display: flex; flex-direction: column; margin-bottom: 17px; }
+  .msg.user { align-items: flex-end; }
+  .msg.assistant { align-items: flex-start; }
+  .bubble {
+    max-width: 86%;
+    padding: 11px 13px;
+    border-radius: 14px;
+    line-height: 1.65;
+    font-size: 12.8px;
+    letter-spacing: .005em;
+  }
+  .msg.user .bubble {
+    background: #26262b;
+    border: 1px solid rgba(255,255,255,.075);
+    border-bottom-right-radius: 5px;
+    color: #ececf0;
+  }
+  .msg.assistant .bubble {
+    background: #1c1c20;
+    border: 1px solid rgba(255,255,255,.065);
+    border-bottom-left-radius: 5px;
+    color: #e7e7eb;
+  }
+  .msg-time {
+    margin-top: 6px;
+    padding: 0 3px;
+    color: #5b5b64;
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .ctx {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 6px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: rgba(167,184,255,.11);
+    border: 1px solid rgba(167,184,255,.16);
+    color: #b9c5f5;
+    font-size: 11px;
+    vertical-align: 1px;
+  }
+  .ctx::before { content: "◇"; font-size: 9px; opacity: .8; }
+
+  /* receipt */
+  .receipt {
+    margin: 2px 0 16px;
+    border: 1px solid rgba(167, 184, 255, 0.16);
+    border-radius: 15px;
+    background:
+      linear-gradient(180deg, rgba(167,184,255,.055), rgba(167,184,255,.008) 46%, transparent),
+      #151518;
+    overflow: hidden;
+    box-shadow: 0 18px 42px rgba(0,0,0,.16);
+  }
+  .receipt.new { animation: receiptIn .45s ease both; }
+  @keyframes receiptIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .receipt-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 14px 9px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .receipt-kicker {
+    color: #cdd4f7;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .02em;
+  }
+  .receipt-time { color: #676772; font-size: 10.5px; font-variant-numeric: tabular-nums; }
+  .receipt-head .receipt-spacer { flex: 1; }
+  .receipt-head .receipt-hint { color: #60606a; font-size: 10px; }
+
+  .receipt-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    cursor: pointer;
+    border-top: 1px solid rgba(255,255,255,.045);
+    transition: background .14s ease;
+  }
+  .receipt-row:first-of-type { border-top: 0; }
+  .receipt-row:hover { background: rgba(255,255,255,.035); }
+  .status-chip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 7px;
+    border-radius: 6px;
+    font-size: 10.5px;
+    white-space: nowrap;
+  }
+  .status-chip::before {
+    content: "";
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: .9;
+  }
+  .status-chip.run { color: #9fb4ff; background: rgba(140,160,255,.1); }
+  .status-chip.review { color: var(--amber); background: var(--amber-soft); }
+  .status-chip.done { color: var(--green); background: var(--green-soft); }
+  .status-chip.idle { color: #9a9aa2; background: rgba(255,255,255,.05); }
+  .receipt-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .receipt-title { font-size: 12.5px; color: #f1f1f4; font-weight: 550; }
+  .receipt-preview {
+    color: #8b8b95;
+    font-size: 11.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mini-btn {
+    flex: 0 0 auto;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.035);
+    color: #b8b8c2;
+    border-radius: 7px;
+    padding: 5px 8px;
+    font-size: 10.5px;
+    cursor: pointer;
+  }
+  .mini-btn:hover { color: #fff; border-color: rgba(255,255,255,.16); background: rgba(255,255,255,.07); }
+  .receipt-row .attention-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--amber);
+    flex: 0 0 auto;
+    margin-left: -3px;
+  }
+
+  /* collapsed update stack */
+  .stack {
+    margin: 0 0 16px;
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 12px;
+    background: #151518;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .stack:hover { border-color: rgba(255,255,255,.13); background: #18181c; }
+  .stack-head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 12px;
+  }
+  .stack-count {
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,.07);
+    color: #c5c5ce;
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stack-title { color: #d8d8df; font-size: 11.5px; }
+  .stack-sub { color: #70707a; font-size: 10.5px; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stack-chev { color: #73737d; font-size: 13px; padding: 0 2px; }
+  .stack-body { border-top: 1px solid rgba(255,255,255,.055); padding: 2px 0 0; cursor: default; }
+  .stack-body .msg { margin: 12px 13px 0; }
+  .stack-body .msg:last-child { margin-bottom: 12px; }
+
+  /* session view */
+  .session-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 2px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    margin-bottom: 20px;
+  }
+  .session-title { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+  .session-status {
+    font-size: 10.5px;
+    color: #9fb4ff;
+    background: rgba(140,160,255,.1);
+    border: 1px solid rgba(140,160,255,.14);
+    border-radius: 6px;
+    padding: 3px 7px;
+  }
+  .session-sync {
+    margin-left: auto;
+    color: #686872;
+    font-size: 10.5px;
+  }
+  .session-intro {
+    margin: 0 0 18px;
+    padding: 10px 12px;
+    border-radius: 9px;
+    border: 1px dashed rgba(255,255,255,.1);
+    color: #7d7d87;
+    font-size: 11px;
+    line-height: 1.55;
+  }
+
+  /* right issue list */
+  .issues-col {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--line);
+    background: #101012;
+    padding: 13px 10px 10px;
+  }
+  .panel-head {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 0 5px 10px;
+  }
+  .panel-head h2 {
+    margin: 0;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #d9d9e0;
+    letter-spacing: .01em;
+  }
+  .panel-head .count {
+    color: #777781;
+    font-size: 10.5px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+  .panel-head .panel-sub {
+    margin-left: auto;
+    color: #5c5c66;
+    font-size: 9.5px;
+    letter-spacing: .02em;
+  }
+  .issue-list { display: flex; flex-direction: column; gap: 3px; overflow-y: auto; min-height: 0; }
+  .issue-row {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 9px 8px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background .14s ease, border-color .14s ease;
+  }
+  .issue-row:hover { background: rgba(255,255,255,.04); }
+  .issue-row.selected {
+    background: rgba(255,255,255,.065);
+    border-color: rgba(255,255,255,.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+  }
+  .type-badge {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    margin-top: 1px;
+    border-radius: 7px;
+    display: grid;
+    place-items: center;
+    font-size: 10px;
+    font-weight: 600;
+    border: 1px solid transparent;
+  }
+  .type-badge.bug { color: #e8a1a1; background: rgba(232,161,161,.12); border-color: rgba(232,161,161,.12); }
+  .type-badge.work { color: #aebcff; background: rgba(174,188,255,.1); border-color: rgba(174,188,255,.12); }
+  .type-badge.analysis { color: #cbb0ff; background: rgba(203,176,255,.1); border-color: rgba(203,176,255,.12); }
+  .issue-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .issue-title-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .issue-title {
+    color: #dddde4;
+    font-size: 12px;
+    font-weight: 550;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .unread-badge {
+    flex: 0 0 auto;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 4px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: rgba(167,184,255,.18);
+    color: #ced6ff;
+    font-size: 9px;
+    font-variant-numeric: tabular-nums;
+  }
+  .issue-preview {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    color: #74747e;
+    font-size: 10.5px;
+    line-height: 1.35;
+  }
+  .issue-preview .issue-time {
+    margin-left: auto;
+    flex: 0 0 auto;
+    color: #575761;
+    font-size: 9px;
+    white-space: nowrap;
+  }
+  .issue-preview .dot {
+    flex: 0 0 auto;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .issue-preview .dot.run { color: #9fb4ff; }
+  .issue-preview .dot.review { color: var(--amber); }
+  .issue-preview .dot.done { color: var(--green); }
+  .issue-preview .preview-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .issue-time {
+    flex: 0 0 auto;
+    color: #575761;
+    font-size: 9px;
+    white-space: nowrap;
+  }
+
+  /* detail */
+  .detail-col {
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    border-left: 1px solid var(--line);
+    background: #121214;
+    scrollbar-width: thin;
+    scrollbar-color: #313137 transparent;
+  }
+  .detail-inner { padding: 18px 20px 34px; }
+  .detail-head { padding-bottom: 13px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .detail-title-row { display: flex; align-items: center; gap: 9px; }
+  .detail-title-row .type-badge { width: 24px; height: 24px; margin: 0; }
+  .detail-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -.015em;
+    line-height: 1.2;
+  }
+  .detail-tags { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+  .p-chip {
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-size: 9.5px;
+    color: #c7c7cf;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.06);
+    font-variant-numeric: tabular-nums;
+  }
+  .p-chip.p0 { color: var(--red); background: var(--red-soft); }
+  .p-chip.p1 { color: var(--amber); background: var(--amber-soft); }
+  .p-chip.p2 { color: #a4a4ad; }
+  .detail-updated { margin-left: auto; color: #5e5e68; font-size: 9.5px; }
+
+  .eyebrow {
+    display: block;
+    color: #6f6f79;
+    font-size: 9.5px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .needs {
+    margin-top: 14px;
+    padding: 12px 13px;
+    border-radius: 11px;
+    border: 1px solid rgba(233,189,120,.23);
+    background: linear-gradient(135deg, rgba(233,189,120,.11), rgba(233,189,120,.035));
+  }
+  .needs-kicker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--amber);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    margin-bottom: 5px;
+  }
+  .needs-kicker::before {
+    content: "!";
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: rgba(233,189,120,.18);
+    font-size: 9px;
+    font-weight: 700;
+  }
+  .needs h4 { margin: 0 0 4px; font-size: 12.5px; font-weight: 600; color: #f0dfc2; }
+  .needs p { margin: 0; color: #a89476; font-size: 11px; line-height: 1.55; }
+  .needs-actions { display: flex; gap: 6px; margin-top: 10px; }
+  .btn {
+    border-radius: 7px;
+    padding: 6px 9px;
+    font-size: 10.5px;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,.09);
+    background: rgba(255,255,255,.04);
+    color: #c9c9d1;
+    transition: background .14s ease, border-color .14s ease, color .14s ease;
+  }
+  .btn:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.16); color: #fff; }
+  .btn.primary {
+    background: #e4e4eb;
+    color: #151518;
+    border-color: transparent;
+    font-weight: 600;
+  }
+  .btn.primary:hover { background: #fff; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn:disabled:hover { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.09); color: #c9c9d1; }
+  .btn.amber {
+    background: rgba(233,189,120,.16);
+    border-color: rgba(233,189,120,.26);
+    color: #f0d7ad;
+  }
+  .btn.amber:hover { background: rgba(233,189,120,.24); }
+
+  .latest {
+    margin-top: 14px;
+    padding: 12px 13px;
+    border-radius: 11px;
+    border: 1px solid rgba(255,255,255,.075);
+    background:
+      linear-gradient(160deg, rgba(167,184,255,.06), rgba(167,184,255,.012) 55%, transparent),
+      #17171a;
+  }
+  .latest-head { display: flex; align-items: center; gap: 8px; }
+  .latest-head .eyebrow { margin: 0; color: #8f9bbf; }
+  .latest-time { margin-left: auto; color: #61616b; font-size: 9.5px; font-variant-numeric: tabular-nums; }
+  .latest p {
+    margin: 7px 0 0;
+    color: #dcdce3;
+    font-size: 11.8px;
+    line-height: 1.62;
+  }
+  .latest-source { margin-top: 6px; color: #62626c; font-size: 9.5px; }
+  .latest-actions { display: flex; gap: 6px; margin-top: 10px; }
+  .latest-actions .btn:first-child { padding-inline: 10px; }
+
+  .next {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px dashed rgba(255,255,255,.1);
+    background: rgba(255,255,255,.02);
+  }
+  .next p { margin: 0; color: #9b9ba5; font-size: 11px; line-height: 1.55; }
+
+  .section { margin-top: 20px; }
+  .section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+  .section-title { color: #bcbcc5; font-size: 11px; font-weight: 600; letter-spacing: .02em; }
+  .section-meta { margin-left: auto; color: #5f5f69; font-size: 9.5px; font-variant-numeric: tabular-nums; }
+
+  .timeline { position: relative; padding-left: 12px; }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 5px;
+    bottom: 6px;
+    width: 1px;
+    background: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.03));
+  }
+  .update {
+    position: relative;
+    padding: 0 0 13px;
+  }
+  .update:last-child { padding-bottom: 0; }
+  .update::before {
+    content: "";
+    position: absolute;
+    left: -12px;
+    top: 4px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #27272d;
+    border: 1px solid #4a4a53;
+  }
+  .update.assistant::before { background: #2b3453; border-color: #6577b4; }
+  .update.review::before { background: #3a3020; border-color: #9a7a43; }
+  .update.done::before { background: #24362b; border-color: #548a66; }
+  .update-top { display: flex; align-items: baseline; gap: 6px; }
+  .update-time { color: #5e5e68; font-size: 9.5px; font-variant-numeric: tabular-nums; }
+  .update-label { color: #85858f; font-size: 9.5px; }
+  .update p { margin: 3px 0 0; color: #a7a7b0; font-size: 10.8px; line-height: 1.55; }
+
+  .checklist { margin-top: 2px; }
+  .progress-track {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.06);
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #7f96e8, #a8b7ff);
+    box-shadow: 0 0 12px rgba(150,170,255,.25);
+  }
+  .check-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 0;
+    color: #91919b;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+  .check-box {
+    flex: 0 0 auto;
+    width: 13px;
+    height: 13px;
+    margin-top: 1px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,.18);
+    display: grid;
+    place-items: center;
+    font-size: 9px;
+    color: transparent;
+  }
+  .check-row.done .check-box { background: rgba(134,210,162,.18); border-color: rgba(134,210,162,.3); color: var(--green); }
+  .check-row.done .check-text { color: #6e7d73; text-decoration: line-through; text-decoration-color: rgba(110,125,115,.45); }
+  .check-row.running .check-box { border-color: rgba(167,184,255,.5); background: rgba(167,184,255,.13); color: var(--accent); }
+  .check-row.running .check-text { color: #c4cbe6; }
+  .check-label { margin-left: auto; color: #5e5e68; font-size: 9.5px; white-space: nowrap; }
+  .empty-note {
+    color: #72727c;
+    font-size: 10.8px;
+    line-height: 1.6;
+    padding: 6px 0;
+  }
+
+  .artifacts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 6px 8px;
+    border-radius: 7px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.025);
+    color: #b6b6c0;
+    font-size: 10.5px;
+    cursor: pointer;
+  }
+  .file-chip:hover { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.14); color: #fff; }
+  .html-icon {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 auto;
+    border-radius: 3px;
+    background: #e9733f;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 8px;
+    font-weight: 700;
+  }
+  .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* composer */
+  .composer-wrap {
+    flex: 0 0 auto;
+    padding: 10px 34px 16px;
+    background: linear-gradient(180deg, transparent, rgba(11,11,13,.86) 32%);
+  }
+  .composer {
+    width: min(100%, 760px);
+    margin: 0 auto;
+    border-radius: 15px;
+    border: 1px solid rgba(255,255,255,.1);
+    background: #17171a;
+    box-shadow: 0 12px 34px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.03);
+    overflow: hidden;
+  }
+  .composer-main { padding: 12px 13px 8px; }
+  .composer-main input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #ebebef;
+    font-family: inherit;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .composer-main input::placeholder { color: #62626c; }
+  .composer-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px 9px;
+  }
+  .plus-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    border: 0;
+    background: transparent;
+    color: #777780;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .plus-btn:hover { background: rgba(255,255,255,.06); color: #d7d7de; }
+  .composer-hint { color: #575761; font-size: 9.5px; }
+  .composer-bar .spacer { flex: 1; }
+  .send-btn {
+    width: 27px;
+    height: 27px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.09);
+    background: #2b2b31;
+    color: #bdbdc7;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .send-btn:hover { background: #38383f; color: #fff; }
+
+  .demo-note {
+    width: min(100%, 760px);
+    margin: 9px auto 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #55555f;
+    font-size: 9.5px;
+  }
+  .demo-note .dot { width: 4px; height: 4px; border-radius: 50%; background: #5f6a9f; }
+
+  /* toast */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translate(-50%, 12px);
+    padding: 8px 13px;
+    border-radius: 9px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: #26262c;
+    color: #e5e5eb;
+    font-size: 11px;
+    box-shadow: 0 12px 28px rgba(0,0,0,.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease;
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 1280px) {
+    .body { grid-template-columns: minmax(0, 1fr) 212px 384px; }
+    .chat-inner { padding-inline: 24px; }
+    .composer-wrap { padding-inline: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail" aria-label="主导航">
+    <div class="rail-logo">✦</div>
+    <button class="rail-btn active" title="灵光" onclick="toast('原型：当前是灵光主页')">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3.2l1.9 5.4 5.4 1.9-5.4 1.9L12 17.8l-1.9-5.4-5.4-1.9 5.4-1.9L12 3.2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M18.6 15.7l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7.7-2Z" fill="currentColor" opacity=".55"/></svg>
+    </button>
+    <button class="rail-btn" title="会话" onclick="toast('原型：会话列表不在本次演示里')">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v6a2.5 2.5 0 0 1-2.5 2.5H11l-3.8 3v-3H7.5A2.5 2.5 0 0 1 5 12.5v-6Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="rail-btn" title="自动化" onclick="toast('原型：自动化不在本次演示里')">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </button>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" title="设置" onclick="toast('原型：设置不在本次演示里')">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Z" stroke="currentColor" stroke-width="1.5"/><path d="M19 12a7 7 0 0 0-.1-1.1l1.6-1.2-1.8-3.1-1.9.8a7 7 0 0 0-1.9-1.1L14.6 4h-3.6l-.3 2.3a7 7 0 0 0-1.9 1.1l-1.9-.8-1.8 3.1 1.6 1.2A7 7 0 0 0 6.6 12c0 .4 0 .7.1 1.1l-1.6 1.2 1.8 3.1 1.9-.8a7 7 0 0 0 1.9 1.1l.3 2.3h3.6l.3-2.3a7 7 0 0 0 1.9-1.1l1.9.8 1.8-3.1-1.6-1.2c.1-.4.1-.7.1-1.1Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+    </button>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar">
+      <div class="tabs" id="tabsMount"></div>
+      <div class="top-actions">
+        <span class="proto-pill">prototype</span>
+        <div class="view-switch" aria-label="查看内容">
+          <button class="active" onclick="toast('原型：对话视图')">对话</button>
+          <button onclick="toast('原型：轨迹视图暂未演示')">轨迹</button>
+        </div>
+        <button class="top-btn primary" onclick="simulate()">
+          <span aria-hidden="true">⚡</span> 模拟新结果
+        </button>
+        <button class="top-btn ghost" onclick="resetDemo()">重置</button>
+      </div>
+    </header>
+
+    <div class="body">
+      <main class="chat" id="chatMount"></main>
+      <aside class="issues-col" aria-label="事项">
+        <div class="panel-head">
+          <h2>事项</h2><span class="count" id="issueCount">3</span>
+          <span class="panel-sub">按最近更新</span>
+        </div>
+        <div class="issue-list" id="issuesMount"></div>
+      </aside>
+      <aside class="detail-col" aria-label="详情">
+        <div class="detail-inner" id="detailMount"></div>
+      </aside>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <div class="composer-main">
+          <input id="composerInput" type="text" placeholder="想让我做的事，写在这里" onkeydown="composerKey(event)" />
+        </div>
+        <div class="composer-bar">
+          <button class="plus-btn" onclick="toast('原型：附件入口')" aria-label="添加">＋</button>
+          <span class="composer-hint">⏎ 发送</span>
+          <span class="spacer"></span>
+          <button class="send-btn" onclick="composerSend()" aria-label="发送">↑</button>
+        </div>
+      </div>
+      <div class="demo-note">
+        <span class="dot"></span>
+        原型演示：点右侧事项看详情；点「模拟新结果」看新进展怎么进来。聊天只是回执，详情才是台账。
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const INITIAL = {
+    view: "bot",
+    activeIssueId: null,
+    selectedId: "consistency",
+    openTabs: [],
+    stackOpen: false,
+    hasNewBurst: false,
+    newBurstAt: "",
+    botUnread: false,
+    scrollBottom: false,
+    draft: "",
+    issues: [
+      {
+        id: "consistency",
+        title: "同页一致性",
+        type: "bug",
+        typeLabel: "缺陷",
+        typeGlyph: "缺",
+        priority: "P1",
+        status: "执行中",
+        tone: "run",
+        unread: 2,
+        time: "2 分钟前",
+        sortAt: 2,
+        preview: "输入框高度已统一，报告已出",
+        latest: {
+          at: "16:52",
+          text: "输入框 42/32 两种高度已统一到 32px，共改 5 处；报告已经生成。",
+          source: "助手 · 本轮"
+        },
+        next: "还剩 3 项：按钮高度、编辑/停用边框、token 收口。",
+        updates: [
+          { at: "16:52", kind: "assistant", label: "助手", text: "输入框 42/32 已统一到 32px，共改 5 处；报告已出。" },
+          { at: "16:48", kind: "turn", label: "回合", text: "执行会话完成首轮，清单 2/5。" },
+          { at: "16:40", kind: "status", label: "状态", text: "规划中 → 执行中。" },
+          { at: "16:32", kind: "check", label: "清单", text: "新增 5 项检查。" }
+        ],
+        checklist: [
+          { text: "量出同页控件高度差异", status: "done" },
+          { text: "统一输入框高度", status: "done" },
+          { text: "统一按钮 32/28/22", status: "running" },
+          { text: "编辑/停用边框对齐", status: "pending" },
+          { text: "尺寸引用 token", status: "pending" }
+        ],
+        artifacts: ["迭代链路-同页一致性-2026-11-16.html"],
+        needsYou: null,
+        session: [
+          { role: "user", text: "定位一下同页控件高度不一致。输入框 42/32，按钮 32/28/22，编辑没边框、停用有红框。" },
+          { role: "assistant", text: "查清了：同一页面里输入框两种高度、按钮三种高度；同列「编辑」没边框、「停用」带红框。不是 token 问题，是页面里直接写了尺寸。" },
+          { role: "assistant", text: "已统一到 32px，共改 5 处，报告已生成。清单还剩 3 项。" }
+        ]
+      },
+      {
+        id: "shell",
+        title: "壳规范落地",
+        type: "work",
+        typeLabel: "工作",
+        typeGlyph: "规",
+        priority: "P1",
+        status: "待审核",
+        tone: "review",
+        unread: 1,
+        time: "5 分钟前",
+        sortAt: 5,
+        preview: "落点已定，有个前提等你确认",
+        latest: {
+          at: "16:52",
+          text: "落点定了：第⑨段「设计规范 + 页面清单」加第三个 item，跟 design-spec、page-inventory 同轮跑，不动调度器、不加阶段。",
+          source: "助手 · 本轮"
+        },
+        next: "前提：brief 里只写菜单节点名、不写 slug；href 交给 nav.json 解析。",
+        updates: [
+          { at: "16:52", kind: "assistant", label: "助手", text: "落点定了：第⑨段加第三个 item，跟 design-spec、page-inventory 同轮跑。" },
+          { at: "16:51", kind: "status", label: "状态", text: "进入待审核，等你确认并行前提。" },
+          { at: "16:44", kind: "turn", label: "回合", text: "规划会话完成方案，产物已挂到事项。" }
+        ],
+        checklist: [
+          { text: "壳规范落地方案", status: "done" },
+          { text: "shell-brief 产物", status: "running" },
+          { text: "并行前提确认", status: "pending" }
+        ],
+        artifacts: ["壳规范-落地方案.html"],
+        needsYou: {
+          title: "需要你拍板",
+          body: "brief 只写菜单节点名、不写 slug，href 交给 nav.json。这个前提下并行才成立。",
+          confirm: "确认这个前提",
+          dismiss: "先不改"
+        },
+        session: [
+          { role: "user", text: "壳规范的落点定了吗？并行跑 brief 这件事核一下。" },
+          { role: "assistant", text: "落点定了：第⑨段加第三个 item，跟 design-spec、page-inventory 同轮跑，不动调度器。" },
+          { role: "assistant", text: "并行成立，但有个硬前提：brief 里只写菜单节点名、不写 slug，href 交给 nav.json 解析。" }
+        ]
+      },
+      {
+        id: "sandbox",
+        title: "分析沙箱 cad481cd",
+        type: "analysis",
+        typeLabel: "分析",
+        typeGlyph: "析",
+        priority: "P2",
+        status: "进行中",
+        tone: "run",
+        unread: 1,
+        time: "8 分钟前",
+        sortAt: 8,
+        preview: "已定位到端模式认工程根那处",
+        latest: {
+          at: "16:51",
+          text: "定位到端模式认工程根那一处；门那两笔撤回后没留痕。",
+          source: "助手 · 本轮"
+        },
+        next: "补一条回归，确认撤回后不会重放。",
+        updates: [
+          { at: "16:51", kind: "assistant", label: "助手", text: "定位到端模式认工程根那一处；两笔撤回后没留痕。" },
+          { at: "16:47", kind: "turn", label: "回合", text: "执行会话中途停过一次，已恢复。" },
+          { at: "16:38", kind: "status", label: "状态", text: "规划中 → 执行中。" }
+        ],
+        checklist: [],
+        artifacts: ["分析沙箱-定位记录.md"],
+        needsYou: null,
+        session: [
+          { role: "user", text: "分析沙箱 cad481cd 本该走迭代，为什么走了 0→1？" },
+          { role: "assistant", text: "修的是端模式认工程根那一处。门那两笔撤回后没留痕，我先补一条回归确认不会重放。" }
+        ]
+      }
+    ]
+  };
+
+  // The 16:52 receipt is history. Later status changes must not rewrite it.
+  INITIAL.receiptRows = INITIAL.issues.map((issue) => ({
+    id: issue.id,
+    title: issue.title,
+    status: issue.status,
+    tone: issue.tone,
+    preview: issue.preview,
+    needsYou: Boolean(issue.needsYou)
+  }));
+
+  let state = clone(INITIAL);
+  let toastTimer = null;
+
+  function clone(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function byId(id) {
+    return state.issues.find((issue) => issue.id === id);
+  }
+
+  function selectedIssue() {
+    return byId(state.selectedId) || state.issues[0];
+  }
+
+  function unreadIssues() {
+    return state.issues.filter((issue) => issue.unread > 0);
+  }
+
+  function totalUnread() {
+    return state.issues.reduce((sum, issue) => sum + issue.unread, 0);
+  }
+
+  function esc(text) {
+    return String(text)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+  }
+
+  function shortTime(time) {
+    return String(time).replace(" 分钟前", "m").replace("分钟前", "m");
+  }
+
+  function render() {
+    const scroller = document.getElementById("chatScroll");
+    const keepScroll = scroller ? scroller.scrollTop : 0;
+    renderTabs();
+    renderChat();
+    renderIssues();
+    renderDetail();
+    renderComposer();
+    const nextScroller = document.getElementById("chatScroll");
+    if (nextScroller) {
+      nextScroller.scrollTop = state.scrollBottom ? nextScroller.scrollHeight : keepScroll;
+    }
+    state.scrollBottom = false;
+  }
+
+  function renderTabs() {
+    const mount = document.getElementById("tabsMount");
+    const open = state.openTabs
+      .map((id) => byId(id))
+      .filter(Boolean)
+      .map((issue) => {
+        const active = state.view === "issue" && state.activeIssueId === issue.id;
+        const unread = issue.unread > 0 && !active;
+        return `
+          <button class="tab ${active ? "active" : ""}" onclick="focusTab('${issue.id}')" title="${esc(issue.title)}">
+            ${unread ? '<span class="tab-dot"></span>' : ""}
+            <span class="tab-label">${esc(issue.title)}</span>
+            <span class="tab-close" onclick="event.stopPropagation(); closeTab('${issue.id}')" aria-label="关闭">×</span>
+          </button>`;
+      })
+      .join("");
+    mount.innerHTML = `
+      <button class="tab ${state.view === "bot" ? "active" : ""}" onclick="focusTab('bot')">
+        ${state.botUnread && state.view !== "bot" ? '<span class="tab-dot"></span>' : ""}
+        <span class="tab-glyph">✦</span><span class="tab-label">灵光</span>
+      </button>
+      ${open}
+    `;
+  }
+
+  function renderChat() {
+    const mount = document.getElementById("chatMount");
+    if (state.view === "issue") {
+      mount.innerHTML = `
+        <div class="chat-scroll" id="chatScroll">
+          <div class="chat-inner">
+            ${sessionView()}
+          </div>
+        </div>
+      `;
+      return;
+    }
+    mount.innerHTML = `
+      ${catchupView()}
+      <div class="chat-scroll" id="chatScroll">
+        <div class="chat-inner">
+          ${botChat()}
+        </div>
+      </div>
+    `;
+  }
+
+  function catchupView() {
+    const unread = unreadIssues();
+    if (unread.length === 0) return "";
+    return `
+      <div class="catchup">
+        <div class="catchup-label"><span class="pulse"></span>你离开后 · ${unread.length} 件事有更新</div>
+        <div class="catchup-chips">
+          ${unread.map((issue) => `
+            <button class="catchup-chip" onclick="selectIssue('${issue.id}')" title="${esc(issue.preview)}">
+              <span class="chip-label">${esc(issue.title)}</span>
+              <span class="unread-count">${issue.unread}</span>
+            </button>`).join("")}
+        </div>
+        <button class="link" onclick="markAllRead()">全部已读</button>
+      </div>
+    `;
+  }
+
+  function botChat() {
+    return `
+      <div class="day-divider"><span>今天</span></div>
+
+      <div class="msg user">
+        <div class="bubble"><span class="ctx">同页一致性</span>这个合了，你没关啊</div>
+        <div class="msg-time">16:52</div>
+      </div>
+
+      <div class="msg assistant">
+        <div class="bubble">收到，三件都有新进展。先给你一张回执，细节我写进事项了。</div>
+        <div class="msg-time">16:52</div>
+      </div>
+
+      ${receiptView()}
+
+      ${stackView()}
+
+      ${state.hasNewBurst ? newBurstView() : ""}
+
+      <div class="day-divider" style="margin-top:6px"><span>更早的对话已折叠，不在演示里</span></div>
+    `;
+  }
+
+  function receiptView() {
+    return `
+      <section class="receipt" aria-label="本轮结果">
+        <div class="receipt-head">
+          <span class="receipt-kicker">本轮回执</span>
+          <span class="receipt-time">16:52</span>
+          <span class="receipt-spacer"></span>
+          <span class="receipt-hint">三件都有更新，点一行看进展</span>
+        </div>
+        ${state.receiptRows.map((row) => `
+          <div class="receipt-row" onclick="selectIssue('${row.id}')">
+            <span class="status-chip ${row.tone}">${esc(row.status)}</span>
+            <span class="receipt-main">
+              <span class="receipt-title">${esc(row.title)}</span>
+              <span class="receipt-preview">${esc(row.preview)}</span>
+            </span>
+            ${row.needsYou ? '<span class="attention-dot" title="等你拍板"></span>' : ""}
+            <button class="mini-btn" onclick="event.stopPropagation(); selectIssue('${row.id}')">看进展</button>
+          </div>`).join("")}
+      </section>
+    `;
+  }
+
+  function stackView() {
+    return `
+      <section class="stack" onclick="toggleStack()" aria-label="折叠的更新">
+        <div class="stack-head">
+          <span class="stack-count">2</span>
+          <span class="stack-title">同页一致性 · 还有 2 条更新</span>
+          <span class="stack-sub">42/32 高度 · 判词边界</span>
+          <span class="stack-chev">${state.stackOpen ? "⌃" : "⌄"}</span>
+        </div>
+        ${state.stackOpen ? `
+          <div class="stack-body" onclick="event.stopPropagation()">
+            <div class="msg assistant">
+              <div class="bubble">查清了。同一页面里输入框 42 和 32 两个高度，按钮 32/28/22 三个高度；同列「编辑」没边框、「停用」带红框——不跟原应用比，摆一起就站不住。</div>
+              <div class="msg-time">16:52</div>
+            </div>
+            <div class="msg assistant">
+              <div class="bubble">改法五处都在报告第 5 节：生成侧四条规矩，检查侧只加一条「同页内同类控件度量与样式必须一致」。</div>
+              <div class="msg-time">16:52</div>
+            </div>
+          </div>` : ""}
+      </section>
+    `;
+  }
+
+  function newBurstView() {
+    const issue = byId("sandbox");
+    return `
+      <div class="msg assistant">
+        <div class="bubble">分析沙箱也有结果了，先放这儿。</div>
+        <div class="msg-time">${state.newBurstAt || "刚刚"}</div>
+      </div>
+      <section class="receipt new" aria-label="新结果">
+        <div class="receipt-head">
+          <span class="receipt-kicker">新进展</span>
+          <span class="receipt-time">${state.newBurstAt || "刚刚"}</span>
+          <span class="receipt-spacer"></span>
+          <span class="receipt-hint">这条刚进来</span>
+        </div>
+        <div class="receipt-row" onclick="selectIssue('${issue.id}')">
+          <span class="status-chip ${issue.tone}">${esc(issue.status)}</span>
+          <span class="receipt-main">
+            <span class="receipt-title">${esc(issue.title)}</span>
+            <span class="receipt-preview">${esc(issue.preview)}</span>
+          </span>
+          ${issue.needsYou ? '<span class="attention-dot" title="等你拍板"></span>' : ""}
+          <button class="mini-btn" onclick="event.stopPropagation(); selectIssue('${issue.id}')">看进展</button>
+        </div>
+      </section>
+    `;
+  }
+
+  function sessionView() {
+    const issue = byId(state.activeIssueId) || selectedIssue();
+    return `
+      <div class="session-head">
+        <span class="session-title">${esc(issue.title)}</span>
+        <span class="session-status">执行会话 · ${esc(issue.status)}</span>
+        <span class="session-sync">进展同步到右侧详情</span>
+      </div>
+      <div class="session-intro">这里只是完整过程。日常看进展不用打开这条会话，右侧详情已经够回答「到哪了、下一步」。</div>
+      ${issue.session.map((message) => `
+        <div class="msg ${message.role}">
+          <div class="bubble">${esc(message.text)}</div>
+          <div class="msg-time">16:${message.role === "user" ? "48" : "52"}</div>
+        </div>`).join("")}
+      <div class="stack" style="cursor:default">
+        <div class="stack-head">
+          <span class="stack-count">↗</span>
+          <span class="stack-title">这一轮的进展已同步到右侧「详情」</span>
+          <span class="stack-sub">不用留在这里</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderIssues() {
+    const mount = document.getElementById("issuesMount");
+    document.getElementById("issueCount").textContent = String(state.issues.length);
+    mount.innerHTML = [...state.issues].sort((a, b) => a.sortAt - b.sortAt).map((issue) => {
+      const selected = issue.id === state.selectedId;
+      return `
+        <button class="issue-row ${selected ? "selected" : ""}" onclick="selectIssue('${issue.id}')">
+          <span class="type-badge ${issue.type}">${issue.typeGlyph}</span>
+          <span class="issue-info">
+            <span class="issue-title-line">
+              <span class="issue-title">${esc(issue.title)}</span>
+              ${issue.unread > 0 ? `<span class="unread-badge">${issue.unread}</span>` : ""}
+            </span>
+            <span class="issue-preview">
+              <span class="dot ${issue.tone}"></span>
+              <span class="preview-text">${esc(issue.preview)}</span>
+              <span class="issue-time">${esc(shortTime(issue.time))}</span>
+            </span>
+          </span>
+        </button>`;
+    }).join("");
+  }
+
+  function renderDetail() {
+    const issue = selectedIssue();
+    const total = issue.checklist.length;
+    const done = issue.checklist.filter((item) => item.status === "done").length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    const detail = document.getElementById("detailMount");
+    const isCurrentSession = state.view === "issue" && state.activeIssueId === issue.id;
+
+    detail.innerHTML = `
+      <div class="detail-head">
+        <div class="detail-title-row">
+          <span class="type-badge ${issue.type}">${issue.typeGlyph}</span>
+          <h3 class="detail-title">${esc(issue.title)}</h3>
+        </div>
+        <div class="detail-tags">
+          <span class="status-chip ${issue.tone}">${esc(issue.status)}</span>
+          <span class="p-chip ${issue.priority.toLowerCase()}">${esc(issue.priority)}</span>
+          <span class="detail-updated">${esc(issue.time)}更新</span>
+        </div>
+      </div>
+
+      ${issue.needsYou ? needsYouView(issue) : ""}
+
+      <section class="latest">
+        <div class="latest-head">
+          <span class="eyebrow">最新进展</span>
+          <span class="latest-time">${esc(issue.latest.at)}</span>
+        </div>
+        <p>${esc(issue.latest.text)}</p>
+        <div class="latest-source">来自 ${esc(issue.latest.source)}</div>
+        <div class="latest-actions">
+          ${isCurrentSession
+            ? '<button class="btn" disabled>正在看这条会话</button>'
+            : `<button class="btn primary" onclick="openSession('${issue.id}')">打开会话</button>`}
+          <button class="btn" onclick="toast('原型：定位到这一轮')">看这一轮</button>
+        </div>
+      </section>
+
+      <div class="next">
+        <span class="eyebrow">下一步</span>
+        <p>${esc(issue.next)}</p>
+      </div>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="section-title">进展</span>
+          <span class="section-meta">${issue.updates.length} 条</span>
+        </div>
+        <div class="timeline">
+          ${issue.updates.map((update) => `
+            <div class="update ${update.kind}">
+              <div class="update-top">
+                <span class="update-time">${esc(update.at)}</span>
+                <span class="update-label">${esc(update.label)}</span>
+              </div>
+              <p>${esc(update.text)}</p>
+            </div>`).join("")}
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="section-title">执行清单</span>
+          <span class="section-meta">${total ? `${done}/${total}` : "无清单"}</span>
+        </div>
+        ${total ? `
+          <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="checklist">
+            ${issue.checklist.map((item) => `
+              <div class="check-row ${item.status}">
+                <span class="check-box">${item.status === "done" ? "✓" : item.status === "running" ? "·" : ""}</span>
+                <span class="check-text">${esc(item.text)}</span>
+                ${item.status === "running" ? '<span class="check-label">进行中</span>' : ""}
+              </div>`).join("")}
+          </div>` : `
+          <div class="empty-note">分析类事项没有执行清单。最近一轮结论和下一步在上面的「最新进展」里。</div>`}
+      </section>
+
+      <section class="section">
+        <div class="section-head"><span class="section-title">产物</span></div>
+        <div class="artifacts">
+          ${issue.artifacts.map((file) => `
+            <button class="file-chip" onclick="toast('原型：这里会打开 ${esc(file)}')">
+              <span class="html-icon">5</span>
+              <span class="file-name">${esc(file)}</span>
+            </button>`).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function needsYouView(issue) {
+    return `
+      <section class="needs">
+        <div class="needs-kicker">待你处理</div>
+        <h4>${esc(issue.needsYou.title)}</h4>
+        <p>${esc(issue.needsYou.body)}</p>
+        <div class="needs-actions">
+          <button class="btn amber" onclick="resolveNeeds(true)">${esc(issue.needsYou.confirm)}</button>
+          <button class="btn" onclick="resolveNeeds(false)">${esc(issue.needsYou.dismiss)}</button>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderComposer() {
+    const input = document.getElementById("composerInput");
+    if (!input) return;
+    input.value = state.draft;
+    input.placeholder = state.view === "issue"
+      ? `给 ${byId(state.activeIssueId)?.title || "这件事"} 发消息…`
+      : "想让我做的事，写在这里";
+  }
+
+  function focusTab(id) {
+    if (id === "bot") {
+      state.view = "bot";
+      state.activeIssueId = null;
+      state.botUnread = false;
+      render();
+      return;
+    }
+    const issue = byId(id);
+    if (!issue) return;
+    issue.unread = 0;
+    state.selectedId = id;
+    state.view = "issue";
+    state.activeIssueId = id;
+    state.scrollBottom = true;
+    render();
+  }
+
+  function closeTab(id) {
+    state.openTabs = state.openTabs.filter((tab) => tab !== id);
+    if (state.activeIssueId === id) {
+      state.view = "bot";
+      state.activeIssueId = null;
+    }
+    render();
+  }
+
+  function openSession(id) {
+    const issue = byId(id);
+    if (!issue) return;
+    issue.unread = 0;
+    state.selectedId = id;
+    if (!state.openTabs.includes(id)) state.openTabs.push(id);
+    state.view = "issue";
+    state.activeIssueId = id;
+    state.scrollBottom = true;
+    render();
+  }
+
+  function selectIssue(id) {
+    const issue = byId(id);
+    if (!issue) return;
+    issue.unread = 0;
+    state.selectedId = id;
+    render();
+  }
+
+  function toggleStack() {
+    state.stackOpen = !state.stackOpen;
+    render();
+  }
+
+  function markAllRead() {
+    for (const issue of state.issues) issue.unread = 0;
+    render();
+    toast("已全部标为读过");
+  }
+
+  function resolveNeeds(confirmed) {
+    const issue = selectedIssue();
+    if (!issue || !issue.needsYou) return;
+    issue.needsYou = null;
+    if (confirmed) {
+      issue.status = "执行中";
+      issue.tone = "run";
+      issue.preview = "前提已确认，继续推进";
+      issue.latest = {
+        at: "刚刚",
+        text: "前提已确认：brief 只写菜单节点名，href 交给 nav.json。继续推进。",
+        source: "你 · 刚刚"
+      };
+      issue.next = "等 brief 产物落盘，下一轮跟 design-spec、page-inventory 同轮跑。";
+      issue.updates.unshift({ at: "刚刚", kind: "status", label: "状态", text: "前提已确认，继续推进。" });
+      toast("已确认，继续推进");
+    } else {
+      issue.status = "待审核";
+      issue.tone = "review";
+      issue.preview = "先不改，停在待审核";
+      issue.latest = {
+        at: "刚刚",
+        text: "先不改，事项停在待审核。",
+        source: "你 · 刚刚"
+      };
+      issue.next = "停在待审核，等你决定下一步。";
+      issue.updates.unshift({ at: "刚刚", kind: "status", label: "状态", text: "用户选择先不改，停在待审核。" });
+      toast("已记录：先不改");
+    }
+    issue.time = "刚刚";
+    issue.sortAt = 0;
+    render();
+  }
+
+  function simulate() {
+    if (state.hasNewBurst) {
+      toast("已经有一条新结果了，点右侧分析沙箱看详情");
+      return;
+    }
+    const issue = byId("sandbox");
+    issue.unread += 1;
+    issue.status = "待审核";
+    issue.tone = "review";
+    issue.time = "刚刚";
+    issue.sortAt = 0;
+    issue.preview = "定位记录已出，等你确认下一步";
+    issue.latest = {
+      at: "刚刚",
+      text: "端模式认工程根那一处已定位；撤回后无残留。定位记录已生成，下一步等你拍板。",
+      source: "助手 · 刚刚"
+    };
+    issue.updates.unshift({ at: "刚刚", kind: "assistant", label: "助手", text: "定位记录已出：端模式认工程根那处，撤回后无残留。" });
+    issue.needsYou = {
+      title: "下一步要你拍板",
+      body: "先补一条回归，还是直接收口？",
+      confirm: "先补回归",
+      dismiss: "直接收口"
+    };
+    state.hasNewBurst = true;
+    state.newBurstAt = "刚刚";
+    if (state.view !== "bot") state.botUnread = true;
+    state.scrollBottom = state.view === "bot";
+    render();
+    toast("新进展已到：分析沙箱");
+  }
+
+  function resetDemo() {
+    state = clone(INITIAL);
+    render();
+    toast("演示已重置");
+  }
+
+  function composerKey(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      composerSend();
+    }
+  }
+
+  function composerSend() {
+    const input = document.getElementById("composerInput");
+    const value = (input?.value || "").trim();
+    if (!value) return;
+    state.draft = "";
+    input.value = "";
+    toast("原型：已记下，不真的发送");
+  }
+
+  function toast(text) {
+    const el = document.getElementById("toast");
+    el.textContent = text;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+  }
+
+  // Keep the draft across re-renders.
+  document.addEventListener("input", (event) => {
+    if (event.target && event.target.id === "composerInput") {
+      state.draft = event.target.value;
+    }
+  });
+
+  render();
+</script>
+</body>
+</html>

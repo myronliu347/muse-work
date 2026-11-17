@@ -150,6 +150,7 @@ export function AssistantFrame({
     shownIssueGroup,
     issueTabPresence,
     setBotSwitchHost,
+    markAllProgressSeen,
 
     botSwitchHost,
   } = board;
@@ -165,6 +166,15 @@ export function AssistantFrame({
     showCards && showBotLists && leftPanelWidth > 0
       ? Math.min(BOT_MESSAGE_COLUMN_MAX, Math.floor(botListsColumnWidth(leftPanelWidth)))
       : undefined;
+  const progressUnread = botIssues.some((issue) => (issue.unreadCount ?? 0) > 0);
+  const progressItems = botIssues
+    .filter((issue) => (issue.unreadCount ?? 0) > 0)
+    .map((issue) => ({
+      issueId: issue.issueId,
+      title: issue.title,
+      unread: issue.unreadCount ?? 0,
+      ...(issue.latestUpdate ? { summary: issue.latestUpdate.summary, at: issue.latestUpdate.at } : {}),
+    }));
   const botLists = showBotLists ? (
     <BotLists
       queue={botQueue}
@@ -231,6 +241,7 @@ export function AssistantFrame({
             presence={issueTabPresence}
             onFocus={workspace.focusTab}
             onClose={workspace.closeIssueTab}
+            progressUnread={progressUnread}
           />
           <div className="bot-frame-switch" ref={setBotSwitchHost}>
             {shownIssueHeader}
@@ -312,6 +323,12 @@ export function AssistantFrame({
               onSelectIssue={(issueId) => selectBotPanel({ kind: "issue", issueId })}
               emptyState={<AssistantWelcome />}
               viewSwitchHost={botSwitchHost}
+              progressItems={progressItems}
+              onOpenProgressIssue={(issueId) => {
+                selectBotPanel({ kind: "issue", issueId });
+                setAssistantDockOpen(true);
+              }}
+              onMarkAllProgressRead={markAllProgressSeen}
             />
           )}
           {showCards ? botLists : null}

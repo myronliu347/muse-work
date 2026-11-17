@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
-import type { DesktopIssueGroup } from "../../types";
+import type { DesktopIssueGroup, DesktopIssueUpdate } from "../../types";
 import { issueSidebarStatusLabel } from "../../utils/issueStatusLabel";
 import { IssueTypeIcon } from "../issue/IssueTypeIcon";
+import { FileIcon } from "../panels/FileIcon";
 import { IssuePresenceMark, type IssuePresence } from "../session/SessionStatusGlyph";
 import { MarkdownView } from "../message/MarkdownView";
 import { Tooltip } from "../shared/Tooltip";
@@ -50,6 +51,34 @@ const CHECK_STATUS_LABEL: Record<string, string> = {
   pending: "待办",
   done: "完成",
 };
+
+const UPDATE_KIND_LABEL: Record<DesktopIssueUpdate["kind"], string> = {
+  assistant: "助手",
+  turn: "回合",
+  status: "状态",
+  checklist: "清单",
+  permission: "待批准",
+  result: "结果",
+};
+
+function formatUpdateTime(at: number): string {
+  const date = new Date(at);
+  return `${String(date.getHours()).padStart(2, "0")}:${String(
+    date.getMinutes(),
+  ).padStart(2, "0")}`;
+}
+
+function uniquePaths(paths: Array<string | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of paths) {
+    const path = value?.trim();
+    if (!path || seen.has(path)) continue;
+    seen.add(path);
+    result.push(path);
+  }
+  return result;
+}
 
 function detailMarkdown(text: string): string {
   const html = marked.parse(text, { gfm: true, breaks: true });
@@ -105,6 +134,10 @@ export interface DockDetailProps {
   /** Open issues. The detail page lists them in the right rail. */
   issues?: DockDetailIssue[];
   onSelectIssue?: (issueId: string) => void;
+  /** 点击本轮改动文件：打开 diff。 */
+  onOpenChangedFile?: (path: string) => void;
+  /** 点击产物附件：打开文件/预览。 */
+  onOpenArtifact?: (path: string) => void;
 }
 
 function priorityText(priority: string): string {
@@ -114,6 +147,10 @@ function priorityText(priority: string): string {
 function workdirLabel(workdir: string): string {
   const normalized = workdir.replace(/\\/g, "/").replace(/\/+$/, "");
   return normalized.split("/").pop() || workdir;
+}
+
+function fileName(filePath: string): string {
+  return filePath.replace(/\\/g, "/").split("/").pop() || filePath;
 }
 
 function issueEnvironment(issue: DesktopIssueGroup): {
@@ -226,6 +263,8 @@ export function DockDetail({
   onRevealInFinder,
   issues = [],
   onSelectIssue,
+  onOpenChangedFile,
+  onOpenArtifact,
 }: DockDetailProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
@@ -234,12 +273,17 @@ export function DockDetail({
   const fits = dockDetailRailFits(width);
   const [open, setOpen] = useState(true);
   const [peek, setPeek] = useState(false);
+  const [latestExpanded, setLatestExpanded] = useState(false);
   const showColumn = open && fits && issues.length > 0 && selection.kind === "issue";
   const showPeek = peek && !fits && issues.length > 0 && selection.kind === "issue";
 
   useEffect(() => {
     if (fits) setPeek(false);
   }, [fits]);
+
+  useEffect(() => {
+    setLatestExpanded(false);
+  }, [selection.kind === "issue" ? selection.issue.issueId : ""]);
 
   useEffect(() => {
     if (!showPeek) return;
@@ -291,6 +335,28 @@ export function DockDetail({
 
   const priority = priorityText(issue.priority);
   const priorityKey = priority.toLowerCase();
+
+  const updates = issue.updates ?? [];
+  const primaryUpdate =
+    updates.find(
+      (update) => update.kind === "assistant" || update.kind === "result",
+    ) ?? updates.find((update) => update.kind === "turn") ?? updates[0];
+  const nextStep =
+    updates.find((update) => update.kind === "assistant" && update.next)?.next ??
+    issue.items.find((item) => item.status !== "done")?.content;
+  const changedFiles = uniquePaths(
+    updates.flatMap((update) => update.changedFiles ?? []),
+  );
+  const artifactFiles = uniquePaths(updates.flatMap((update) => update.files ?? []));
+  // 主卡已经展示最新一条；时间线只留历史增量。空回合标记没有信息量，
+  // 全部从时间线隐藏，避免“回合结束”刷屏；最新的 turn 仍由主卡兜底。
+  const visibleUpdates = updates
+    .filter(
+      (update) =>
+        update.id !== primaryUpdate?.id &&
+        update.kind !== "turn",
+    )
+    .slice(0, 8);
 
   return (
     <div className="dock-detail" data-testid="dock-detail" ref={rootRef}>
@@ -354,10 +420,137 @@ export function DockDetail({
       <div className="dock-detail-stage">
         <div className="dock-detail-scroll">
           <div className="dock-detail-sheet">
+            {primaryUpdate ? (
+              <section className="dock-detail-progress" data-testid="dock-detail-progress">
+                <div className="dock-detail-progress-head">
+                  <span className="dock-detail-section">
+                    {primaryUpdate.kind === "turn" ? "最近状态" : "最新进展"}
+                  </span>
+                  <span className="dock-detail-progress-time">
+                    {formatUpdateTime(primaryUpdate.at)}
+                  </span>
+                </div>
+                <p
+                  className={
+                    primaryUpdate.summary.length > 180 && !latestExpanded
+                      ? "dock-detail-progress-text is-clamped"
+                      : "dock-detail-progress-text"
+                  }
+                >
+                  {primaryUpdate.summary}
+                </p>
+                {primaryUpdate.summary.length > 180 ? (
+                  <button
+                    type="button"
+                    className="dock-detail-progress-more"
+                    onClick={() => setLatestExpanded((value) => !value)}
+                  >
+                    {latestExpanded ? "收起" : "展开全文"}
+                  </button>
+                ) : null}
+                {primaryUpdate.detail ? (
+                  <details className="dock-detail-progress-detail">
+                    <summary>展开全文</summary>
+                    <DetailMarkdown text={primaryUpdate.detail} />
+                  </details>
+                ) : null}
+                {primaryUpdate.kind === "turn" ? (
+                  <p className="dock-detail-progress-note">
+                    这一轮的文字结论在会话里；这里只记系统状态。
+                  </p>
+                ) : null}
+                {nextStep ? (
+                  <div className="dock-detail-next">
+                    <span>下一步</span>
+                    <p>{nextStep}</p>
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
+
+            {changedFiles.length > 0 ? (
+              <section className="dock-detail-changes" data-testid="dock-detail-changes">
+                <div className="dock-detail-progress-head">
+                  <span className="dock-detail-section">本轮改动</span>
+                  <span className="dock-detail-progress-time">
+                    {changedFiles.length} 个文件
+                  </span>
+                </div>
+                <div className="dock-detail-file-list">
+                  {changedFiles.map((filePath) => (
+                    <button
+                      key={filePath}
+                      type="button"
+                      className="dock-detail-file-row"
+                      title={filePath}
+                      onClick={() => onOpenChangedFile?.(filePath)}
+                    >
+                      <span className="dock-detail-file-icon dock-detail-file-icon--change" aria-hidden>
+                        <i className="codicon codicon-diff-modified" />
+                      </span>
+                      <span className="dock-detail-file-name">{fileName(filePath)}</span>
+                      <span className="dock-detail-file-action">查看代码</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {visibleUpdates.length > 0 ? (
+              <section className="dock-detail-timeline" data-testid="dock-detail-timeline">
+                <div className="dock-detail-progress-head">
+                  <span className="dock-detail-section">进展</span>
+                  <span className="dock-detail-progress-time">
+                    {visibleUpdates.length} 条
+                  </span>
+                </div>
+                <ol className="dock-detail-update-list">
+                  {visibleUpdates.map((update) => (
+                    <li key={update.id} data-kind={update.kind}>
+                      <span className="dock-detail-update-time">{formatUpdateTime(update.at)}</span>
+                      <span className="dock-detail-update-kind">{UPDATE_KIND_LABEL[update.kind]}</span>
+                      <span className="dock-detail-update-text">{update.summary}</span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ) : null}
+
+            {artifactFiles.length > 0 ? (
+              <section className="dock-detail-artifacts" data-testid="dock-detail-artifacts">
+                <div className="dock-detail-progress-head">
+                  <span className="dock-detail-section">产物</span>
+                </div>
+                <div className="dock-detail-file-list">
+                  {artifactFiles.map((filePath) => (
+                    <button
+                      key={filePath}
+                      type="button"
+                      className="dock-detail-file-row"
+                      title={filePath}
+                      onClick={() => onOpenArtifact?.(filePath)}
+                    >
+                      <span className="dock-detail-file-icon" aria-hidden>
+                        <FileIcon name={fileName(filePath)} className="dock-detail-file-icon-img" />
+                      </span>
+                      <span className="dock-detail-file-name">{fileName(filePath)}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             {description ? (
-              <div className="dock-detail-description" data-testid="dock-detail-description">
-                <DetailMarkdown text={description} />
-              </div>
+              <details
+                className="dock-detail-description"
+                data-testid="dock-detail-description"
+                open={updates.length === 0}
+              >
+                <summary>任务说明</summary>
+                <div className="dock-detail-description-body">
+                  <DetailMarkdown text={description} />
+                </div>
+              </details>
             ) : null}
             <dl className="dock-detail-fields">
               <div>

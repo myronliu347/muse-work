@@ -39,6 +39,8 @@ export interface BotTabsProps {
   presence?: Record<string, IssuePresence | null>;
   /** Three columns already show Muse Bot on the left, so its tab is not a destination. */
   lockBotTab?: boolean;
+  /** Issue 进展有未读；和 assistant notice 一起点亮「灵光」标签。 */
+  progressUnread?: boolean;
   /** Which tabs this bar owns. Three columns give Muse Bot and issues their own bars. */
   scope?: "all" | "bot" | "issues";
   onFocus: (tab: "bot" | string) => void;
@@ -156,11 +158,13 @@ export function BotTabs({
   titles,
   presence,
   lockBotTab,
+  progressUnread = false,
   scope = "all",
   onFocus,
   onClose,
 }: BotTabsProps) {
-  const botUnread = useAssistantNotice().unread && state.active !== "bot";
+  const botUnread =
+    (useAssistantNotice().unread || progressUnread) && state.active !== "bot";
   const tabs = ["bot", ...state.openIssueIds];
   const visibleTabs = tabs.filter((tab) => {
     if (scope === "bot" && tab !== "bot") return false;

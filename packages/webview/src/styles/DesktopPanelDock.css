@@ -669,9 +669,35 @@
 .dock-detail-body,
 .dock-detail-description {
   margin: 14px 0 0;
+  padding: 11px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface-subtle);
   font-size: 13px;
   line-height: 1.55;
   color: var(--text-primary);
+}
+.dock-detail-description > summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  list-style: none;
+}
+.dock-detail-description > summary::-webkit-details-marker {
+  display: none;
+}
+.dock-detail-description > summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 5px;
+  color: var(--text-tertiary);
+}
+.dock-detail-description[open] > summary::before {
+  content: "▾";
+}
+.dock-detail-description-body {
+  margin-top: 10px;
 }
 
 .dock-detail-body {
@@ -918,4 +944,210 @@
 
 .dock-detail-actions .preview-pane-button[aria-pressed="true"] {
   background: var(--surface-muted);
+}
+
+/* Issue progress in the detail sheet */
+.dock-detail-progress,
+.dock-detail-changes,
+.dock-detail-timeline,
+.dock-detail-artifacts {
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface-subtle);
+}
+/* Light: the sheet is near-white, so a gray-3 fill turns every section into a
+   flat gray slab. Step the fill up to the panel card and let the border carry
+   the edge; the progress card below keeps its accent tint. */
+:root[data-theme="light"] .dock-detail-changes,
+:root[data-theme="light"] .dock-detail-timeline,
+:root[data-theme="light"] .dock-detail-artifacts,
+:root[data-theme="light"] .dock-detail-description,
+:root[data-theme="light"] .dock-detail-body {
+  background: var(--surface-card);
+  border-color: var(--border-subtle);
+}
+.dock-detail-progress {
+  border-color: var(--status-progress-border);
+  background: linear-gradient(160deg, var(--status-progress-surface), transparent 60%);
+}
+.dock-detail-progress-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.dock-detail-progress-head .dock-detail-section {
+  margin: 0;
+}
+.dock-detail-progress-time {
+  margin-left: auto;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.dock-detail-progress-text {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.dock-detail-progress-detail {
+  margin-top: 7px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.55;
+}
+.dock-detail-progress-detail summary {
+  cursor: pointer;
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+}
+.dock-detail-progress-detail .dock-detail-md {
+  margin-top: 6px;
+}
+.dock-detail-progress-note {
+  margin: 7px 0 0;
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+.dock-detail-next {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--border-subtle);
+}
+.dock-detail-next span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--text-tertiary);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.dock-detail-next p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.55;
+}
+.dock-detail-update-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dock-detail-update-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 5px 0;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+.dock-detail-update-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.dock-detail-update-time {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.dock-detail-update-kind {
+  flex: 0 0 auto;
+  min-width: 28px;
+  color: var(--text-tertiary);
+}
+.dock-detail-update-text {
+  min-width: 0;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.dock-detail-update-list li[data-kind="assistant"] .dock-detail-update-kind {
+  color: var(--status-progress-text);
+}
+.dock-detail-update-list li[data-kind="result"] .dock-detail-update-kind {
+  color: var(--status-success-text);
+}
+.dock-detail-update-list li[data-kind="permission"] .dock-detail-update-kind {
+  color: var(--status-warning-text);
+}
+.dock-detail-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.dock-detail-file-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 6px 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 10.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.dock-detail-file-row:hover {
+  border-color: var(--border-subtle);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+}
+.dock-detail-file-icon {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+.dock-detail-file-icon--change {
+  color: var(--status-warning-text);
+}
+.dock-detail-file-icon-img {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+.dock-detail-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dock-detail-file-action {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--text-tertiary);
+  font-size: 9.5px;
+}
+
+.dock-detail-progress-text.is-clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.dock-detail-progress-more {
+  margin-top: 5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+.dock-detail-progress-more:hover {
+  text-decoration: underline;
 }

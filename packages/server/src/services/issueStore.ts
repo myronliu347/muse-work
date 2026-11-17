@@ -79,6 +79,8 @@ export interface IssueStore {
     id: string,
     patch: Partial<Pick<Issue, "title" | "description" | "priority" | "type">>,
   ): Issue | undefined;
+  /** 只推进 updatedAt（进展落盘后用于列表排序）；不改状态、不写进展。 */
+  touch(id: string): Issue | undefined;
   setPlanning(
     id: string,
     fields: {
@@ -389,6 +391,16 @@ export function createIssueStore(
 
     listAll(): Issue[] {
       return [...issues.values(), ...closed.values()].map(cloneIssue);
+    },
+
+    touch(id): Issue | undefined {
+      const issue = getMutable(id);
+      if (!issue) {
+        return undefined;
+      }
+      issue.updatedAt = Date.now();
+      persist();
+      return cloneIssue(issue);
     },
 
     update(id, patch): Issue | undefined {

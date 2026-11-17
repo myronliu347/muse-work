@@ -14,6 +14,16 @@ import {
 } from "./toolKit.js";
 
 const SEND_MESSAGE_BODY_MAX = 200;
+const ISSUE_UPDATE_FILES_MAX = 10;
+
+function issueUpdateSummary(message: string): string {
+  const body = message
+    .split("\n")
+    .filter((line) => !line.trim().startsWith(">"))
+    .join("\n")
+    .trim();
+  return compactText(body, 280);
+}
 
 function userWantsFullText(log: AssistantToolDeps["log"]): boolean {
   const messages = log.page({ limit: 50 }).messages;
@@ -189,18 +199,41 @@ export function createMessageTools(deps: AssistantToolDeps) {
           links: { type: "array", items: { type: "string" } },
           issueId: {
             type: "string",
-            description: "只撕掉这件事项的纸条。不会自动 @ 或带引用。要引用这条 Issue，另外传 ats。",
+            description:
+              "这条 Issue 的显式归属。带它就把这次回复记进该 Issue 的进展；不带时，如果这一轮只被一个 Issue 事件叫醒，会继承该 Issue；多事件回合不猜。不会自动 @，要引用另外传 ats。",
+          },
+          next: {
+            type: "string",
+            description: "这一步的下一步，一句话。只在有 Issue 归属时写入进展，不写进聊天正文。",
           },
         },
         required: ["message", "app"],
       },
       async (args) => {
         let message = typeof args.message === "string" ? args.message.trim() : "";
-        const files = stringList(args.files);
+        const files = [...new Set(stringList(args.files))];
         const links = stringList(args.links);
-        const settleId = text(args.issueId);
-        if (args.issueId !== undefined && !settleId) return fail("issueId required");
-        if (settleId && !deps.issues.get(settleId)) return fail("not found");
+        if (files.length > ISSUE_UPDATE_FILES_MAX) {
+          return fail(`最多 ${ISSUE_UPDATE_FILES_MAX} 个文件`);
+        }
+        const explicitIssueId = text(args.issueId);
+        if (args.issueId !== undefined && !explicitIssueId) {
+          return fail("issueId required");
+        }
+        const settleId = explicitIssueId;
+        const turn = deps.getTurnContext?.();
+        const issueId =
+          args.app === "muse" ? explicitIssueId || turn?.singleIssueId : undefined;
+        const issue = issueId ? deps.issues.get(issueId) : undefined;
+        if (issueId && !issue) {
+          return fail("issue not found; call ListIssues first");
+        }
+        if (
+          issue &&
+          (issue.status === "completed" || issue.status === "cancelled")
+        ) {
+          return fail("issue is closed");
+        }
         if (
           files.length === 0 &&
           [...message].length > SEND_MESSAGE_BODY_MAX &&
@@ -243,9 +276,22 @@ export function createMessageTools(deps: AssistantToolDeps) {
             undefined,
             undefined,
             undefined,
-            settleId || rememberedIssueId,
+            issueId || rememberedIssueId,
+            turn?.turnId,
           );
-          if (settleId) deps.issues.clearReplyPending(settleId);
+          if (issueId && deps.recordIssueUpdate) {
+            deps.recordIssueUpdate(issueId, {
+              kind: "assistant",
+              summary: issueUpdateSummary(message) || (files.length ? "附上了文件" : "更新了进展"),
+              ...(recordBody.length > 280 ? { detail: recordBody } : {}),
+              messageId: line.id,
+              ...(files.length ? { files } : {}),
+              ...(text(args.next) ? { next: text(args.next) } : {}),
+              ...(turn?.turnId ? { turnId: turn.turnId } : {}),
+              sourceKey: `assistant:${line.id}`,
+            });
+          }
+          if (issueId) deps.issues.clearReplyPending(issueId);
           deps.hub.broadcastAll({ type: "assistant:chat", line });
           return ok({ line });
         }

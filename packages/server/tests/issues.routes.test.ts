@@ -252,3 +252,54 @@ describe("issues HTTP", () => {
     ).toEqual(["补测试"]);
   });
 });
+
+
+describe("issue progress routes", () => {
+  let server: Server | undefined;
+  let home: string | undefined;
+  afterEach(async () => {
+    if (server) await closeTestApp(server, home);
+    server = undefined;
+    home = undefined;
+  });
+
+  it("records checklist and close results as progress", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "有清单" }),
+    }).then((r) => r.json());
+
+    await fetch(`${app.baseUrl}/issues/${issue.id}/items`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ items: [{ content: "做一半" }] }),
+    });
+
+    const history = await fetch(`${app.baseUrl}/issues/${issue.id}/updates`).then(
+      (r) => r.json(),
+    );
+    expect(history.updates[0]).toMatchObject({
+      kind: "checklist",
+      summary: "清单新增 1 项",
+    });
+
+    await fetch(`${app.baseUrl}/issues/${issue.id}/complete`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ note: "做完了" }),
+    });
+
+    const afterClose = await fetch(
+      `${app.baseUrl}/issues/${issue.id}/updates`,
+    ).then((r) => r.json());
+    expect(afterClose.updates[0]).toMatchObject({
+      kind: "result",
+      summary: "已完成：做完了",
+      status: "completed",
+    });
+  });
+});

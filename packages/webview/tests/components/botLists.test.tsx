@@ -742,3 +742,29 @@ describe("ChatApp pending and issue lists", () => {
     expect(document.querySelector(".tooltip-box.visible")).toHaveTextContent(A11Y);
   });
 });
+
+describe("BotLists issue progress", () => {
+  it("shows the latest update and unread count", () => {
+    render(
+      <BotLists
+        wide
+        menu={null}
+        selected={{ kind: "none" }}
+        queue={[]}
+        issues={[
+          {
+            issueId: "radii",
+            title: RADII,
+            priority: "p1",
+            latestUpdate: { summary: "圆角已对齐，报告已出", at: 1_700_000_000_000 },
+            unreadCount: 2,
+          },
+        ]}
+        onToggleMenu={() => {}}
+        onSelect={() => {}}
+      />,
+    );
+    expect(screen.getByText("圆角已对齐，报告已出")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
+  });
+});

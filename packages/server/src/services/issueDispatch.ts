@@ -1,5 +1,6 @@
 import { DEFAULT_ACTIVE_MODEL_ID } from "@muse-work/provider";
 import type { Issue, IssueStore } from "./issueStore.js";
+import type { IssueUpdate, IssueUpdateInput } from "./issueProgress.js";
 import type { SessionStore } from "./sessionStore.js";
 import type { SessionRunner } from "./sessionRunner/index.js";
 import type { WsHub } from "./wsHub.js";
@@ -73,7 +74,11 @@ function snapshotPaths(block: Record<string, unknown>): string[] {
   const paths: string[] = [];
   for (const snapshot of snapshots) {
     if (!snapshot || typeof snapshot !== "object") continue;
-    const filePath = (snapshot as { path?: unknown }).path;
+    const raw = snapshot as { filePath?: unknown; path?: unknown };
+    const filePath =
+      typeof raw.filePath === "string" && raw.filePath.trim()
+        ? raw.filePath
+        : raw.path;
     if (typeof filePath === "string" && filePath.trim()) {
       paths.push(filePath.trim());
     }
@@ -266,6 +271,11 @@ export function createIssueDispatcher(opts: {
   runner: SessionRunner;
   hub: WsHub;
   home?: string;
+  recordIssueUpdate?: (
+    issueId: string,
+    input: IssueUpdateInput,
+    opts?: { allowClosed?: boolean },
+  ) => IssueUpdate | undefined;
 }): {
   dispatch(
     issueId: string,
@@ -284,7 +294,7 @@ export function createIssueDispatcher(opts: {
   }>;
   cancelItem(issueId: string, itemId: string): Promise<Issue>;
 } {
-  const { issues, sessions, runner, hub } = opts;
+  const { issues, sessions, runner, hub, recordIssueUpdate } = opts;
   const home = resolveHome(opts.home);
   const inflight = new Map<string, { issueId: string; itemId: string }>();
   const lastOutcome = new Map<string, { itemId: string; ok: boolean }>();
@@ -378,8 +388,18 @@ export function createIssueDispatcher(opts: {
     }
     if (issues.get(issueId)?.status === "planning") {
       issues.markExecuting(issueId);
+      recordIssueUpdate?.(issueId, {
+        kind: "status",
+        summary: "进入执行中",
+        status: "executing",
+      });
     }
     issues.patchItem(issueId, itemId, { status: "running" });
+    recordIssueUpdate?.(issueId, {
+      kind: "checklist",
+      summary: `开始执行：${item.content}`,
+      status: "executing",
+    });
     dutyNudges.delete(issueId);
     inflight.set(executionSessionId, { issueId, itemId });
     try {
@@ -522,6 +542,14 @@ export function createIssueDispatcher(opts: {
     const issue = issues.get(mapped.issueId);
     const item = issue?.items.find((entry) => entry.id === mapped.itemId);
     issues.maybeEnterReview(mapped.issueId);
+    const afterReview = issues.get(mapped.issueId);
+    if (afterReview?.status === "review" && issue?.status !== "review") {
+      recordIssueUpdate?.(mapped.issueId, {
+        kind: "status",
+        summary: "清单完成，进入待审核",
+        status: "review",
+      });
+    }
     if (issue?.planningSessionId) {
       const planningSessionId = issue.planningSessionId;
       void (async () => {

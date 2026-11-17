@@ -148,6 +148,45 @@ describe("sessions HTTP routes", () => {
     );
   });
 
+  it("grouped exposes the latest issue progress", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "有进展" }),
+    }).then((r) => r.json());
+
+    app.ctx.issueProgress.append(issue.id, {
+      kind: "assistant",
+      summary: "做了一半",
+    });
+    app.ctx.issueProgress.append(issue.id, {
+      kind: "assistant",
+      summary: "做完了",
+      next: "等你确认",
+      files: ["/tmp/report.html"],
+    });
+
+    const grouped = await fetch(`${app.baseUrl}/sessions?grouped=1`).then((r) =>
+      r.json(),
+    );
+    expect(grouped.issueGroups[0].latestUpdate.summary).toBe("做完了");
+    expect(grouped.issueGroups[0].updates.map((u: { summary: string }) => u.summary)).toEqual([
+      "做完了",
+      "做了一半",
+    ]);
+    expect(grouped.issueGroups[0].updateCount).toBe(2);
+
+    const history = await fetch(`${app.baseUrl}/issues/${issue.id}/updates`).then(
+      (r) => r.json(),
+    );
+    expect(history.updates[0].summary).toBe("做完了");
+    expect(history.hasMore).toBe(false);
+  });
+
   it("grouped caps recent after removing issue sessions", async () => {
     const app = await listenTestApp();
     server = app.server;

@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import type { SessionRunner } from "../sessionRunner/index.js";
 import type { SessionStore } from "../sessionStore.js";
 import { getLogger } from "../../utils/logger.js";
@@ -13,6 +14,14 @@ import { ensureAssistantSession } from "./session.js";
 import { buildAssistantSystemPrompt } from "./prompt.js";
 
 type Queue = ReturnType<typeof createAssistantQueue>;
+
+export type AssistantTurnContext = {
+  turnId: string;
+  eventCount: number;
+  issueIds: string[];
+  /** 只有整轮只被一个 issue/permission 事件叫醒时才有值。 */
+  singleIssueId?: string;
+};
 
 const TURN_LIMIT_MS = 90_000;
 const OVERRUN_NOTE =
@@ -30,6 +39,8 @@ export function createAssistantRuntime(options: {
   schedule?: (fn: () => void, ms: number) => () => void;
   onActivity?: (working: boolean) => void;
   onQueue?: (items: AssistantQueueView[]) => void;
+  onTurnStart?: (context: AssistantTurnContext) => void;
+  onTurnEnd?: (turnId: string) => void;
   systemPrompt?: string;
   toolNames?: readonly string[];
 }): {
@@ -56,6 +67,7 @@ export function createAssistantRuntime(options: {
   let preempting = false;
   /** 打断后的交接还没把下一轮发出去。这期间的再次收尾是同一次 abort 的回声。 */
   let handoff = false;
+  let inflightTurnId: string | undefined;
 
   function stamp(event: AssistantEvent): AssistantEvent {
     if (event.timestamp !== undefined) return event;
@@ -144,6 +156,25 @@ export function createAssistantRuntime(options: {
     inflight = true;
     rememberSources(batch);
     syncAssistant();
+    const issueIds = [
+      ...new Set(
+        batch.flatMap((event) =>
+          event.type === "issue" || event.type === "permission"
+            ? [event.issueId]
+            : [],
+        ),
+      ),
+    ];
+    const turnId = crypto.randomUUID();
+    inflightTurnId = turnId;
+    options.onTurnStart?.({
+      turnId,
+      eventCount: batch.length,
+      issueIds,
+      ...(batch.length === 1 && issueIds.length === 1
+        ? { singleIssueId: issueIds[0] }
+        : {}),
+    });
     armLimit();
     notify();
     const images = normalizeAssistantImages(
@@ -183,6 +214,10 @@ export function createAssistantRuntime(options: {
     result: { ok: boolean; error?: string },
   ): void {
     if (!assistantId || sessionId !== assistantId) return;
+    if (inflightTurnId) {
+      options.onTurnEnd?.(inflightTurnId);
+      inflightTurnId = undefined;
+    }
     if (handoff) return;
     const overrun = preempting;
     preempting = false;

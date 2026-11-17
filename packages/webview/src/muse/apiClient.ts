@@ -154,6 +154,31 @@ export interface MuseIssue {
   updatedAt: number;
 }
 
+export type MuseIssueUpdateKind =
+  | "assistant"
+  | "turn"
+  | "status"
+  | "checklist"
+  | "permission"
+  | "result";
+
+export interface MuseIssueUpdate {
+  id: string;
+  at: number;
+  kind: MuseIssueUpdateKind;
+  summary: string;
+  detail?: string;
+  sessionId?: string;
+  messageId?: string;
+  sessionMessageId?: string;
+  changedFiles?: string[];
+  files?: string[];
+  next?: string;
+  status?: MuseIssueStatus;
+  turnId?: string;
+  userPresent?: true;
+}
+
 /** Issue 侧栏分组：规划/执行会话（sessions 为 MuseSession，emit 时再 toEntry）。 */
 export interface MuseIssueGroup {
   issueId: string;
@@ -163,6 +188,9 @@ export interface MuseIssueGroup {
   type?: string;
   status: string;
   items: MuseChecklistItem[];
+  latestUpdate?: MuseIssueUpdate;
+  updates?: MuseIssueUpdate[];
+  updateCount?: number;
   planningSessionId?: string;
   executionSessionId?: string;
   agentMode?: "single" | "split";

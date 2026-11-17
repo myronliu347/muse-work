@@ -1002,6 +1002,17 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     setAssistantDockOpen,
     handleOpenFile,
     handleOpenFilePin,
+    openChangedFile: (path) => {
+      const known = [...issueRecentDiffFiles, ...recentDiffFiles].some(
+        (file) => file.path === path || file.path.endsWith(`/${path}`) || path.endsWith(`/${file.path}`),
+      );
+      if (known) {
+        openFileHistoryDiff(path);
+        return;
+      }
+      handleOpenFile(path);
+    },
+    openArtifact: (path) => handleOpenFile(path),
     revealOpenedFile,
     handleRefreshOpenFile,
     sendIssueMessage,

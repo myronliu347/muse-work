@@ -269,6 +269,32 @@ export interface DesktopSessionGroup {
   sessions: DesktopSessionEntry[];
 }
 
+export type DesktopIssueUpdateKind =
+  | "assistant"
+  | "turn"
+  | "status"
+  | "checklist"
+  | "permission"
+  | "result";
+
+/** 一条 Issue 进展；服务端存 `db/issue-progress/<issueId>.jsonl`。 */
+export interface DesktopIssueUpdate {
+  id: string;
+  at: number;
+  kind: DesktopIssueUpdateKind;
+  summary: string;
+  detail?: string;
+  sessionId?: string;
+  messageId?: string;
+  sessionMessageId?: string;
+  changedFiles?: string[];
+  files?: string[];
+  next?: string;
+  status?: string;
+  turnId?: string;
+  userPresent?: true;
+}
+
 /** Issue 分组：同一 Issue 的规划会话 + 执行会话（侧栏按 Issue 折叠展示）。 */
 export interface DesktopIssueGroup {
   issueId: string;
@@ -280,6 +306,9 @@ export interface DesktopIssueGroup {
   type?: string;
   status: string;
   items: Array<{ id: string; content: string; status: string }>;
+  latestUpdate?: DesktopIssueUpdate;
+  updates?: DesktopIssueUpdate[];
+  updateCount?: number;
   planningSessionId?: string;
   executionSessionId?: string;
   /** single = 本会话规划并改代码；split = 规划 + 执行。 */

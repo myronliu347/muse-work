@@ -383,4 +383,44 @@ describe("assistant runtime", () => {
     expect(sends[1]).toContain("title: 登录");
     expect(sends[1]).not.toContain("message: 正在做");
   });
+  it("exposes a turn context for a single issue event", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-ctx-"));
+    const sessions = createSessionStore({ home });
+    const runner = {
+      sendMessage: async () => ({ accepted: true as const }),
+      appendSystemNote: async () => {},
+    };
+    const queue = createAssistantQueue({ home });
+    const starts: unknown[] = [];
+    const ends: string[] = [];
+    const runtime = createAssistantRuntime({
+      home,
+      sessions,
+      runner: runner as never,
+      queue,
+      onTurnStart: (context) => starts.push(context),
+      onTurnEnd: (turnId) => ends.push(turnId),
+    });
+    runtime.start();
+    const assistantId = sessions.list().find((s) => s.origin === "assistant")!.id;
+    runtime.enqueue({
+      type: "issue",
+      issueId: "issue-1",
+      title: "A",
+      workdir: "/tmp",
+      summary: "done",
+    });
+    expect(starts).toEqual([
+      {
+        turnId: expect.any(String),
+        eventCount: 1,
+        issueIds: ["issue-1"],
+        singleIssueId: "issue-1",
+      },
+    ]);
+    const turnId = (starts[0] as { turnId: string }).turnId;
+    runtime.onAssistantTurnSettled(assistantId, { ok: true });
+    expect(ends).toEqual([turnId]);
+  });
+
 });

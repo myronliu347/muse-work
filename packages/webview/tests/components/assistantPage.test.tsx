@@ -1,6 +1,6 @@
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import type { MessageInputHandle } from "../../src/components/chat/MessageInput";
 import {
   AssistantPage,
@@ -933,3 +933,75 @@ describe("classifyAssistantHref", () => {
     );
   });
 });
+
+  it("shows unread progress and lets the user open or clear it", async () => {
+    const api = {
+      listAssistantMessages: vi
+        .fn()
+        .mockResolvedValue({ messages: [], hasMore: false }),
+    };
+    const onOpenProgressIssue = vi.fn();
+    const onMarkAllProgressRead = vi.fn();
+    render(
+      <AssistantPage
+        api={api as never}
+        progressItems={[
+          { issueId: "radii", title: "同页一致性", unread: 2 },
+          { issueId: "shell", title: "壳规范", unread: 1 },
+        ]}
+        onOpenProgressIssue={onOpenProgressIssue}
+        onMarkAllProgressRead={onMarkAllProgressRead}
+      />,
+    );
+
+    expect(screen.getByText(/有 2 件事有新进展/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("同页一致性"));
+    expect(onOpenProgressIssue).toHaveBeenCalledWith("radii");
+    fireEvent.click(screen.getByText("全部已读"));
+    expect(onMarkAllProgressRead).toHaveBeenCalledTimes(1);
+  });
+
+  it("groups a multi-issue assistant turn into one receipt", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "a1",
+            at: Date.now(),
+            role: "assistant",
+            turnId: "turn-1",
+            issueId: "radii",
+            message: "圆角已对齐",
+          },
+          {
+            id: "a2",
+            at: Date.now(),
+            role: "assistant",
+            turnId: "turn-1",
+            issueId: "shell",
+            message: "壳规范落点已定",
+          },
+        ],
+        hasMore: false,
+      }),
+    };
+    const onSelectIssue = vi.fn();
+    render(
+      <AssistantPage
+        api={api as never}
+        mentionIssues={[
+          { id: "radii", title: "同页一致性" },
+          { id: "shell", title: "壳规范" },
+        ]}
+        onSelectIssue={onSelectIssue}
+      />,
+    );
+
+    expect(await screen.findByTestId("assistant-turn-receipt")).toBeInTheDocument();
+    expect(screen.getByText("同页一致性")).toBeInTheDocument();
+    expect(screen.getByText("壳规范")).toBeInTheDocument();
+    const receipt = screen.getByTestId("assistant-turn-receipt");
+    const buttons = within(receipt).getAllByRole("button");
+    fireEvent.click(buttons[0]);
+    expect(onSelectIssue).toHaveBeenCalledWith("radii");
+  });

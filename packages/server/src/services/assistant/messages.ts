@@ -28,6 +28,8 @@ export interface MuseChatLine {
   msgIds?: string[];
   /** 这句在说的 Issue。引用没写进正文时也记着，用来判断下一句要不要再带。 */
   issueId?: string;
+  /** 助手本轮的 id；同一轮的多条消息共用。 */
+  turnId?: string;
 }
 
 export interface MuseChatPage {
@@ -108,6 +110,9 @@ function parseLine(raw: string): MuseChatLine | undefined {
     const issueId = (record as { issueId?: unknown }).issueId;
     if (typeof issueId === "string" && issueId.trim()) record.issueId = issueId.trim();
     else delete record.issueId;
+    const turnId = (record as { turnId?: unknown }).turnId;
+    if (typeof turnId === "string" && turnId.trim()) record.turnId = turnId.trim();
+    else delete record.turnId;
     return record;
   } catch {
     return undefined;
@@ -149,6 +154,7 @@ export function createAssistantMessageLog(options: {
     app?: string,
     msgIds?: string[],
     issueId?: string,
+    turnId?: string,
   ): MuseChatLine;
   clear(): void;
   page(args?: { before?: string; limit?: number }): MuseChatPage;
@@ -165,6 +171,7 @@ export function createAssistantMessageLog(options: {
     app?: string,
     msgIds?: string[],
     issueId?: string,
+    turnId?: string,
   ): MuseChatLine {
     fs.mkdirSync(dir, { recursive: true });
     const names = listSliceNames(dir);
@@ -179,6 +186,7 @@ export function createAssistantMessageLog(options: {
     const kept = normalizeAssistantImages(images);
     const keptIds = normalizeMsgIds(msgIds);
     const keptIssueId = typeof issueId === "string" ? issueId.trim() : "";
+    const keptTurnId = typeof turnId === "string" ? turnId.trim() : "";
     const line: MuseChatLine = {
       id: newId(),
       at,
@@ -188,6 +196,7 @@ export function createAssistantMessageLog(options: {
       ...(app ? { app } : {}),
       ...(keptIds.length > 0 ? { msgIds: keptIds } : {}),
       ...(keptIssueId ? { issueId: keptIssueId } : {}),
+      ...(keptTurnId ? { turnId: keptTurnId } : {}),
     };
     fs.appendFileSync(filePath, `${JSON.stringify(line)}\n`);
     return line;

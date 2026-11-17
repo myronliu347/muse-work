@@ -1,5 +1,5 @@
 import type { VsCodeApi } from "../../types";
-import type { MuseApiClient, MuseSession, MuseSessionsGrouped } from "../apiClient.js";
+import type { MuseApiClient, MuseIssueUpdate, MuseSession, MuseSessionsGrouped } from "../apiClient.js";
 import type { MuseWsClient, MuseWsEvent } from "../wsClient.js";
 import { allTreeSessions, postToWebview } from "./utils.js";
 import type { PendingPermission, TreeSession } from "./utils.js";
@@ -92,6 +92,9 @@ export interface BridgeCtx {
     type?: string;
     status: string;
     items: NonNullable<MuseSessionsGrouped["issueGroups"]>[number]["items"];
+    latestUpdate?: MuseIssueUpdate;
+    updates?: MuseIssueUpdate[];
+    updateCount?: number;
     planningSessionId?: string;
     executionSessionId?: string;
     agentMode?: "single" | "split";
@@ -108,6 +111,9 @@ export interface BridgeCtx {
     type?: string;
     status: string;
     items: NonNullable<MuseSessionsGrouped["closedIssueGroups"]>[number]["items"];
+    latestUpdate?: MuseIssueUpdate;
+    updates?: MuseIssueUpdate[];
+    updateCount?: number;
     planningSessionId?: string;
     executionSessionId?: string;
     agentMode?: "single" | "split";

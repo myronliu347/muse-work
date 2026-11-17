@@ -62,6 +62,8 @@ export type AssistantLine = {
   app?: string;
   /** 这条回复引用的 Issue。标题引用可点击并切到它。 */
   issueId?: string;
+  /** 助手本轮的 id；同一轮的多条消息共用。 */
+  turnId?: string;
 };
 
 export type AssistantQueueItem = {
@@ -70,6 +72,53 @@ export type AssistantQueueItem = {
   retry?: true;
   active?: true;
 };
+
+export type AssistantProgressItem = {
+  issueId: string;
+  title: string;
+  unread: number;
+  summary?: string;
+  at?: number;
+};
+
+type AssistantDisplayRow =
+  | { kind: "line"; id: string; line: AssistantLine }
+  | { kind: "receipt"; id: string; turnId: string; lines: AssistantLine[] };
+
+/**
+ * 同一轮里超过一个 Issue 的连续 assistant 消息合成一张回执。
+ * 只有全部带 issueId 才合；否则原样显示，避免把无归属消息吞掉。
+ */
+function buildAssistantRows(lines: AssistantLine[]): AssistantDisplayRow[] {
+  const rows: AssistantDisplayRow[] = [];
+  let index = 0;
+  while (index < lines.length) {
+    const line = lines[index];
+    if (line.role !== "assistant" || !line.turnId) {
+      rows.push({ kind: "line", id: line.id, line });
+      index += 1;
+      continue;
+    }
+    let end = index + 1;
+    while (
+      end < lines.length &&
+      lines[end].role === "assistant" &&
+      lines[end].turnId === line.turnId
+    ) {
+      end += 1;
+    }
+    const run = lines.slice(index, end);
+    const issueIds = new Set(run.flatMap((item) => (item.issueId ? [item.issueId] : [])));
+    if (run.length >= 2 && issueIds.size >= 2 && run.every((item) => item.issueId)) {
+      rows.push({ kind: "receipt", id: `receipt:${line.turnId}`, turnId: line.turnId, lines: run });
+      index = end;
+      continue;
+    }
+    rows.push({ kind: "line", id: line.id, line });
+    index += 1;
+  }
+  return rows;
+}
 
 export type AssistantPageApi = {
   listAssistantQueue?: () => Promise<{ items: AssistantQueueItem[] }>;
@@ -228,6 +277,10 @@ function asLine(value: unknown): AssistantLine | undefined {
       ...(typeof (line as { issueId?: unknown }).issueId === "string" &&
       (line as { issueId: string }).issueId.trim()
         ? { issueId: (line as { issueId: string }).issueId.trim() }
+        : {}),
+      ...(typeof (line as { turnId?: unknown }).turnId === "string" &&
+      (line as { turnId: string }).turnId.trim()
+        ? { turnId: (line as { turnId: string }).turnId.trim() }
         : {}),
       ...(Array.isArray((line as { images?: unknown }).images)
         ? {
@@ -644,6 +697,63 @@ function AssistantBubbleBody({
   );
 }
 
+function AssistantTurnReceipt({
+  row,
+  titleFor,
+  onSelectIssue,
+  renderLine,
+}: {
+  row: Extract<AssistantDisplayRow, { kind: "receipt" }>;
+  titleFor: (issueId: string) => string;
+  onSelectIssue?: (issueId: string) => void;
+  renderLine: (line: AssistantLine) => React.ReactNode;
+}) {
+  const groups: Array<{ issueId: string; line: AssistantLine; count: number }> = [];
+  for (const line of row.lines) {
+    if (!line.issueId) continue;
+    const existing = groups.find((group) => group.issueId === line.issueId);
+    if (existing) {
+      existing.line = line;
+      existing.count += 1;
+    } else {
+      groups.push({ issueId: line.issueId, line, count: 1 });
+    }
+  }
+  return (
+    <section className="assistant-turn-receipt" data-testid="assistant-turn-receipt">
+      <header className="assistant-turn-receipt-head">
+        <span>本轮结果</span>
+        <BubbleTime at={row.lines[0].at} />
+      </header>
+      <div className="assistant-turn-receipt-rows">
+        {groups.map((group) => (
+          <button
+            key={group.issueId}
+            type="button"
+            className="assistant-turn-receipt-row"
+            onClick={() => onSelectIssue?.(group.issueId)}
+          >
+            <span className="assistant-turn-receipt-title">{titleFor(group.issueId)}</span>
+            <span className="assistant-turn-receipt-text">{group.line.message}</span>
+            {group.count > 1 ? (
+              <span className="assistant-turn-receipt-count">还有 {group.count - 1} 条</span>
+            ) : null}
+            <span className="assistant-turn-receipt-action">看进展</span>
+          </button>
+        ))}
+      </div>
+      <details className="assistant-turn-receipt-more">
+        <summary>展开本轮 {row.lines.length} 条消息</summary>
+        <div className="assistant-turn-receipt-messages">
+          {row.lines.map((line) => (
+            <div key={line.id}>{renderLine(line)}</div>
+          ))}
+        </div>
+      </details>
+    </section>
+  );
+}
+
 export const AssistantPage: React.FC<{
   api: AssistantPageApi;
   vscode?: VsCodeApi;
@@ -670,6 +780,10 @@ export const AssistantPage: React.FC<{
   onComposerFocusChange?: (focused: boolean) => void;
   /** 点击回复里的事项标题，切到这条 Issue。 */
   onSelectIssue?: (issueId: string) => void;
+  /** 顶部未读进展条。 */
+  progressItems?: AssistantProgressItem[];
+  onOpenProgressIssue?: (issueId: string) => void;
+  onMarkAllProgressRead?: () => void;
 }> = ({
   api,
   vscode = noopHost,
@@ -685,6 +799,9 @@ export const AssistantPage: React.FC<{
   onViewModeChange,
   onComposerFocusChange,
   onSelectIssue,
+  progressItems,
+  onOpenProgressIssue,
+  onMarkAllProgressRead,
 }) => {
   // Seed from the last visit so coming back from 会话 paints the conversation
   // immediately; the mount fetch below still refreshes it in the background.
@@ -695,6 +812,7 @@ export const AssistantPage: React.FC<{
   const [hasMore, setHasMore] = useState(
     () => cachedTranscript?.hasMore ?? false,
   );
+  const rows = useMemo(() => buildAssistantRows(lines), [lines]);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"chat" | "transcript">("chat");
   useEffect(() => {
@@ -1270,6 +1388,44 @@ export const AssistantPage: React.FC<{
         </div>
       </section>
       )}
+      {mode === "chat" && progressItems && progressItems.length > 0 ? (
+        <section className="assistant-catchup" aria-label="未读进展">
+          <span className="assistant-catchup-dot" aria-hidden="true" />
+          <span className="assistant-catchup-label">
+            有 {progressItems.length} 件事有新进展
+            {progressItems.reduce((sum, item) => sum + item.unread, 0) >
+            progressItems.length
+              ? ` · 共 ${progressItems.reduce((sum, item) => sum + item.unread, 0)} 条`
+              : ""}
+          </span>
+          <div className="assistant-catchup-items">
+            {progressItems.map((item) => (
+              <button
+                key={item.issueId}
+                type="button"
+                className="assistant-catchup-item"
+                title={item.summary}
+                onClick={() => onOpenProgressIssue?.(item.issueId)}
+              >
+                <span>{item.title}</span>
+                <span
+                  className="assistant-catchup-count"
+                  title={`${item.unread} 条未读进展`}
+                >
+                  {item.unread} 条
+                </span>
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="assistant-catchup-read"
+            onClick={onMarkAllProgressRead}
+          >
+            全部已读
+          </button>
+        </section>
+      ) : null}
       {mode === "transcript" ? (
         <div className="assistant-transcript">
           {agentError ? <p className="assistant-error">{agentError}</p> : null}
@@ -1317,9 +1473,29 @@ export const AssistantPage: React.FC<{
             className="virtual-spacer"
           />
           {virtualizer.getVirtualItems().map((virtualRow) => {
-            const line = lines[virtualRow.index];
-            if (!line) return null;
-            const source = sourceApp(line.app);
+            const row = rows[virtualRow.index];
+            if (!row) return null;
+            const renderAssistantLine = (line: AssistantLine) => {
+              const source = sourceApp(line.app);
+              return (
+                <div className="assistant-bubble-row assistant-bubble-row-assistant">
+                  {source ? (
+                    <div className="assistant-bubble-source">{source}</div>
+                  ) : null}
+                  <div className="assistant-bubble assistant-bubble-assistant">
+                    <AssistantBubbleBody
+                      line={line}
+                      closedFilePaths={closedFilePaths}
+                      onLinkClick={handleLinkClick}
+                      onOpenAttachment={openHref}
+                      onSelectIssue={onSelectIssue}
+                      onPreviewImage={previewImage}
+                    />
+                  </div>
+                  <BubbleTime at={line.at} />
+                </div>
+              );
+            };
             return (
               <div
                 key={virtualRow.key}
@@ -1327,31 +1503,26 @@ export const AssistantPage: React.FC<{
                 ref={measureRow}
                 className="virtual-row"
               >
-                {line.role === "user" ? (
+                {row.kind === "receipt" ? (
+                  <AssistantTurnReceipt
+                    row={row}
+                    onSelectIssue={onSelectIssue}
+                    titleFor={(issueId) =>
+                      mentionIssues?.find((issue) => issue.id === issueId)?.title ??
+                      issueId
+                    }
+                    renderLine={renderAssistantLine}
+                  />
+                ) : row.line.role === "user" ? (
                   <UserLine
-                    line={line}
+                    line={row.line}
                     onOpenFile={(path) =>
                       onOpenFile?.(resolveWorkspaceFilePath(path, agentWorkdir))
                     }
                     onPreviewImage={previewImage}
                   />
                 ) : (
-                  <div className="assistant-bubble-row assistant-bubble-row-assistant">
-                    {source ? (
-                      <div className="assistant-bubble-source">{source}</div>
-                    ) : null}
-                    <div className="assistant-bubble assistant-bubble-assistant">
-                      <AssistantBubbleBody
-                        line={line}
-                        closedFilePaths={closedFilePaths}
-                        onLinkClick={handleLinkClick}
-                        onOpenAttachment={openHref}
-                        onSelectIssue={onSelectIssue}
-                        onPreviewImage={previewImage}
-                      />
-                    </div>
-                    <BubbleTime at={line.at} />
-                  </div>
+                  renderAssistantLine(row.line)
                 )}
               </div>
             );

@@ -1,5 +1,6 @@
-import { lastAssistantText } from "../issueDispatch.js";
+import { lastAssistantText, lastTurnChangedFiles } from "../issueDispatch.js";
 import type { IssueStore } from "../issueStore.js";
+import type { IssueUpdate, IssueUpdateInput } from "../issueProgress.js";
 import { userMessageText } from "../sessionRunner/serialization.js";
 import { ASSISTANT_TEXT_MAX } from "./messages.js";
 import {
@@ -11,6 +12,10 @@ import { takeIssueUserPresent } from "./userPresent.js";
 export async function enqueueIssueSessionTurn(args: {
   issues: IssueStore;
   runner: { getMessages(sessionId: string): Promise<unknown[]> };
+  recordIssueUpdate?: (
+    issueId: string,
+    input: IssueUpdateInput,
+  ) => IssueUpdate | undefined;
   enqueue: (event: AssistantEvent) => void;
   assistantSessionId?: string;
   sessionId: string;
@@ -18,19 +23,55 @@ export async function enqueueIssueSessionTurn(args: {
   if (args.assistantSessionId && args.sessionId === args.assistantSessionId) {
     return;
   }
-  // 执行会话的回合由规划会话验收后再进来，完成本身不推给助手。
-  const issue = args.issues.listActive().find(
-    (item) => item.planningSessionId === args.sessionId,
-  );
+  // 规划/单 agent 会话写进展并唤醒助手；执行会话只写进展，不唤醒助手。
+  const planningIssue = args.issues
+    .listActive()
+    .find((item) => item.planningSessionId === args.sessionId);
+  const executionIssue = planningIssue
+    ? undefined
+    : args.issues
+        .listActive()
+        .find((item) => item.executionSessionId === args.sessionId);
+  const issue = planningIssue ?? executionIssue;
   if (!issue?.workdir) return;
+
   let messages: unknown[] = [];
   try {
     messages = await args.runner.getMessages(args.sessionId);
   } catch {
     messages = [];
   }
-  const request = turnUserRequest(messages);
+  const lastText = lastAssistantText(messages);
+  const lastId = lastAssistantMessageId(messages);
   const userPresent = takeIssueUserPresent(args.sessionId, messages);
+
+  const done = issue.items.filter((item) => item.status === "done").length;
+  const total = issue.items.length;
+  const turnSummary = [
+    planningIssue ? "回合结束" : "执行回合结束",
+    total > 0 ? `清单 ${done}/${total}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const changedFiles = lastTurnChangedFiles(messages).slice(0, 20);
+
+  if (args.recordIssueUpdate) {
+    args.recordIssueUpdate(issue.id, {
+      kind: "turn",
+      summary: turnSummary,
+      sessionId: args.sessionId,
+      sessionMessageId: lastId,
+      ...(changedFiles.length > 0 ? { changedFiles } : {}),
+      status: issue.status,
+      userPresent: userPresent ? true : undefined,
+      sourceKey: lastId ? `turn:${args.sessionId}:${lastId}` : undefined,
+    });
+  }
+
+  // 执行会话到此为止：不负责给用户发消息，也不改 replyPending。
+  if (!planningIssue) return;
+
+  const request = turnUserRequest(messages);
   const pending = args.issues.markReplyPending(issue.id) ?? issue;
   args.enqueue({
     type: "issue",
@@ -38,11 +79,23 @@ export async function enqueueIssueSessionTurn(args: {
     title: issue.title,
     workdir: issue.workdir,
     ...(request ? { request } : {}),
-    summary: lastAssistantText(messages),
+    summary: lastText,
     replyPending: true,
     ...(userPresent ? { userPresent: true as const } : {}),
     ...(pending.replyNote ? { replyNote: pending.replyNote } : {}),
   });
+}
+
+function lastAssistantMessageId(messages: unknown[]): string | undefined {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+    if (!message || typeof message !== "object") continue;
+    const role = (message as { role?: unknown }).role;
+    if (role !== "assistant") continue;
+    const id = (message as { id?: unknown }).id;
+    if (typeof id === "string" && id) return id;
+  }
+  return undefined;
 }
 
 /** 这一轮用户发出的正文。往前走到上一轮的助手回复为止，跳过系统注入。 */
@@ -86,6 +139,11 @@ function truncateCodePoints(text: string, max: number): { text: string; truncate
 
 export function enqueueIssuePermission(args: {
   issues: IssueStore;
+  recordIssueUpdate?: (
+    issueId: string,
+    input: IssueUpdateInput,
+    opts?: { allowClosed?: boolean },
+  ) => IssueUpdate | undefined;
   enqueue: (event: AssistantEvent) => void;
   sessionId: string;
   permissionId: string;
@@ -99,6 +157,13 @@ export function enqueueIssuePermission(args: {
   );
   if (!issue?.workdir) return;
   const description = truncateCodePoints(args.description, ASSISTANT_TEXT_MAX);
+  args.recordIssueUpdate?.(issue.id, {
+    kind: "permission",
+    summary: `等待批准：${args.toolName}`,
+    detail: description.text,
+    sessionId: args.sessionId,
+    status: issue.status,
+  });
   args.enqueue({
     type: "permission",
     permissionId: args.permissionId,

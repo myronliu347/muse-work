@@ -58,6 +58,11 @@ sessionsRoutes.get("/sessions", (c) => {
         const execution = ctx.store.get(issue.executionSessionId);
         if (execution) sessions.push(toClientSession(execution));
       }
+      const updates = closed
+        ? []
+        : ctx.issueProgress.list(issue.id, { limit: 8 }).updates;
+      const latestUpdate = closed ? undefined : ctx.issueProgress.latest(issue.id);
+      const updateCount = closed ? 0 : ctx.issueProgress.count(issue.id);
       return {
         issueId: issue.id,
         title: issue.title,
@@ -74,6 +79,9 @@ sessionsRoutes.get("/sessions", (c) => {
         ...(issue.closeNote ? { closeNote: issue.closeNote } : {}),
         ...(issue.workdir ? { workdir: issue.workdir } : {}),
         ...(issue.baseBranch ? { baseBranch: issue.baseBranch } : {}),
+        ...(latestUpdate ? { latestUpdate } : {}),
+        ...(updates.length > 0 ? { updates } : {}),
+        ...(updateCount > 0 ? { updateCount } : {}),
         sessions,
       };
     };

@@ -35,6 +35,12 @@ import { ensureDefaultMuseUserSettings } from "./museAgentSettings.js";
 import { createIssueDispatcher } from "./issueDispatch.js";
 import { createIssueStore, type IssueStore } from "./issueStore.js";
 import {
+  createIssueProgressStore,
+  type IssueProgressStore,
+  type IssueUpdate,
+  type IssueUpdateInput,
+} from "./issueProgress.js";
+import {
   createAutomationStore,
   type AutomationStore,
 } from "./automationStore.js";
@@ -44,7 +50,10 @@ import { ASSISTANT_TOOLS } from "./assistant/session.js";
 import { createAssistantMessageLog } from "./assistant/messages.js";
 import { collectQueueLabels } from "./assistant/events.js";
 import { createAssistantQueue } from "./assistant/queue.js";
-import { createAssistantRuntime } from "./assistant/runtime.js";
+import {
+  createAssistantRuntime,
+  type AssistantTurnContext,
+} from "./assistant/runtime.js";
 import { createAssistantTools } from "./assistant/tools.js";
 import { enqueueIssuePermission, enqueueIssueSessionTurn } from "./assistant/observe.js";
 import { lastAssistantText } from "./issueDispatch.js";
@@ -60,6 +69,12 @@ export interface AppContext {
   hub: WsHub;
   runner: SessionRunner;
   issueStore: IssueStore;
+  issueProgress: IssueProgressStore;
+  recordIssueUpdate: (
+    issueId: string,
+    input: IssueUpdateInput,
+    opts?: { allowClosed?: boolean },
+  ) => IssueUpdate | undefined;
   automationStore: AutomationStore;
   automationRuntime: ReturnType<typeof createAutomationRuntime>;
   issueDispatcher: ReturnType<typeof createIssueDispatcher>;
@@ -165,6 +180,7 @@ export function createAppContext(
   );
   reconcileActiveProvider(registry, home);
   const issues = createIssueStore({ home });
+  const issueProgress = createIssueProgressStore({ home });
   const automations = createAutomationStore({ home });
   let assistantTools: ReturnType<typeof createAssistantTools> | undefined;
   const sessions = createSessionServices({
@@ -196,6 +212,7 @@ export function createAppContext(
         : false,
     });
   };
+  let currentAssistantTurn: AssistantTurnContext | undefined;
   const extraTools = options?.extraTools ?? [];
   const assistantRuntime = createAssistantRuntime({
     home,
@@ -212,7 +229,35 @@ export function createAppContext(
     onQueue: (items) => {
       sessions.hub.broadcastAll({ type: "assistant:queue", items });
     },
+    onTurnStart: (context) => {
+      currentAssistantTurn = context;
+    },
+    onTurnEnd: () => {
+      currentAssistantTurn = undefined;
+    },
   });
+  const recordIssueUpdate = (
+    issueId: string,
+    input: IssueUpdateInput,
+    opts?: { allowClosed?: boolean },
+  ): IssueUpdate | undefined => {
+    const issue = issues.get(issueId);
+    if (!issue) return undefined;
+    if (
+      !opts?.allowClosed &&
+      (issue.status === "completed" || issue.status === "cancelled")
+    ) {
+      return undefined;
+    }
+    const update = issueProgress.append(issueId, {
+      ...input,
+      status: input.status ?? issue.status,
+    });
+    if (!update) return undefined;
+    issues.touch(issueId);
+    sessions.hub.broadcastAll({ type: "issue:changed" });
+    return update;
+  };
   assistantTools = createAssistantTools({
     home,
     issues,
@@ -221,6 +266,8 @@ export function createAppContext(
     automations,
     log: assistantLog,
     hub: sessions.hub,
+    recordIssueUpdate,
+    getTurnContext: () => currentAssistantTurn,
     apps,
     extraTools,
   });
@@ -246,6 +293,7 @@ export function createAppContext(
     runner: sessions.runner,
     hub: sessions.hub,
     home,
+    recordIssueUpdate,
   });
   const automationRuntime = createAutomationRuntime({
     store: automations,
@@ -295,6 +343,7 @@ export function createAppContext(
   sessions.runner.setOnPermissionRequest((sessionId, request) => {
     enqueueIssuePermission({
       issues,
+      recordIssueUpdate,
       enqueue: (event) => assistantRuntime.enqueue(event),
       sessionId,
       permissionId: request.permissionId,
@@ -317,6 +366,7 @@ export function createAppContext(
     assistantRuntime.onAssistantTurnSettled(sessionId, result);
     void enqueueIssueSessionTurn({
       issues,
+      recordIssueUpdate,
       runner: sessions.runner,
       enqueue: (event) => assistantRuntime.enqueue(event),
       assistantSessionId: sessions.store
@@ -338,6 +388,8 @@ export function createAppContext(
       return startPreparedPlugins(preparedPlugins, requestedMainPort, getLogger());
     },
     issueStore: issues,
+    issueProgress,
+    recordIssueUpdate,
     automationStore: automations,
     automationRuntime,
     issueDispatcher: dispatcher,

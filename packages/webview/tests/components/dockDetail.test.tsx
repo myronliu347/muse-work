@@ -1380,6 +1380,53 @@ describe("assistant dock detail", () => {
   });
 });
 
+  it("shows progress, changed files and artifacts", async () => {
+    const user = userEvent.setup();
+    const onOpenChangedFile = vi.fn();
+    const onOpenArtifact = vi.fn();
+    const radii = issue({
+      issueId: "radii",
+      title: RADII,
+      priority: "p1",
+      updates: [
+        {
+          id: "u-1",
+          at: Date.now(),
+          kind: "assistant",
+          summary: "圆角已对齐，报告已出。",
+          next: "等按钮高度统一后收口。",
+          changedFiles: ["/work/radii/src/a.ts"],
+          files: ["/work/radii/report.html"],
+        },
+      ],
+      updateCount: 1,
+    });
+    render(
+      <MuseTheme>
+        <DockDetail
+          selection={{ kind: "issue", issue: radii }}
+          actionLabel="打开会话"
+          onOpenSession={() => {}}
+          onOpenChangedFile={onOpenChangedFile}
+          onOpenArtifact={onOpenArtifact}
+        />
+      </MuseTheme>,
+    );
+
+    expect(screen.getByTestId("dock-detail-progress")).toBeInTheDocument();
+    const progress = within(screen.getByTestId("dock-detail-progress"));
+    expect(progress.getByText("圆角已对齐，报告已出。")).toBeInTheDocument();
+    expect(progress.getByText("等按钮高度统一后收口。")).toBeInTheDocument();
+    expect(screen.getByTestId("dock-detail-changes")).toBeInTheDocument();
+    expect(screen.getByText("a.ts")).toBeInTheDocument();
+    expect(screen.getByTestId("dock-detail-artifacts")).toBeInTheDocument();
+
+    await user.click(screen.getByText("a.ts"));
+    expect(onOpenChangedFile).toHaveBeenCalledWith("/work/radii/src/a.ts");
+    await user.click(screen.getByText("report.html"));
+    expect(onOpenArtifact).toHaveBeenCalledWith("/work/radii/report.html");
+  });
+
 describe("session dock detail", () => {
   afterEach(() => {
     cleanup();

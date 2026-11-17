@@ -89,7 +89,7 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("不含待关闭的");
     expect(first.systemPrompt).toContain("[@issue:id 标题]");
     expect(first.systemPrompt).toContain("SendMessage` 带 `ats`");
-    expect(first.systemPrompt).toContain("`issueId` 只撕纸条，不会带上引用");
+    expect(first.systemPrompt).toContain("`ats` 只做引用，不写进展");
     expect(first.systemPrompt).toContain("跟上一条是同一条时不加");
     expect(first.systemPrompt).toContain("不用每条都加");
     expect(first.systemPrompt).not.toContain("每条都 @");
