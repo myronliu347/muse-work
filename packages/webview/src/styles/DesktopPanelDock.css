@@ -1438,8 +1438,9 @@
   font-size: 11px;
 }
 
-.confirm-dialog:has(.dock-detail-close-note) {
-  width: min(620px, calc(100vw - 64px));
+.confirm-dialog:has(.dock-detail-close-note),
+.confirm-dialog:has(.dock-detail-close-preview) {
+  width: min(880px, calc(100vw - 64px));
 }
 .dock-detail-close-loading {
   display: flex;
