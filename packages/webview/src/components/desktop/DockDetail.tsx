@@ -51,6 +51,9 @@ function useBoxWidth(ref: { current: HTMLElement | null }, watch: unknown): numb
   return width;
 }
 
+/** The issue AI summary only changes when the Issue gets new progress. */
+const closeSummaryCache = new Map<string, { key: string; summary: string }>();
+
 const CHECK_STATUS_ORDER = ["running", "pending", "done"] as const;
 
 const CHECK_STATUS_LABEL: Record<string, string> = {
@@ -463,6 +466,7 @@ export function DockDetail({
     (changedFiles.length > 0
       ? `完成，改动 ${changedFiles.length} 个文件`
       : "已完成");
+  const progressCacheKey = updates[0]?.id ?? "empty";
 
   const openClose = (kind: "complete" | "cancel") => {
     const requestId = closeRequestRef.current + 1;
@@ -473,12 +477,22 @@ export function DockDetail({
     setCloseError(null);
     setCloseLoading(false);
     if (kind !== "complete" || !onGenerateSummary) return;
+    const cached = closeSummaryCache.get(issue.issueId);
+    if (cached?.key === progressCacheKey) {
+      setCloseNote(cached.summary);
+      return;
+    }
     setCloseLoading(true);
     void onGenerateSummary(issue.issueId)
       .then((summary) => {
-        if (closeRequestRef.current !== requestId) return;
         const next = summary.trim();
         if (!next) return;
+        // Cache even if the dialog was closed while the request was in flight.
+        closeSummaryCache.set(issue.issueId, {
+          key: progressCacheKey,
+          summary: next,
+        });
+        if (closeRequestRef.current !== requestId) return;
         // Only replace the fallback if the user has not started editing it.
         setCloseNote((current) =>
           current === suggestedCloseNote ? next : current,

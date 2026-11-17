@@ -1550,6 +1550,41 @@ describe("assistant dock detail", () => {
     expect(screen.getByDisplayValue("AI 生成的结果总结")).toBeInTheDocument();
   });
 
+  it("reuses the AI summary until progress changes", async () => {
+    const user = userEvent.setup();
+    const onGenerateSummary = vi.fn().mockResolvedValue("缓存的最终结论");
+    const cachedIssue = {
+      ...issue({ issueId: "cache-test", title: "缓存测试", priority: "p1" }),
+      updates: [
+        {
+          id: "cache-u1",
+          at: Date.now(),
+          kind: "assistant" as const,
+          summary: "fallback note",
+        },
+      ],
+      updateCount: 1,
+    };
+    render(
+      <MuseTheme>
+        <DockDetail
+          selection={{ kind: "issue", issue: cachedIssue }}
+          actionLabel={null}
+          onOpenSession={() => {}}
+          onCompleteIssue={vi.fn()}
+          onGenerateSummary={onGenerateSummary}
+        />
+      </MuseTheme>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "完成" }));
+    expect(await screen.findByText("缓存的最终结论")).toBeInTheDocument();
+    await user.click(screen.getByTestId("confirm-dialog-cancel"));
+    await user.click(screen.getByRole("button", { name: "完成" }));
+    expect(screen.getByText("缓存的最终结论")).toBeInTheDocument();
+    expect(onGenerateSummary).toHaveBeenCalledOnce();
+  });
+
   it("loads the full update history on demand", async () => {
     const user = userEvent.setup();
     const now = Date.now();
