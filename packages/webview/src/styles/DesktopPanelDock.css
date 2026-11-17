@@ -501,7 +501,9 @@
 .dock-detail-toolbar {
   gap: 8px;
   min-height: 36px;
-  padding: 0 8px;
+  /* Match .desktop-panel-dock-header so the title/actions below sit on the
+     same left/right inset as the dock tabs above. */
+  padding: 0 var(--space-3);
 }
 
 .dock-detail-toolbar-main {
