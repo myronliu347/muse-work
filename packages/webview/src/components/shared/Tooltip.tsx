@@ -28,6 +28,8 @@ interface TooltipProps {
     | "top-left"
     | "top-right";
   offset?: number;
+  /** Delay before the tooltip appears; useful for large hover cards. */
+  showDelay?: number;
   disabled?: boolean;
   className?: string;
   /**
@@ -45,6 +47,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   children,
   position = "top",
   offset = 8,
+  showDelay = 0,
   disabled = false,
   className = "",
   wrap = true,
@@ -58,6 +61,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   const containerRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Card tooltips are hoverable (scroll/select). Plain text tips stay
   // pointer-events: none and hide immediately on leave.
   const interactive = Boolean(content);
@@ -147,12 +151,33 @@ export const Tooltip: React.FC<TooltipProps> = ({
     }
   }, []);
 
+  const clearShowTimer = useCallback(() => {
+    if (showTimerRef.current !== null) {
+      clearTimeout(showTimerRef.current);
+      showTimerRef.current = null;
+    }
+  }, []);
+
   const handleShow = useCallback(() => {
     clearHideTimer();
+    clearShowTimer();
+    if (showDelay > 0) {
+      showTimerRef.current = setTimeout(() => {
+        showTimerRef.current = null;
+        setIsVisible(true);
+      }, showDelay);
+      return;
+    }
     setIsVisible(true);
-  }, [clearHideTimer]);
+  }, [clearHideTimer, clearShowTimer, showDelay]);
 
-  useEffect(() => () => clearHideTimer(), [clearHideTimer]);
+  useEffect(
+    () => () => {
+      clearHideTimer();
+      clearShowTimer();
+    },
+    [clearHideTimer, clearShowTimer],
+  );
 
   useLayoutEffect(() => {
     if (!isVisible) return;
@@ -199,6 +224,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   }, [isVisible, interactive, calculatePosition]);
 
   const handleHide = useCallback(() => {
+    clearShowTimer();
     if (!interactive) {
       setIsVisible(false);
       return;
@@ -208,7 +234,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
       hideTimerRef.current = null;
       setIsVisible(false);
     }, INTERACTIVE_HIDE_MS);
-  }, [clearHideTimer, interactive]);
+  }, [clearHideTimer, clearShowTimer, interactive]);
 
   // When disabled, render children without tooltip wrapper
   if (disabled) {

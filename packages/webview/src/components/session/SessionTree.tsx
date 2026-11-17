@@ -512,6 +512,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
         text=""
         content={<WorktreeInfoCard {...hoverInfo} />}
         position="right"
+        showDelay={400}
         wrap={false}
       >
         {row}
