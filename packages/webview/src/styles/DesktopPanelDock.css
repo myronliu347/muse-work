@@ -1194,34 +1194,58 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.dock-detail-file-chip {
+.dock-detail-artifact-row {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   max-width: 100%;
-  padding: 4px 7px;
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
   background: var(--surface-subtle);
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: 10px;
-  cursor: pointer;
-}
-.dock-detail-file-chip:hover {
-  border-color: var(--border-strong);
-  background: var(--surface-muted);
-  color: var(--text-primary);
-}
-.dock-detail-file-chip span {
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+.dock-detail-artifact-row:hover {
+  border-color: var(--border-strong);
 }
 .dock-detail-file-chip-icon {
   width: 13px;
   height: 13px;
   flex: 0 0 auto;
+  margin-left: 7px;
+}
+.dock-detail-artifact-name {
+  min-width: 0;
+  max-width: 42ch;
+  padding: 4px 3px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 10px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dock-detail-artifact-name:hover {
+  color: var(--text-primary);
+}
+.dock-detail-artifact-action {
+  width: 24px;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-left: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.dock-detail-artifact-action:hover {
+  background: var(--surface-muted);
+  color: var(--text-primary);
 }
 .dock-detail-updates-more {
   margin-left: 8px;

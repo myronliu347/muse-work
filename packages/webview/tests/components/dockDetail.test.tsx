@@ -1384,6 +1384,7 @@ describe("assistant dock detail", () => {
     const user = userEvent.setup();
     const onOpenChangedFile = vi.fn();
     const onOpenArtifact = vi.fn();
+    const onOpenArtifactInBrowser = vi.fn();
     const radii = issue({
       issueId: "radii",
       title: RADII,
@@ -1409,6 +1410,7 @@ describe("assistant dock detail", () => {
           onOpenSession={() => {}}
           onOpenChangedFile={onOpenChangedFile}
           onOpenArtifact={onOpenArtifact}
+          onOpenArtifactInBrowser={onOpenArtifactInBrowser}
         />
       </MuseTheme>,
     );
@@ -1425,6 +1427,8 @@ describe("assistant dock detail", () => {
     expect(onOpenChangedFile).toHaveBeenCalledWith("/work/radii/src/a.ts");
     await user.click(screen.getByText("report.html"));
     expect(onOpenArtifact).toHaveBeenCalledWith("/work/radii/report.html");
+    await user.click(screen.getByRole("button", { name: "在浏览器中打开" }));
+    expect(onOpenArtifactInBrowser).toHaveBeenCalledWith("/work/radii/report.html");
   });
 
   it("resolves a pending permission inline", async () => {

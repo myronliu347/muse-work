@@ -4,6 +4,7 @@ import { marked } from "marked";
 import type { DesktopIssueGroup, DesktopIssueUpdate } from "../../types";
 import { issueSidebarStatusLabel } from "../../utils/issueStatusLabel";
 import { FileIcon } from "../panels/FileIcon";
+import { isHtmlPreviewPath } from "../assistant/assistantLinks";
 import { IssueRowContent, type BotListIssue } from "./BotLists";
 import type { IssuePresence } from "../session/SessionStatusGlyph";
 import { MarkdownView } from "../message/MarkdownView";
@@ -153,6 +154,8 @@ export interface DockDetailProps {
   onOpenChangedFile?: (path: string) => void;
   /** 点击产物附件：打开文件/预览。 */
   onOpenArtifact?: (path: string) => void;
+  /** HTML 产物：在内置浏览器打开。 */
+  onOpenArtifactInBrowser?: (path: string) => void;
   /** 加载这个 Issue 的完整进展（详情默认只拿到最近 8 条）。 */
   onLoadUpdates?: (
     issueId: string,
@@ -296,6 +299,7 @@ export function DockDetail({
   onSelectIssue,
   onOpenChangedFile,
   onOpenArtifact,
+  onOpenArtifactInBrowser,
   onLoadUpdates,
   onRespondPermission,
 }: DockDetailProps) {
@@ -575,16 +579,43 @@ export function DockDetail({
                   <div className="dock-detail-artifacts-inline" data-testid="dock-detail-artifacts">
                     <span className="dock-detail-artifacts-label">产物</span>
                     {artifactFiles.map((filePath) => (
-                      <button
+                      <div
                         key={filePath}
-                        type="button"
-                        className="dock-detail-file-chip"
+                        className="dock-detail-artifact-row"
                         title={filePath}
-                        onClick={() => onOpenArtifact?.(filePath)}
                       >
-                        <FileIcon name={fileName(filePath)} className="dock-detail-file-chip-icon" />
-                        <span>{fileName(filePath)}</span>
-                      </button>
+                        <FileIcon
+                          name={fileName(filePath)}
+                          className="dock-detail-file-chip-icon"
+                        />
+                        <button
+                          type="button"
+                          className="dock-detail-artifact-name"
+                          onClick={() => onOpenArtifact?.(filePath)}
+                        >
+                          {fileName(filePath)}
+                        </button>
+                        <button
+                          type="button"
+                          className="dock-detail-artifact-action"
+                          aria-label="打开文件"
+                          title="打开文件"
+                          onClick={() => onOpenArtifact?.(filePath)}
+                        >
+                          <i className="codicon codicon-go-to-file" aria-hidden />
+                        </button>
+                        {isHtmlPreviewPath(filePath) ? (
+                          <button
+                            type="button"
+                            className="dock-detail-artifact-action"
+                            aria-label="在浏览器中打开"
+                            title="在浏览器中打开"
+                            onClick={() => onOpenArtifactInBrowser?.(filePath)}
+                          >
+                            <i className="codicon codicon-globe" aria-hidden />
+                          </button>
+                        ) : null}
+                      </div>
                     ))}
                   </div>
                 ) : null}

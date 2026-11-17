@@ -76,6 +76,7 @@ export function useChatDock(input: {
   handleOpenFilePin: (path: string) => void;
   openChangedFile: (path: string) => void;
   openArtifact: (path: string) => void;
+  openArtifactInBrowser?: (path: string) => void;
   loadIssueUpdates?: (
     issueId: string,
     opts?: { limit?: number; before?: string },
@@ -168,6 +169,7 @@ export function useChatDock(input: {
     handleOpenFilePin,
     openChangedFile,
     openArtifact,
+    openArtifactInBrowser,
     loadIssueUpdates,
     respondIssuePermission,
     revealOpenedFile,
@@ -305,6 +307,7 @@ export function useChatDock(input: {
         onSelectIssue={(issueId) => selectBotPanel({ kind: "issue", issueId })}
         onOpenChangedFile={openChangedFile}
         onOpenArtifact={openArtifact}
+        onOpenArtifactInBrowser={openArtifactInBrowser}
         onLoadUpdates={loadIssueUpdates}
         onRespondPermission={respondIssuePermission}
       />
