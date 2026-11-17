@@ -545,7 +545,7 @@
   overflow: auto;
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
-  background: var(--surface-panel);
+  background: var(--surface-card);
   box-shadow: 0 8px 24px var(--shadow-color-soft);
 }
 
