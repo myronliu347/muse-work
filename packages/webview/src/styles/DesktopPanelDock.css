@@ -522,6 +522,9 @@
 .dock-detail-scroll {
   height: 100%;
   overflow: auto;
+  /* Reserve the scrollbar on both edges so the centered sheet keeps equal
+     left/right gutters whether or not the history overflows. */
+  scrollbar-gutter: stable both-edges;
   padding: 20px 24px 40px;
   box-sizing: border-box;
 }
