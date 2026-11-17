@@ -357,6 +357,9 @@ export function DockDetail({
         update.kind !== "turn",
     )
     .slice(0, 8);
+  const latestHasMore =
+    Boolean(primaryUpdate) &&
+    (primaryUpdate!.summary.length > 180 || Boolean(primaryUpdate!.detail));
 
   return (
     <div className="dock-detail" data-testid="dock-detail" ref={rootRef}>
@@ -430,16 +433,22 @@ export function DockDetail({
                     {formatUpdateTime(primaryUpdate.at)}
                   </span>
                 </div>
-                <p
-                  className={
-                    primaryUpdate.summary.length > 180 && !latestExpanded
-                      ? "dock-detail-progress-text is-clamped"
-                      : "dock-detail-progress-text"
-                  }
-                >
-                  {primaryUpdate.summary}
-                </p>
-                {primaryUpdate.summary.length > 180 ? (
+                {latestExpanded && primaryUpdate.detail ? (
+                  <div className="dock-detail-progress-full">
+                    <DetailMarkdown text={primaryUpdate.detail} />
+                  </div>
+                ) : (
+                  <p
+                    className={
+                      latestHasMore && !latestExpanded
+                        ? "dock-detail-progress-text is-clamped"
+                        : "dock-detail-progress-text"
+                    }
+                  >
+                    {primaryUpdate.summary}
+                  </p>
+                )}
+                {latestHasMore ? (
                   <button
                     type="button"
                     className="dock-detail-progress-more"
@@ -447,12 +456,6 @@ export function DockDetail({
                   >
                     {latestExpanded ? "收起" : "展开全文"}
                   </button>
-                ) : null}
-                {primaryUpdate.detail ? (
-                  <details className="dock-detail-progress-detail">
-                    <summary>展开全文</summary>
-                    <DetailMarkdown text={primaryUpdate.detail} />
-                  </details>
                 ) : null}
                 {primaryUpdate.kind === "turn" ? (
                   <p className="dock-detail-progress-note">
@@ -496,7 +499,13 @@ export function DockDetail({
               </section>
             ) : null}
 
-            {visibleUpdates.length > 0 ? (
+            {visibleUpdates.length === 1 && visibleUpdates[0].kind === "status" ? (
+              <div className="dock-detail-status-line" data-testid="dock-detail-status-line">
+                <span>{formatUpdateTime(visibleUpdates[0].at)}</span>
+                <span>状态</span>
+                <span>{visibleUpdates[0].summary}</span>
+              </div>
+            ) : visibleUpdates.length > 0 ? (
               <section className="dock-detail-timeline" data-testid="dock-detail-timeline">
                 <div className="dock-detail-progress-head">
                   <span className="dock-detail-section">进展</span>

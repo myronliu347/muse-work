@@ -355,7 +355,14 @@ session.post("/messages", async (c) => {
       return c.json({ error: "issue is closed" }, 409);
     }
     if (issue?.status === "awaiting_close") {
-      ctx.issueStore.resume(issue.id);
+      const resumed = ctx.issueStore.resume(issue.id);
+      if (resumed) {
+        ctx.recordIssueUpdate(resumed.id, {
+          kind: "status",
+          summary: "重新打开，继续推进",
+          status: resumed.status,
+        });
+      }
       ctx.hub.broadcastAll({ type: "issue:changed" });
     }
     if (issue?.planningSessionId === sessionId) sendSource = "user-present";

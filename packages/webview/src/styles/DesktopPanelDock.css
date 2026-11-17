@@ -1151,3 +1151,23 @@
 .dock-detail-progress-more:hover {
   text-decoration: underline;
 }
+
+.dock-detail-status-line {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 8px 2px;
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+.dock-detail-status-line span:first-child {
+  font-variant-numeric: tabular-nums;
+}
+.dock-detail-status-line span:nth-child(2) {
+  color: var(--text-tertiary);
+}
+.dock-detail-status-line span:last-child {
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
