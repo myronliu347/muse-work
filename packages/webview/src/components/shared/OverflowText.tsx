@@ -11,6 +11,7 @@ export function OverflowText({
   title,
   hoverDelay = 400,
   scrollOnHover = true,
+  nativeTitle = true,
 }: {
   text: string;
   className?: string;
@@ -19,6 +20,8 @@ export function OverflowText({
   hoverDelay?: number;
   /** Set false when the surrounding control already has a hover tooltip. */
   scrollOnHover?: boolean;
+  /** Keep the browser-native title unless the caller renders its own tooltip. */
+  nativeTitle?: boolean;
 }) {
   const ref = useRef<HTMLSpanElement | null>(null);
   const [shift, setShift] = useState(0);
@@ -57,7 +60,7 @@ export function OverflowText({
       className={`overflow-text${className ? ` ${className}` : ""}${
         scrolling ? " is-scrolling" : ""
       }`}
-      title={title ?? text}
+      {...(nativeTitle ? { title: title ?? text } : {})}
       onPointerEnter={() => {
         clearTimer();
         if (!scrollOnHover || shift <= 0) return;

@@ -88,6 +88,18 @@ describe("OverflowText", () => {
     }
   });
 
+  it("can suppress the native title when the caller has its own tooltip", () => {
+    render(
+      <OverflowText
+        text="prototype-html.ts"
+        title="src/prototype-html.ts"
+        nativeTitle={false}
+      />,
+    );
+    const outer = screen.getByText("prototype-html.ts").parentElement as HTMLElement;
+    expect(outer).not.toHaveAttribute("title");
+  });
+
   it("waits 400ms before starting the slide", () => {
     vi.useFakeTimers();
     const restore = stubTextWidths(220, 100);

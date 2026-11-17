@@ -266,6 +266,7 @@ export function BotTabs({
                   className="bot-tab-label"
                   text={title}
                   scrollOnHover={false}
+                  nativeTitle={false}
                 />
               </button>
               <button
