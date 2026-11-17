@@ -3624,10 +3624,10 @@ body.is-panel-resizing-row * {
   content: "";
   position: absolute;
   left: -3px;
-  top: 5px;
-  bottom: 5px;
+  top: 4px;
+  bottom: 4px;
   width: 1px;
-  background: var(--border-subtle);
+  background: var(--border-strong);
   pointer-events: none;
 }
 .bot-tab-group.active::before,
