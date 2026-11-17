@@ -267,7 +267,7 @@ issuesRoutes.post("/issues/:id/summary", async (c) => {
           description ? `Issue 描述：\n${description}` : "这条 Issue 没有补充描述。",
           "请只给这条 Issue 的最终结论：这件事的答案/结果是什么。",
           "不要复述过程、不要写「我先/我在/我做了」、不要列文件路径或命令；",
-          "用 1–3 句中文说清结论；如果目前只有过程、结论还不成立，就明确说结论缺口。",
+          "用 Markdown 写给人看的最终结论；可以用短列表或表格组织，但不要铺过程。",
         ].join("\n"),
       )
     ).trim();

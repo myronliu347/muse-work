@@ -331,6 +331,7 @@ export function DockDetail({
   const [closeBusy, setCloseBusy] = useState(false);
   const [closeError, setCloseError] = useState<string | null>(null);
   const [closeLoading, setCloseLoading] = useState(false);
+  const [closePreview, setClosePreview] = useState(true);
   const closeRequestRef = useRef(0);
   const showColumn = open && fits && issues.length > 0 && selection.kind === "issue";
   const showPeek = peek && !fits && issues.length > 0 && selection.kind === "issue";
@@ -351,6 +352,7 @@ export function DockDetail({
     setCloseBusy(false);
     setCloseError(null);
     setCloseLoading(false);
+    setClosePreview(true);
     closeRequestRef.current += 1;
   }, [selection.kind === "issue" ? selection.issue.issueId : ""]);
 
@@ -467,6 +469,7 @@ export function DockDetail({
     closeRequestRef.current = requestId;
     setCloseKind(kind);
     setCloseNote(kind === "complete" ? suggestedCloseNote : "");
+    setClosePreview(true);
     setCloseError(null);
     setCloseLoading(false);
     if (kind !== "complete" || !onGenerateSummary) return;
@@ -917,16 +920,46 @@ export function DockDetail({
           }}
           onConfirm={() => void submitClose()}
         >
-          <textarea
-            className="dock-detail-close-note"
-            data-testid="dock-detail-close-note"
-            value={closeNote}
-            onChange={(event) => setCloseNote(event.target.value)}
-            placeholder={
-              closeKind === "complete" ? "一句结果结论" : "一句取消原因"
-            }
-            autoFocus
-          />
+          <div className="dock-detail-close-tabs">
+            <button
+              type="button"
+              className={closePreview ? "is-active" : undefined}
+              aria-pressed={closePreview}
+              onClick={() => setClosePreview(true)}
+            >
+              预览
+            </button>
+            <button
+              type="button"
+              className={!closePreview ? "is-active" : undefined}
+              aria-pressed={!closePreview}
+              onClick={() => setClosePreview(false)}
+            >
+              编辑
+            </button>
+          </div>
+          {closePreview ? (
+            <div className="dock-detail-close-preview" data-testid="dock-detail-close-preview">
+              {closeNote.trim() ? (
+                <DetailMarkdown text={closeNote} />
+              ) : (
+                <p className="dock-detail-close-empty">
+                  {closeKind === "complete" ? "还没有结果说明" : "还没有取消原因"}
+                </p>
+              )}
+            </div>
+          ) : (
+            <textarea
+              className="dock-detail-close-note"
+              data-testid="dock-detail-close-note"
+              value={closeNote}
+              onChange={(event) => setCloseNote(event.target.value)}
+              placeholder={
+                closeKind === "complete" ? "一句结果结论" : "一句取消原因"
+              }
+              autoFocus
+            />
+          )}
           {closeLoading ? (
             <p className="dock-detail-close-loading" data-testid="dock-detail-close-loading">
               <span className="dock-detail-close-spinner" aria-hidden />

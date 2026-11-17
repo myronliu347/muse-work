@@ -1499,6 +1499,10 @@ describe("assistant dock detail", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "完成" }));
+    expect(screen.getByTestId("dock-detail-close-preview")).toHaveTextContent(
+      "圆角和间距都修完了",
+    );
+    await user.click(screen.getByRole("button", { name: "编辑" }));
     expect(screen.getByTestId("dock-detail-close-note")).toHaveValue(
       "圆角和间距都修完了",
     );
@@ -1540,8 +1544,10 @@ describe("assistant dock detail", () => {
     await user.click(screen.getByRole("button", { name: "完成" }));
     expect(screen.getByTestId("dock-detail-close-loading")).toBeInTheDocument();
     resolveSummary("AI 生成的结果总结");
-    expect(await screen.findByDisplayValue("AI 生成的结果总结")).toBeInTheDocument();
+    expect(await screen.findByText("AI 生成的结果总结")).toBeInTheDocument();
     expect(screen.queryByTestId("dock-detail-close-loading")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "编辑" }));
+    expect(screen.getByDisplayValue("AI 生成的结果总结")).toBeInTheDocument();
   });
 
   it("loads the full update history on demand", async () => {

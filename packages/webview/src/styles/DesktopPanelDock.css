@@ -1375,9 +1375,47 @@
 .dock-detail-cancel:hover {
   color: var(--text-primary);
 }
+.dock-detail-close-tabs {
+  display: flex;
+  gap: 2px;
+  margin-top: 10px;
+}
+.dock-detail-close-tabs button {
+  height: 22px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font: inherit;
+  font-size: 10.5px;
+  cursor: pointer;
+}
+.dock-detail-close-tabs button.is-active {
+  background: var(--surface-active);
+  color: var(--text-primary);
+}
+.dock-detail-close-preview {
+  min-height: 250px;
+  max-height: 46vh;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--surface-card);
+  overflow: auto;
+}
+.dock-detail-close-preview .dock-detail-md {
+  max-width: none;
+}
+.dock-detail-close-empty {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
 .dock-detail-close-note {
   width: 100%;
-  min-height: 82px;
+  min-height: 250px;
   box-sizing: border-box;
   margin-top: 10px;
   padding: 8px 10px;
