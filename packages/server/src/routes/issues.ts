@@ -20,11 +20,17 @@ function broadcastIssueChanged(ctx: { hub: { broadcastAll: (e: { type: "issue:ch
 /** Give the user a short window before the assistant picks up the close. */
 const CLOSE_EVENT_DELAY_MS = process.env.VITEST ? 0 : 5_000;
 
+type PendingClose = {
+  previousStatus: import("../services/issueStore.js").IssueStatus;
+  timers: NodeJS.Timeout[];
+};
+const pendingCloses = new Map<string, PendingClose>();
+
 function scheduleIssueClosedEvent(
   ctx: { assistantRuntime: { enqueue: (event: { type: "issue-closed"; issueId: string; title: string; workdir: string; status: "completed" | "cancelled"; timestamp: number }) => void } },
   issue: { id: string; title: string; workdir?: string },
   status: "completed" | "cancelled",
-): void {
+): NodeJS.Timeout | undefined {
   const event = {
     type: "issue-closed" as const,
     issueId: issue.id,
@@ -35,12 +41,34 @@ function scheduleIssueClosedEvent(
   };
   if (CLOSE_EVENT_DELAY_MS <= 0) {
     ctx.assistantRuntime.enqueue(event);
-    return;
+    return undefined;
   }
   const timer = setTimeout(() => {
     ctx.assistantRuntime.enqueue(event);
   }, CLOSE_EVENT_DELAY_MS);
   timer.unref?.();
+  return timer;
+}
+
+function scheduleCloseEffects(
+  ctx: Parameters<typeof scheduleIssueClosedEvent>[0] & {
+    assistantRuntime: Parameters<typeof scheduleIssueClosedEvent>[0]["assistantRuntime"];
+    hub: { broadcastAll: (event: { type: "issue:changed" }) => void };
+  },
+  issue: Issue,
+  status: "completed" | "cancelled",
+  previousStatus: import("../services/issueStore.js").IssueStatus,
+): void {
+  const timers: NodeJS.Timeout[] = [];
+  const eventTimer = scheduleIssueClosedEvent(ctx, issue, status);
+  if (eventTimer) timers.push(eventTimer);
+  const deleteTimer = setTimeout(() => {
+    pendingCloses.delete(issue.id);
+    void deleteIssueSessions(ctx as Parameters<typeof deleteIssueSessions>[0], issue);
+  }, CLOSE_EVENT_DELAY_MS);
+  deleteTimer.unref?.();
+  timers.push(deleteTimer);
+  pendingCloses.set(issue.id, { previousStatus, timers });
 }
 
 /**
@@ -284,11 +312,33 @@ function writeIssueSummaryCache(
   }
 }
 
+/** POST /issues/:id/undo-close — 5 秒内撤销完成/取消，保留会话。 */
+issuesRoutes.post("/issues/:id/undo-close", async (c) => {
+  const ctx = c.get("ctx");
+  const id = c.req.param("id");
+  const pending = pendingCloses.get(id);
+  if (!pending) return c.json({ error: "undo window closed" }, 409);
+  for (const timer of pending.timers) clearTimeout(timer);
+  pendingCloses.delete(id);
+  const restored = ctx.issueStore.restore(id, pending.previousStatus);
+  if (!restored) return c.json({ error: "conflict" }, 409);
+  ctx.recordIssueUpdate(id, {
+    kind: "status",
+    summary: "已撤销关闭，继续处理",
+    status: restored.status,
+  });
+  broadcastIssueChanged(ctx);
+  return c.json({ issue: restored });
+});
+
 /** POST /issues/:id/complete — note 是结果结论；cancelled → 409 */
 issuesRoutes.post("/issues/:id/complete", async (c) => {
   const ctx = c.get("ctx");
   const note = await readCloseNote(c);
   try {
+    const current = ctx.issueStore.get(c.req.param("id"));
+    if (!current) return c.json({ error: "conflict" }, 409);
+    const previousStatus = current.status;
     const issue = ctx.issueStore.complete(c.req.param("id"), note);
     if (!issue) return c.json({ error: "conflict" }, 409);
     ctx.recordIssueUpdate(
@@ -301,9 +351,13 @@ issuesRoutes.post("/issues/:id/complete", async (c) => {
       },
       { allowClosed: true },
     );
-    await deleteIssueSessions(ctx, issue);
+    if (CLOSE_EVENT_DELAY_MS > 0) {
+      scheduleCloseEffects(ctx, issue, "completed", previousStatus);
+    } else {
+      await deleteIssueSessions(ctx, issue);
+      scheduleIssueClosedEvent(ctx, issue, "completed");
+    }
     broadcastIssueChanged(ctx);
-    scheduleIssueClosedEvent(ctx, issue, "completed");
     return c.json({ issue });
   } catch (err) {
     return c.json(
@@ -377,6 +431,9 @@ issuesRoutes.post("/issues/:id/cancel", async (c) => {
   const ctx = c.get("ctx");
   const note = await readCloseNote(c);
   try {
+    const current = ctx.issueStore.get(c.req.param("id"));
+    if (!current) return c.json({ error: "conflict" }, 409);
+    const previousStatus = current.status;
     const issue = ctx.issueStore.cancel(c.req.param("id"), note);
     if (!issue) return c.json({ error: "conflict" }, 409);
     ctx.recordIssueUpdate(
@@ -389,9 +446,13 @@ issuesRoutes.post("/issues/:id/cancel", async (c) => {
       },
       { allowClosed: true },
     );
-    await deleteIssueSessions(ctx, issue);
+    if (CLOSE_EVENT_DELAY_MS > 0) {
+      scheduleCloseEffects(ctx, issue, "cancelled", previousStatus);
+    } else {
+      await deleteIssueSessions(ctx, issue);
+      scheduleIssueClosedEvent(ctx, issue, "cancelled");
+    }
     broadcastIssueChanged(ctx);
-    scheduleIssueClosedEvent(ctx, issue, "cancelled");
     return c.json({ issue });
   } catch (err) {
     return c.json(

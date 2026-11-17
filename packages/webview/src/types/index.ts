@@ -404,7 +404,8 @@ export interface ThemeState {
 /** Action a toast's button triggers when clicked (host-side semantics). */
 export type ToastAction =
   | { type: "quitAndInstall" }
-  | { type: "openDownloadPage"; url: string };
+  | { type: "openDownloadPage"; url: string }
+  | { type: "undoIssueClose"; issueId: string };
 
 /** A non-modal in-app toast (VS Code-style, bottom-right). Desktop host only. */
 export interface UpdateToast {
@@ -412,6 +413,8 @@ export interface UpdateToast {
   message: string;
   actionLabel?: string;
   action?: ToastAction;
+  /** Auto-dismiss even when there is an action (e.g. a 5s undo window). */
+  autoDismissMs?: number;
 }
 
 // Pushed by the desktop main process in response to `desktopReady` and after

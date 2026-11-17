@@ -1014,6 +1014,14 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async undoIssueClose(id: string): Promise<{ issue: MuseIssue }> {
+    const res = await this.request(
+      `/issues/${encodeURIComponent(id)}/undo-close`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
   async cancelIssue(id: string, note: string): Promise<{ issue: MuseIssue }> {
     const res = await this.request(
       `/issues/${encodeURIComponent(id)}/cancel`,

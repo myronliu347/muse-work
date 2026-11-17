@@ -422,12 +422,28 @@ export function DockDetail({
 
   const baseUpdates = issue.updates ?? [];
   const updates = mergeUpdates(baseUpdates, extraUpdates);
+  const activeIssue =
+    issue.status !== "completed" && issue.status !== "cancelled";
+  // A result stays in the file after an undo; once the Issue is active again,
+  // do not let the old "已完成/已取消" result keep winning the latest card.
+  const displayUpdates = activeIssue
+    ? updates.filter(
+        (update) =>
+          !(
+            update.kind === "result" &&
+            (update.status === "completed" || update.status === "cancelled")
+          ),
+      )
+    : updates;
   const primaryUpdate =
-    updates.find(
+    displayUpdates.find(
       (update) => update.kind === "assistant" || update.kind === "result",
-    ) ?? updates.find((update) => update.kind === "turn") ?? updates[0];
+    ) ??
+    displayUpdates.find((update) => update.kind === "turn") ??
+    displayUpdates[0];
   const nextStep =
-    updates.find((update) => update.kind === "assistant" && update.next)?.next ??
+    displayUpdates.find((update) => update.kind === "assistant" && update.next)
+      ?.next ??
     issue.items.find((item) => item.status !== "done")?.content;
   const changedFiles = uniquePaths(
     updates.flatMap((update) => update.changedFiles ?? []),
@@ -435,7 +451,7 @@ export function DockDetail({
   const artifactFiles = uniquePaths(updates.flatMap((update) => update.files ?? []));
   // 主卡已经展示最新一条；时间线只留历史增量。空回合标记没有信息量，
   // 全部从时间线隐藏，避免“回合结束”刷屏；最新的 turn 仍由主卡兜底。
-  const timelineUpdates = updates.filter(
+  const timelineUpdates = displayUpdates.filter(
     (update) => update.id !== primaryUpdate?.id && update.kind !== "turn",
   );
   const visibleUpdates = timelineUpdates.slice(0, updatesExpanded ? 30 : 8);
@@ -463,7 +479,7 @@ export function DockDetail({
   const closable =
     issue.status !== "completed" && issue.status !== "cancelled";
   const suggestedCloseNote =
-    [...updates]
+    [...displayUpdates]
       .filter((update) => update.kind === "assistant" || update.kind === "result")
       .sort((a, b) => b.at - a.at)
       .find((update) => update.summary.trim())?.summary.trim() ??
@@ -560,6 +576,9 @@ export function DockDetail({
               closeKind === "complete"
                 ? `已完成「${issue.title}」`
                 : `已取消「${issue.title}」`,
+            actionLabel: "撤销",
+            action: { type: "undoIssueClose", issueId: issue.issueId },
+            autoDismissMs: 5000,
           },
         },
         "*",

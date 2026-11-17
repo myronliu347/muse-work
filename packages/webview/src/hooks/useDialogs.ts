@@ -40,6 +40,7 @@ interface UseDialogsParams {
   stateRef: MutableRefObject<ChatState>;
   messageInputRef: RefObject<{ focus: () => void }>;
   setView: Dispatch<SetStateAction<MainView>>;
+  onUndoIssueClose?: (issueId: string) => Promise<void>;
 }
 
 export function useDialogs({
@@ -50,6 +51,7 @@ export function useDialogs({
   stateRef,
   messageInputRef,
   setView,
+  onUndoIssueClose,
 }: UseDialogsParams): DialogHandlers {
   const handleToastDismiss = useCallback(
     (id: string) => {
@@ -63,6 +65,21 @@ export function useDialogs({
   const handleToastAction = useCallback(
     (toast: UpdateToast) => {
       if (!toast.action) return;
+      if (toast.action.type === "undoIssueClose") {
+        patchPane((slice) => ({
+          toasts: slice.toasts.filter((t) => t.id !== toast.id),
+        }));
+        void onUndoIssueClose?.(toast.action.issueId).catch(() => {
+          window.postMessage(
+            {
+              command: "showToast",
+              toast: { id: "undo-issue-close-failed", message: "撤销窗口已结束" },
+            },
+            "*",
+          );
+        });
+        return;
+      }
       postToHost({
         command: "toastAction",
         toastId: toast.id,
@@ -72,7 +89,7 @@ export function useDialogs({
         toasts: slice.toasts.filter((t) => t.id !== toast.id),
       }));
     },
-    [postToHost, patchPane],
+    [onUndoIssueClose, postToHost, patchPane],
   );
 
   // Desktop 的"新对话"入口（侧边栏按钮）：由宿主 spawn 新 agent 承载全新会话，

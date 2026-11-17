@@ -731,6 +731,16 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     stateRef,
     messageInputRef,
     setView,
+    onUndoIssueClose: async (issueId) => {
+      await museApi.undoIssueClose(issueId);
+      window.postMessage(
+        {
+          command: "showToast",
+          toast: { id: `issue-undo-${issueId}`, message: "已撤销关闭" },
+        },
+        "*",
+      );
+    },
   });
   const {
     handleConfigurationSave,

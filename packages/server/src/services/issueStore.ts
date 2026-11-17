@@ -100,6 +100,8 @@ export interface IssueStore {
   markReady(id: string): Issue | undefined;
   /** 待关闭的 Issue 收到新消息后回到进行中。 */
   resume(id: string): Issue | undefined;
+  /** 撤销一次完成/取消，把归档 Issue 放回指定状态。 */
+  restore(id: string, status: IssueStatus): Issue | undefined;
   setExecutionSessionId(id: string, executionSessionId: string): Issue | undefined;
   setItems(id: string, items: ChecklistItem[]): Issue | undefined;
   appendItems(
@@ -588,6 +590,19 @@ export function createIssueStore(
       issue.status = "planning";
       issue.updatedAt = Date.now();
       persist();
+      return cloneIssue(issue);
+    },
+
+    restore(id, status): Issue | undefined {
+      const issue = closed.get(id);
+      if (!issue || isTerminal(status)) return undefined;
+      issue.status = status;
+      delete issue.closeNote;
+      issue.updatedAt = Date.now();
+      closed.delete(id);
+      issues.set(id, issue);
+      persist();
+      emit("created", issue);
       return cloneIssue(issue);
     },
 

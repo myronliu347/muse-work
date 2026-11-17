@@ -208,6 +208,19 @@ describe("issueStore", () => {
     fs.rmSync(home, { recursive: true, force: true });
   });
 
+  it("restore moves a closed issue back to an active status", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
+    const store = createIssueStore({ home });
+    const issue = store.create({ title: "恢复我" });
+    store.complete(issue.id, "做完了");
+    const restored = store.restore(issue.id, "planning");
+    expect(restored?.status).toBe("planning");
+    expect(restored?.closeNote).toBeUndefined();
+    expect(store.get(issue.id)?.status).toBe("planning");
+    expect(store.listClosed().map((entry) => entry.id)).not.toContain(issue.id);
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
   it("complete rejects cancelled; cancel rejects completed", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
     const store = createIssueStore({ home });

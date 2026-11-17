@@ -20,10 +20,11 @@ const Toast: React.FC<{
   // Informational toasts (no action) disappear on their own; actionable ones
   // stay until the user acts or closes them.
   useEffect(() => {
-    if (toast.action) return;
-    const timer = setTimeout(() => onDismiss(toast.id), AUTO_DISMISS_MS);
+    const duration = toast.autoDismissMs ?? (toast.action ? undefined : AUTO_DISMISS_MS);
+    if (duration === undefined) return;
+    const timer = setTimeout(() => onDismiss(toast.id), duration);
     return () => clearTimeout(timer);
-  }, [toast.id, toast.action, onDismiss]);
+  }, [toast.id, toast.action, toast.autoDismissMs, onDismiss]);
 
   return (
     <div className="toast" role="status" data-testid="toast">
