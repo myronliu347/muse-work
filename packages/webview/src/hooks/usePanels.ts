@@ -353,10 +353,9 @@ export function usePanels({
   );
 
   const handleToggleFullscreen = useCallback(() => {
-    updatePanelGroup((group) => {
-      if (group.checked.length === 0) return { dockFullscreen: false };
-      return { dockFullscreen: !group.dockFullscreen };
-    });
+    updatePanelGroup((group) => ({
+      dockFullscreen: !group.dockFullscreen,
+    }));
   }, [updatePanelGroup]);
 
   const handleSelectPanel = useCallback(

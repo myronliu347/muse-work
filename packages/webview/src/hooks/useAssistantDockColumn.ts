@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type React from "react";
-import { restoredDockAlreadyOpen } from "../muse/botPageState";
 import { clampDockWidth } from "../muse/layout";
 import { firstOpenDockWidths } from "../muse/panelFit";
 import {
@@ -40,7 +39,6 @@ export function useAssistantDockColumn({
   const workspace = { active: workspaceActive };
   const assistantDockToggleRef = useRef<(() => void) | null>(null);
   const restoreAssistantToolsRef = useRef(false);
-  const assistantDockSeenOpen = useRef(restoredDockAlreadyOpen());
   const [assistantDockOpen, setAssistantDockOpenState] = useState(
     () =>
       usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.dockColumnOpen ===
@@ -55,28 +53,6 @@ export function useAssistantDockColumn({
       dockColumnOpen: open,
     });
   }, []);
-  // Opening the bot dock starts on 详情 and also opens 变更 for the current issue.
-  // Closing 变更 while the dock stays open keeps it closed until the next open.
-  useEffect(() => {
-    if (!assistantVisible || !assistantDockOpen) {
-      assistantDockSeenOpen.current = false;
-      return;
-    }
-    const justOpened = !assistantDockSeenOpen.current;
-    assistantDockSeenOpen.current = true;
-    if (!dockIssueId || !dockWorkdir) return;
-    const group = usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY];
-    const checked = group?.checked ?? [];
-    if (checked.includes("diff")) return;
-    const untouched = checked.length === 0 && !group?.collapsedTabs;
-    if (!justOpened && !untouched) return;
-    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
-      checked: [...checked, "diff"],
-      mounted: group?.mounted.includes("diff")
-        ? group.mounted
-        : [...(group?.mounted ?? []), "diff"],
-    });
-  }, [assistantVisible, assistantDockOpen, dockIssueId, dockWorkdir]);
   const [assistantView, setAssistantView] = useState<"chat" | "transcript">("chat");
   const onAssistantViewMode = useCallback((mode: "chat" | "transcript") => {
     setAssistantView(mode);

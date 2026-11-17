@@ -711,7 +711,7 @@ describe("ChatApp pending and issue lists", () => {
     expect(within(dock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
       "desktop-panel-tab--active",
     );
-    expect(within(dock).getByRole("button", { name: "变更" })).toBeInTheDocument();
+    expect(within(dock).queryByRole("button", { name: "变更" })).toBeNull();
 
     await user.click(within(dock).getByTestId("panel-toggle-btn"));
     await waitFor(() => {

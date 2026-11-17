@@ -39,6 +39,15 @@ async function ensureAssistantDock(
   return within(scope).findByTestId("desktop-panel-dock");
 }
 
+async function openDiffTab(
+  dock: HTMLElement,
+  user: ReturnType<typeof userEvent.setup>,
+) {
+  if (within(dock).queryByTestId("desktop-panel-tab-diff")) return;
+  await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
+  await user.click(await screen.findByTestId("panel-add-item-diff"));
+}
+
 function botTab(scope: HTMLElement, name: string): HTMLElement {
   const tab = within(scope)
     .getAllByRole("button", { name })
@@ -972,6 +981,7 @@ describe("issue tab", () => {
 
     const frame = await screen.findByTestId("assistant-frame");
     const dock = await ensureAssistantDock(frame, user);
+    await openDiffTab(dock, user);
     await user.click(within(dock).getByTestId("desktop-panel-tab-diff").querySelector("button")!);
     await waitFor(() => {
       expect(vscode.postMessage).toHaveBeenCalledWith(
@@ -1099,7 +1109,10 @@ describe("issue tab", () => {
     expect(within(frame).getByTestId("desktop-panel-tab-detail")).toHaveClass(
       "desktop-panel-tab--active",
     );
-    expect(within(frame).getByTestId("desktop-panel-tab-diff")).toBeInTheDocument();
+    expect(within(frame).queryByTestId("desktop-panel-tab-diff")).toBeNull();
+
+    const dock = within(frame).getByTestId("desktop-panel-dock");
+    await openDiffTab(dock, user);
 
     await waitFor(() => {
       const diffCalls = vscode.postMessage.mock.calls
@@ -1134,6 +1147,7 @@ describe("issue tab", () => {
 
     const frame = await screen.findByTestId("assistant-frame");
     const dock = await ensureAssistantDock(frame, user);
+    await openDiffTab(dock, user);
     const lists = within(frame).getByTestId("bot-lists");
     await user.click(within(lists).getByRole("button", { name: new RegExp(RADII) }));
     await user.click(
@@ -1660,7 +1674,7 @@ describe("issue tab", () => {
 
     const group = usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY];
     expect(group?.fileTabs ?? []).toEqual([]);
-    expect(group?.checked).toEqual(["terminal", "diff"]);
+    expect(group?.checked).toEqual(["terminal"]);
     expect(group?.active).toBe("terminal");
     expect(group?.collapsedTabs).toBeNull();
     expect(group?.dockFullscreen).toBe(false);
