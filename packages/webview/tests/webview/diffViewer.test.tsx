@@ -132,7 +132,7 @@ describe("Diff Viewer", () => {
     sendCommand("updateMessages", { messages: [mockReadMessage] });
 
     expect(document.querySelector('[data-testid="activity-summary"]')).toHaveTextContent(
-      "检索 1 个文件",
+      "查看了 1 个文件",
     );
 
     // Check that NO diff viewer is rendered for Read tool

@@ -146,7 +146,7 @@ describe("AgentTranscriptPopup", () => {
 
     expect(screen.getByText("explore the repo")).toBeTruthy();
     expect(screen.getByTestId("activity-summary")).toHaveTextContent(
-      "检索 1 个文件",
+      "查看了 1 个文件",
     );
     expect(screen.getByText("final answer")).toBeTruthy();
     expect(

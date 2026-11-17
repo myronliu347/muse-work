@@ -82,7 +82,7 @@ describe("summarizeActivity", () => {
       tool(BASH_TOOL_NAME, { command: "ls" }),
     ];
     expect(summarizeActivity(blocks, [0, 1, 2]).label).toBe(
-      "执行了 1 条命令，查看了 1 个文件，1 次搜索",
+      "执行了 1 条命令，查看了 1 个文件，搜索了 1 次",
     );
     const readThenEdit: MessageBlock[] = [
       tool(READ_TOOL_NAME, { file_path: "src/a.ts" }),
@@ -98,7 +98,7 @@ describe("summarizeActivity", () => {
     ];
     const summary = summarizeActivity(readThenEdit, [0, 1, 2, 3, 4, 5]);
     expect(summary.label).toBe(
-      "执行了 1 条命令，编辑了 1 个文件，查看了 1 个文件，1 次搜索，浏览了 1 次，1 个子任务",
+      "执行了 1 条命令，编辑了 1 个文件，查看了 1 个文件，搜索了 1 次，浏览了 1 次，启动了 1 个子任务",
     );
     expect(summary.additions).toBeGreaterThan(0);
     expect(
@@ -109,7 +109,7 @@ describe("summarizeActivity", () => {
         ],
         [0, 1],
       ).label,
-    ).toBe("执行了 1 条命令，1 次搜索");
+    ).toBe("执行了 1 条命令，搜索了 1 次");
   });
 });
 
@@ -168,7 +168,7 @@ describe("segmentAssistantTurn", () => {
     ]);
     expect(
       summarizeActivity(messages[2].blocks, [1]).label,
-    ).toBe("检索 1 次搜索");
+    ).toBe("搜索了 1 次");
   });
 });
 

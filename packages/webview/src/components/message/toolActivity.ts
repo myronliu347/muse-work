@@ -459,30 +459,26 @@ function bucketOf(block: MessageBlock): ActivityBucket | null {
   return "other";
 }
 
-function bucketPhrase(
-  bucket: ActivityBucket,
-  count: number,
-  lead: boolean,
-): string {
+function bucketPhrase(bucket: ActivityBucket, count: number): string {
   if (bucket === "edit") {
     return `编辑了 ${count} 个文件`;
   }
   if (bucket === "file") {
-    return lead ? `检索 ${count} 个文件` : `查看了 ${count} 个文件`;
+    return `查看了 ${count} 个文件`;
   }
   if (bucket === "search") {
-    return lead ? `检索 ${count} 次搜索` : `${count} 次搜索`;
+    return `搜索了 ${count} 次`;
   }
   if (bucket === "browser") {
-    return lead ? `浏览 ${count} 次` : `浏览了 ${count} 次`;
+    return `浏览了 ${count} 次`;
   }
   if (bucket === "agent") {
-    return lead ? `子任务 ${count} 个` : `${count} 个子任务`;
+    return `启动了 ${count} 个子任务`;
   }
   if (bucket === "command") {
     return `执行了 ${count} 条命令`;
   }
-  return lead ? `执行 ${count} 次操作` : `${count} 次操作`;
+  return `执行了 ${count} 次操作`;
 }
 
 export function summarizeRefs(
@@ -541,7 +537,7 @@ export function summarizeRefs(
     if (bucket === "command" || bucket === "edit") continue;
     const count = counts[bucket];
     if (count <= 0) continue;
-    parts.push(bucketPhrase(bucket, count, parts.length === 0));
+    parts.push(bucketPhrase(bucket, count));
   }
   return {
     label: parts.join("，"),
