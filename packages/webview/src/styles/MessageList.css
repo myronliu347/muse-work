@@ -85,8 +85,8 @@
      Long text scrolls inside, same as .message-content.user-content. The
      pinned bar only needs enough to recognize the prompt — every extra line
      it keeps eats transcript space while stuck. */
-  background-color: var(--surface-subtle);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--surface-user-bubble);
+  border: 1px solid var(--accent-track);
   border-radius: var(--radius-3);
   padding: var(--space-2) var(--space-3);
   overflow: hidden;
@@ -96,17 +96,7 @@
 }
 
 .sticky-user-message:hover {
-  background-color: var(--surface-muted);
-}
-
-/* Keep the light-mode pinned bar in step with the accent-tinted user bubble. */
-:root[data-theme="light"] .sticky-user-message:not(.sticky-user-message--system) {
-  background-color: var(--accent-soft);
-  border-color: var(--accent-track);
-}
-
-:root[data-theme="light"] .sticky-user-message:not(.sticky-user-message--system):hover {
-  background-color: var(--accent-soft-hover);
+  background-color: var(--surface-user-bubble-hover);
 }
 
 .sticky-user-message--system {
