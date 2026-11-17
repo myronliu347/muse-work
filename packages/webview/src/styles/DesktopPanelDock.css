@@ -1234,14 +1234,25 @@
 .dock-detail-artifact-action {
   width: 24px;
   align-self: stretch;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: 0;
   border-left: 1px solid var(--border-subtle);
   background: transparent;
   color: var(--text-tertiary);
   font-size: 12px;
+  line-height: 1;
   cursor: pointer;
+}
+.dock-detail-artifact-action .codicon {
+  display: block;
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+  line-height: 1;
+  text-align: center;
 }
 .dock-detail-artifact-action:hover {
   background: var(--surface-muted);
