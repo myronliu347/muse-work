@@ -19,6 +19,7 @@ import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { type IssuePresence } from "../session/SessionStatusGlyph";
 import { Tooltip } from "../shared/Tooltip";
 import { dockFlexGridColumns } from "../../muse/layout";
+import { DOCK_DETAIL_TAB } from "../../muse/panelTabs";
 import type { BotIssueBoard } from "../../hooks/useBotIssueBoard";
 import type { MuseApiClient } from "../../muse/apiClient";
 import { isSplitIssueGroup } from "../../utils/issueGroups";
@@ -326,6 +327,7 @@ export function AssistantFrame({
               progressItems={progressItems}
               onOpenProgressIssue={(issueId) => {
                 selectBotPanel({ kind: "issue", issueId });
+                workspace.selectDock(DOCK_DETAIL_TAB);
                 setAssistantDockOpen(true);
               }}
               onMarkAllProgressRead={markAllProgressSeen}
