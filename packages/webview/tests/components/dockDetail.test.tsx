@@ -1507,6 +1507,43 @@ describe("assistant dock detail", () => {
     expect(screen.queryByTestId("confirm-dialog-overlay")).toBeNull();
   });
 
+  it("fills the completion note with the issue AI summary", async () => {
+    const user = userEvent.setup();
+    let resolveSummary!: (value: string) => void;
+    const onGenerateSummary = vi.fn(
+      () => new Promise<string>((resolve) => { resolveSummary = resolve; }),
+    );
+    const radii = {
+      ...issue({ issueId: "radii", title: RADII, priority: "p1" }),
+      updates: [
+        {
+          id: "u1",
+          at: Date.now(),
+          kind: "assistant" as const,
+          summary: "fallback note",
+        },
+      ],
+      updateCount: 1,
+    };
+    render(
+      <MuseTheme>
+        <DockDetail
+          selection={{ kind: "issue", issue: radii }}
+          actionLabel={null}
+          onOpenSession={() => {}}
+          onCompleteIssue={vi.fn()}
+          onGenerateSummary={onGenerateSummary}
+        />
+      </MuseTheme>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "完成" }));
+    expect(screen.getByTestId("dock-detail-close-loading")).toBeInTheDocument();
+    resolveSummary("AI 生成的结果总结");
+    expect(await screen.findByDisplayValue("AI 生成的结果总结")).toBeInTheDocument();
+    expect(screen.queryByTestId("dock-detail-close-loading")).toBeNull();
+  });
+
   it("loads the full update history on demand", async () => {
     const user = userEvent.setup();
     const now = Date.now();

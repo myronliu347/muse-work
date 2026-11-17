@@ -1339,11 +1339,13 @@
 .dock-detail-complete,
 .dock-detail-cancel {
   flex: 0 0 auto;
+  width: 26px;
   height: 24px;
-  padding: 0 9px;
+  display: grid;
+  place-items: center;
+  padding: 0;
   border-radius: 6px;
-  font: inherit;
-  font-size: 10.5px;
+  font-size: 14px;
   cursor: pointer;
 }
 .dock-detail-complete {
@@ -1386,4 +1388,30 @@
   margin: 7px 0 0;
   color: var(--status-danger-text);
   font-size: 11px;
+}
+
+.confirm-dialog:has(.dock-detail-close-note) {
+  width: min(620px, calc(100vw - 64px));
+}
+.dock-detail-close-loading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 7px 0 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.dock-detail-close-spinner {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 auto;
+  border: 1.5px solid var(--border-subtle);
+  border-top-color: var(--accent-text);
+  border-radius: 999px;
+  animation: dock-detail-close-spin 700ms linear infinite;
+}
+@keyframes dock-detail-close-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

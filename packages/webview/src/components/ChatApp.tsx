@@ -1024,6 +1024,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     cancelIssue: async (issueId, note) => {
       await museApi.cancelIssue(issueId, note);
     },
+    generateIssueSummary: (issueId) => museApi.generateIssueSummary(issueId),
     revealOpenedFile,
     handleRefreshOpenFile,
     sendIssueMessage,

@@ -228,6 +228,43 @@ issuesRoutes.post("/issues/:id/complete", async (c) => {
   }
 });
 
+/** POST /issues/:id/summary — 旁路问事项 AI 要一段完成总结，不写会话。 */
+issuesRoutes.post("/issues/:id/summary", async (c) => {
+  const ctx = c.get("ctx");
+  const issue = ctx.issueStore.get(c.req.param("id"));
+  if (!issue) return c.json({ error: "not found" }, 404);
+  const execution = issue.executionSessionId;
+  const planning = issue.planningSessionId;
+  const sessionId =
+    (execution && ctx.store.get(execution)?.status === "running"
+      ? execution
+      : undefined) ||
+    (planning && ctx.store.get(planning)?.status === "running"
+      ? planning
+      : undefined) ||
+    execution ||
+    planning;
+  if (!sessionId) return c.json({ error: "session not open" }, 409);
+  if (!ctx.runner.askBtw) {
+    return c.json({ error: "askBtw unavailable" }, 501);
+  }
+  try {
+    const summary = (
+      await ctx.runner.askBtw(
+        sessionId,
+        "请用一两句话总结这条 Issue 这一轮实际做成了什么，作为完成说明。只写结论，不要寒暄、不要 Markdown 标题，尽量控制在 80 字以内。",
+      )
+    ).trim();
+    if (!summary) return c.json({ error: "empty summary" }, 502);
+    return c.json({ summary });
+  } catch (err) {
+    return c.json(
+      { error: err instanceof Error ? err.message : String(err) },
+      502,
+    );
+  }
+});
+
 /** POST /issues/:id/cancel — note 是取消原因；completed → 409 */
 issuesRoutes.post("/issues/:id/cancel", async (c) => {
   const ctx = c.get("ctx");

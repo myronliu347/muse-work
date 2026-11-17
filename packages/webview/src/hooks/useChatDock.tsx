@@ -88,6 +88,7 @@ export function useChatDock(input: {
   ) => Promise<void>;
   completeIssue?: (issueId: string, note: string) => Promise<void>;
   cancelIssue?: (issueId: string, note: string) => Promise<void>;
+  generateIssueSummary?: (issueId: string) => Promise<string>;
   revealOpenedFile: () => void;
   handleRefreshOpenFile: (path: string) => void;
   sendIssueMessage: (text: string) => void;
@@ -176,6 +177,7 @@ export function useChatDock(input: {
     respondIssuePermission,
     completeIssue,
     cancelIssue,
+    generateIssueSummary,
     revealOpenedFile,
     handleRefreshOpenFile,
     sendIssueMessage,
@@ -316,6 +318,7 @@ export function useChatDock(input: {
         onRespondPermission={respondIssuePermission}
         onCompleteIssue={completeIssue}
         onCancelIssue={cancelIssue}
+        onGenerateSummary={generateIssueSummary}
       />
     ) : undefined,
     onCloseTab: handleTogglePanel,

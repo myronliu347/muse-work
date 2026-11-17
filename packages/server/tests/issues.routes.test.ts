@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import type { Server } from "node:http";
 import fs from "node:fs";
 import os from "node:os";
@@ -37,6 +37,32 @@ describe("issues HTTP", () => {
     expect(cancel.status).toBe(200);
     const list2 = await fetch(`${app.baseUrl}/issues`).then((r) => r.json());
     expect(list2.issues.map((i: { id: string }) => i.id)).not.toContain(issue.id);
+  });
+
+  it("POST /issues/:id/summary asks the issue session without a turn", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "生成完成总结" }),
+    }).then((r) => r.json());
+    await fetch(`${app.baseUrl}/issues/${issue.id}/planning-session`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/proj", worktreeEnabled: false }),
+    });
+    const askBtw = vi.fn().mockResolvedValue("把入口和路由都梳理完了。");
+    app.ctx.runner.askBtw = askBtw;
+    const res = await fetch(`${app.baseUrl}/issues/${issue.id}/summary`, {
+      method: "POST",
+    });
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({
+      summary: "把入口和路由都梳理完了。",
+    });
+    expect(askBtw).toHaveBeenCalledOnce();
   });
 
   it("POST /issues can create with checklist items", async () => {

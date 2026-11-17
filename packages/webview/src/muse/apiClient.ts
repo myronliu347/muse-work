@@ -942,6 +942,18 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async generateIssueSummary(id: string): Promise<string> {
+    const res = await this.request(
+      `/issues/${encodeURIComponent(id)}/summary`,
+      { method: "POST" },
+    );
+    const data = (await parseJson(res)) as { summary?: unknown };
+    if (typeof data.summary !== "string") {
+      throw new Error("empty summary");
+    }
+    return data.summary;
+  }
+
   async listIssueUpdates(
     id: string,
     opts?: { limit?: number; before?: string },

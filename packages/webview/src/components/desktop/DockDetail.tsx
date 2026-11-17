@@ -172,6 +172,7 @@ export interface DockDetailProps {
   /** 直接完成/取消 Issue，不需要再发一轮消息。 */
   onCompleteIssue?: (issueId: string, note: string) => Promise<void>;
   onCancelIssue?: (issueId: string, note: string) => Promise<void>;
+  onGenerateSummary?: (issueId: string) => Promise<string>;
 }
 
 function priorityText(priority: string): string {
@@ -309,6 +310,7 @@ export function DockDetail({
   onRespondPermission,
   onCompleteIssue,
   onCancelIssue,
+  onGenerateSummary,
 }: DockDetailProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
@@ -328,6 +330,8 @@ export function DockDetail({
   const [closeNote, setCloseNote] = useState("");
   const [closeBusy, setCloseBusy] = useState(false);
   const [closeError, setCloseError] = useState<string | null>(null);
+  const [closeLoading, setCloseLoading] = useState(false);
+  const closeRequestRef = useRef(0);
   const showColumn = open && fits && issues.length > 0 && selection.kind === "issue";
   const showPeek = peek && !fits && issues.length > 0 && selection.kind === "issue";
 
@@ -346,6 +350,8 @@ export function DockDetail({
     setCloseNote("");
     setCloseBusy(false);
     setCloseError(null);
+    setCloseLoading(false);
+    closeRequestRef.current += 1;
   }, [selection.kind === "issue" ? selection.issue.issueId : ""]);
 
   useEffect(() => {
@@ -457,9 +463,30 @@ export function DockDetail({
       : "已完成");
 
   const openClose = (kind: "complete" | "cancel") => {
+    const requestId = closeRequestRef.current + 1;
+    closeRequestRef.current = requestId;
     setCloseKind(kind);
     setCloseNote(kind === "complete" ? suggestedCloseNote : "");
     setCloseError(null);
+    setCloseLoading(false);
+    if (kind !== "complete" || !onGenerateSummary) return;
+    setCloseLoading(true);
+    void onGenerateSummary(issue.issueId)
+      .then((summary) => {
+        if (closeRequestRef.current !== requestId) return;
+        const next = summary.trim();
+        if (!next) return;
+        // Only replace the fallback if the user has not started editing it.
+        setCloseNote((current) =>
+          current === suggestedCloseNote ? next : current,
+        );
+      })
+      .catch(() => {
+        // Fall back to the latest progress note; the dialog stays usable.
+      })
+      .finally(() => {
+        if (closeRequestRef.current === requestId) setCloseLoading(false);
+      });
   };
 
   const submitClose = async (): Promise<void> => {
@@ -536,18 +563,22 @@ export function DockDetail({
             <button
               type="button"
               className="dock-detail-complete"
+              aria-label="完成"
+              title="完成"
               onClick={() => openClose("complete")}
             >
-              完成
+              <i className="codicon codicon-check" aria-hidden />
             </button>
           ) : null}
           {closable && onCancelIssue ? (
             <button
               type="button"
               className="dock-detail-cancel"
+              aria-label="取消"
+              title="取消"
               onClick={() => openClose("cancel")}
             >
-              取消
+              <i className="codicon codicon-close" aria-hidden />
             </button>
           ) : null}
           {actionLabel ? (
@@ -872,8 +903,10 @@ export function DockDetail({
               : "取消原因会写进这条 Issue 的最终进展。"
           }
           confirmText={closeKind === "complete" ? "完成" : "取消 Issue"}
-          confirmDisabled={closeBusy || !closeNote.trim()}
+          confirmDisabled={closeBusy || closeLoading || !closeNote.trim()}
           onCancel={() => {
+            closeRequestRef.current += 1;
+            setCloseLoading(false);
             if (!closeBusy) setCloseKind(null);
           }}
           onConfirm={() => void submitClose()}
@@ -888,6 +921,12 @@ export function DockDetail({
             }
             autoFocus
           />
+          {closeLoading ? (
+            <p className="dock-detail-close-loading" data-testid="dock-detail-close-loading">
+              <span className="dock-detail-close-spinner" aria-hidden />
+              正在让事项 AI 生成总结…
+            </p>
+          ) : null}
           {closeError ? (
             <p className="dock-detail-close-error">{closeError}</p>
           ) : null}
