@@ -42,3 +42,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Light: the composer's gray chip fill turns into a dull patch once it sits on
+   the accent-tinted user bubble. Lift it with a translucent card surface. */
+:root[data-theme="light"] .assistant-bubble-user .context-tag,
+:root[data-theme="light"] .message.user:not(.queued) .context-tag {
+  background-color: color-mix(in srgb, var(--surface-card) 72%, transparent);
+}
+
+:root[data-theme="light"] .assistant-bubble-user .context-tag.clickable:hover,
+:root[data-theme="light"] .message.user:not(.queued) .context-tag.clickable:hover {
+  background-color: color-mix(in srgb, var(--surface-card) 92%, transparent);
+}
