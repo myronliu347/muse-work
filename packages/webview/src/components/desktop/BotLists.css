@@ -292,7 +292,7 @@
   width: 280px;
   max-height: min(420px, 70vh);
   overflow: auto;
-  background: var(--surface-card);
+  background: var(--surface-canvas);
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
   box-shadow: 0 12px 32px var(--shadow-color);
