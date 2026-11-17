@@ -551,7 +551,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
   background: var(--surface-canvas);
-  box-shadow: 0 8px 24px var(--shadow-color-soft);
+  box-shadow: 0 2px 8px var(--shadow-color-soft);
 }
 
 .dock-detail-rail-title {
