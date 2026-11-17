@@ -593,6 +593,9 @@ describe("assistant dock detail", () => {
 
     const frame = await screen.findByTestId("assistant-frame");
     const dock = await ensureAssistantDock(frame, user);
+    expect(tabLabels()).toEqual([RADII]);
+    await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
+    await user.click(await screen.findByTestId("panel-add-item-diff"));
     expect(tabLabels()).toEqual([RADII, "变更"]);
     await user.click(within(dock).getByRole("button", { name: "变更" }));
     await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
