@@ -551,6 +551,19 @@ export function DockDetail({
       } else {
         await onCancelIssue?.(issue.issueId, note);
       }
+      window.postMessage(
+        {
+          command: "showToast",
+          toast: {
+            id: `issue-${closeKind}-${issue.issueId}`,
+            message:
+              closeKind === "complete"
+                ? `已完成「${issue.title}」`
+                : `已取消「${issue.title}」`,
+          },
+        },
+        "*",
+      );
       setCloseKind(null);
     } catch (err) {
       setCloseError(err instanceof Error ? err.message : String(err));

@@ -1475,6 +1475,7 @@ describe("assistant dock detail", () => {
   it("completes an issue directly with a generated note", async () => {
     const user = userEvent.setup();
     const onCompleteIssue = vi.fn().mockResolvedValue(undefined);
+    const postMessage = vi.spyOn(window, "postMessage");
     const radii = {
       ...issue({ issueId: "radii", title: RADII, priority: "p1" }),
       updates: [
@@ -1508,6 +1509,16 @@ describe("assistant dock detail", () => {
     );
     await user.click(screen.getByTestId("confirm-dialog-confirm"));
     expect(onCompleteIssue).toHaveBeenCalledWith("radii", "圆角和间距都修完了");
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "showToast",
+        toast: expect.objectContaining({
+          message: expect.stringContaining("已完成"),
+        }),
+      }),
+      "*",
+    );
+    postMessage.mockRestore();
     expect(screen.queryByTestId("confirm-dialog-overlay")).toBeNull();
   });
 
