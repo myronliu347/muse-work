@@ -682,31 +682,40 @@
   line-height: 1.55;
   color: var(--text-primary);
 }
-.dock-detail-description > summary {
+.dock-detail-description .disclosure-trigger {
   display: flex;
   align-items: baseline;
+  gap: 5px;
+  width: 100%;
   min-width: 0;
-  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--text-secondary);
+  font: inherit;
   font-size: 11px;
   font-weight: 600;
-  list-style: none;
+  text-align: left;
+  cursor: pointer;
 }
-.dock-detail-description > summary > span:first-of-type {
+.dock-detail-description .disclosure-chevron {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+}
+.dock-detail-description .disclosure-title {
   flex: 0 0 auto;
   white-space: nowrap;
 }
-.dock-detail-description > summary::-webkit-details-marker {
-  display: none;
-}
-.dock-detail-description > summary::before {
-  content: "▸";
-  display: inline-block;
-  margin-right: 5px;
+.dock-detail-description .disclosure-preview {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
   color: var(--text-tertiary);
-}
-.dock-detail-description[open] > summary::before {
-  content: "▾";
+  font-size: 11.5px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .dock-detail-description-body {
   margin-top: 10px;
@@ -1325,14 +1334,4 @@
   color: var(--status-danger-text);
   font-size: 10.5px;
 }
-.dock-detail-description-preview {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin-left: 8px;
-  color: var(--text-tertiary);
-  font-size: 11.5px;
-  font-weight: 400;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+

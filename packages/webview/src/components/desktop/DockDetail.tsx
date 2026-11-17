@@ -6,6 +6,7 @@ import { issueSidebarStatusLabel } from "../../utils/issueStatusLabel";
 import { FileIcon } from "../panels/FileIcon";
 import { isHtmlPreviewPath } from "../assistant/assistantLinks";
 import { IssueRowContent, type BotListIssue } from "./BotLists";
+import { Disclosure } from "../shared/Disclosure";
 import type { IssuePresence } from "../session/SessionStatusGlyph";
 import { MarkdownView } from "../message/MarkdownView";
 import { Tooltip } from "../shared/Tooltip";
@@ -723,23 +724,18 @@ export function DockDetail({
             ) : null}
 
             {description ? (
-              <details
+              <Disclosure
+                key={`${issue.issueId}:${updates.length === 0 ? "open" : "closed"}`}
                 className="dock-detail-description"
-                data-testid="dock-detail-description"
-                open={updates.length === 0}
+                testId="dock-detail-description"
+                title="任务说明"
+                preview={descriptionPreview}
+                defaultOpen={updates.length === 0}
               >
-                <summary>
-                  <span>任务说明</span>
-                  {descriptionPreview ? (
-                    <span className="dock-detail-description-preview">
-                      {descriptionPreview}
-                    </span>
-                  ) : null}
-                </summary>
                 <div className="dock-detail-description-body">
                   <DetailMarkdown text={description} />
                 </div>
-              </details>
+              </Disclosure>
             ) : null}
             <dl className="dock-detail-fields">
               <div>
