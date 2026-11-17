@@ -2726,7 +2726,9 @@ body.is-panel-resizing-row * {
   content: "";
   position: absolute;
   top: 0;
-  left: 0;
+  /* Start after the sidebar toggle. A full-width drag region swallows the
+     toggle even though the button itself is no-drag. */
+  left: calc(var(--desktop-shell-chrome-left) + 28px);
   right: 0;
   z-index: 2;
   height: var(--desktop-shell-titlebar-height);

@@ -23,4 +23,21 @@ describe("DesktopSidebarToggle", () => {
     fireEvent.click(btn);
     expect(getDesktopSidebarCollapsed()).toBe(false);
   });
+
+  it("toggles collapsed state with the shortcut while an input is focused", () => {
+    render(
+      <>
+        <input data-testid="composer" />
+        <DesktopSidebarToggle />
+      </>,
+    );
+    const input = screen.getByTestId("composer");
+    input.focus();
+    fireEvent.keyDown(window, {
+      key: "b",
+      metaKey: true,
+      ctrlKey: true,
+    });
+    expect(getDesktopSidebarCollapsed()).toBe(true);
+  });
 });

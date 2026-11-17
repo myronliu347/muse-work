@@ -18,16 +18,8 @@ export const DesktopSidebarToggle: React.FC = () => {
       if (!(isMacPlatform() ? e.metaKey : e.ctrlKey) || e.altKey || e.shiftKey) {
         return;
       }
-      const t = e.target;
-      if (
-        t instanceof HTMLElement &&
-        (t.isContentEditable ||
-          t.tagName === "INPUT" ||
-          t.tagName === "TEXTAREA" ||
-          t.tagName === "SELECT")
-      ) {
-        return;
-      }
+      // Cmd/Ctrl+B is the app-level sidebar toggle even while the composer
+      // has focus; the composer is plain text and does not use it for bold.
       e.preventDefault();
       toggle();
     };
