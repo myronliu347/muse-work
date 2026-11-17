@@ -78,6 +78,9 @@ export const DesktopSessionList: React.FC<DesktopSessionListProps> = ({
           "--desktop-sidebar-width",
           `${DESKTOP_SIDEBAR_WIDTH + next}px`,
         );
+        // Persist during the drag as well as on release: the assistant
+        // surface can unmount mid-gesture when switching views.
+        onWidthChange?.(next);
       },
       commit: onWidthChange,
     });
