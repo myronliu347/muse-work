@@ -72,9 +72,11 @@
 }
 
 .sticky-user-message {
-  width: fit-content;
-  max-width: min(680px, 85%);
-  margin-left: auto;
+  /* The pinned bar is a header, not a chat bubble: span the full message
+     column so content cannot peek around its left edge while stuck. */
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
   position: relative;
   z-index: 20;
   pointer-events: auto;
