@@ -3611,20 +3611,31 @@ body.is-panel-resizing-row * {
   flex-basis: 0;
 }
 
-/* Separate the issue-tab cluster from 灵光 and the 对话/轨迹 switch. */
-.bot-tabs > .bot-tab + .bot-tab-group::before,
-.bot-tabs > .bot-tab-group:last-of-type::after {
+/* One separator before every tab boundary, but never against the active
+   tab's rounded fill: its left edge is skipped when it or its predecessor
+   is active; the next tab skips its own left edge when the active tab is
+   immediately before it. */
+.bot-tab-group,
+.bot-frame-switch {
+  position: relative;
+}
+.bot-tab-group::before,
+.bot-frame-switch::before {
   content: "";
   position: absolute;
+  left: -3px;
   top: 5px;
   bottom: 5px;
   width: 1px;
   background: var(--border-subtle);
   pointer-events: none;
 }
-.bot-tabs > .bot-tab + .bot-tab-group::before {
-  left: -3px;
+.bot-tab-group.active::before,
+.bot-tabs > .bot-tab.active + .bot-tab-group::before,
+.bot-tab-group.active + .bot-tab-group::before {
+  display: none;
 }
-.bot-tabs > .bot-tab-group:last-of-type::after {
-  right: -3px;
+.bot-tabs:has(> .bot-tab-group.active:last-of-type) + .bot-frame-switch::before,
+.bot-tabs:has(> .bot-tab.active:last-of-type) + .bot-frame-switch::before {
+  display: none;
 }
