@@ -32,6 +32,21 @@ html:has(.desktop-layout) {
 /* The rounded corner belongs to whatever panel starts below the titlebar:
    the session list when it is open, the content column when it is collapsed.
    The icon rail is 52px wide, so clamp the corner to the rail edge. */
+/* Paint the whole native titlebar band. Individual headers paint their own
+   surface, but collapsed sidebar / new-session gaps otherwise expose the
+   window's white canvas behind the traffic lights. */
+.desktop-layout::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  height: var(--desktop-shell-titlebar-height);
+  background: var(--surface-header);
+  pointer-events: none;
+}
+
 .desktop-layout::after {
   content: "";
   position: absolute;
@@ -446,22 +461,6 @@ html:has(.desktop-layout) {
   background-clip: content-box;
   border-right: var(--hairline) solid var(--border-subtle);
   overflow: hidden;
-}
-
-/* The padding above is clipped out of the list background so a shell header
-   can paint the titlebar band. Some surfaces (notably the new-session page)
-   have no such header, which left a white strip behind the traffic lights and
-   the sidebar toggle. Paint that band explicitly. */
-.desktop-session-list::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: var(--desktop-shell-titlebar-height);
-  z-index: 0;
-  background: var(--surface-header);
-  pointer-events: none;
 }
 
 .desktop-session-list-toolbar {
