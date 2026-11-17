@@ -27,26 +27,21 @@ html:has(.desktop-layout) {
   overflow: hidden;
   position: relative;
   background-color: var(--surface-canvas, #111111);
+  /* Paint the titlebar band as the layout's backdrop, not as an overlay:
+     a positioned pseudo-element would sit above headers that are not in a
+     stacking context and hide their content. */
+  background-image: linear-gradient(
+    var(--surface-header),
+    var(--surface-header)
+  );
+  background-repeat: no-repeat;
+  background-size: 100% var(--desktop-shell-titlebar-height);
+  background-position: top left;
 }
 
 /* The rounded corner belongs to whatever panel starts below the titlebar:
    the session list when it is open, the content column when it is collapsed.
    The icon rail is 52px wide, so clamp the corner to the rail edge. */
-/* Paint the whole native titlebar band. Individual headers paint their own
-   surface, but collapsed sidebar / new-session gaps otherwise expose the
-   window's white canvas behind the traffic lights. */
-.desktop-layout::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1;
-  height: var(--desktop-shell-titlebar-height);
-  background: var(--surface-header);
-  pointer-events: none;
-}
-
 .desktop-layout::after {
   content: "";
   position: absolute;
