@@ -3610,3 +3610,21 @@ body.is-panel-resizing-row * {
 .assistant-frame .issue-tab-transcript {
   flex-basis: 0;
 }
+
+/* Separate the issue-tab cluster from 灵光 and the 对话/轨迹 switch. */
+.bot-tabs > .bot-tab + .bot-tab-group::before,
+.bot-tabs > .bot-tab-group:last-of-type::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  width: 1px;
+  background: var(--border-subtle);
+  pointer-events: none;
+}
+.bot-tabs > .bot-tab + .bot-tab-group::before {
+  left: -3px;
+}
+.bot-tabs > .bot-tab-group:last-of-type::after {
+  right: -3px;
+}
