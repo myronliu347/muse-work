@@ -1440,7 +1440,7 @@
 
 .confirm-dialog:has(.dock-detail-close-note),
 .confirm-dialog:has(.dock-detail-close-preview) {
-  width: min(880px, calc(100vw - 64px));
+  width: min(648px, calc(100vw - 64px));
 }
 .dock-detail-close-loading {
   display: flex;
