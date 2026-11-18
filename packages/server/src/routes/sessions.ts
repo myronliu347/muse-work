@@ -117,16 +117,21 @@ sessionsRoutes.get("/sessions", (c) => {
         sessions,
       };
     };
-    const issueGroups = ctx.issueStore.listActive().map((issue) => toGroup(issue));
-    const closedIssueGroups = ctx.issueStore
-      .listClosed()
+    const activeIssues = ctx.issueStore.listActive();
+    const closedIssues = ctx.issueStore.listClosed();
+    const issueGroups = activeIssues.map((issue) => toGroup(issue));
+    const closedIssueGroups = closedIssues
       .slice(0, CLOSED_ISSUE_PAGE_SIZE)
       .map((issue) => toGroup(issue, true));
-    const issueSessionIds = new Set(
-      [...issueGroups, ...closedIssueGroups].flatMap((g) =>
-        g.sessions.map((s) => s.id),
-      ),
-    );
+    // Every issue session stays out of 工作空间, not only the ones whose group
+    // rides in the tree: the archive only carries its first page, and issues
+    // closed before close-deleted their sessions still have live sessions in
+    // the store. Both would otherwise leak into `recent` as ordinary sessions.
+    const issueSessionIds = new Set<string>();
+    for (const issue of [...activeIssues, ...closedIssues]) {
+      if (issue.planningSessionId) issueSessionIds.add(issue.planningSessionId);
+      if (issue.executionSessionId) issueSessionIds.add(issue.executionSessionId);
+    }
     // Exclude issue sessions before the 50-item recent cap: they are listed in
     // 待办事项 / 已关闭, and a closed-issue backlog must not crowd ordinary
     // workspace sessions out of the sidebar.

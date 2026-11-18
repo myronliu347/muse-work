@@ -251,6 +251,47 @@ describe("sessions HTTP routes", () => {
     );
   });
 
+  it("grouped keeps closed-issue sessions out of recent beyond the archive page", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    // Legacy state: these issues were closed before closing deleted their
+    // sessions, and the archive tree only carries its first page. Their
+    // sessions used to surface as ordinary 工作空间 entries.
+    const total = 21;
+    const sessionIds: string[] = [];
+    for (let i = 0; i < total; i += 1) {
+      const issue = app.ctx.issueStore.create({ title: `旧事项 ${i}` });
+      const session = app.ctx.store.create({
+        workdir: "/tmp/proj",
+        model: "m1",
+        title: `旧事项 ${i}`,
+      });
+      app.ctx.issueStore.setPlanning(issue.id, {
+        planningSessionId: session.id,
+        workdir: "/tmp/proj",
+        worktreeEnabled: false,
+      });
+      // Store-level close skips the route's session deletion on purpose.
+      app.ctx.issueStore.complete(issue.id, "关掉了");
+      sessionIds.push(session.id);
+    }
+
+    const grouped = await fetch(`${app.baseUrl}/sessions?grouped=1`).then((r) =>
+      r.json(),
+    );
+    expect(grouped.closedIssueGroups).toHaveLength(20);
+    const inTree = new Set(
+      grouped.closedIssueGroups.flatMap((group: {
+        sessions: Array<{ id: string }>;
+      }) => group.sessions.map((session) => session.id)),
+    );
+    const beyondArchive = sessionIds.filter((id) => !inTree.has(id));
+    expect(beyondArchive).toHaveLength(1);
+    expect(grouped.recent).toEqual([]);
+  });
+
   it("grouped includes pending issues with empty sessions", async () => {
     const app = await listenTestApp();
     server = app.server;
