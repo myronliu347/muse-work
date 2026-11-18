@@ -9,6 +9,24 @@ export interface QueuedMessage {
   editable?: boolean; // default true
 }
 
+/** Registry-backed test for whether a queued message is a real slash command. */
+export type SlashCommandPredicate = (content: string) => boolean;
+
+/**
+ * Shape-only fallback used when no command registry is reachable: a slash
+ * command's token carries no path separator after the leading `/`, so an
+ * absolute path (or a message that merely starts with one) is not mistaken
+ * for a command and can still join the running turn.
+ * @param content - queued message text.
+ * @returns whether the text is shaped like a slash command.
+ */
+export function looksLikeSlashCommand(content: string): boolean {
+  const trimmed = content.trim();
+  if (!trimmed.startsWith("/") || trimmed === "/") return false;
+  const token = trimmed.split(/\s/)[0] ?? "";
+  return !token.slice(1).includes("/");
+}
+
 export class MessageQueue {
   private queue: QueuedMessage[] = [];
   private nextId = 0;
@@ -137,20 +155,25 @@ export class MessageQueue {
     return this.queue.some((m) => m.type === "notification");
   }
 
-  /**
-   * Take user messages that can join the active turn at the next model step.
-   * Notifications stay queued for the end of the turn. Slash commands stay
-   * queued so they still run through the idle dispatch path.
-   */
+  /** Whether any queued user message can join the active turn. */
   hasSteerableUserMessages(): boolean {
     return this.queue.some((message) => this.isSteerableUserMessage(message));
   }
 
-  takeSteerableUserMessages(): QueuedMessage[] {
+  /**
+   * Take user messages that can join the active turn at the next model step.
+   * Notifications stay queued for the end of the turn. Slash commands stay
+   * queued so they still run through the idle dispatch path.
+   * @param isSlashCommand - registry-backed command test; omitted falls back
+   *   to {@link looksLikeSlashCommand}.
+   */
+  takeSteerableUserMessages(
+    isSlashCommand?: SlashCommandPredicate,
+  ): QueuedMessage[] {
     const taken: QueuedMessage[] = [];
     const remaining: QueuedMessage[] = [];
     for (const message of this.queue) {
-      if (this.isSteerableUserMessage(message)) {
+      if (this.isSteerableUserMessage(message, isSlashCommand)) {
         taken.push(message);
       } else {
         remaining.push(message);
@@ -160,10 +183,12 @@ export class MessageQueue {
     return taken;
   }
 
-  private isSteerableUserMessage(message: QueuedMessage): boolean {
+  private isSteerableUserMessage(
+    message: QueuedMessage,
+    isSlashCommand: SlashCommandPredicate = looksLikeSlashCommand,
+  ): boolean {
     if (message.type === "notification") return false;
-    const trimmed = message.content.trim();
-    return !(trimmed.startsWith("/") && trimmed !== "/");
+    return !isSlashCommand(message.content);
   }
 
   /**

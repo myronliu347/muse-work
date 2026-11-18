@@ -551,5 +551,35 @@ describe("MessageQueue", () => {
         "/compact",
       ]);
     });
+
+    it("steers a message that only starts with an absolute path", () => {
+      const queue = new MessageQueue();
+      const pathMessage =
+        "/Users/me/.muse-work/logs/run.log\n\n你看看推理过程线";
+      queue.enqueue({ content: pathMessage });
+      queue.enqueue({ content: "/compact" });
+
+      const taken = queue.takeSteerableUserMessages();
+
+      expect(taken.map((message) => message.content)).toEqual([pathMessage]);
+      expect(queue.getQueue().map((message) => message.content)).toEqual([
+        "/compact",
+      ]);
+    });
+
+    it("uses the supplied command predicate instead of the prefix guard", () => {
+      const queue = new MessageQueue();
+      queue.enqueue({ content: "/Users/me" });
+      queue.enqueue({ content: "/not-a-command" });
+
+      const taken = queue.takeSteerableUserMessages(
+        (content) => content.trim() === "/not-a-command",
+      );
+
+      expect(taken.map((message) => message.content)).toEqual(["/Users/me"]);
+      expect(queue.getQueue().map((message) => message.content)).toEqual([
+        "/not-a-command",
+      ]);
+    });
   });
 });

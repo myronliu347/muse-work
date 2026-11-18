@@ -56,6 +56,7 @@ import { recoverTruncatedJson } from "../utils/stringUtils.js";
 import { ConfigurationService } from "../services/configurationService.js";
 import { isLeanPromptEnabled } from "../services/leanPrompt.js";
 import type { MessageQueue, QueuedMessage } from "./messageQueue.js";
+import type { SlashCommandManager } from "./slashCommandManager.js";
 import { logger } from "../utils/globalLogger.js";
 import type { BackgroundTask } from "../types/processes.js";
 
@@ -2163,7 +2164,19 @@ ${question}`;
       : undefined;
     if (!messageQueue) return false;
 
-    const pending = messageQueue.takeSteerableUserMessages();
+    // Ask the registered commands which texts are real slash commands. A bare
+    // leading `/` is not enough: a pasted absolute path starts with one and
+    // must still join the running turn instead of waiting for it to end.
+    const slashCommands = this.container.has("SlashCommandManager")
+      ? this.container.get<SlashCommandManager>("SlashCommandManager")
+      : undefined;
+
+    const pending = messageQueue.takeSteerableUserMessages(
+      slashCommands === undefined
+        ? undefined
+        : (content) =>
+            slashCommands.parseAndValidateSlashCommand(content.trim()).isValid,
+    );
     if (pending.length === 0) return false;
 
     let accepted = false;

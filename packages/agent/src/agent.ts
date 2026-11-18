@@ -1107,8 +1107,13 @@ export class Agent {
           images,
         });
         this.options.callbacks?.onQueuedMessagesChange?.(this.queuedMessages);
-        const isSlash = trimmed.startsWith("/") && trimmed !== "/";
-        if (!isSlash) {
+        // Only a registered command keeps running subagents in the foreground.
+        // A message that merely starts with `/` (a pasted absolute path) is a
+        // follow-up, so its subagents should yield for the next step.
+        const isCommand =
+          trimmed.startsWith("/") &&
+          this.slashCommandManager.parseAndValidateSlashCommand(trimmed).isValid;
+        if (!isCommand) {
           await this.foregroundTaskManager.yieldRunningSubagents();
         }
         return;

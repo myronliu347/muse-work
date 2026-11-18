@@ -124,6 +124,12 @@ function buildHarness(queueChanges: unknown[]) {
   container.register("SkillManager", {
     getAvailableSkills: vi.fn().mockReturnValue([]),
   });
+  // Only `/compact` is a real command here; a pasted absolute path is not.
+  container.register("SlashCommandManager", {
+    parseAndValidateSlashCommand: vi.fn((input: string) => ({
+      isValid: input.trim() === "/compact",
+    })),
+  });
 
   const aiManager = new AIManager(container, {
     workdir: "/test/workdir",
@@ -205,5 +211,31 @@ describe("AIManager steers queued user input into the active turn", () => {
     expect(callAgent).toHaveBeenCalledTimes(2);
     expect(sawUserMessageBeforeSecondCall).toBe(true);
     expect(messageQueue.getQueue()).toEqual([]);
+  });
+
+  it("folds a queued message whose text starts with an absolute path", async () => {
+    const { aiManager, messageQueue, messageManager } = buildHarness([]);
+    const pathMessage =
+      "/Users/me/.muse-work/logs/prototype-run.log\n\n你看看推理过程线";
+
+    vi.mocked(callAgent).mockImplementation(async () => {
+      const call = vi.mocked(callAgent).mock.calls.length;
+      if (call === 1) {
+        messageQueue.enqueue({ content: pathMessage });
+        messageQueue.enqueue({ content: "/compact" });
+        return { content: "先看代码", tool_calls: [], usage };
+      }
+      return { content: "看完了", tool_calls: [], usage };
+    });
+
+    await aiManager.sendAIMessage();
+
+    expect(callAgent).toHaveBeenCalledTimes(2);
+    expect(messageManager.addUserMessage).toHaveBeenCalledWith({
+      content: pathMessage,
+    });
+    expect(messageQueue.getQueue().map((message) => message.content)).toEqual([
+      "/compact",
+    ]);
   });
 });
