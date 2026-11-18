@@ -25,6 +25,11 @@ describe("ensureAssistantSession", () => {
     expect(store.list().filter((s) => s.origin === "assistant")).toHaveLength(1);
     expect(store.listGrouped().recent.map((s) => s.id)).not.toContain(first.id);
     expect(first.systemPrompt).toContain("短回复必须用 `SendMessage`");
+    expect(first.systemPrompt).toContain("这一轮必须用 `SendMessage` 回");
+    expect(first.systemPrompt).toContain("只写在回合正文里等于没回");
+    expect(first.systemPrompt).toContain("先 `GetIssue` 读 `description`");
+    expect(first.systemPrompt).toContain("你是这件事的负责人");
+    expect(first.systemPrompt).toContain("实现的验收自己审");
     expect(first.systemPrompt).toContain("按先后处理每一段");
     expect(first.systemPrompt).toContain("必须把 `worktree` 设为 true");
     expect(first.systemPrompt).toContain("不要自己 `git worktree add`");
