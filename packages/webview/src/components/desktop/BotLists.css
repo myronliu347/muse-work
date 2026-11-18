@@ -15,7 +15,9 @@
 
 .bot-list-card {
   border-radius: 14px;
-  background: var(--surface-panel);
+  /* Use the card surface, not the gray panel fill: on the light canvas the
+     latter reads as a heavy gray slab around the issue rows. */
+  background: var(--surface-card);
   border: 1px solid var(--border-subtle);
   overflow: hidden;
 }

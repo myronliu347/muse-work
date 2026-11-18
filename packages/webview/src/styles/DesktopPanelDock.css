@@ -74,7 +74,7 @@
   height: var(--desktop-shell-titlebar-height, 38px);
   /* Match the main/sidebar boundary line; the dock header is the right
      panel's edge in the same titlebar row. */
-  border-left: var(--hairline) solid var(--border-subtle);
+  border-left: var(--hairline) solid var(--border-strong);
   padding: 0 var(--space-3);
   background: var(--surface-header);
   display: flex;
@@ -124,7 +124,7 @@
   width: 126px;
   min-width: 126px;
   max-width: 126px;
-  overflow: hidden;
+  overflow: visible;
   height: 24px;
   padding: 0;
   border-radius: var(--radius-1);
@@ -243,12 +243,39 @@
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .file-tab--active {
   background: var(--surface-active);
   color: var(--text-primary);
+}
+
+/* Same 1px separator as the main tab strip: a pseudo-element in the gap
+   before each tab. The tabs keep overflow visible so the -3px line is not
+   clipped; labels still clip through OverflowText. The active fill suppresses
+   its own separator and the following tab's. */
+.desktop-panel-dock-tabs > .desktop-panel-tab::before,
+.desktop-panel-dock-tabs > .file-tab::before {
+  content: "";
+  position: absolute;
+  left: -3px;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: var(--border-strong);
+  pointer-events: none;
+}
+.desktop-panel-dock-tabs > :first-child::before {
+  display: none;
+}
+.desktop-panel-dock-tabs > .desktop-panel-tab--active::before,
+.desktop-panel-dock-tabs > .file-tab--active::before,
+.desktop-panel-dock-tabs > .desktop-panel-tab--active + .desktop-panel-tab::before,
+.desktop-panel-dock-tabs > .desktop-panel-tab--active + .file-tab::before,
+.desktop-panel-dock-tabs > .file-tab--active + .desktop-panel-tab::before,
+.desktop-panel-dock-tabs > .file-tab--active + .file-tab::before {
+  display: none;
 }
 
 .file-tab:hover:not(.file-tab--active) {
@@ -668,8 +695,9 @@
   justify-content: space-between;
   margin: 0;
   /* Match the detail content's top inset so the header starts on the same
-     line as the first sheet/card. */
-  padding: 20px 12px 6px;
+     line as the first sheet/card. The extra right inset lines the count up
+     with 已完成's count, which sits before its chevron. */
+  padding: 20px 30px 6px 12px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
@@ -1659,4 +1687,15 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* The dock's panel/fullscreen controls sit on the light titlebar; a dark
+   active/hover fill on these header buttons reads as a stray black block. */
+.panel-toggle-control .header-button,
+.desktop-panel-dock-actions .header-button {
+  background-color: transparent !important;
+}
+.panel-toggle-control .header-button:hover,
+.desktop-panel-dock-actions .header-button:hover {
+  background-color: var(--surface-hover) !important;
 }
