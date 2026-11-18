@@ -2,14 +2,13 @@ import { Hono } from "hono";
 import fs from "node:fs";
 import path from "node:path";
 import type { HonoEnv } from "../honoEnv.js";
-import type { AppContext } from "../services/appContext.js";
 import type { Issue, IssueAgentMode, IssuePriority, IssueType } from "../services/issueStore.js";
 import {
   runnerErrorMessage,
   runnerErrorStatus,
 } from "../utils/runnerError.js";
-import { getLogger } from "../utils/logger.js";
 import { openIssueSession } from "../services/issueOpen.js";
+import { deleteIssueSessions, plainCloseSummary } from "../services/issueClose.js";
 
 export const issuesRoutes = new Hono<HonoEnv>();
 
@@ -54,6 +53,7 @@ function scheduleCloseEffects(
   ctx: Parameters<typeof scheduleIssueClosedEvent>[0] & {
     assistantRuntime: Parameters<typeof scheduleIssueClosedEvent>[0]["assistantRuntime"];
     hub: { broadcastAll: (event: { type: "issue:changed" }) => void };
+    runner: Parameters<typeof deleteIssueSessions>[0];
   },
   issue: Issue,
   status: "completed" | "cancelled",
@@ -64,37 +64,11 @@ function scheduleCloseEffects(
   if (eventTimer) timers.push(eventTimer);
   const deleteTimer = setTimeout(() => {
     pendingCloses.delete(issue.id);
-    void deleteIssueSessions(ctx as Parameters<typeof deleteIssueSessions>[0], issue);
+    void deleteIssueSessions(ctx.runner, issue);
   }, CLOSE_EVENT_DELAY_MS);
   deleteTimer.unref?.();
   timers.push(deleteTimer);
   pendingCloses.set(issue.id, { previousStatus, timers });
-}
-
-/**
- * 关闭事项时连带删除它的规划 / 执行会话：会话属于这个事项，关掉后不该再
- * 留在侧栏和会话列表里。磁盘上的 transcript 交给常规保留期清理。
- */
-async function deleteIssueSessions(
-  ctx: AppContext,
-  issue: Pick<Issue, "planningSessionId" | "executionSessionId">,
-): Promise<void> {
-  const ids = new Set(
-    [issue.planningSessionId, issue.executionSessionId].filter(
-      (id): id is string => Boolean(id),
-    ),
-  );
-  for (const id of ids) {
-    if (!ctx.store.get(id)) continue;
-    try {
-      await ctx.runner.disposeSession(id);
-    } catch (err) {
-      getLogger().error("issue session delete failed", {
-        sessionId: id,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
 }
 
 function isTerminal(status: Issue["status"]): boolean {
@@ -292,25 +266,6 @@ async function readCloseNote(c: { req: { json: () => Promise<unknown> } }): Prom
   }
 }
 
-/** One-line timeline summary; the full Markdown note stays in detail. */
-function plainCloseSummary(note: string): string {
-  const plain = note
-    .split("\n")
-    .map((line) =>
-      line
-        .replace(/^#{1,6}\s+/, "")
-        .replace(/^\s*[-*+]\s+/, "")
-        .replace(/^\s*\d+\.\s+/, "")
-        .trim(),
-    )
-    .filter(Boolean)
-    .join(" ")
-    .replace(/[*_`>|#]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return plain.slice(0, 120) || "已完成";
-}
-
 type IssueSummaryCache = { key: string; summary: string };
 
 function issueSummaryCachePath(home: string, issueId: string): string {
@@ -390,7 +345,7 @@ issuesRoutes.post("/issues/:id/complete", async (c) => {
     if (CLOSE_EVENT_DELAY_MS > 0) {
       scheduleCloseEffects(ctx, issue, "completed", previousStatus);
     } else {
-      await deleteIssueSessions(ctx, issue);
+      await deleteIssueSessions(ctx.runner, issue);
       scheduleIssueClosedEvent(ctx, issue, "completed");
     }
     broadcastIssueChanged(ctx);
@@ -485,7 +440,7 @@ issuesRoutes.post("/issues/:id/cancel", async (c) => {
     if (CLOSE_EVENT_DELAY_MS > 0) {
       scheduleCloseEffects(ctx, issue, "cancelled", previousStatus);
     } else {
-      await deleteIssueSessions(ctx, issue);
+      await deleteIssueSessions(ctx.runner, issue);
       scheduleIssueClosedEvent(ctx, issue, "cancelled");
     }
     broadcastIssueChanged(ctx);

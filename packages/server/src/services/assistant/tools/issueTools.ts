@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { normalizeIssueType } from "../../issueStore.js";
 import { openIssueSession, type OpenIssueBody } from "../../issueOpen.js";
+import { deleteIssueSessions, plainCloseSummary } from "../../issueClose.js";
 import { createServerWorktree } from "../../gitWorktree.js";
 import { ASSISTANT_TEXT_MAX } from "../messages.js";
 import { compactText, fail, ok, text, tool, type AssistantToolDeps } from "./toolKit.js";
@@ -499,6 +500,20 @@ export function createIssueTools(deps: AssistantToolDeps) {
             if (issue.status === "cancelled") return fail("already cancelled");
             const closed = deps.issues.complete(issueId, note);
             if (!closed) return fail("close failed");
+            // Same side effects as the HTTP close: a ledger entry for the UI
+            // and the issue's sessions dropped from the store. The assistant
+            // is the closer here, so no issue-closed event is queued back.
+            deps.recordIssueUpdate?.(
+              closed.id,
+              {
+                kind: "result",
+                summary: `已完成：${plainCloseSummary(note)}`,
+                detail: note.trim(),
+                status: "completed",
+              },
+              { allowClosed: true },
+            );
+            await deleteIssueSessions(deps.runner, closed);
             deps.hub.broadcastAll({ type: "issue:changed" });
             return ok({ id: closed.id, status: closed.status, closeNote: closed.closeNote });
           }
@@ -506,6 +521,17 @@ export function createIssueTools(deps: AssistantToolDeps) {
             if (issue.status === "completed") return fail("already completed");
             const closed = deps.issues.cancel(issueId, note);
             if (!closed) return fail("close failed");
+            deps.recordIssueUpdate?.(
+              closed.id,
+              {
+                kind: "result",
+                summary: `已取消：${plainCloseSummary(note)}`,
+                detail: note.trim(),
+                status: "cancelled",
+              },
+              { allowClosed: true },
+            );
+            await deleteIssueSessions(deps.runner, closed);
             deps.hub.broadcastAll({ type: "issue:changed" });
             return ok({ id: closed.id, status: closed.status, closeNote: closed.closeNote });
           }

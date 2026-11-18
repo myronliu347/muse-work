@@ -24,6 +24,7 @@ export type AssistantToolDeps = {
   recordIssueUpdate?: (
     issueId: string,
     input: IssueUpdateInput,
+    opts?: { allowClosed?: boolean },
   ) => IssueUpdate | undefined;
   getTurnContext?: () => AssistantTurnContext | undefined;
   apps?: import("@muse-work/plugin-sdk").AssistantApp[];

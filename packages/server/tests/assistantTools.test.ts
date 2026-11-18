@@ -27,6 +27,7 @@ describe("assistant tools", () => {
     const log = createAssistantMessageLog({ home });
     const broadcasts: unknown[] = [];
     const decisions: Array<{ sessionId: string; permissionId: string; behavior: string }> = [];
+    const disposed: string[] = [];
     const opened: OpenIssueBody[] = [];
     const hub = { broadcastAll: (event: unknown) => broadcasts.push(event) } as WsHub;
     const tools = createAssistantTools({
@@ -38,6 +39,9 @@ describe("assistant tools", () => {
       hub,
       runner: {
         sendMessage: async () => ({ accepted: true as const }),
+        disposeSession: async (sessionId: string) => {
+          disposed.push(sessionId);
+        },
         respondPermission: async (
           sessionId: string,
           permissionId: string,
@@ -227,6 +231,8 @@ describe("assistant tools", () => {
     expect(closed.success).toBe(true);
     expect(issues.get(issue.id)?.status).toBe("completed");
     expect(issues.get(issue.id)?.closeNote).toBe("登录修好了");
+    // The tool must drop the issue's sessions, exactly like the HTTP close.
+    expect(disposed).toEqual(["s1"]);
     const fetched = await tool(tools, "GetIssue").execute(
       { issueId: issue.id },
       context,
@@ -648,6 +654,9 @@ describe("assistant tools", () => {
       hub: { broadcastAll: (event: unknown) => broadcasts.push(event) } as WsHub,
       runner: {
         sendMessage: async () => ({ accepted: true as const }),
+        disposeSession: async (sessionId: string) => {
+          disposed.push(sessionId);
+        },
         getRuntimeState: async () => ({ queuedMessages: [] }),
       } as never,
     });
