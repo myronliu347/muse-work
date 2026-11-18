@@ -435,6 +435,48 @@ export function useDockSurface({
       selectDock(DOCK_DETAIL_TAB);
     }
   }, [assistantVisible, chromeActive, chromeChecked, dockWriteAllowed, groupKey, host?.type]);
+  // Keep the session page's chosen panel across session/workdir tabs. The
+  // chrome effect above deliberately leaves the sessions surface alone, so
+  // without this each tab's own `active` kind is used and the dock appears to
+  // change panels on every switch. Carry the previous session's kind into the
+  // new group, opening it if that group has not mounted the panel yet.
+  const sessionSeenGroupKey = useRef(groupKey);
+  const sessionSeenActiveKind = useRef(activePanel);
+  const wasAssistantVisible = useRef(assistantVisible);
+  useEffect(() => {
+    const enteringSession = wasAssistantVisible.current && !assistantVisible;
+    wasAssistantVisible.current = assistantVisible;
+    if (host?.type !== "desktop" || assistantVisible) {
+      sessionSeenGroupKey.current = groupKey;
+      sessionSeenActiveKind.current = activePanel;
+      return;
+    }
+    const previousGroupKey = sessionSeenGroupKey.current;
+    const previousKind = sessionSeenActiveKind.current;
+    sessionSeenGroupKey.current = groupKey;
+    sessionSeenActiveKind.current = activePanel;
+    if (enteringSession || !dockWriteAllowed || !groupKey) return;
+    if (!previousGroupKey || previousGroupKey === groupKey || !previousKind) {
+      return;
+    }
+    usePanelGroupStore.getState().patchGroup(groupKey, (group) => {
+      const checked = group.checked.includes(previousKind)
+        ? group.checked
+        : [...group.checked, previousKind];
+      const mounted = group.mounted.includes(previousKind)
+        ? group.mounted
+        : [...group.mounted, previousKind];
+      if (
+        group.active === previousKind &&
+        checked === group.checked &&
+        mounted === group.mounted
+      ) {
+        return {};
+      }
+      return { checked, mounted, active: previousKind };
+    });
+  }, [assistantVisible, groupKey, activePanel, dockWriteAllowed, host?.type]);
+
   // Single-file view for the panel body = the active tab (multi-tab: the tab
   // bar lives in FilePane; everything downstream keeps working on one view).
   const fileView = useMemo(

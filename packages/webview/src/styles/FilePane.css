@@ -224,6 +224,40 @@
   box-sizing: border-box;
 }
 
+/* YAML front matter is shown as compact note properties, not as an <hr> and
+   a paragraph of literal dashes. Keep it as a flat property list: a filled
+   full-width card read as an empty gray panel in light mode. */
+.file-pane-markdown table.file-frontmatter {
+  display: table;
+  width: 100%;
+  margin: 0 0 var(--space-4);
+  border: 0;
+  border-collapse: collapse;
+  background: transparent;
+  font-size: 11px;
+}
+.file-pane-markdown table.file-frontmatter th,
+.file-pane-markdown table.file-frontmatter td {
+  padding: 5px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  text-align: left;
+  vertical-align: top;
+}
+.file-pane-markdown table.file-frontmatter th {
+  width: 96px;
+  padding-right: 16px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.file-pane-markdown table.file-frontmatter td {
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .file-pane-markdown pre {
   max-width: 100%;
   overflow: auto;

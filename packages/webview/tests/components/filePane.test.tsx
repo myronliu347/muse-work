@@ -481,6 +481,33 @@ describe("FilePane", () => {
     });
   });
 
+  it("renders YAML front matter as note metadata, not a horizontal rule", () => {
+    const { container } = renderPane({
+      fileView: {
+        path: "/work/a/note.md",
+        host: "local",
+        content: [
+          "---",
+          "name: shell 组件化最小档",
+          "description: 本地真跑验 e8fafc",
+          "type: project",
+          "---",
+          "",
+          "正文内容",
+        ].join("\n"),
+      },
+    });
+    const md = container.querySelector(".file-pane-markdown");
+    const meta = md?.querySelector("table.file-frontmatter");
+    expect(meta).not.toBeNull();
+    expect(meta?.querySelectorAll("tr")).toHaveLength(3);
+    expect(meta?.textContent).toContain("shell 组件化最小档");
+    expect(meta?.textContent).toContain("project");
+    expect(md?.querySelector("hr")).toBeNull();
+    expect(md?.textContent).not.toContain("---");
+    expect(md?.textContent).toContain("正文内容");
+  });
+
   it("keeps a markdown table inside the preview and colors fenced code", async () => {
     const { container } = renderPane({
       fileView: {

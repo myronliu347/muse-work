@@ -177,9 +177,72 @@ const sanitizeFileMarkdown = (html: string): string => {
   return typeof clean === "string" ? clean : "";
 };
 
+type FrontMatterEntry = { key: string; value: string };
+
+const FRONT_MATTER = /^\uFEFF?---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+
+/** Split a leading YAML front matter block off a markdown note. Treat it as
+ * front matter only when there is at least one `key: value` line, so a pair
+ * of horizontal rules in ordinary prose stays markdown. */
+function splitFrontMatter(content: string): {
+  entries: FrontMatterEntry[];
+  body: string;
+} | null {
+  const match = FRONT_MATTER.exec(content);
+  if (!match) return null;
+  const entries: FrontMatterEntry[] = [];
+  for (const line of (match[1] ?? "").split(/\r?\n/)) {
+    if (!line.trim() || line.trimStart().startsWith("#")) continue;
+    const colon = line.indexOf(":");
+    if (colon <= 0) continue;
+    const key = line.slice(0, colon).trim();
+    let value = line.slice(colon + 1).trim();
+    if (
+      value.length >= 2 &&
+      ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'")))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (key) entries.push({ key, value });
+  }
+  if (entries.length === 0) return null;
+  return { entries, body: content.slice(match[0].length) };
+}
+
+function escapeFrontMatter(text: string): string {
+  return text.replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      default:
+        return "&#39;";
+    }
+  });
+}
+
+function renderFrontMatter(entries: FrontMatterEntry[]): string {
+  const rows = entries
+    .map(
+      (entry) =>
+        `<tr><th>${escapeFrontMatter(entry.key)}</th><td>${escapeFrontMatter(entry.value)}</td></tr>`,
+    )
+    .join("");
+  return `<table class="file-frontmatter"><tbody>${rows}</tbody></table>`;
+}
+
 const renderFileMarkdown = (content: string): string => {
-  const raw = marked.parse(content, { gfm: true, breaks: true });
-  return sanitizeFileMarkdown(typeof raw === "string" ? raw : content);
+  const frontMatter = splitFrontMatter(content);
+  const source = frontMatter?.body ?? content;
+  const raw = marked.parse(source, { gfm: true, breaks: true });
+  const html = sanitizeFileMarkdown(typeof raw === "string" ? raw : source);
+  return frontMatter ? renderFrontMatter(frontMatter.entries) + html : html;
 };
 
 type MarkdownPart =

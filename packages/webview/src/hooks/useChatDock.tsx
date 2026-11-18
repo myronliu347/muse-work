@@ -412,7 +412,16 @@ export function useChatDock(input: {
         onGenerateSummary={generateIssueSummary}
       />
     ) : undefined,
-    onCloseTab: handleTogglePanel,
+    onCloseTab: (kind) => {
+      // Closing the 文件 browser while file tabs are open should drop the
+      // browser view, not the whole panel and its files. Show the most
+      // recent file instead.
+      if (kind === "file" && shownFileTabs.length > 0) {
+        selectShownFileTab(shownFileTabs[shownFileTabs.length - 1].path);
+        return;
+      }
+      handleTogglePanel(kind);
+    },
     onAddPanel: (kind, options) => {
       if (assistantVisible && kind === "terminal") {
         openBotTerminal(options?.placeAtEnd);
