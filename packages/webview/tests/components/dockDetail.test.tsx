@@ -1757,9 +1757,7 @@ describe("assistant dock detail", () => {
     expect(onOpenArtifactInBrowser).toHaveBeenCalledWith("/work/radii/report.html");
   });
 
-  it("resolves a pending permission inline", async () => {
-    const user = userEvent.setup();
-    const onRespondPermission = vi.fn().mockResolvedValue(undefined);
+  it("renders a pending permission as read-only", () => {
     const now = Date.now();
     const radii = {
       ...issue({ issueId: "radii", title: RADII, priority: "p1" }),
@@ -1782,17 +1780,19 @@ describe("assistant dock detail", () => {
           selection={{ kind: "issue", issue: radii }}
           actionLabel={null}
           onOpenSession={() => {}}
-          onRespondPermission={onRespondPermission}
         />
       </MuseTheme>,
     );
 
-    expect(screen.getByTestId("dock-detail-permission")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "允许" }));
-    expect(onRespondPermission).toHaveBeenCalledWith("plan-radii", "perm-1", "allow");
-    await waitFor(() =>
-      expect(screen.queryByTestId("dock-detail-permission")).toBeNull(),
-    );
+    const card = screen.getByTestId("dock-detail-permission");
+    expect(card).toHaveTextContent("等待批准：Bash");
+    expect(
+      within(card).queryByRole("button", { name: "允许" }),
+    ).toBeNull();
+    expect(
+      within(card).queryByRole("button", { name: "拒绝" }),
+    ).toBeNull();
+    expect(card).toHaveTextContent("在对话里的确认框处理这次审批");
   });
 
   it("hides a permission card once its session is no longer waiting", () => {

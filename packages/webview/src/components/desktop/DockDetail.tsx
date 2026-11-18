@@ -295,12 +295,6 @@ export interface DockDetailProps {
   /** 当前会话里仍未处理的审批；用来立刻隐藏已经批过的旧卡。 */
   pendingPermissionIds?: ReadonlySet<string>;
   currentSessionId?: string;
-  /** 行内处理审批。 */
-  onRespondPermission?: (
-    sessionId: string,
-    permissionId: string,
-    decision: "allow" | "deny",
-  ) => Promise<void>;
   /** 直接完成/取消 Issue，不需要再发一轮消息。 */
   onCompleteIssue?: (issueId: string, note: string) => Promise<void>;
   onCancelIssue?: (issueId: string, note: string) => Promise<void>;
@@ -659,7 +653,6 @@ export function DockDetail({
   onLoadUpdates,
   pendingPermissionIds,
   currentSessionId,
-  onRespondPermission,
   onCompleteIssue,
   onCancelIssue,
   onGenerateSummary,
@@ -694,9 +687,6 @@ export function DockDetail({
   const [updatesExpanded, setUpdatesExpanded] = useState(false);
   const [updatesLoaded, setUpdatesLoaded] = useState(false);
   const [loadingUpdates, setLoadingUpdates] = useState(false);
-  const [resolvingPermission, setResolvingPermission] = useState<string | null>(null);
-  const [resolvedPermissions, setResolvedPermissions] = useState<Set<string>>(new Set());
-  const [permissionError, setPermissionError] = useState<string | null>(null);
   const [closeKind, setCloseKind] = useState<"complete" | "cancel" | null>(null);
   const [closeNote, setCloseNote] = useState("");
   const [closeBusy, setCloseBusy] = useState(false);
@@ -829,9 +819,6 @@ export function DockDetail({
     setExtraUpdates([]);
     setUpdatesExpanded(false);
     setUpdatesLoaded(false);
-    setResolvingPermission(null);
-    setResolvedPermissions(new Set());
-    setPermissionError(null);
     setCloseKind(null);
     setCloseNote("");
     setCloseBusy(false);
@@ -1021,8 +1008,7 @@ export function DockDetail({
       update.kind !== "permission" ||
       !update.permissionId ||
       !update.sessionId ||
-      update.resolved ||
-      resolvedPermissions.has(update.permissionId)
+      update.resolved
     ) {
       return false;
     }
@@ -1178,27 +1164,6 @@ export function DockDetail({
       setUpdatesExpanded(true);
     } finally {
       setLoadingUpdates(false);
-    }
-  };
-
-  const resolvePermission = async (decision: "allow" | "deny"): Promise<void> => {
-    if (!permissionUpdate?.permissionId || !permissionUpdate.sessionId || !onRespondPermission) {
-      return;
-    }
-    const permissionId = permissionUpdate.permissionId;
-    setResolvingPermission(permissionId);
-    setPermissionError(null);
-    try {
-      await onRespondPermission(
-        permissionUpdate.sessionId,
-        permissionId,
-        decision,
-      );
-      setResolvedPermissions((current) => new Set(current).add(permissionId));
-    } catch (err) {
-      setPermissionError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setResolvingPermission(null);
     }
   };
 
@@ -1419,27 +1384,9 @@ export function DockDetail({
                 {permissionUpdate.detail ? (
                   <p className="dock-detail-progress-note">{permissionUpdate.detail}</p>
                 ) : null}
-                <div className="dock-detail-permission-actions">
-                  <button
-                    type="button"
-                    className="dock-detail-permission-allow"
-                    disabled={resolvingPermission !== null}
-                    onClick={() => void resolvePermission("allow")}
-                  >
-                    允许
-                  </button>
-                  <button
-                    type="button"
-                    className="dock-detail-permission-deny"
-                    disabled={resolvingPermission !== null}
-                    onClick={() => void resolvePermission("deny")}
-                  >
-                    拒绝
-                  </button>
-                </div>
-                {permissionError ? (
-                  <p className="dock-detail-permission-error">{permissionError}</p>
-                ) : null}
+                <p className="dock-detail-progress-note">
+                  在对话里的确认框处理这次审批。
+                </p>
               </section>
             ) : null}
 

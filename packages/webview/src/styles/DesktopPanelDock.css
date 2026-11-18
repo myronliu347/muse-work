@@ -1513,39 +1513,7 @@
   border-radius: 10px;
   background: var(--status-warning-surface);
 }
-.dock-detail-permission-actions {
-  display: flex;
-  gap: 7px;
-  margin-top: 10px;
-}
-.dock-detail-permission-allow,
-.dock-detail-permission-deny {
-  padding: 6px 10px;
-  border-radius: 7px;
-  font: inherit;
-  font-size: 10.5px;
-  cursor: pointer;
-}
-.dock-detail-permission-allow {
-  border: 1px solid var(--accent-border);
-  background: var(--action-primary-bg);
-  color: var(--action-primary-fg);
-}
-.dock-detail-permission-deny {
-  border: 1px solid var(--border-subtle);
-  background: var(--surface-card);
-  color: var(--text-secondary);
-}
-.dock-detail-permission-allow:disabled,
-.dock-detail-permission-deny:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-.dock-detail-permission-error {
-  margin: 7px 0 0;
-  color: var(--status-danger-text);
-  font-size: 10.5px;
-}
+
 
 
 .dock-detail-close-actions {

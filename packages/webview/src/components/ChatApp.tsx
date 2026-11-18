@@ -1048,9 +1048,6 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     loadIssue,
     loadClosedIssuePage,
     loadIssueUpdates: (issueId, opts) => museApi.listIssueUpdates(issueId, opts),
-    respondIssuePermission: async (sessionId, permissionId, decision) => {
-      await museApi.respondPermission(sessionId, permissionId, decision);
-    },
     completeIssue: async (issueId, note) => {
       await museApi.completeIssue(issueId, note);
     },

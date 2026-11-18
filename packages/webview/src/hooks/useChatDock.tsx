@@ -140,11 +140,6 @@ export function useChatDock(input: {
     issueId: string,
     opts?: { limit?: number; before?: string },
   ) => Promise<{ updates: DesktopIssueUpdate[]; hasMore: boolean }>;
-  respondIssuePermission?: (
-    sessionId: string,
-    permissionId: string,
-    decision: "allow" | "deny",
-  ) => Promise<void>;
   completeIssue?: (issueId: string, note: string) => Promise<void>;
   cancelIssue?: (issueId: string, note: string) => Promise<void>;
   generateIssueSummary?: (issueId: string) => Promise<string>;
@@ -235,7 +230,6 @@ export function useChatDock(input: {
     loadIssue,
     loadClosedIssuePage,
     loadIssueUpdates,
-    respondIssuePermission,
     completeIssue,
     cancelIssue,
     generateIssueSummary,
@@ -413,7 +407,6 @@ export function useChatDock(input: {
         onLoadUpdates={loadIssueUpdates}
         pendingPermissionIds={pendingPermissionIds}
         currentSessionId={state.currentSession?.id}
-        onRespondPermission={respondIssuePermission}
         onCompleteIssue={completeIssue}
         onCancelIssue={cancelIssue}
         onGenerateSummary={generateIssueSummary}

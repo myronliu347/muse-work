@@ -1394,7 +1394,9 @@ export const AssistantPage: React.FC<{
           data-testid="assistant-catchup"
           aria-label="未读进展"
         >
-          <div className="assistant-catchup-inner">
+          <div
+            className={`assistant-catchup-inner${progressItems.length > 1 ? " is-stacked" : ""}`}
+          >
             <span className="assistant-catchup-dot" aria-hidden="true" />
             <span className="assistant-catchup-label">
               有 {progressItems.length} 件事有新进展

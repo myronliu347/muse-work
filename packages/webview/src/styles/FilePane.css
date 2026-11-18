@@ -213,11 +213,14 @@
 
 /* Markdown files reuse the message markdown look, padded for the panel. */
 .file-pane-markdown {
-  padding: var(--space-5) var(--space-6);
+  /* Same horizontal inset as the file pane toolbar/path, so the document
+     starts on the same edge as the rest of the panel. */
+  padding: var(--space-5) var(--space-3);
   width: 100%;
-  max-width: min(46rem, 100%);
+  /* Markdown tiles with the panel; only the prose padding constrains it. */
+  max-width: none;
   min-width: 0;
-  margin: 0 auto;
+  margin: 0;
   box-sizing: border-box;
 }
 

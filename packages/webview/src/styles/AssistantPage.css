@@ -495,6 +495,41 @@
   align-items: flex-start;
   gap: 8px;
 }
+
+/* Several issues: summary/actions on one line, all chips on the next line,
+   indented to the summary text instead of stacking under the first chip. */
+.assistant-catchup-inner.is-stacked {
+  display: grid;
+  grid-template-columns: 6px minmax(0, 1fr) auto;
+  column-gap: 8px;
+  row-gap: 6px;
+  align-items: center;
+}
+.assistant-catchup-inner.is-stacked .assistant-catchup-dot {
+  grid-column: 1;
+  grid-row: 1;
+  margin-top: 0;
+}
+.assistant-catchup-inner.is-stacked .assistant-catchup-label {
+  grid-column: 2;
+  grid-row: 1;
+  padding-top: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.assistant-catchup-inner.is-stacked .assistant-catchup-read {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: center;
+  justify-self: end;
+}
+.assistant-catchup-inner.is-stacked .assistant-catchup-items {
+  grid-column: 2 / 4;
+  grid-row: 2;
+  width: 100%;
+  align-content: flex-start;
+}
 .assistant-catchup-dot {
   flex: 0 0 auto;
   margin-top: 6px;
