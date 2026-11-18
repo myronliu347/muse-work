@@ -51,7 +51,10 @@ export interface BotWorkspaceContextValue extends BotWorkspaceState {
   focusTab: (tab: "bot" | string) => void;
   closeIssueTab: (issueId: string) => void;
   openIssueSession: (issueId: string) => void;
-  selectPanel: (panel: Exclude<PanelSelection, { kind: "none" }>) => void;
+  selectPanel: (
+    panel: Exclude<PanelSelection, { kind: "none" }>,
+    opts?: { followTab?: boolean },
+  ) => void;
   selectDock: (dock: DockChrome) => void;
 }
 
@@ -77,10 +80,11 @@ export function useBotWorkspace(): BotWorkspaceContextValue | null {
 export function useBotWorkspaceController(
   firstIssueId: string | null,
   issueIds?: readonly string[],
+  viewableIssueIds?: readonly string[],
 ): BotWorkspaceContextValue {
   const [state, setState] = useState(() =>
     botPagePersistenceEnabled()
-      ? readInitialBotWorkspace(firstIssueId, issueIds)
+      ? readInitialBotWorkspace(firstIssueId, issueIds, viewableIssueIds)
       : initialBotWorkspace(firstIssueId),
   );
   const seededIssue = useRef(firstIssueId != null);
@@ -90,8 +94,10 @@ export function useBotWorkspaceController(
   }, [state]);
   useEffect(() => {
     if (!botPagePersistenceEnabled() || !issueIds || issueIds.length === 0) return;
-    setState((current) => pruneBotWorkspace(current, issueIds));
-  }, [issueIds]);
+    setState((current) =>
+      pruneBotWorkspace(current, issueIds, viewableIssueIds),
+    );
+  }, [issueIds, viewableIssueIds]);
   useEffect(() => {
     if (!firstIssueId || seededIssue.current) return;
     seededIssue.current = true;
@@ -116,8 +122,11 @@ export function useBotWorkspaceController(
     setState((current) => applyOpenIssueSession(current, issueId));
   }, []);
   const selectPanel = useCallback(
-    (panel: Exclude<PanelSelection, { kind: "none" }>) => {
-      setState((current) => applySelectPanel(current, panel));
+    (
+      panel: Exclude<PanelSelection, { kind: "none" }>,
+      opts?: { followTab?: boolean },
+    ) => {
+      setState((current) => applySelectPanel(current, panel, opts));
     },
     [],
   );

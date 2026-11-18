@@ -18,6 +18,9 @@ import type { SessionMessageSource } from "../services/sessionRunner/ctx.js";
 
 export const sessionsRoutes = new Hono<HonoEnv>();
 
+/** The sidebar tree carries only the first archive page; the rail pages the rest. */
+const CLOSED_ISSUE_PAGE_SIZE = 20;
+
 sessionsRoutes.get("/sessions", (c) => {
   const ctx = c.get("ctx");
   if (c.req.query("grouped") === "1") {
@@ -30,6 +33,25 @@ sessionsRoutes.get("/sessions", (c) => {
     ): Omit<T, "systemPrompt"> => {
       const { systemPrompt: _systemPrompt, ...rest } = session;
       return rest;
+    };
+    const withPermissionState = <
+      T extends {
+        kind: string;
+        sessionId?: string;
+        permissionId?: string;
+      },
+    >(
+      update: T,
+    ): T & { resolved?: true } => {
+      if (
+        update.kind === "permission" &&
+        update.sessionId &&
+        update.permissionId &&
+        !ctx.runner.isPermissionPending(update.sessionId, update.permissionId)
+      ) {
+        return { ...update, resolved: true };
+      }
+      return update;
     };
     const toGroup = (
       issue: {
@@ -46,6 +68,7 @@ sessionsRoutes.get("/sessions", (c) => {
         closeNote?: string;
         workdir?: string;
         baseBranch?: string;
+        updatedAt: number;
       },
       closed = false,
     ) => {
@@ -60,14 +83,22 @@ sessionsRoutes.get("/sessions", (c) => {
       }
       const updates = closed
         ? []
-        : ctx.issueProgress.list(issue.id, { limit: 8 }).updates;
-      const latestUpdate = closed ? undefined : ctx.issueProgress.latest(issue.id);
+        : ctx.issueProgress
+            .list(issue.id, { limit: 8 })
+            .updates.map(withPermissionState);
+      const latestUpdate = closed
+        ? undefined
+        : (() => {
+            const latest = ctx.issueProgress.latest(issue.id);
+            return latest ? withPermissionState(latest) : undefined;
+          })();
       const updateCount = closed ? 0 : ctx.issueProgress.count(issue.id);
       return {
         issueId: issue.id,
         title: issue.title,
-        // Closed issues stay in the tree only to resolve a session that still
-        // points at one; their long-form body is never shown.
+        // Closed issues stay in the tree for the archive list and for resolving
+        // a session that still points at one; the long-form body is fetched on
+        // demand when the closed detail is opened.
         description: closed ? "" : (issue.description ?? ""),
         priority: issue.priority,
         type: issue.type,
@@ -77,6 +108,7 @@ sessionsRoutes.get("/sessions", (c) => {
         executionSessionId: issue.executionSessionId,
         agentMode: issue.agentMode,
         ...(issue.closeNote ? { closeNote: issue.closeNote } : {}),
+        ...(closed ? { closedAt: issue.updatedAt } : {}),
         ...(issue.workdir ? { workdir: issue.workdir } : {}),
         ...(issue.baseBranch ? { baseBranch: issue.baseBranch } : {}),
         ...(latestUpdate ? { latestUpdate } : {}),
@@ -88,6 +120,7 @@ sessionsRoutes.get("/sessions", (c) => {
     const issueGroups = ctx.issueStore.listActive().map((issue) => toGroup(issue));
     const closedIssueGroups = ctx.issueStore
       .listClosed()
+      .slice(0, CLOSED_ISSUE_PAGE_SIZE)
       .map((issue) => toGroup(issue, true));
     const issueSessionIds = new Set(
       [...issueGroups, ...closedIssueGroups].flatMap((g) =>

@@ -515,43 +515,147 @@
 }
 
 .dock-detail-stage {
+  --dock-detail-rail-width: 232px;
   position: relative;
   flex: 1;
+  display: flex;
   min-width: 0;
   min-height: 0;
 }
 
 .dock-detail-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
   height: 100%;
   overflow: auto;
-  /* Reserve the scrollbar on both edges so the centered sheet keeps equal
-     left/right gutters whether or not the history overflows. */
-  scrollbar-gutter: stable both-edges;
-  padding: 20px 24px 40px;
+  /* Keep the scrollbar inside the pane; the content no longer centers, so it
+     does not need symmetric gutters. */
+  scrollbar-gutter: stable;
+  /* Same horizontal inset as .dock-detail-toolbar and the dock header. */
+  padding: 20px var(--space-3) 40px;
   box-sizing: border-box;
 }
 
-.dock-detail-sheet {
-  width: min(100%, 680px);
-  max-width: 100%;
+.dock-detail-content {
+  width: 100%;
+  max-width: none;
   min-width: 0;
-  margin: 0 auto;
 }
 
+/* Empty detail still shows the issue rail; center the placeholder in the
+   remaining content column. */
+.dock-detail-scroll--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* A real column, not a floating card: the detail tiles beside it and both
+   scroll independently. Width animates with the list toggle, like the panel
+   tabs, and the left edge is a splitter. */
 .dock-detail-rail {
+  position: relative;
+  flex: 0 0 var(--dock-detail-rail-width);
+  width: var(--dock-detail-rail-width);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: var(--hairline) solid var(--border-subtle);
+  background: var(--surface-canvas);
+  transition:
+    width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    flex-basis 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    border-left-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.18s ease;
+}
+
+.dock-detail-rail--collapsed {
+  width: 0;
+  flex-basis: 0;
+  opacity: 0;
+  border-left-width: 0;
+  pointer-events: none;
+}
+
+/* Fixed inner width keeps labels from reflowing while the column animates. */
+.dock-detail-rail-inner {
+  width: var(--dock-detail-rail-width);
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Narrow docks reopen the list as an overlay so it does not squeeze the sheet. */
+.dock-detail-rail--peek {
   position: absolute;
   top: 12px;
   right: 12px;
   z-index: 2;
-  display: flex;
-  flex-direction: column;
-  width: 232px;
   max-height: calc(100% - 24px);
   overflow: auto;
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
-  background: var(--surface-canvas);
   box-shadow: 0 2px 8px var(--shadow-color-soft);
+  animation: dock-detail-rail-peek-in 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dock-detail-rail--peek .dock-detail-rail-inner {
+  width: 100%;
+  height: auto;
+}
+
+/* The overlay scrolls as one card; its height is content-driven but capped. */
+.dock-detail-rail--peek .dock-detail-rail-body {
+  overflow: visible;
+}
+
+@keyframes dock-detail-rail-peek-in {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-detail-rail {
+    transition: none;
+  }
+  .dock-detail-rail--peek {
+    animation: none;
+  }
+}
+
+.dock-detail-rail-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Follow the cursor during a drag; the transition is only for the toggle. */
+.is-panel-resizing .dock-detail-rail {
+  transition: none;
+}
+
+.dock-detail-rail-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 3;
+  width: 6px;
+  cursor: col-resize;
+}
+
+.dock-detail-rail-resize:hover {
+  background: var(--border-strong);
 }
 
 .dock-detail-rail-title {
@@ -576,6 +680,45 @@
   padding: 0 0 6px;
 }
 
+.dock-detail-rail-closed {
+  margin-top: 2px;
+  border-top: var(--hairline) solid var(--border-subtle);
+}
+
+.dock-detail-rail-closed-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dock-detail-rail-closed-toggle:hover {
+  background: var(--surface-subtle);
+}
+
+.dock-detail-rail-closed-label {
+  flex: 1 1 auto;
+}
+
+.dock-detail-rail-closed-count {
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+.dock-detail-rail-closed-toggle .codicon {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
 .dock-detail-rail-row {
   width: 100%;
   display: flex;
@@ -596,6 +739,68 @@
 
 .dock-detail-rail-row[aria-current="true"] {
   background: var(--accent-soft);
+}
+
+.dock-detail-rail-row--closed {
+  color: var(--text-secondary);
+}
+
+/* The date group and the 已完成 / 已取消 section already carry the state;
+   drop the duplicate chips so long titles keep their room. */
+.dock-detail-rail-row--closed .bot-list-status,
+.dock-detail-rail-row--closed .bot-list-priority {
+  display: none;
+}
+
+.dock-detail-rail-date {
+  margin-top: 2px;
+}
+
+.dock-detail-rail-date-label {
+  padding: 4px 12px 2px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.dock-detail-rail-cancelled-toggle {
+  margin: 2px 0 8px;
+  padding: 6px 12px;
+  border: 0;
+  background: none;
+  color: var(--text-tertiary);
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dock-detail-rail-cancelled-toggle:hover {
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+.dock-detail-rail-load-more {
+  width: 100%;
+  display: block;
+  padding: 8px 12px;
+  border: 0;
+  border-top: var(--hairline) solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dock-detail-rail-load-more:hover:not(:disabled) {
+  background: var(--surface-subtle);
+}
+
+.dock-detail-rail-load-more:disabled {
+  color: var(--text-tertiary);
+  cursor: default;
 }
 
 .dock-detail-rail-name {
@@ -967,8 +1172,9 @@
   background: var(--surface-muted);
 }
 
-/* Issue progress in the detail sheet */
+/* Issue progress in the detail content */
 .dock-detail-progress,
+.dock-detail-result,
 .dock-detail-changes,
 .dock-detail-timeline,
 .dock-detail-artifacts {
@@ -978,9 +1184,10 @@
   border-radius: 10px;
   background: var(--surface-subtle);
 }
-/* Light: the sheet is near-white, so a gray-3 fill turns every section into a
-   flat gray slab. Step the fill up to the panel card and let the border carry
+/* Light: the content is near-white, so a gray-3 fill turns every section into
+   a flat gray slab. Step the fill up to the panel card and let the border carry
    the edge; the progress card below keeps its accent tint. */
+:root[data-theme="light"] .dock-detail-result,
 :root[data-theme="light"] .dock-detail-changes,
 :root[data-theme="light"] .dock-detail-timeline,
 :root[data-theme="light"] .dock-detail-artifacts,

@@ -99,9 +99,14 @@ const ChatAppWorkspaceOwner: React.FC<ChatAppProps> = (props) => {
     () => props.host?.issueGroups?.map((group) => group.issueId),
     [props.host?.issueGroups],
   );
+  const viewableIssueIds = useMemo(
+    () => props.host?.closedIssueGroups?.map((group) => group.issueId),
+    [props.host?.closedIssueGroups],
+  );
   const ownedWorkspace = useBotWorkspaceController(
     props.host?.issueGroups?.[0]?.issueId ?? null,
     issueIds,
+    viewableIssueIds,
   );
   return <ChatAppInner {...props} workspace={ownedWorkspace} />;
 };
@@ -181,7 +186,10 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const shellSurface = useShellSurface();
   const providedShellSurface = useProvidedShellSurface();
   const issueTitles: Record<string, string> = {};
-  for (const group of host?.issueGroups ?? []) {
+  for (const group of [
+    ...(host?.issueGroups ?? []),
+    ...(host?.closedIssueGroups ?? []),
+  ]) {
     issueTitles[group.issueId] = group.title;
   }
   const [assistantWorkdir, setAssistantWorkdir] = useState<string | undefined>();
@@ -974,6 +982,19 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   });
 
 
+  const loadIssue = useCallback(
+    async (issueId: string) => {
+      const page = await museApi.getIssue(issueId);
+      return page.issue;
+    },
+    [museApi],
+  );
+  const loadClosedIssuePage = useCallback(
+    async (offset: number, limit: number) =>
+      museApi.listClosedIssues(offset, limit),
+    [museApi],
+  );
+
   const dock = useChatDock({
     surface,
     board,
@@ -1024,6 +1045,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     },
     openArtifact: (path) => handleOpenFile(path),
     openArtifactInBrowser: handleOpenLocalFilePreview,
+    loadIssue,
+    loadClosedIssuePage,
     loadIssueUpdates: (issueId, opts) => museApi.listIssueUpdates(issueId, opts),
     respondIssuePermission: async (sessionId, permissionId, decision) => {
       await museApi.respondPermission(sessionId, permissionId, decision);

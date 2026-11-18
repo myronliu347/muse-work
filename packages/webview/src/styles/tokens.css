@@ -141,11 +141,11 @@
   --status-info-solid-hover: var(--blue-10);
 }
 
-/* User turns stay accent-tinted in both themes. A neutral gray step reads as
-   the same surface as the assistant bubble in dark mode. */
+/* Light user turns keep the accent tint. Dark uses a clearly lighter neutral
+   gray so the user bubble still reads as a separate surface from the AI reply. */
 .radix-themes.dark {
-  --surface-user-bubble: var(--accent-soft);
-  --surface-user-bubble-hover: var(--accent-soft-hover);
+  --surface-user-bubble: var(--gray-5);
+  --surface-user-bubble-hover: var(--gray-6);
   --status-danger-on-fill: #111111;
 }
 
@@ -165,8 +165,6 @@
   --surface-visible: rgba(255, 255, 255, 0.025);
   --surface-code: color-mix(in srgb, var(--gray-2) 88%, #000);
   --surface-inline-code: var(--gray-4);
-  --surface-user-bubble: var(--accent-soft);
-  --surface-user-bubble-hover: var(--accent-soft-hover);
   --surface-control: var(--gray-4);
   --surface-strong: color-mix(in srgb, var(--gray-6) 90%, #000);
   --surface-active: var(--gray-5);

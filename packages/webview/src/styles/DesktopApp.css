@@ -2918,6 +2918,7 @@ body.is-panel-resizing-row * {
 }
 
 .desktop-layout .assistant-page .assistant-log,
+.desktop-layout .assistant-page .assistant-catchup,
 .desktop-layout .assistant-page .messages-container,
 .desktop-layout .assistant-page .assistant-composer,
 .desktop-layout .assistant-page .assistant-error {

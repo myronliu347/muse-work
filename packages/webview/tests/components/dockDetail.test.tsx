@@ -4,7 +4,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChatApp } from "../../src/components/ChatApp";
-import { DockDetail, dockDetailRailFits } from "../../src/components/desktop/DockDetail";
+import {
+  DOCK_DETAIL_RAIL_MAX_WIDTH,
+  DOCK_DETAIL_RAIL_MIN_CONTENT,
+  DOCK_DETAIL_RAIL_MIN_WIDTH,
+  DOCK_DETAIL_RAIL_WIDTH,
+  DockDetail,
+  clampDockDetailRailWidth,
+  dockDetailRailFits,
+} from "../../src/components/desktop/DockDetail";
+import {
+  initialBotWorkspace,
+  selectPanel as applySelectPanel,
+} from "../../src/components/desktop/botWorkspace";
 import { DesktopPanelDock } from "../../src/components/desktop/DesktopPanelDock";
 import {
   BotWorkspaceProvider,
@@ -46,7 +58,9 @@ const KINDS: DesktopPanelKind[] = ["preview", "diff", "terminal", "file"];
 
 function issue(
   partial: Pick<DesktopIssueGroup, "issueId" | "title" | "priority"> &
-    Partial<Pick<DesktopIssueGroup, "items">>,
+    Partial<
+      Pick<DesktopIssueGroup, "items" | "status" | "closeNote">
+    >,
 ): DesktopIssueGroup {
   return {
     status: "planning",
@@ -363,10 +377,12 @@ describe("dock detail tab", () => {
     expect(screen.queryByRole("button", { name: "切到会话" })).toBeNull();
   });
 
-  it("keeps the title and actions in the toolbar and lists issues beside the sheet", async () => {
+  it("keeps the title and actions in the toolbar and lists issues in the right rail", async () => {
+    const railThreshold = DOCK_DETAIL_RAIL_WIDTH + DOCK_DETAIL_RAIL_MIN_CONTENT;
     expect(dockDetailRailFits(0)).toBe(false);
     expect(dockDetailRailFits(700)).toBe(false);
-    expect(dockDetailRailFits(1100)).toBe(false);
+    expect(dockDetailRailFits(railThreshold - 1)).toBe(false);
+    expect(dockDetailRailFits(railThreshold)).toBe(true);
     expect(dockDetailRailFits(1200)).toBe(true);
 
     const user = userEvent.setup();
@@ -411,7 +427,10 @@ describe("dock detail tab", () => {
     expect(onSelectIssue).toHaveBeenCalledWith("a11y");
 
     await user.click(screen.getByTestId("dock-detail-issues-toggle"));
-    expect(screen.queryByTestId("dock-detail-rail")).toBeNull();
+    expect(screen.getByTestId("dock-detail-rail")).toHaveAttribute(
+      "data-open",
+      "false",
+    );
 
     cleanup();
     const narrow = stubClientWidth(640);
@@ -432,6 +451,230 @@ describe("dock detail tab", () => {
 
     await user.click(screen.getByTestId("dock-detail-issues-toggle"));
     expect(screen.getByTestId("dock-detail-rail")).toHaveAttribute("data-mode", "peek");
+  });
+
+  it("previews a completed issue from the archive without switching the selection", async () => {
+    const user = userEvent.setup();
+    const restore = stubClientWidth(1200);
+    try {
+      render(
+        <DockDetail
+          selection={{
+            kind: "issue",
+            issue: issue({ issueId: "radii", title: RADII, priority: "p1" }),
+          }}
+          actionLabel="打开会话"
+          issues={[]}
+          closedIssues={[
+            {
+              issueId: "done",
+              title: "分页格式统一",
+              priority: "p1",
+              status: "completed",
+              statusLabel: "已完成",
+              closeNote: "完成，改动 `2` 个文件",
+              closedAt: Date.now(),
+            },
+          ]}
+          onOpenSession={vi.fn()}
+        />,
+      );
+    } finally {
+      restore();
+    }
+
+    const toolbarBefore = screen.getByTestId("dock-detail-toolbar");
+    expect(within(toolbarBefore).getByRole("heading", { name: RADII })).toBeInTheDocument();
+
+    const rail = screen.getByTestId("dock-detail-rail");
+    expect(rail).toHaveAttribute("data-mode", "column");
+    expect(
+      within(rail).getByTestId("dock-detail-rail-closed-toggle"),
+    ).toHaveTextContent("已完成");
+    expect(screen.queryByTestId("dock-detail-rail-closed-rows")).toBeNull();
+
+    await user.click(within(rail).getByTestId("dock-detail-rail-closed-toggle"));
+    expect(screen.getByTestId("dock-detail-rail-closed-rows")).toBeInTheDocument();
+    expect(within(rail).getByText("今天")).toBeInTheDocument();
+    await user.click(
+      within(rail).getByRole("button", { name: /分页格式统一/ }),
+    );
+
+    const toolbar = screen.getByTestId("dock-detail-toolbar");
+    expect(within(toolbar).getByRole("heading", { name: "分页格式统一" })).toBeInTheDocument();
+    expect(within(toolbar).getByText("已完成")).toBeInTheDocument();
+    expect(screen.getByTestId("dock-detail-result")).toHaveTextContent(
+      "完成，改动 2 个文件",
+    );
+    // Closed issues are read-only: no session / IDE / Finder actions, only the
+    // list toggle remains.
+    expect(within(toolbar).queryByRole("button", { name: "打开会话" })).toBeNull();
+    expect(within(toolbar).queryByRole("button", { name: "在 IDE 中打开" })).toBeNull();
+    expect(within(toolbar).getByTestId("dock-detail-issues-toggle")).toBeInTheDocument();
+  });
+
+  it("shows the issue rail on the empty detail page", async () => {
+    const user = userEvent.setup();
+    const onSelectIssue = vi.fn();
+    const restore = stubClientWidth(1200);
+    try {
+      render(
+        <DockDetail
+          selection={{ kind: "none" }}
+          actionLabel={null}
+          issues={[
+            { issueId: "radii", title: RADII, priority: "p1", statusLabel: "空闲" },
+          ]}
+          closedIssues={[]}
+          onSelectIssue={onSelectIssue}
+          onOpenSession={vi.fn()}
+        />,
+      );
+    } finally {
+      restore();
+    }
+
+    expect(screen.getByTestId("dock-detail-empty")).toBeInTheDocument();
+    const rail = screen.getByTestId("dock-detail-rail");
+    expect(rail).toHaveAttribute("data-mode", "column");
+    await user.click(within(rail).getByRole("button", { name: new RegExp(RADII) }));
+    expect(onSelectIssue).toHaveBeenCalledWith("radii");
+  });
+
+  it("loads the closed archive one page at a time", async () => {
+    const user = userEvent.setup();
+    const closed = Array.from({ length: 20 }, (_, index) => ({
+      issueId: `done-${index}`,
+      title: `已完成事项 ${index + 1}`,
+      priority: "p1",
+      status: "completed",
+      statusLabel: "已完成",
+      closedAt: Date.now() - index * 60_000,
+    }));
+    const onLoadClosedIssues = vi.fn(async () => ({
+      issues: [
+        {
+          issueId: "done-more",
+          title: "更早完成的事项",
+          priority: "p2",
+          status: "completed",
+          statusLabel: "已完成",
+          closedAt: Date.now() - 86_400_000,
+        },
+      ],
+      hasMore: false,
+      total: 21,
+    }));
+    const restore = stubClientWidth(1200);
+    try {
+      render(
+        <DockDetail
+          selection={{ kind: "issue", issue: issue({ issueId: "radii", title: RADII, priority: "p1" }) }}
+          actionLabel={null}
+          issues={[]}
+          closedIssues={closed}
+          onLoadClosedIssues={onLoadClosedIssues}
+          onOpenSession={vi.fn()}
+        />,
+      );
+    } finally {
+      restore();
+    }
+
+    await user.click(screen.getByTestId("dock-detail-rail-closed-toggle"));
+    await user.click(screen.getByTestId("dock-detail-rail-load-more"));
+    expect(onLoadClosedIssues).toHaveBeenCalledWith(20, 20);
+    expect(await screen.findByText("更早完成的事项")).toBeInTheDocument();
+    expect(screen.queryByTestId("dock-detail-rail-load-more")).toBeNull();
+    await user.click(screen.getByText("更早完成的事项"));
+    expect(
+      within(screen.getByTestId("dock-detail-toolbar")).getByRole("heading", {
+        name: "更早完成的事项",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps cancelled issues hidden until 显示已取消 is toggled", async () => {
+    const user = userEvent.setup();
+    const done = issue({
+      issueId: "done",
+      title: "分页格式统一",
+      priority: "p1",
+      status: "completed",
+    });
+    const restore = stubClientWidth(1200);
+    try {
+      render(
+        <DockDetail
+          selection={{ kind: "issue", issue: done }}
+          actionLabel={null}
+          issues={[]}
+          closedIssues={[
+            {
+              issueId: "done",
+              title: "分页格式统一",
+              priority: "p1",
+              statusLabel: "已完成",
+              closedAt: Date.now(),
+            },
+            {
+              issueId: "dropped",
+              title: "已放弃的方案",
+              priority: "p2",
+              statusLabel: "已取消",
+              cancelled: true,
+              closedAt: Date.now(),
+            },
+          ]}
+          onOpenSession={vi.fn()}
+        />,
+      );
+    } finally {
+      restore();
+    }
+
+    await user.click(screen.getByTestId("dock-detail-rail-closed-toggle"));
+    expect(screen.queryByTestId("dock-detail-rail-cancelled")).toBeNull();
+    expect(screen.queryByText("已放弃的方案")).toBeNull();
+
+    const toggle = screen.getByTestId("dock-detail-rail-cancelled-toggle");
+    expect(toggle).toHaveTextContent("显示已取消 1");
+    await user.click(toggle);
+    expect(screen.getByTestId("dock-detail-rail-cancelled")).toBeInTheDocument();
+    expect(screen.getByText("已放弃的方案")).toBeInTheDocument();
+    expect(toggle).toHaveTextContent("隐藏已取消");
+  });
+
+  it("loads the description of a closed issue on demand", async () => {
+    const done = issue({
+      issueId: "done",
+      title: "分页格式统一",
+      priority: "p1",
+      status: "completed",
+      closeNote: "完成",
+    });
+    const onLoadIssue = vi.fn(async () => ({
+      description: "三条问题（同一沙箱，0→1 链路）",
+      items: [{ id: "one", content: "统一页脚", status: "done" }],
+    }));
+    render(
+      <DockDetail
+        selection={{ kind: "issue", issue: done }}
+        actionLabel={null}
+        issues={[]}
+        closedIssues={[]}
+        onLoadIssue={onLoadIssue}
+        onOpenSession={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByTestId("dock-detail-description")).toHaveTextContent(
+      "三条问题（同一沙箱，0→1 链路）",
+    );
+    expect(onLoadIssue).toHaveBeenCalledWith("done");
+    expect(screen.getByTestId("dock-detail-checklist")).toHaveTextContent(
+      "统一页脚",
+    );
   });
 
   it("renders description markdown and checklist status", () => {
@@ -542,6 +785,36 @@ describe("dock detail tab", () => {
     );
   });
 
+  it("clamps the rail width and keeps a readable detail column", () => {
+    expect(clampDockDetailRailWidth(120)).toBe(DOCK_DETAIL_RAIL_MIN_WIDTH);
+    expect(clampDockDetailRailWidth(999)).toBe(DOCK_DETAIL_RAIL_MAX_WIDTH);
+    expect(clampDockDetailRailWidth(400, 760)).toBe(240);
+    expect(clampDockDetailRailWidth(300, 700)).toBe(DOCK_DETAIL_RAIL_MIN_WIDTH);
+    expect(dockDetailRailFits(800, 300)).toBe(false);
+    expect(dockDetailRailFits(820, 300)).toBe(true);
+  });
+
+  it("can select a closed issue without switching the active tab", () => {
+    const state = {
+      ...initialBotWorkspace("radii"),
+      active: "radii",
+      openIssueIds: ["radii", "done"],
+      panel: { kind: "issue" as const, issueId: "radii" },
+    };
+    const preview = applySelectPanel(
+      state,
+      { kind: "issue", issueId: "done" },
+      { followTab: false },
+    );
+    expect(preview.active).toBe("radii");
+    expect(preview.panel).toEqual({ kind: "issue", issueId: "done" });
+    const followed = applySelectPanel(state, {
+      kind: "issue",
+      issueId: "done",
+    });
+    expect(followed.active).toBe("done");
+  });
+
   it("selectDock changes the dock tab and leaves the selected panel alone", () => {
     const { result } = renderHook(() => useBotWorkspaceController("radii"));
     expect(result.current.dock).toBe("detail");
@@ -602,6 +875,55 @@ describe("assistant dock detail", () => {
     await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
     await user.click(await screen.findByTestId("panel-add-item-terminal"));
     expect(tabLabels()).toEqual([RADII, "变更", "radii"]);
+  });
+
+  it("keeps a closed issue selected from the rail after the tab prune", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    const closed = issue({
+      issueId: "done",
+      title: "页脚间距统一",
+      priority: "p2",
+      status: "completed",
+      closeNote: "三份页面都统一为 24px。",
+    });
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [
+              issue({
+                issueId: "radii",
+                title: RADII,
+                priority: "p1",
+                items: RADII_ITEMS,
+              }),
+            ],
+            closedIssueGroups: [closed],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    await user.click(within(dock).getByTestId("dock-detail-issues-toggle"));
+    const rail = within(dock).getByTestId("dock-detail-rail");
+    await user.click(within(rail).getByTestId("dock-detail-rail-closed-toggle"));
+    await user.click(
+      within(rail).getByRole("button", { name: /页脚间距统一/ }),
+    );
+
+    expect(within(dock).queryByTestId("dock-detail-empty")).toBeNull();
+    expect(
+      within(dock).getByRole("heading", { name: "页脚间距统一" }),
+    ).toBeInTheDocument();
+    expect(within(dock).getByTestId("dock-detail-result")).toHaveTextContent(
+      "三份页面都统一为 24px。",
+    );
   });
 
   it("shows 详情 again after the last kind panel closes", async () => {
@@ -1471,6 +1793,75 @@ describe("assistant dock detail", () => {
     await waitFor(() =>
       expect(screen.queryByTestId("dock-detail-permission")).toBeNull(),
     );
+  });
+
+  it("hides a permission card once its session is no longer waiting", () => {
+    const now = Date.now();
+    const radii = {
+      ...issue({ issueId: "radii", title: RADII, priority: "p1" }),
+      updates: [
+        {
+          id: "perm-1",
+          at: now,
+          kind: "permission" as const,
+          summary: "等待批准：AskUserQuestion",
+          sessionId: "plan-radii",
+          permissionId: "perm-1",
+        },
+      ],
+    };
+    const view = render(
+      <MuseTheme>
+        <DockDetail
+          selection={{ kind: "issue", issue: radii }}
+          actionLabel={null}
+          currentSessionId="plan-radii"
+          pendingPermissionIds={new Set(["perm-1"])}
+          onOpenSession={() => {}}
+        />
+      </MuseTheme>,
+    );
+    expect(screen.getByTestId("dock-detail-permission")).toBeInTheDocument();
+
+    view.rerender(
+      <MuseTheme>
+        <DockDetail
+          selection={{ kind: "issue", issue: radii }}
+          actionLabel={null}
+          currentSessionId="plan-radii"
+          pendingPermissionIds={new Set()}
+          onOpenSession={() => {}}
+        />
+      </MuseTheme>,
+    );
+    expect(screen.queryByTestId("dock-detail-permission")).toBeNull();
+  });
+
+  it("hides permission progress the server already marked resolved", () => {
+    const radii = {
+      ...issue({ issueId: "radii", title: RADII, priority: "p1" }),
+      updates: [
+        {
+          id: "perm-1",
+          at: Date.now(),
+          kind: "permission" as const,
+          summary: "等待批准：AskUserQuestion",
+          sessionId: "plan-radii",
+          permissionId: "perm-1",
+          resolved: true,
+        },
+      ],
+    };
+    render(
+      <MuseTheme>
+        <DockDetail
+          selection={{ kind: "issue", issue: radii }}
+          actionLabel={null}
+          onOpenSession={() => {}}
+        />
+      </MuseTheme>,
+    );
+    expect(screen.queryByTestId("dock-detail-permission")).toBeNull();
   });
 
   it("completes an issue directly with a generated note", async () => {

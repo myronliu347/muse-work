@@ -177,7 +177,22 @@ export interface MuseIssueUpdate {
   status?: MuseIssueStatus;
   turnId?: string;
   permissionId?: string;
+  /** 服务端标记：这条审批请求已经不在等待中。 */
+  resolved?: boolean;
   userPresent?: true;
+}
+
+/** 已结束 Issue 的轻量列表项；归档分页用，不带描述/清单/会话。 */
+export interface MuseClosedIssueSummary {
+  issueId: string;
+  title: string;
+  priority: string;
+  type?: string;
+  status: string;
+  closeNote?: string;
+  closedAt: number;
+  workdir?: string;
+  baseBranch?: string;
 }
 
 /** Issue 侧栏分组：规划/执行会话（sessions 为 MuseSession，emit 时再 toEntry）。 */
@@ -196,6 +211,8 @@ export interface MuseIssueGroup {
   executionSessionId?: string;
   agentMode?: "single" | "split";
   closeNote?: string;
+  /** 关闭时间（毫秒）。 */
+  closedAt?: number;
   workdir?: string;
   baseBranch?: string;
   sessions: MuseSession[];
@@ -952,6 +969,27 @@ export class MuseApiClient {
       throw new Error("empty summary");
     }
     return data.summary;
+  }
+
+  async listClosedIssues(
+    offset = 0,
+    limit = 20,
+  ): Promise<{
+    issues: MuseClosedIssueSummary[];
+    hasMore: boolean;
+    total: number;
+  }> {
+    const params = new URLSearchParams({
+      offset: String(Math.max(0, Math.floor(offset))),
+      limit: String(Math.max(1, Math.floor(limit))),
+    });
+    const res = await this.request(`/issues/closed?${params.toString()}`);
+    return parseJson(res);
+  }
+
+  async getIssue(id: string): Promise<{ issue: MuseIssue }> {
+    const res = await this.request(`/issues/${encodeURIComponent(id)}`);
+    return parseJson(res);
   }
 
   async listIssueUpdates(

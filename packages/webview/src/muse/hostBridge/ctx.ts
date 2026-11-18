@@ -99,6 +99,7 @@ export interface BridgeCtx {
     executionSessionId?: string;
     agentMode?: "single" | "split";
     closeNote?: string;
+    closedAt?: number;
     workdir?: string;
     baseBranch?: string;
     sessions: TreeSession[];
@@ -118,6 +119,7 @@ export interface BridgeCtx {
     executionSessionId?: string;
     agentMode?: "single" | "split";
     closeNote?: string;
+    closedAt?: number;
     workdir?: string;
     baseBranch?: string;
     sessions: TreeSession[];

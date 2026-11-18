@@ -39,6 +39,44 @@ describe("issues HTTP", () => {
     expect(list2.issues.map((i: { id: string }) => i.id)).not.toContain(issue.id);
   });
 
+  it("pages the closed archive without pulling full issue bodies", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    for (let index = 0; index < 3; index += 1) {
+      const { issue } = await fetch(`${app.baseUrl}/issues`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: `已完成 ${index}` }),
+      }).then((r) => r.json());
+      await fetch(`${app.baseUrl}/issues/${issue.id}/complete`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ note: `结论 ${index}` }),
+      });
+    }
+
+    const first = await fetch(`${app.baseUrl}/issues/closed?limit=2`).then((r) =>
+      r.json(),
+    );
+    expect(first.issues).toHaveLength(2);
+    expect(first.hasMore).toBe(true);
+    expect(first.total).toBe(3);
+    expect(first.issues[0]).toMatchObject({
+      status: "completed",
+    });
+    expect(first.issues[0].closedAt).toEqual(expect.any(Number));
+    expect(first.issues[0]).not.toHaveProperty("description");
+    expect(first.issues[0]).not.toHaveProperty("sessions");
+
+    const second = await fetch(
+      `${app.baseUrl}/issues/closed?limit=2&offset=2`,
+    ).then((r) => r.json());
+    expect(second.issues).toHaveLength(1);
+    expect(second.hasMore).toBe(false);
+    expect(second.total).toBe(3);
+  });
+
   it("POST /issues/:id/summary asks the issue session without a turn", async () => {
     const app = await listenTestApp();
     server = app.server;

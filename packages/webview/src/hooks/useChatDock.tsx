@@ -28,6 +28,43 @@ import type {
   VsCodeApi,
 } from "../types";
 
+type ClosedIssueLike = {
+  issueId: string;
+  title: string;
+  type?: string;
+  priority: string;
+  status: string;
+  closeNote?: string;
+  closedAt?: number;
+  workdir?: string;
+  baseBranch?: string;
+};
+
+function toDockClosedIssue(group: ClosedIssueLike) {
+  const cancelled = group.status === "cancelled";
+  const summary = group.closeNote
+    ?.split("\n")
+    .map((line) => line.trim())
+    .find(Boolean);
+  const closedAt = group.closedAt;
+  return {
+    issueId: group.issueId,
+    title: group.title,
+    type: group.type,
+    priority: group.priority,
+    status: group.status,
+    statusLabel: cancelled ? "已取消" : "已完成",
+    ...(cancelled ? { cancelled: true } : {}),
+    ...(closedAt !== undefined ? { closedAt } : {}),
+    ...(group.closeNote ? { closeNote: group.closeNote } : {}),
+    ...(group.workdir ? { workdir: group.workdir } : {}),
+    ...(group.baseBranch ? { baseBranch: group.baseBranch } : {}),
+    ...(summary && closedAt !== undefined
+      ? { latestUpdate: { summary: summary.slice(0, 160), at: closedAt } }
+      : {}),
+  };
+}
+
 /**
  * Props for the right-hand dock. Muse Bot, the sessions page, and an issue
  * each contribute a different directory, file list, and chrome tab.
@@ -77,6 +114,28 @@ export function useChatDock(input: {
   openChangedFile: (path: string) => void;
   openArtifact: (path: string) => void;
   openArtifactInBrowser?: (path: string) => void;
+  loadIssue?: (issueId: string) => Promise<{
+    description?: string;
+    items?: DesktopIssueGroup["items"];
+  }>;
+  loadClosedIssuePage?: (
+    offset: number,
+    limit: number,
+  ) => Promise<{
+    issues: Array<{
+      issueId: string;
+      title: string;
+      type?: string;
+      priority: string;
+      status: string;
+      closeNote?: string;
+      closedAt?: number;
+      workdir?: string;
+      baseBranch?: string;
+    }>;
+    hasMore: boolean;
+    total: number;
+  }>;
   loadIssueUpdates?: (
     issueId: string,
     opts?: { limit?: number; before?: string },
@@ -173,6 +232,8 @@ export function useChatDock(input: {
     openChangedFile,
     openArtifact,
     openArtifactInBrowser,
+    loadIssue,
+    loadClosedIssuePage,
     loadIssueUpdates,
     respondIssuePermission,
     completeIssue,
@@ -203,9 +264,13 @@ export function useChatDock(input: {
   const detailSelection = (() => {
     const panel = workspace.panel;
     if (panel.kind === "issue") {
-      const found = (host?.issueGroups ?? []).find(
-        (group) => group.issueId === panel.issueId,
-      );
+      const found =
+        (host?.issueGroups ?? []).find(
+          (group) => group.issueId === panel.issueId,
+        ) ??
+        (host?.closedIssueGroups ?? []).find(
+          (group) => group.issueId === panel.issueId,
+        );
       return found
         ? { kind: "issue" as const, issue: found }
         : { kind: "none" as const };
@@ -226,7 +291,12 @@ export function useChatDock(input: {
   const detailPanel = workspace.panel;
   const detailIssueGroup =
     detailPanel.kind === "issue"
-      ? (host?.issueGroups ?? []).find((group) => group.issueId === detailPanel.issueId)
+      ? ((host?.issueGroups ?? []).find(
+          (group) => group.issueId === detailPanel.issueId,
+        ) ??
+        (host?.closedIssueGroups ?? []).find(
+          (group) => group.issueId === detailPanel.issueId,
+        ))
       : undefined;
   const detailActionLabel =
     detailIssueGroup && issueTabSessionId(detailIssueGroup)
@@ -238,6 +308,29 @@ export function useChatDock(input: {
       : detailSelection.kind === "queue"
         ? detailSelection.title
         : undefined;
+  const pendingPermissionIds = useMemo(
+    () =>
+      new Set(
+        state.pendingConfirmations.map((confirmation) => confirmation.confirmationId),
+      ),
+    [state.pendingConfirmations],
+  );
+  const closedIssueGroups = host?.closedIssueGroups;
+  const dockClosedIssues = useMemo(
+    () => (closedIssueGroups ?? []).map(toDockClosedIssue),
+    [closedIssueGroups],
+  );
+  const onLoadClosedIssues = useMemo(() => {
+    if (!loadClosedIssuePage) return undefined;
+    return async (offset: number, limit: number) => {
+      const page = await loadClosedIssuePage(offset, limit);
+      return {
+        issues: page.issues.map(toDockClosedIssue),
+        hasMore: page.hasMore,
+        total: page.total,
+      };
+    };
+  }, [loadClosedIssuePage]);
 
   // Shared dock payload: the 4 panel slots + dock chrome (rendered by
   // ChatContainer when a bound session is showing).
@@ -310,11 +403,16 @@ export function useChatDock(input: {
           ...(item.unreadCount ? { unreadCount: item.unreadCount } : {}),
           presence: item.presence,
         }))}
+        closedIssues={dockClosedIssues}
         onSelectIssue={(issueId) => selectBotPanel({ kind: "issue", issueId })}
+        onLoadClosedIssues={onLoadClosedIssues}
+        onLoadIssue={loadIssue}
         onOpenChangedFile={openChangedFile}
         onOpenArtifact={openArtifact}
         onOpenArtifactInBrowser={openArtifactInBrowser}
         onLoadUpdates={loadIssueUpdates}
+        pendingPermissionIds={pendingPermissionIds}
+        currentSessionId={state.currentSession?.id}
         onRespondPermission={respondIssuePermission}
         onCompleteIssue={completeIssue}
         onCancelIssue={cancelIssue}

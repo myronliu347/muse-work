@@ -476,17 +476,28 @@
 /* Issue progress catch-up bar */
 .assistant-catchup {
   flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
   min-height: 38px;
-  padding: 7px 24px;
+  /* Match .assistant-log so the inner column lines up on every surface. */
+  padding: 7px 28px 7px var(--space-4);
   border-bottom: 1px solid var(--status-progress-border);
   background: linear-gradient(90deg, var(--status-progress-surface), transparent 65%);
   overflow: hidden;
+  /* .assistant-log reserves one too; matching it keeps wide columns aligned. */
+  scrollbar-gutter: stable;
+}
+/* The bar is full-bleed; its content follows the message column. */
+.assistant-catchup-inner {
+  width: 100%;
+  max-width: var(--bot-column-max, 800px);
+  min-width: 0;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 .assistant-catchup-dot {
   flex: 0 0 auto;
+  margin-top: 6px;
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -501,20 +512,23 @@
 }
 .assistant-catchup-label {
   flex: 0 0 auto;
+  padding-top: 2px;
   color: var(--text-secondary);
   font-size: 11.5px;
   white-space: nowrap;
 }
 .assistant-catchup-items {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
   gap: 5px;
-  overflow: hidden;
+  overflow: visible;
 }
 .assistant-catchup-item {
   min-width: 0;
-  max-width: 190px;
+  max-width: 220px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -556,7 +570,7 @@
   color: var(--text-tertiary);
   font: inherit;
   font-size: 10.5px;
-  padding: 4px 2px;
+  padding: 2px 2px;
   cursor: pointer;
 }
 .assistant-catchup-read:hover {

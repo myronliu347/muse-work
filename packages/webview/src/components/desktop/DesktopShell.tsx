@@ -109,9 +109,14 @@ const DesktopShellWorkspaceOwner: React.FC<
     () => props.host.issueGroups?.map((group) => group.issueId) ?? [],
     [props.host.issueGroups],
   );
+  const viewableIssueIds = useMemo(
+    () => props.host.closedIssueGroups?.map((group) => group.issueId) ?? [],
+    [props.host.closedIssueGroups],
+  );
   const workspace = useBotWorkspaceController(
     props.host.issueGroups?.[0]?.issueId ?? null,
     issueIds,
+    viewableIssueIds,
   );
   return <DesktopShellView {...props} workspace={workspace} />;
 };

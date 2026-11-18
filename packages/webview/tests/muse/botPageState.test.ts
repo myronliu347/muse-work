@@ -193,6 +193,24 @@ describe("bot page persistence", () => {
     });
   });
 
+  it("keeps a closed issue as the detail selection but not as a tab", () => {
+    const pruned = pruneBotWorkspace(
+      {
+        ...initialBotWorkspace(null),
+        active: "done",
+        openIssueIds: ["done"],
+        panel: { kind: "issue", issueId: "done" },
+        lastIssueId: "done",
+      },
+      ["radii"],
+      ["done"],
+    );
+    expect(pruned.openIssueIds).toEqual([]);
+    expect(pruned.active).toBe("bot");
+    expect(pruned.panel).toEqual({ kind: "issue", issueId: "done" });
+    expect(pruned.lastIssueId).toBe("done");
+  });
+
   it("keeps the visible dock tab when the saved issue is no longer in the list", () => {
     const pruned = pruneBotWorkspace(
       {

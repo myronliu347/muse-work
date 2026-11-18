@@ -107,6 +107,42 @@ issuesRoutes.get("/issues", (c) => {
   return c.json({ issues: ctx.issueStore.listActive() });
 });
 
+const CLOSED_ISSUE_PAGE_SIZE = 20;
+
+/**
+ * GET /issues/closed — completed/cancelled issues, newest first.
+ * The detail rail loads these in pages; the grouped tree only carries the
+ * first page so a long archive does not get pulled on every session switch.
+ */
+issuesRoutes.get("/issues/closed", (c) => {
+  const ctx = c.get("ctx");
+  const offsetRaw = Number(c.req.query("offset") ?? "0");
+  const limitRaw = Number(c.req.query("limit") ?? String(CLOSED_ISSUE_PAGE_SIZE));
+  const offset = Number.isFinite(offsetRaw)
+    ? Math.max(0, Math.floor(offsetRaw))
+    : 0;
+  const limit = Number.isFinite(limitRaw)
+    ? Math.min(100, Math.max(1, Math.floor(limitRaw)))
+    : CLOSED_ISSUE_PAGE_SIZE;
+  const all = ctx.issueStore.listClosed();
+  const issues = all.slice(offset, offset + limit).map((issue) => ({
+    issueId: issue.id,
+    title: issue.title,
+    priority: issue.priority,
+    ...(issue.type ? { type: issue.type } : {}),
+    status: issue.status,
+    ...(issue.closeNote ? { closeNote: issue.closeNote } : {}),
+    closedAt: issue.updatedAt,
+    ...(issue.workdir ? { workdir: issue.workdir } : {}),
+    ...(issue.baseBranch ? { baseBranch: issue.baseBranch } : {}),
+  }));
+  return c.json({
+    issues,
+    hasMore: offset + limit < all.length,
+    total: all.length,
+  });
+});
+
 /** GET /issues/:id/exec-turn — last execution turn process, on demand */
 issuesRoutes.get("/issues/:id/exec-turn", async (c) => {
   const ctx = c.get("ctx");

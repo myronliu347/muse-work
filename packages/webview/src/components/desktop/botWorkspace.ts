@@ -42,10 +42,13 @@ export function initialBotWorkspace(firstIssueId: string | null): BotWorkspaceSt
 export function selectPanel(
   state: BotWorkspaceState,
   panel: Exclude<PanelSelection, { kind: "none" }>,
+  opts?: { followTab?: boolean },
 ): BotWorkspaceState {
   // 已经在某条 Issue 会话里时，点开着的卡片要切到对应标签。
   // 在 Muse Bot 主页上只改右侧详情，不把主页换成会话。
+  // 已结束的 Issue 只读详情，不切中心会话。
   const followTab =
+    opts?.followTab !== false &&
     state.active !== "bot" &&
     panel.kind === "issue" &&
     state.openIssueIds.includes(panel.issueId);

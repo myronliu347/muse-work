@@ -102,22 +102,35 @@ export function useBotIssueBoard({
     issueTabPresence[issueId] = activity.presence;
   }
   const clearIssueUnreadRef = useRef<(issueId: string) => void>(() => {});
+  // Reclaim a tab only when its issue moved from the open list to the closed
+  // list. An issue that was already closed can still be opened read-only from
+  // the detail rail; selecting it or opening its session must not clear it.
+  const seenOpenRef = useRef<Set<string> | null>(null);
   useEffect(() => {
     if (host?.type !== "desktop") return;
+    const open = new Set((host.issueGroups ?? []).map((group) => group.issueId));
     const closed = new Set(
       (host.closedIssueGroups ?? []).map((group) => group.issueId),
     );
-    if (closed.size === 0) return;
-    const bound = new Set(workspace.openIssueIds);
-    if (workspace.panel.kind === "issue") bound.add(workspace.panel.issueId);
-    if (workspace.lastIssueId) bound.add(workspace.lastIssueId);
-    for (const issueId of bound) {
-      if (closed.has(issueId)) workspace.closeIssueTab(issueId);
+    const previousOpen = seenOpenRef.current;
+    seenOpenRef.current = open;
+    if (!previousOpen) return;
+    const justClosed = new Set(
+      [...previousOpen].filter(
+        (issueId) => !open.has(issueId) && closed.has(issueId),
+      ),
+    );
+    if (justClosed.size === 0) return;
+    for (const issueId of workspace.openIssueIds) {
+      if (justClosed.has(issueId)) workspace.closeIssueTab(issueId);
     }
-  }, [host?.type, host?.closedIssueGroups, workspace]);
+  }, [host?.type, host?.issueGroups, host?.closedIssueGroups, workspace]);
   const selectBotPanel = useCallback(
-    (panel: Exclude<PanelSelection, { kind: "none" }>) => {
-      workspace.selectPanel(panel);
+    (
+      panel: Exclude<PanelSelection, { kind: "none" }>,
+      opts?: { followTab?: boolean },
+    ) => {
+      workspace.selectPanel(panel, opts);
       setBotMenu(null);
       if (panel.kind === "issue") {
         clearIssueUnreadRef.current(panel.issueId);
@@ -142,7 +155,12 @@ export function useBotIssueBoard({
   const openIssueGroup =
     workspace.active === "bot"
       ? undefined
-      : (host?.issueGroups ?? []).find((group) => group.issueId === workspace.active);
+      : ((host?.issueGroups ?? []).find(
+          (group) => group.issueId === workspace.active,
+        ) ??
+        (host?.closedIssueGroups ?? []).find(
+          (group) => group.issueId === workspace.active,
+        ));
   // One session at a time: the issue column shows the active issue, there is
   // no second bot+issue split view.
   const shownIssueGroup = openIssueGroup;

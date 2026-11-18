@@ -1389,41 +1389,47 @@ export const AssistantPage: React.FC<{
       </section>
       )}
       {mode === "chat" && progressItems && progressItems.length > 0 ? (
-        <section className="assistant-catchup" aria-label="未读进展">
-          <span className="assistant-catchup-dot" aria-hidden="true" />
-          <span className="assistant-catchup-label">
-            有 {progressItems.length} 件事有新进展
-            {progressItems.reduce((sum, item) => sum + item.unread, 0) >
-            progressItems.length
-              ? ` · 共 ${progressItems.reduce((sum, item) => sum + item.unread, 0)} 条`
-              : ""}
-          </span>
-          <div className="assistant-catchup-items">
-            {progressItems.map((item) => (
-              <button
-                key={item.issueId}
-                type="button"
-                className="assistant-catchup-item"
-                title={item.summary}
-                onClick={() => onOpenProgressIssue?.(item.issueId)}
-              >
-                <span>{item.title}</span>
-                <span
-                  className="assistant-catchup-count"
-                  title={`${item.unread} 条未读进展`}
+        <section
+          className="assistant-catchup"
+          data-testid="assistant-catchup"
+          aria-label="未读进展"
+        >
+          <div className="assistant-catchup-inner">
+            <span className="assistant-catchup-dot" aria-hidden="true" />
+            <span className="assistant-catchup-label">
+              有 {progressItems.length} 件事有新进展
+              {progressItems.reduce((sum, item) => sum + item.unread, 0) >
+              progressItems.length
+                ? ` · 共 ${progressItems.reduce((sum, item) => sum + item.unread, 0)} 条`
+                : ""}
+            </span>
+            <div className="assistant-catchup-items">
+              {progressItems.map((item) => (
+                <button
+                  key={item.issueId}
+                  type="button"
+                  className="assistant-catchup-item"
+                  title={item.summary}
+                  onClick={() => onOpenProgressIssue?.(item.issueId)}
                 >
-                  {item.unread} 条
-                </span>
-              </button>
-            ))}
+                  <span>{item.title}</span>
+                  <span
+                    className="assistant-catchup-count"
+                    title={`${item.unread} 条未读进展`}
+                  >
+                    {item.unread} 条
+                  </span>
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="assistant-catchup-read"
+              onClick={onMarkAllProgressRead}
+            >
+              全部已读
+            </button>
           </div>
-          <button
-            type="button"
-            className="assistant-catchup-read"
-            onClick={onMarkAllProgressRead}
-          >
-            全部已读
-          </button>
         </section>
       ) : null}
       {mode === "transcript" ? (

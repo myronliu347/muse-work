@@ -475,15 +475,21 @@ export function takeRestoredFileLoads(): RestoredFileLoad[] {
 export function pruneBotWorkspace(
   state: BotWorkspaceState,
   issueIds: readonly string[],
+  viewableIssueIds?: readonly string[],
 ): BotWorkspaceState {
   if (issueIds.length === 0) return state;
-  const known = new Set(issueIds);
-  const openIssueIds = state.openIssueIds.filter((id) => known.has(id));
+  const knownOpen = new Set(issueIds);
+  // Closed issues cannot stay as tabs, but their detail is still viewable.
+  const knownViewable = new Set([...issueIds, ...(viewableIssueIds ?? [])]);
+  const openIssueIds = state.openIssueIds.filter((id) => knownOpen.has(id));
   const panel =
-    state.panel.kind === "issue" && !known.has(state.panel.issueId)
+    state.panel.kind === "issue" && !knownViewable.has(state.panel.issueId)
       ? { kind: "none" as const }
       : state.panel;
-  const lastIssueId = state.lastIssueId && known.has(state.lastIssueId) ? state.lastIssueId : null;
+  const lastIssueId =
+    state.lastIssueId && knownViewable.has(state.lastIssueId)
+      ? state.lastIssueId
+      : null;
   const active = state.active === "bot" || openIssueIds.includes(state.active) ? state.active : "bot";
   const docks: Record<string, DockChrome> = {};
   for (const [key, dock] of Object.entries(state.docks ?? {})) {
@@ -513,10 +519,11 @@ export function pruneBotWorkspace(
 export function readInitialBotWorkspace(
   firstIssueId: string | null,
   issueIds?: readonly string[],
+  viewableIssueIds?: readonly string[],
 ): BotWorkspaceState {
   const saved = loadBotPageSnapshot()?.workspace;
   if (!saved) return initialBotWorkspace(firstIssueId);
-  return pruneBotWorkspace(saved, issueIds ?? []);
+  return pruneBotWorkspace(saved, issueIds ?? [], viewableIssueIds);
 }
 
 export function resetBotPagePersistence(): void {

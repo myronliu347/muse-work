@@ -1,4 +1,13 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import type { DesktopIssueGroup, DesktopIssueUpdate } from "../../types";
@@ -12,18 +21,69 @@ import { MarkdownView } from "../message/MarkdownView";
 import { Tooltip } from "../shared/Tooltip";
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { issueTabSessionId } from "./botWorkspace";
+import { beginSplitDrag, widthFromLeftEdge } from "../../muse/splitDrag";
 
-/** Floating issue column. It sits in the right margin and must not cover the sheet. */
+/** Issue column. Docked to the right of the detail pane, like the other panel rails. */
 export const DOCK_DETAIL_RAIL_WIDTH = 232;
-export const DOCK_DETAIL_SHEET_MAX = 680;
-export const DOCK_DETAIL_RAIL_GAP = 20;
+export const DOCK_DETAIL_RAIL_MIN_WIDTH = 200;
+export const DOCK_DETAIL_RAIL_MAX_WIDTH = 360;
+/** Narrowest readable detail column left beside the rail. */
+export const DOCK_DETAIL_RAIL_MIN_CONTENT = 520;
 
-/** True when the right margin can hold the issue column without covering the sheet. */
-export function dockDetailRailFits(width: number): boolean {
+const RAIL_WIDTH_STORAGE_KEY = "muse.dockDetailRailWidth";
+/** Must match the server's first archive page. */
+const CLOSED_ISSUE_PAGE_SIZE = 20;
+
+/** Keep the rail wide enough to read and narrow enough to leave the detail room. */
+export function clampDockDetailRailWidth(value: number, paneWidth = 0): number {
+  const maxByPane =
+    paneWidth > 0
+      ? Math.max(
+          DOCK_DETAIL_RAIL_MIN_WIDTH,
+          paneWidth - DOCK_DETAIL_RAIL_MIN_CONTENT,
+        )
+      : DOCK_DETAIL_RAIL_MAX_WIDTH;
+  const max = Math.min(DOCK_DETAIL_RAIL_MAX_WIDTH, maxByPane);
+  return Math.min(max, Math.max(DOCK_DETAIL_RAIL_MIN_WIDTH, Math.round(value)));
+}
+
+/** True when the dock can hold the issue column without squeezing the detail. */
+export function dockDetailRailFits(
+  width: number,
+  railWidth = DOCK_DETAIL_RAIL_WIDTH,
+): boolean {
   if (width <= 0) return false;
-  const sheet = Math.min(width, DOCK_DETAIL_SHEET_MAX);
-  const margin = (width - sheet) / 2;
-  return margin >= DOCK_DETAIL_RAIL_WIDTH + DOCK_DETAIL_RAIL_GAP;
+  return width >= railWidth + DOCK_DETAIL_RAIL_MIN_CONTENT;
+}
+
+function railWidthPersistenceEnabled(): boolean {
+  try {
+    return process.env.NODE_ENV !== "test";
+  } catch {
+    return true;
+  }
+}
+
+export function readDockDetailRailWidth(): number {
+  if (!railWidthPersistenceEnabled()) return DOCK_DETAIL_RAIL_WIDTH;
+  try {
+    const raw = globalThis.localStorage?.getItem(RAIL_WIDTH_STORAGE_KEY);
+    const value = raw ? Number(raw) : Number.NaN;
+    return Number.isFinite(value)
+      ? clampDockDetailRailWidth(value)
+      : DOCK_DETAIL_RAIL_WIDTH;
+  } catch {
+    return DOCK_DETAIL_RAIL_WIDTH;
+  }
+}
+
+function saveDockDetailRailWidth(value: number): void {
+  if (!railWidthPersistenceEnabled()) return;
+  try {
+    globalThis.localStorage?.setItem(RAIL_WIDTH_STORAGE_KEY, String(value));
+  } catch {
+    /* private mode / blocked storage */
+  }
 }
 
 export type DockDetailIssue = {
@@ -35,6 +95,15 @@ export type DockDetailIssue = {
   latestUpdate?: { summary: string; at: number };
   unreadCount?: number;
   presence?: IssuePresence | null;
+  /** Closed issues only: completion time used to group the archive. */
+  closedAt?: number;
+  /** Closed issues only: raw status, used to build the local read-only preview. */
+  status?: string;
+  closeNote?: string;
+  workdir?: string;
+  baseBranch?: string;
+  /** Cancelled issues stay out of the rail until 显示已取消 is on. */
+  cancelled?: boolean;
 };
 
 function useBoxWidth(ref: { current: HTMLElement | null }, watch: unknown): number {
@@ -57,6 +126,43 @@ const closeSummaryRequests = new Map<
   string,
   { key: string; promise: Promise<string> }
 >();
+
+/** Closed issues arrive without their long-form body; fetch it once on demand. */
+type ClosedIssueDetail = {
+  issueId: string;
+  description: string;
+  items: DesktopIssueGroup["items"];
+};
+const closedIssueDetails = new Map<string, ClosedIssueDetail>();
+const closedIssueDetailRequests = new Map<string, Promise<ClosedIssueDetail>>();
+
+function loadClosedIssueDetail(
+  load: (issueId: string) => Promise<{
+    description?: string;
+    items?: DesktopIssueGroup["items"];
+  }>,
+  issueId: string,
+): Promise<ClosedIssueDetail> {
+  const cached = closedIssueDetails.get(issueId);
+  if (cached) return Promise.resolve(cached);
+  const pending = closedIssueDetailRequests.get(issueId);
+  if (pending) return pending;
+  const request = load(issueId)
+    .then((detail) => {
+      const next: ClosedIssueDetail = {
+        issueId,
+        description: detail.description ?? "",
+        items: detail.items ?? [],
+      };
+      closedIssueDetails.set(issueId, next);
+      return next;
+    })
+    .finally(() => {
+      closedIssueDetailRequests.delete(issueId);
+    });
+  closedIssueDetailRequests.set(issueId, request);
+  return request;
+}
 
 const CHECK_STATUS_ORDER = ["running", "pending", "done"] as const;
 
@@ -158,18 +264,37 @@ export interface DockDetailProps {
   onRevealInFinder?: (workdir: string) => void;
   /** Open issues. The detail page lists them in the right rail. */
   issues?: DockDetailIssue[];
+  /** Completed / cancelled issues, folded under 已完成 in the same rail. */
+  closedIssues?: DockDetailIssue[];
   onSelectIssue?: (issueId: string) => void;
+  /** 已结束事项按页加载；不一次拉回整个归档。 */
+  onLoadClosedIssues?: (
+    offset: number,
+    limit: number,
+  ) => Promise<{
+    issues: DockDetailIssue[];
+    hasMore: boolean;
+    total: number;
+  }>;
   /** 点击本轮改动文件：打开 diff。 */
   onOpenChangedFile?: (path: string) => void;
   /** 点击产物附件：打开文件/预览。 */
   onOpenArtifact?: (path: string) => void;
   /** HTML 产物：在内置浏览器打开。 */
   onOpenArtifactInBrowser?: (path: string) => void;
+  /** 已结束 Issue 的描述 / 清单不在 grouped 接口里，选中后按需拉取。 */
+  onLoadIssue?: (issueId: string) => Promise<{
+    description?: string;
+    items?: DesktopIssueGroup["items"];
+  }>;
   /** 加载这个 Issue 的完整进展（详情默认只拿到最近 8 条）。 */
   onLoadUpdates?: (
     issueId: string,
     opts?: { limit?: number; before?: string },
   ) => Promise<{ updates: DesktopIssueUpdate[]; hasMore: boolean }>;
+  /** 当前会话里仍未处理的审批；用来立刻隐藏已经批过的旧卡。 */
+  pendingPermissionIds?: ReadonlySet<string>;
+  currentSessionId?: string;
   /** 行内处理审批。 */
   onRespondPermission?: (
     sessionId: string,
@@ -246,86 +371,324 @@ function DetailIconButton({
   );
 }
 
-function IssueRail({
-  issues,
-  currentId,
-  mode,
+function completionDateLabel(at: number, now: number): string {
+  if (!at) return "更早";
+  const date = new Date(at);
+  const today = new Date(now);
+  const startOfDay = (value: Date) =>
+    new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+  const dayDiff = Math.round(
+    (startOfDay(today) - startOfDay(date)) / 86_400_000,
+  );
+  if (dayDiff <= 0) return "今天";
+  if (dayDiff === 1) return "昨天";
+  const monthDay = `${date.getMonth() + 1}月${date.getDate()}日`;
+  return date.getFullYear() === today.getFullYear()
+    ? monthDay
+    : `${date.getFullYear()}年${monthDay}`;
+}
+
+function groupByCompletionDate(
+  issues: DockDetailIssue[],
+): Array<{ label: string; issues: DockDetailIssue[] }> {
+  const now = Date.now();
+  const groups = new Map<string, DockDetailIssue[]>();
+  const sorted = [...issues].sort(
+    (a, b) => (b.closedAt ?? 0) - (a.closedAt ?? 0),
+  );
+  for (const issue of sorted) {
+    const label = completionDateLabel(issue.closedAt ?? 0, now);
+    const rows = groups.get(label);
+    if (rows) rows.push(issue);
+    else groups.set(label, [issue]);
+  }
+  return [...groups].map(([label, rows]) => ({ label, issues: rows }));
+}
+
+function RailRow({
+  issue,
+  current,
+  closed = false,
   onSelect,
 }: {
-  issues: DockDetailIssue[];
-  currentId: string;
-  mode: "column" | "peek";
+  issue: DockDetailIssue;
+  current: boolean;
+  closed?: boolean;
   onSelect: (issueId: string) => void;
 }) {
   return (
+    <li>
+      <button
+        type="button"
+        className={`dock-detail-rail-row${closed ? " dock-detail-rail-row--closed" : ""}`}
+        aria-current={current ? "true" : undefined}
+        onClick={() => onSelect(issue.issueId)}
+      >
+        <IssueRowContent
+          issue={
+            {
+              issueId: issue.issueId,
+              title: issue.title,
+              priority: issue.priority ?? "p1",
+              type: issue.type,
+              presence: issue.presence ?? null,
+              ...(issue.statusLabel ? { statusLabel: issue.statusLabel } : {}),
+              ...(issue.latestUpdate ? { latestUpdate: issue.latestUpdate } : {}),
+              ...(issue.unreadCount ? { unreadCount: issue.unreadCount } : {}),
+            } satisfies BotListIssue
+          }
+        />
+      </button>
+    </li>
+  );
+}
+
+function IssueRail({
+  issues,
+  closedIssues,
+  currentId,
+  mode,
+  open,
+  railWidth,
+  onSelect,
+  onSelectClosed,
+  onResizeStart,
+  onLoadMore,
+  loadingMore = false,
+  hasMore = false,
+}: {
+  issues: DockDetailIssue[];
+  closedIssues: DockDetailIssue[];
+  currentId: string;
+  mode: "column" | "peek";
+  open: boolean;
+  railWidth: number;
+  onSelect: (issueId: string) => void;
+  onSelectClosed: (issueId: string) => void;
+  onResizeStart?: (event: ReactPointerEvent<HTMLDivElement>) => void;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
+  hasMore?: boolean;
+}) {
+  const [closedOpen, setClosedOpen] = useState(false);
+  const [showCancelled, setShowCancelled] = useState(false);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const collapsed = mode === "column" && !open;
+  useEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    if (collapsed) el.setAttribute("inert", "");
+    else el.removeAttribute("inert");
+  }, [collapsed]);
+  const completed = closedIssues.filter((issue) => !issue.cancelled);
+  const cancelled = closedIssues.filter((issue) => issue.cancelled);
+  const completedGroups = groupByCompletionDate(completed);
+  const cancelledGroups = groupByCompletionDate(cancelled);
+  return (
     <aside
-      className={`dock-detail-rail${mode === "peek" ? " dock-detail-rail--peek" : ""}`}
+      className={`dock-detail-rail${mode === "peek" ? " dock-detail-rail--peek" : ""}${mode === "column" && !open ? " dock-detail-rail--collapsed" : ""}`}
       data-testid="dock-detail-rail"
       data-mode={mode}
+      data-open={open ? "true" : "false"}
+      style={
+        mode === "peek"
+          ? ({ "--dock-detail-rail-width": `${railWidth}px` } as CSSProperties)
+          : undefined
+      }
       aria-label="事项"
+      aria-hidden={mode === "column" && !open ? true : undefined}
     >
-      <h3 className="dock-detail-rail-title">
-        事项
-        <span>{issues.length}</span>
-      </h3>
-      <ul className="dock-detail-rail-rows">
-        {issues.map((issue) => {
-          const current = issue.issueId === currentId;
-          return (
-            <li key={issue.issueId}>
+      <div className="dock-detail-rail-inner" ref={innerRef}>
+        <h3 className="dock-detail-rail-title">
+          事项
+          <span>{issues.length}</span>
+        </h3>
+        <div className="dock-detail-rail-body">
+          <ul className="dock-detail-rail-rows">
+            {issues.map((issue) => (
+              <RailRow
+                key={issue.issueId}
+                issue={issue}
+                current={issue.issueId === currentId}
+                onSelect={onSelect}
+              />
+            ))}
+          </ul>
+          {closedIssues.length > 0 ? (
+            <section className="dock-detail-rail-closed">
               <button
                 type="button"
-                className="dock-detail-rail-row"
-                aria-current={current ? "true" : undefined}
-                onClick={() => onSelect(issue.issueId)}
+                className="dock-detail-rail-closed-toggle"
+                data-testid="dock-detail-rail-closed-toggle"
+                aria-expanded={closedOpen}
+                onClick={() => setClosedOpen((value) => !value)}
               >
-                <IssueRowContent
-                  issue={
-                    {
-                      issueId: issue.issueId,
-                      title: issue.title,
-                      priority: issue.priority ?? "p1",
-                      type: issue.type,
-                      presence: issue.presence ?? null,
-                      ...(issue.statusLabel ? { statusLabel: issue.statusLabel } : {}),
-                      ...(issue.latestUpdate ? { latestUpdate: issue.latestUpdate } : {}),
-                      ...(issue.unreadCount ? { unreadCount: issue.unreadCount } : {}),
-                    } satisfies BotListIssue
-                  }
+                <span className="dock-detail-rail-closed-label">已完成</span>
+                <span className="dock-detail-rail-closed-count">
+                  {completed.length}
+                  {hasMore ? "+" : ""}
+                </span>
+                <i
+                  className={`codicon codicon-chevron-${closedOpen ? "down" : "right"}`}
+                  aria-hidden
                 />
               </button>
-            </li>
-          );
-        })}
-      </ul>
+              {closedOpen ? (
+                <div data-testid="dock-detail-rail-closed-rows">
+                  {completedGroups.map((group) => (
+                    <div className="dock-detail-rail-date" key={group.label}>
+                      <div className="dock-detail-rail-date-label">
+                        {group.label}
+                      </div>
+                      <ul className="dock-detail-rail-rows">
+                        {group.issues.map((issue) => (
+                          <RailRow
+                            key={issue.issueId}
+                            issue={issue}
+                            current={issue.issueId === currentId}
+                            closed
+                            onSelect={onSelectClosed}
+                          />
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                  {cancelled.length > 0 ? (
+                    <>
+                      {showCancelled ? (
+                        <div data-testid="dock-detail-rail-cancelled">
+                          {cancelledGroups.map((group) => (
+                            <div
+                              className="dock-detail-rail-date"
+                              key={`cancelled-${group.label}`}
+                            >
+                              <div className="dock-detail-rail-date-label">
+                                已取消 · {group.label}
+                              </div>
+                              <ul className="dock-detail-rail-rows">
+                                {group.issues.map((issue) => (
+                                  <RailRow
+                                    key={issue.issueId}
+                                    issue={issue}
+                                    current={issue.issueId === currentId}
+                                    closed
+                                    onSelect={onSelectClosed}
+                                  />
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="dock-detail-rail-cancelled-toggle"
+                        data-testid="dock-detail-rail-cancelled-toggle"
+                        aria-expanded={showCancelled}
+                        onClick={() => setShowCancelled((value) => !value)}
+                      >
+                        {showCancelled
+                          ? "隐藏已取消"
+                          : `显示已取消 ${cancelled.length}`}
+                      </button>
+                    </>
+                  ) : null}
+                  {hasMore ? (
+                    <button
+                      type="button"
+                      className="dock-detail-rail-load-more"
+                      data-testid="dock-detail-rail-load-more"
+                      disabled={loadingMore}
+                      onClick={onLoadMore}
+                    >
+                      {loadingMore ? "加载中…" : "加载更多"}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+        </div>
+      </div>
+      {mode === "column" ? (
+        <div
+          className="dock-detail-rail-resize"
+          data-testid="dock-detail-rail-resize"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="调整事项列表宽度"
+          onPointerDown={onResizeStart}
+        />
+      ) : null}
     </aside>
   );
 }
 
+function dockIssueToGroup(issue: DockDetailIssue): DesktopIssueGroup {
+  return {
+    issueId: issue.issueId,
+    title: issue.title,
+    description: "",
+    priority: issue.priority ?? "p1",
+    ...(issue.type ? { type: issue.type } : {}),
+    status:
+      issue.status ?? (issue.cancelled ? "cancelled" : "completed"),
+    items: [],
+    ...(issue.closeNote ? { closeNote: issue.closeNote } : {}),
+    ...(issue.closedAt !== undefined ? { closedAt: issue.closedAt } : {}),
+    ...(issue.workdir ? { workdir: issue.workdir } : {}),
+    ...(issue.baseBranch ? { baseBranch: issue.baseBranch } : {}),
+    sessions: [],
+  };
+}
+
 export function DockDetail({
-  selection,
+  selection: selectionProp,
   actionLabel,
   onOpenSession,
   onOpenInEditor,
   onRevealInFinder,
   issues = [],
+  closedIssues = [],
   onSelectIssue,
+  onLoadClosedIssues,
   onOpenChangedFile,
   onOpenArtifact,
   onOpenArtifactInBrowser,
+  onLoadIssue,
   onLoadUpdates,
+  pendingPermissionIds,
+  currentSessionId,
   onRespondPermission,
   onCompleteIssue,
   onCancelIssue,
   onGenerateSummary,
 }: DockDetailProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLDivElement>(null);
+  // A closed issue is previewed locally: it must not replace the current issue
+  // or its tab. The parent selection still drives the rest of the workspace.
+  const [previewIssue, setPreviewIssue] = useState<DesktopIssueGroup | null>(null);
+  const selection: DockDetailSelection = previewIssue
+    ? { kind: "issue", issue: previewIssue }
+    : selectionProp;
   const width = useBoxWidth(rootRef, selection.kind);
-  const fits = dockDetailRailFits(width);
+  const [railWidth, setRailWidth] = useState(readDockDetailRailWidth);
+  // A persisted width from a wider window must not hide the rail in a smaller
+  // one; clamp it for this pane without overwriting the preference.
+  const effectiveRailWidth = clampDockDetailRailWidth(railWidth, width);
+  const fits = dockDetailRailFits(width, effectiveRailWidth);
   const [open, setOpen] = useState(true);
   const [peek, setPeek] = useState(false);
+  const [loadedIssue, setLoadedIssue] = useState<ClosedIssueDetail | null>(null);
+  const [closedLoading, setClosedLoading] = useState(false);
+  const [extraClosedIssues, setExtraClosedIssues] = useState<DockDetailIssue[]>([]);
+  const [closedHasMore, setClosedHasMore] = useState(
+    closedIssues.length >= CLOSED_ISSUE_PAGE_SIZE,
+  );
+  const [closedMoreLoading, setClosedMoreLoading] = useState(false);
   const [latestExpanded, setLatestExpanded] = useState(false);
   const [extraUpdates, setExtraUpdates] = useState<DesktopIssueUpdate[]>([]);
   const [updatesExpanded, setUpdatesExpanded] = useState(false);
@@ -340,12 +703,125 @@ export function DockDetail({
   const [closeLoading, setCloseLoading] = useState(false);
   const [closePreview, setClosePreview] = useState(true);
   const closeRequestRef = useRef(0);
-  const showColumn = open && fits && issues.length > 0 && selection.kind === "issue";
-  const showPeek = peek && !fits && issues.length > 0 && selection.kind === "issue";
+  const closedKey = closedIssues.map((issue) => issue.issueId).join("\0");
+  const allClosedIssues = useMemo(() => {
+    const byId = new Map<string, DockDetailIssue>();
+    for (const issue of [...closedIssues, ...extraClosedIssues]) {
+      byId.set(issue.issueId, issue);
+    }
+    return [...byId.values()].sort(
+      (a, b) => (b.closedAt ?? 0) - (a.closedAt ?? 0),
+    );
+  }, [closedIssues, extraClosedIssues]);
+  const parentSelectionKey =
+    selectionProp.kind === "issue"
+      ? `issue:${selectionProp.issue.issueId}`
+      : selectionProp.kind;
+  const railCurrentId =
+    previewIssue?.issueId ??
+    (selectionProp.kind === "issue" ? selectionProp.issue.issueId : "");
+  const railIssues = issues.length + allClosedIssues.length;
+  // The empty page always offers the list: a column when it fits, otherwise
+  // the same peek overlay used by a narrow dock.
+  const emptyPage = selectionProp.kind === "none" && previewIssue === null;
+  const columnVisible =
+    railIssues > 0 && fits && (emptyPage || selection.kind === "issue");
+  const showColumn = columnVisible && (open || emptyPage);
+  const showPeek =
+    railIssues > 0 &&
+    !fits &&
+    (emptyPage || (peek && selection.kind === "issue"));
+
+  useEffect(() => {
+    setPreviewIssue(null);
+  }, [parentSelectionKey]);
+
+  useEffect(() => {
+    setExtraClosedIssues([]);
+    setClosedHasMore(closedIssues.length >= CLOSED_ISSUE_PAGE_SIZE);
+    setClosedMoreLoading(false);
+  }, [closedKey]);
+
+  const selectOpenIssue = (issueId: string) => {
+    if (emptyPage) setOpen(true);
+    setPreviewIssue(null);
+    onSelectIssue?.(issueId);
+  };
+
+  const selectClosedIssue = (issueId: string) => {
+    const issue = allClosedIssues.find((item) => item.issueId === issueId);
+    if (!issue) return;
+    if (emptyPage) setOpen(true);
+    setPreviewIssue(dockIssueToGroup(issue));
+    // Keep the overlay open in a narrow dock so the list does not vanish when
+    // the read-only preview takes over the detail pane.
+    if (!fits) setPeek(true);
+  };
+
+  const loadMoreClosedIssues = async (): Promise<void> => {
+    if (!onLoadClosedIssues || closedMoreLoading || !closedHasMore) return;
+    setClosedMoreLoading(true);
+    try {
+      const page = await onLoadClosedIssues(
+        allClosedIssues.length,
+        CLOSED_ISSUE_PAGE_SIZE,
+      );
+      setExtraClosedIssues((current) => [...current, ...page.issues]);
+      setClosedHasMore(page.hasMore);
+    } catch {
+      /* Keep the button so the user can retry. */
+    } finally {
+      setClosedMoreLoading(false);
+    }
+  };
+
+  const selectedIssueId =
+    selection.kind === "issue" ? selection.issue.issueId : "";
+  const selectedIssueClosed =
+    selection.kind === "issue" &&
+    (selection.issue.status === "completed" ||
+      selection.issue.status === "cancelled");
 
   useEffect(() => {
     if (fits) setPeek(false);
   }, [fits]);
+
+  useEffect(() => {
+    setLoadedIssue(null);
+    setClosedLoading(false);
+  }, [selectedIssueId]);
+
+  useEffect(() => {
+    if (!selectedIssueClosed || !selectedIssueId || !onLoadIssue) return;
+    let cancelled = false;
+    const cached = closedIssueDetails.get(selectedIssueId);
+    if (cached) {
+      setLoadedIssue(cached);
+      setClosedLoading(false);
+      return;
+    }
+    setClosedLoading(true);
+    loadClosedIssueDetail(onLoadIssue, selectedIssueId)
+      .then((detail) => {
+        if (!cancelled) setLoadedIssue(detail);
+      })
+      .catch(() => {
+        const empty: ClosedIssueDetail = {
+          issueId: selectedIssueId,
+          description: "",
+          items: [],
+        };
+        // A missing closed issue must not retry on every parent render.
+        closedIssueDetails.set(selectedIssueId, empty);
+        if (!cancelled) setLoadedIssue(empty);
+      })
+      .finally(() => {
+        if (!cancelled) setClosedLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [onLoadIssue, selectedIssueClosed, selectedIssueId]);
 
   useEffect(() => {
     setLatestExpanded(false);
@@ -364,7 +840,8 @@ export function DockDetail({
   }, [selection.kind === "issue" ? selection.issue.issueId : ""]);
 
   useEffect(() => {
-    if (!showPeek) return;
+    // The empty page has no toolbar to reopen the list, so its auto-peek stays.
+    if (!showPeek || emptyPage) return;
     const onPointerDown = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Node)) return;
@@ -374,14 +851,76 @@ export function DockDetail({
     };
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [showPeek]);
+  }, [emptyPage, showPeek]);
+
+  const beginRailResize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const startX = event.clientX;
+    const startWidth = effectiveRailWidth;
+    const paneWidth = width;
+    beginSplitDrag(event, {
+      startValue: startWidth,
+      value: (moveEvent) =>
+        widthFromLeftEdge(startX, startWidth, moveEvent, (next) =>
+          clampDockDetailRailWidth(next, paneWidth),
+        ),
+      preview: (next) => {
+        stageRef.current?.style.setProperty(
+          "--dock-detail-rail-width",
+          `${next}px`,
+        );
+      },
+      commit: (next) => {
+        const clamped = clampDockDetailRailWidth(next, paneWidth);
+        setRailWidth(clamped);
+        saveDockDetailRailWidth(clamped);
+      },
+    });
+  };
+
+  const renderRail = (mode: "column" | "peek", railW: number, isOpen: boolean) => (
+    <IssueRail
+      issues={issues}
+      closedIssues={allClosedIssues}
+      currentId={railCurrentId}
+      mode={mode}
+      open={isOpen}
+      railWidth={railW}
+      onSelect={(issueId) => {
+        selectOpenIssue(issueId);
+        setPeek(false);
+      }}
+      onSelectClosed={selectClosedIssue}
+      onResizeStart={beginRailResize}
+      onLoadMore={() => void loadMoreClosedIssues()}
+      loadingMore={closedMoreLoading}
+      hasMore={closedHasMore}
+    />
+  );
 
   if (selection.kind === "none") {
     return (
-      <div className="dock-detail dock-detail--empty" data-testid="dock-detail" ref={rootRef}>
-        <div className="dock-detail-empty" data-testid="dock-detail-empty">
-          <i className="codicon codicon-note" aria-hidden />
-          <p>选择一个事项查看详情</p>
+      <div className="dock-detail" data-testid="dock-detail" ref={rootRef}>
+        <div
+          className="dock-detail-stage"
+          ref={stageRef}
+          style={
+            {
+              "--dock-detail-rail-width": `${effectiveRailWidth}px`,
+            } as CSSProperties
+          }
+        >
+          <div className="dock-detail-scroll dock-detail-scroll--empty">
+            <div className="dock-detail-empty" data-testid="dock-detail-empty">
+              <i className="codicon codicon-note" aria-hidden />
+              <p>选择一个事项查看详情</p>
+            </div>
+          </div>
+          {showColumn ? renderRail("column", effectiveRailWidth, true) : null}
+          {showPeek ? (
+            <div ref={railRef}>
+              {renderRail("peek", railWidth, true)}
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -400,14 +939,23 @@ export function DockDetail({
   }
 
   const issue = selection.issue;
-  const status = issueSidebarStatusLabel({
-    status: issue.status,
-    agentMode: issue.agentMode,
-    running: issue.sessions.some((session) => session.running),
-    sessionStatus: issue.sessions.find((session) => session.sessionStatus)
-      ?.sessionStatus,
-  });
-  const description = issue.description?.trim() ?? "";
+  const closed = issue.status === "completed" || issue.status === "cancelled";
+  const status = closed
+    ? issue.status === "cancelled"
+      ? "已取消"
+      : "已完成"
+    : issueSidebarStatusLabel({
+        status: issue.status,
+        agentMode: issue.agentMode,
+        running: issue.sessions.some((session) => session.running),
+        sessionStatus: issue.sessions.find((session) => session.sessionStatus)
+          ?.sessionStatus,
+      });
+  const loadedForIssue =
+    loadedIssue?.issueId === issue.issueId ? loadedIssue : null;
+  const description =
+    loadedForIssue?.description?.trim() || issue.description?.trim() || "";
+  const checklistItems = loadedForIssue?.items ?? issue.items;
   const descriptionPreview = description
     .split("\n")
     .map((line) => line.trim())
@@ -464,18 +1012,37 @@ export function DockDetail({
       : (issue.updateCount ?? baseUpdates.length) > baseUpdates.length ||
         timelineUpdates.length > 8
   );
-  const permissionUpdate = updates.find(
-    (update) =>
-      update.kind === "permission" &&
-      Boolean(update.permissionId) &&
-      Boolean(update.sessionId) &&
-      !resolvedPermissions.has(update.permissionId!) &&
-      !updates.some(
+  const permissionUpdate = updates.find((update) => {
+    if (
+      update.kind !== "permission" ||
+      !update.permissionId ||
+      !update.sessionId ||
+      update.resolved ||
+      resolvedPermissions.has(update.permissionId)
+    ) {
+      return false;
+    }
+    if (
+      updates.some(
         (entry) =>
           entry.kind === "status" &&
           entry.permissionId === update.permissionId,
-      ),
-  );
+      )
+    ) {
+      return false;
+    }
+    // The live confirmation list is authoritative for the session on screen.
+    // Old progress rows can lack a resolution record, so do not trust them
+    // when we can see that this session is no longer waiting.
+    if (
+      pendingPermissionIds &&
+      currentSessionId &&
+      update.sessionId === currentSessionId
+    ) {
+      return pendingPermissionIds.has(update.permissionId);
+    }
+    return true;
+  });
   const closable =
     issue.status !== "completed" && issue.status !== "cancelled";
   const suggestedCloseNote =
@@ -643,7 +1210,7 @@ export function DockDetail({
           </div>
         </div>
         <div className="dock-detail-actions">
-          {closable && (onCompleteIssue || onCancelIssue) ? (
+          {!closed && closable && (onCompleteIssue || onCancelIssue) ? (
             <div className="dock-detail-close-actions">
               {onCompleteIssue ? (
                 <Tooltip text="完成" position="bottom" wrap={false}>
@@ -671,7 +1238,7 @@ export function DockDetail({
               ) : null}
             </div>
           ) : null}
-          {actionLabel ? (
+          {!closed && actionLabel ? (
             <DetailIconButton
               label={actionLabel}
               onClick={() => onOpenSession(issue.issueId)}
@@ -679,25 +1246,29 @@ export function DockDetail({
               <i className="codicon codicon-comment" aria-hidden />
             </DetailIconButton>
           ) : null}
-          <DetailIconButton
-            label="在 IDE 中打开"
-            disabled={!workdir}
-            onClick={() => {
-              if (workdir) onOpenInEditor?.(workdir);
-            }}
-          >
-            <i className="codicon codicon-code" aria-hidden />
-          </DetailIconButton>
-          <DetailIconButton
-            label="在访达中打开"
-            disabled={!workdir}
-            onClick={() => {
-              if (workdir) onRevealInFinder?.(workdir);
-            }}
-          >
-            <i className="codicon codicon-folder" aria-hidden />
-          </DetailIconButton>
-          {issues.length > 0 ? (
+          {!closed ? (
+            <>
+              <DetailIconButton
+                label="在 IDE 中打开"
+                disabled={!workdir}
+                onClick={() => {
+                  if (workdir) onOpenInEditor?.(workdir);
+                }}
+              >
+                <i className="codicon codicon-code" aria-hidden />
+              </DetailIconButton>
+              <DetailIconButton
+                label="在访达中打开"
+                disabled={!workdir}
+                onClick={() => {
+                  if (workdir) onRevealInFinder?.(workdir);
+                }}
+              >
+                <i className="codicon codicon-folder" aria-hidden />
+              </DetailIconButton>
+            </>
+          ) : null}
+          {railIssues > 0 ? (
             <div ref={toggleRef}>
               <DetailIconButton
                 label={showColumn || showPeek ? "收起事项列表" : "事项列表"}
@@ -717,9 +1288,17 @@ export function DockDetail({
           ) : null}
         </div>
       </div>
-      <div className="dock-detail-stage">
+      <div
+        className="dock-detail-stage"
+        ref={stageRef}
+        style={
+          {
+            "--dock-detail-rail-width": `${effectiveRailWidth}px`,
+          } as CSSProperties
+        }
+      >
         <div className="dock-detail-scroll">
-          <div className="dock-detail-sheet">
+          <div className="dock-detail-content">
             {primaryUpdate ? (
               <section className="dock-detail-progress" data-testid="dock-detail-progress">
                 <div className="dock-detail-progress-head">
@@ -809,6 +1388,17 @@ export function DockDetail({
                     ))}
                   </div>
                 ) : null}
+              </section>
+            ) : null}
+
+            {closed && issue.closeNote?.trim() ? (
+              <section className="dock-detail-result" data-testid="dock-detail-result">
+                <div className="dock-detail-progress-head">
+                  <span className="dock-detail-section">
+                    {issue.status === "cancelled" ? "取消原因" : "完成结论"}
+                  </span>
+                </div>
+                <DetailMarkdown text={issue.closeNote} />
               </section>
             ) : null}
 
@@ -904,12 +1494,25 @@ export function DockDetail({
                   {visibleUpdates.map((update) => (
                     <li key={update.id} data-kind={update.kind}>
                       <span className="dock-detail-update-time">{formatUpdateTime(update.at)}</span>
-                      <span className="dock-detail-update-kind">{UPDATE_KIND_LABEL[update.kind]}</span>
+                      <span className="dock-detail-update-kind">
+                        {update.kind === "permission" && update.resolved
+                          ? "已处理"
+                          : UPDATE_KIND_LABEL[update.kind]}
+                      </span>
                       <span className="dock-detail-update-text">{update.summary}</span>
                     </li>
                   ))}
                 </ol>
               </section>
+            ) : null}
+
+            {closed && closedLoading ? (
+              <p
+                className="dock-detail-progress-note"
+                data-testid="dock-detail-closed-loading"
+              >
+                正在加载事项描述…
+              </p>
             ) : null}
 
             {description ? (
@@ -952,30 +1555,15 @@ export function DockDetail({
                 </div>
               ) : null}
             </dl>
-            {issue.items.length > 0 ? (
-              <Checklist items={issue.items} />
+            {checklistItems.length > 0 ? (
+              <Checklist items={checklistItems} />
             ) : null}
           </div>
         </div>
-        {showColumn ? (
-          <IssueRail
-            issues={issues}
-            currentId={issue.issueId}
-            mode="column"
-            onSelect={(issueId) => onSelectIssue?.(issueId)}
-          />
-        ) : null}
+        {columnVisible ? renderRail("column", effectiveRailWidth, showColumn) : null}
         {showPeek ? (
           <div ref={railRef}>
-            <IssueRail
-              issues={issues}
-              currentId={issue.issueId}
-              mode="peek"
-              onSelect={(issueId) => {
-                onSelectIssue?.(issueId);
-                setPeek(false);
-              }}
-            />
+            {renderRail("peek", railWidth, true)}
           </div>
         ) : null}
       </div>

@@ -551,6 +551,20 @@ export function createIssueTools(deps: AssistantToolDeps) {
         } catch (err: unknown) {
           return fail(err instanceof Error ? err.message : String(err));
         }
+        // The AI can answer a permission from the chat side too. Record the
+        // resolution so the detail card does not stay pending forever.
+        const issue = deps.issues.getBySession(sessionId);
+        if (issue) {
+          deps.recordIssueUpdate?.(issue.id, {
+            kind: "status",
+            summary:
+              behavior === "allow"
+                ? "已批准权限申请"
+                : "已拒绝权限申请",
+            permissionId,
+            status: issue.status,
+          });
+        }
         return ok({ permissionId, behavior });
       },
       (params) => compactText(params.behavior),

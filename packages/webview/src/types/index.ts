@@ -222,7 +222,7 @@ export interface DesktopHostProps {
    * 与 sessionTree 同一 `desktopSessionTree` 消息推送。
    */
   issueGroups?: DesktopIssueGroup[];
-  /** 已完成 / 已取消。不进侧栏，只用来解析已经打开的会话。 */
+  /** 已完成 / 已取消。不进侧栏，用于详情栏的「已完成」归档并解析已打开的会话。 */
   closedIssueGroups?: DesktopIssueGroup[];
   /** Open a historical session; switches workdir first when needed. */
   onSelectSession: (workdir: string, sessionId: string) => void;
@@ -293,6 +293,8 @@ export interface DesktopIssueUpdate {
   status?: string;
   turnId?: string;
   permissionId?: string;
+  /** 服务端标记：这条审批请求已经不在等待中。 */
+  resolved?: boolean;
   userPresent?: true;
 }
 
@@ -316,6 +318,8 @@ export interface DesktopIssueGroup {
   agentMode?: "single" | "split";
   /** 完成时的结果结论，或取消时的原因。 */
   closeNote?: string;
+  /** 关闭时间（毫秒）；已完成的列表按它分组。 */
+  closedAt?: number;
   workdir?: string;
   /** 创建 worktree 时使用的基准分支。 */
   baseBranch?: string;

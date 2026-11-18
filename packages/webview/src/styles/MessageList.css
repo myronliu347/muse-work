@@ -99,6 +99,12 @@
   background-color: var(--surface-user-bubble-hover);
 }
 
+/* The dark user bubble is neutral now; a pink accent border would be the only
+   accent left on the sticky bar. */
+:root[data-theme="dark"] .sticky-user-message {
+  border-color: var(--border-subtle);
+}
+
 .sticky-user-message--system {
   width: 100%;
   max-width: none;

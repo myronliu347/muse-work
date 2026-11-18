@@ -251,6 +251,10 @@ export function createActions(ctx: RunnerContext): SessionRunner {
       };
     },
 
+    isPermissionPending(sessionId, permissionId) {
+      return pending.get(permissionId)?.sessionId === sessionId;
+    },
+
     async respondPermission(sessionId, permissionId, decision) {
       const entry = pending.get(permissionId);
       if (!entry || entry.sessionId !== sessionId) {

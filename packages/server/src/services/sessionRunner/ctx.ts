@@ -195,6 +195,8 @@ export interface SessionRunner {
     permissionId: string,
     decision: PermissionDecision,
   ): Promise<{ ok: true }>;
+  /** True while the runtime is still waiting on this exact permission. */
+  isPermissionPending(sessionId: string, permissionId: string): boolean;
   /** Replace the permission-request callback (runner ↔ assistant wiring). */
   setOnPermissionRequest(
     cb: (

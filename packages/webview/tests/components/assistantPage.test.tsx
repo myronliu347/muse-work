@@ -954,6 +954,13 @@ describe("classifyAssistantHref", () => {
       />,
     );
 
+    const catchup = screen.getByTestId("assistant-catchup");
+    expect(catchup.querySelector(".assistant-catchup-inner")).not.toBeNull();
+    expect(
+      within(catchup.querySelector(".assistant-catchup-inner") as HTMLElement).getByText(
+        "全部已读",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText(/有 2 件事有新进展/)).toBeInTheDocument();
     fireEvent.click(screen.getByText("同页一致性"));
     expect(onOpenProgressIssue).toHaveBeenCalledWith("radii");

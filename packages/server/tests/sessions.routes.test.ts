@@ -137,6 +137,7 @@ describe("sessions HTTP routes", () => {
       issueId: issue.id,
       status: "completed",
     });
+    expect(afterClose.closedIssueGroups[0].closedAt).toEqual(expect.any(Number));
     // Closing the issue deletes its sessions.
     expect(afterClose.closedIssueGroups[0].sessions).toEqual([]);
     expect(app.ctx.store.get(sessionId)).toBeUndefined();
@@ -185,6 +186,30 @@ describe("sessions HTTP routes", () => {
     );
     expect(history.updates[0].summary).toBe("做完了");
     expect(history.hasMore).toBe(false);
+  });
+
+  it("marks permission progress resolved once the runtime stops waiting", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "授权" }),
+    }).then((r) => r.json());
+
+    app.ctx.issueProgress.append(issue.id, {
+      kind: "permission",
+      summary: "等待批准：AskUserQuestion",
+      sessionId: "plan-1",
+      permissionId: "perm-1",
+    });
+    const grouped = await fetch(`${app.baseUrl}/sessions?grouped=1`).then((r) =>
+      r.json(),
+    );
+    expect(grouped.issueGroups[0].updates[0]).toMatchObject({ resolved: true });
+    expect(grouped.issueGroups[0].latestUpdate).toMatchObject({ resolved: true });
   });
 
   it("grouped caps recent after removing issue sessions", async () => {
