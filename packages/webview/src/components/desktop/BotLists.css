@@ -364,9 +364,3 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.bot-list-preview-time {
-  flex: 0 0 auto;
-  color: var(--text-tertiary);
-  font-size: 9.5px;
-  font-variant-numeric: tabular-nums;
-}

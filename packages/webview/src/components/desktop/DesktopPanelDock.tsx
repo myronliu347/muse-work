@@ -623,7 +623,11 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                           aria-hidden
                         />
                       )}
-                      <OverflowText className="desktop-panel-tab-text" text={detailLabel} />
+                      <OverflowText
+                        className="desktop-panel-tab-text"
+                        text={detailLabel}
+                        scrollOnHover={false}
+                      />
                     </button>
                   </Tooltip>
                 </div>
@@ -663,7 +667,12 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                         className={`codicon ${PANEL_TAB_ICONS[tool.kind]} desktop-panel-tab-icon`}
                         aria-hidden
                       />
-                      <OverflowText className="desktop-panel-tab-text" text={tool.label} title={tool.title} />
+                      <OverflowText
+                        className="desktop-panel-tab-text"
+                        text={tool.label}
+                        title={tool.title}
+                        scrollOnHover={false}
+                      />
                     </button>
                   </Tooltip>
                   <button
@@ -705,7 +714,12 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                   {...bindTab(key)}
                 >
                   <FileIcon name={name} className="file-tab-icon" />
-                  <OverflowText className="file-tab-label" text={name} title={tab.path} />
+                  <OverflowText
+                    className="file-tab-label"
+                    text={name}
+                    title={tab.path}
+                    scrollOnHover={false}
+                  />
                   <button
                     type="button"
                     className="file-tab-close"
@@ -755,7 +769,11 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                     className={`codicon ${PANEL_TAB_ICONS[kind]} desktop-panel-tab-icon`}
                     aria-hidden
                   />
-                  <OverflowText className="desktop-panel-tab-text" text={label} />
+                  <OverflowText
+                      className="desktop-panel-tab-text"
+                      text={label}
+                      scrollOnHover={false}
+                    />
                 </button>
                 <button
                   type="button"

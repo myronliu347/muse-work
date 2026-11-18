@@ -575,10 +575,21 @@ export function useChatDock(input: {
           selectBotPanel({ kind: "issue", issueId });
         }
       : undefined,
-    onOpenFile: handleOpenFile,
+    onOpenFile: (
+      path: string,
+      startLine?: number,
+      endLine?: number,
+      pinned?: boolean,
+    ) => {
+      handleOpenFile(path, startLine, endLine, pinned);
+      // Browser mode keeps activeFilePath null; a tree/link click must also
+      // select the tab in the group the dock is showing, not just write it.
+      selectShownFileTab(path);
+    },
     onOpenFilePinned: (path) => {
       handleOpenFilePin(path);
       revealOpenedFile();
+      selectShownFileTab(path);
     },
     onRefreshOpenFile: handleRefreshOpenFile,
     onSendMessage: (text) => sendIssueMessage(text),

@@ -663,7 +663,9 @@
   align-items: center;
   justify-content: space-between;
   margin: 0;
-  padding: 11px 12px 6px;
+  /* Match the detail content's top inset so the header starts on the same
+     line as the first sheet/card. */
+  padding: 20px 12px 6px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
@@ -722,7 +724,9 @@
 .dock-detail-rail-row {
   width: 100%;
   display: flex;
-  align-items: center;
+  /* Keep status / priority on the title line instead of floating between the
+     title and the preview line. */
+  align-items: flex-start;
   gap: 8px;
   padding: 8px 12px;
   border: 0;
@@ -810,6 +814,14 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: 13px;
+}
+
+.dock-detail-rail .bot-list-icon-slot {
+  margin-top: 2px;
+}
+
+.dock-detail-rail .bot-list-status {
+  padding-top: 2px;
 }
 
 .dock-detail-rail .issue-type-icon {
