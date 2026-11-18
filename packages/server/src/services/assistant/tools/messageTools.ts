@@ -248,19 +248,29 @@ export function createMessageTools(deps: AssistantToolDeps) {
         const issueAts = parsedAts.filter((at) => at.type === "issue");
         const userAts = parsedAts.filter((at) => at.type === "user");
         let rememberedIssueId: string | undefined;
+        // A stale @ is not a reason to drop the whole message: skip the missing
+        // quote and let the assistant see a warning instead of a send failure.
+        const missingAts: string[] = [];
         if (args.app === "muse") {
           if (userAts.length > 0) return fail("muse 只能 @ issue");
           if (issueAts.length === 1 && previousIssueId(deps.log) === issueAts[0]?.id) {
-            rememberedIssueId = issueAts[0]?.id;
+            const remembered = deps.issues.get(issueAts[0]!.id);
+            if (remembered) rememberedIssueId = remembered.id;
+            else missingAts.push(issueAts[0]!.id);
           } else if (issueAts.length > 0) {
             const quotes: string[] = [];
             for (const at of issueAts) {
               const issue = deps.issues.get(at.id);
-              if (!issue) return fail("not found");
+              if (!issue) {
+                missingAts.push(at.id);
+                continue;
+              }
               quotes.push(`> ${issueMentionLabel(issue.title)}`);
               rememberedIssueId = issue.id;
             }
-            message = withIssueLead(message, quotes.join("\n"), "\n\n");
+            if (quotes.length > 0) {
+              message = withIssueLead(message, quotes.join("\n"), "\n\n");
+            }
           }
         }
         if (!message && files.length === 0 && links.length === 0) return fail("message required");
@@ -293,7 +303,16 @@ export function createMessageTools(deps: AssistantToolDeps) {
           }
           if (issueId) deps.issues.clearReplyPending(issueId);
           deps.hub.broadcastAll({ type: "assistant:chat", line });
-          return ok({ line });
+          return ok({
+            line,
+            ...(missingAts.length > 0
+              ? {
+                  warnings: [
+                    `ignored missing issue ats: ${[...new Set(missingAts)].join(", ")}`,
+                  ],
+                }
+              : {}),
+          });
         }
         const channel = channels.find((app) => app.id === args.app);
         if (!channel) return fail(`unknown app: ${String(args.app ?? "")}`);

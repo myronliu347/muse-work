@@ -618,7 +618,11 @@ describe("assistant tools", () => {
       { app: "muse", ats: [{ type: "issue", id: "missing" }], message: "没有" },
       context,
     );
-    expect(missing.success).toBe(false);
+    expect(missing.success).toBe(true);
+    expect(JSON.parse(missing.content)).toMatchObject({
+      warnings: [expect.stringContaining("missing")],
+    });
+    expect(log.page().messages.at(-1)?.message).toBe("没有");
   });
 
   it("hides awaiting-close issues and resumes them when messaging", async () => {
