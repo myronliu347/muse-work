@@ -499,7 +499,7 @@ describe("DesktopPanelDock", () => {
       fileTab("/w/b.ts"),
     ];
 
-    it("keeps the 文件 browser tab alongside file-name tabs", () => {
+    it("lets the active file tab take the 文件 browser tab's slot", () => {
       render(
         <MuseTheme>
           <DesktopPanelDock
@@ -513,16 +513,34 @@ describe("DesktopPanelDock", () => {
           </DesktopPanelDock>
         </MuseTheme>,
       );
-      // The 文件 tab is the browser; file-name tabs sit beside it.
-      expect(screen.getByTestId("desktop-panel-tab-file")).toBeInTheDocument();
-      expect(screen.getByTestId("desktop-panel-tab-file")).not.toHaveClass(
-        "desktop-panel-tab--active",
-      );
+      // The open file replaces the browser tab while it is showing; the
+      // browser comes back when no file is active.
+      expect(screen.queryByTestId("desktop-panel-tab-file")).toBeNull();
       expect(screen.getByTestId("desktop-panel-tab-preview")).toBeInTheDocument();
       const fileTabEls = screen.getAllByTestId("file-tab");
       expect(fileTabEls).toHaveLength(2);
       expect(fileTabEls[0]).toHaveAttribute("data-active", "true");
       expect(fileTabEls[1]).toHaveAttribute("data-active", "false");
+    });
+
+    it("shows the 文件 browser tab again when no file is active", () => {
+      render(
+        <MuseTheme>
+          <DesktopPanelDock
+            {...baseProps}
+            checked={["preview", "file"]}
+            active="file"
+            fileTabs={tabs}
+            activeFilePath={null}
+          >
+            <div>body</div>
+          </DesktopPanelDock>
+        </MuseTheme>,
+      );
+      expect(screen.getByTestId("desktop-panel-tab-file")).toHaveClass(
+        "desktop-panel-tab--active",
+      );
+      expect(screen.getAllByTestId("file-tab")).toHaveLength(2);
     });
 
     it("keeps the 文件 kind tab when no files are open", () => {
@@ -557,7 +575,9 @@ describe("DesktopPanelDock", () => {
         </MuseTheme>,
       );
       expect(screen.getAllByTestId("file-tab")).toHaveLength(2);
-      expect(screen.getByTestId("desktop-panel-tab-file")).toBeInTheDocument();
+      // The browser tab stays yielded while a file is open, even after
+      // switching to another panel, so selecting 终端 does not pop it back in.
+      expect(screen.queryByTestId("desktop-panel-tab-file")).toBeNull();
       expect(screen.getByTestId("desktop-panel-tab-preview")).toHaveClass(
         "desktop-panel-tab--active",
       );

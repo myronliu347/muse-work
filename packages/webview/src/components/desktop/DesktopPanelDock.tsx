@@ -738,6 +738,17 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
             }
             if (!key.startsWith("kind:")) return null;
             const kind = key.slice("kind:".length) as DesktopPanelKind;
+            // While a file tab is showing in the file panel, it takes the
+            // browser tab's slot: clicking a tree file replaces 文件 instead
+            // of adding a second tab beside it. The browser returns when no
+            // file is active or another panel is selected.
+            if (
+              kind === "file" &&
+              activeFilePath &&
+              fileTabs.some((tab) => tab.path === activeFilePath)
+            ) {
+              return null;
+            }
             const fileBrowser =
               kind === "file" &&
               (!activeFilePath ||
