@@ -31,6 +31,7 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("你是这件事的负责人");
     expect(first.systemPrompt).toContain("实现的验收自己审");
     expect(first.systemPrompt).toContain("按先后处理每一段");
+    expect(first.systemPrompt).toContain("先补一条 `SendMessage`");
     expect(first.systemPrompt).toContain("必须把 `worktree` 设为 true");
     expect(first.systemPrompt).toContain("不要自己 `git worktree add`");
     expect(first.systemPrompt).toContain("`agentMode` 不填就是 `single`");

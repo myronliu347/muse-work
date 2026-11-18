@@ -26,6 +26,10 @@ export type AssistantTurnContext = {
 const TURN_LIMIT_MS = 90_000;
 const OVERRUN_NOTE =
   "上一轮超时被打断了，后面还有事件在等。被打断的工具没有做完。没做完的交给 Issue 接着做，然后处理下面的事件。不要停在这里。";
+/** 回合结束才发现没回消息：重投一次，明确要求先回。 */
+const MISSING_REPLY_ERROR = "上一轮没有回复";
+const MISSING_REPLY_NOTE =
+  "上一轮结束时没有调用 SendMessage，用户什么都没看到。现在先发一条 SendMessage 回复，再处理下面的事件。";
 
 export function createAssistantRuntime(options: {
   home: string;
@@ -43,6 +47,8 @@ export function createAssistantRuntime(options: {
   onTurnEnd?: (turnId: string) => void;
   systemPrompt?: string;
   toolNames?: readonly string[];
+  /** 这一轮是否已经用 SendMessage 回过人。缺省时不做「没回复」重投。 */
+  wasReplied?: (turnId: string) => boolean;
 }): {
   enqueue(event: AssistantEvent): void;
   onAssistantTurnSettled(
@@ -68,6 +74,7 @@ export function createAssistantRuntime(options: {
   /** 打断后的交接还没把下一轮发出去。这期间的再次收尾是同一次 abort 的回声。 */
   let handoff = false;
   let inflightTurnId: string | undefined;
+  let inflightHadChat = false;
 
   function stamp(event: AssistantEvent): AssistantEvent {
     if (event.timestamp !== undefined) return event;
@@ -154,6 +161,7 @@ export function createAssistantRuntime(options: {
 
   function beginTurn(batch: AssistantEvent[], note?: string): void {
     inflight = true;
+    inflightHadChat = batch.some((event) => event.type === "chat");
     rememberSources(batch);
     syncAssistant();
     const issueIds = [
@@ -197,11 +205,11 @@ export function createAssistantRuntime(options: {
       });
   }
 
-  function pump(): void {
+  function pump(note?: string): void {
     if (stopped || inflight || handoff || !assistantId) return;
     const batch = queue.claimBatch();
     if (batch.length === 0) return;
-    beginTurn(batch);
+    beginTurn(batch, note);
   }
 
   function pumpPreempted(): void {
@@ -216,6 +224,7 @@ export function createAssistantRuntime(options: {
     result: { ok: boolean; error?: string },
   ): void {
     if (!assistantId || sessionId !== assistantId) return;
+    const settledTurnId = inflightTurnId;
     if (inflightTurnId) {
       options.onTurnEnd?.(inflightTurnId);
       inflightTurnId = undefined;
@@ -245,6 +254,20 @@ export function createAssistantRuntime(options: {
       return;
     }
     if (result.ok) {
+      // 有人说话，这一轮却一条 SendMessage 都没有：重投同一批，并点名要求先回。
+      // 只重投一次，重投后 head.retry 为 1，再漏就放弃，避免死循环。
+      const missingReply =
+        inflightHadChat &&
+        settledTurnId !== undefined &&
+        options.wasReplied !== undefined &&
+        !options.wasReplied(settledTurnId) &&
+        queue.peek()?.retry !== 1;
+      if (missingReply) {
+        queue.markBatchRetry(MISSING_REPLY_ERROR);
+        pump(MISSING_REPLY_NOTE);
+        notify();
+        return;
+      }
       queue.dropBatch();
       pump();
       notify();

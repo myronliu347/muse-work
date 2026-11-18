@@ -213,6 +213,8 @@ export function createAppContext(
     });
   };
   let currentAssistantTurn: AssistantTurnContext | undefined;
+  /** 最近一次 SendMessage 成功所在的一轮。用来抓「有人说话却没回」的回合。 */
+  let repliedTurnId: string | undefined;
   const extraTools = options?.extraTools ?? [];
   const assistantRuntime = createAssistantRuntime({
     home,
@@ -229,8 +231,10 @@ export function createAppContext(
     onQueue: (items) => {
       sessions.hub.broadcastAll({ type: "assistant:queue", items });
     },
+    wasReplied: (turnId) => repliedTurnId === turnId,
     onTurnStart: (context) => {
       currentAssistantTurn = context;
+      repliedTurnId = undefined;
     },
     onTurnEnd: () => {
       currentAssistantTurn = undefined;
@@ -268,6 +272,9 @@ export function createAppContext(
     hub: sessions.hub,
     recordIssueUpdate,
     getTurnContext: () => currentAssistantTurn,
+    onReplySent: () => {
+      if (currentAssistantTurn) repliedTurnId = currentAssistantTurn.turnId;
+    },
     apps,
     extraTools,
   });

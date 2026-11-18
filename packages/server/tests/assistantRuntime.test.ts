@@ -383,6 +383,82 @@ describe("assistant runtime", () => {
     expect(sends[1]).toContain("title: 登录");
     expect(sends[1]).not.toContain("message: 正在做");
   });
+  it("re-injects a chat turn that ended without a reply, exactly once", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-rt7-"));
+    const sessions = createSessionStore({ home });
+    const sends: string[] = [];
+    const runner = {
+      sendMessage: async (_sessionId: string, content: string) => {
+        sends.push(content);
+        return { accepted: true as const };
+      },
+      appendSystemNote: async () => {},
+    };
+    const runtime = createAssistantRuntime({
+      home,
+      sessions,
+      runner: runner as never,
+      queue: createAssistantQueue({ home }),
+      wasReplied: () => false,
+    });
+    runtime.start();
+    const assistantId = sessions.list().find((session) => session.origin === "assistant")!.id;
+    runtime.enqueue({ type: "chat", from: "muse", message: "在吗" });
+    expect(sends).toHaveLength(1);
+    runtime.onAssistantTurnSettled(assistantId, { ok: true });
+    expect(sends).toHaveLength(2);
+    expect(sends[1]).toContain("没有调用 SendMessage");
+    expect(sends[1]).toContain("retry: 1");
+    expect(sends[1]).toContain("message: 在吗");
+    runtime.onAssistantTurnSettled(assistantId, { ok: true });
+    expect(sends).toHaveLength(2);
+  });
+
+  it("does not re-inject when the turn replied or carried no chat", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-rt8-"));
+    const sessions = createSessionStore({ home });
+    const sends: string[] = [];
+    const runner = {
+      sendMessage: async (_sessionId: string, content: string) => {
+        sends.push(content);
+        return { accepted: true as const };
+      },
+      appendSystemNote: async () => {},
+    };
+    const replied = createAssistantRuntime({
+      home,
+      sessions,
+      runner: runner as never,
+      queue: createAssistantQueue({ home }),
+      wasReplied: () => true,
+    });
+    replied.start();
+    const assistantId = sessions.list().find((session) => session.origin === "assistant")!.id;
+    replied.enqueue({ type: "chat", from: "muse", message: "回过了" });
+    expect(sends).toHaveLength(1);
+    replied.onAssistantTurnSettled(assistantId, { ok: true });
+    expect(sends).toHaveLength(1);
+
+    const noChat = createAssistantRuntime({
+      home,
+      sessions,
+      runner: runner as never,
+      queue: createAssistantQueue({ home }),
+      wasReplied: () => false,
+    });
+    noChat.start();
+    noChat.enqueue({
+      type: "issue",
+      issueId: "i1",
+      title: "登录",
+      workdir: "/repo",
+      summary: "做到一半",
+    });
+    expect(sends).toHaveLength(2);
+    noChat.onAssistantTurnSettled(assistantId, { ok: true });
+    expect(sends).toHaveLength(2);
+  });
+
   it("exposes a turn context for a single issue event", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-ctx-"));
     const sessions = createSessionStore({ home });

@@ -27,6 +27,8 @@ export type AssistantToolDeps = {
     opts?: { allowClosed?: boolean },
   ) => IssueUpdate | undefined;
   getTurnContext?: () => AssistantTurnContext | undefined;
+  /** SendMessage 成功时调用，用来判断这一轮有没有回过人。 */
+  onReplySent?: () => void;
   apps?: import("@muse-work/plugin-sdk").AssistantApp[];
   extraTools?: import("@muse-work/plugin-sdk").AssistantTool[];
   openIssue?: typeof openIssueSession;

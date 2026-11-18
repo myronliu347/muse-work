@@ -26,6 +26,7 @@ describe("assistant tools", () => {
     const automations = createAutomationStore({ home });
     const log = createAssistantMessageLog({ home });
     const broadcasts: unknown[] = [];
+    let replyCount = 0;
     const decisions: Array<{ sessionId: string; permissionId: string; behavior: string }> = [];
     const disposed: string[] = [];
     const opened: OpenIssueBody[] = [];
@@ -37,6 +38,9 @@ describe("assistant tools", () => {
       automations,
       log,
       hub,
+      onReplySent: () => {
+        replyCount += 1;
+      },
       runner: {
         sendMessage: async () => ({ accepted: true as const }),
         disposeSession: async (sessionId: string) => {
@@ -173,18 +177,21 @@ describe("assistant tools", () => {
     );
     expect(noSession.error).toBe("session not open");
 
+    const repliesBeforeMuse = replyCount;
     const muse = await tool(tools, "SendMessage").execute(
       { app: "muse", message: "好" },
       context,
     );
     expect(muse.success).toBe(true);
     expect(log.page().messages[0]?.role).toBe("assistant");
+    expect(replyCount).toBe(repliesBeforeMuse + 1);
 
     const unknown = await tool(tools, "SendMessage").execute(
       { app: "channel", message: "群" },
       context,
     );
     expect(unknown.success).toBe(false);
+    expect(replyCount).toBe(repliesBeforeMuse + 1);
     expect(log.page().messages).toHaveLength(1);
 
     log.append("user", "你".repeat(8001));

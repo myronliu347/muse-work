@@ -303,6 +303,7 @@ export function createMessageTools(deps: AssistantToolDeps) {
           }
           if (issueId) deps.issues.clearReplyPending(issueId);
           deps.hub.broadcastAll({ type: "assistant:chat", line });
+          deps.onReplySent?.();
           return ok({
             line,
             ...(missingAts.length > 0
@@ -345,6 +346,7 @@ export function createMessageTools(deps: AssistantToolDeps) {
           deps.hub.broadcastAll({ type: "assistant:chat", line });
           body.line = line;
         }
+        deps.onReplySent?.();
         return { success: true, content: JSON.stringify(body) };
       },
       (params) => compactText(params.message),
