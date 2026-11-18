@@ -72,6 +72,9 @@
 
 .desktop-panel-dock-header {
   height: var(--desktop-shell-titlebar-height, 38px);
+  /* Match the main/sidebar boundary line; the dock header is the right
+     panel's edge in the same titlebar row. */
+  border-left: var(--hairline) solid var(--border-subtle);
   padding: 0 var(--space-3);
   background: var(--surface-header);
   display: flex;
@@ -397,6 +400,7 @@
   padding-left: calc(
     var(--desktop-shell-chrome-left, 82px) + var(--space-3)
   );
+  border-left: 0;
 }
 
 .desktop-panel-dock--fullscreen .preview-pane-drag-handle {
