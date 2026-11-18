@@ -284,15 +284,15 @@ export function IssueRowContent({ issue }: { issue: BotListIssue }) {
           </span>
         ) : null}
       </span>
+      {issue.statusLabel ? (
+        <span className="bot-list-status">{issue.statusLabel}</span>
+      ) : null}
+      <span className="bot-list-priority">{priorityLabel(issue.priority)}</span>
       {issue.latestUpdate ? (
         <span className="bot-list-time">
           {formatUpdateTime(issue.latestUpdate.at)}
         </span>
       ) : null}
-      {issue.statusLabel ? (
-        <span className="bot-list-status">{issue.statusLabel}</span>
-      ) : null}
-      <span className="bot-list-priority">{priorityLabel(issue.priority)}</span>
     </>
   );
 }
