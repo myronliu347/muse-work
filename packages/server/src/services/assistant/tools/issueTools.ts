@@ -70,7 +70,7 @@ export function createIssueTools(deps: AssistantToolDeps) {
     ),
     tool(
       "GetIssue",
-      "读取一个 Issue 的详情，包括已关闭 Issue 的 closeNote（用户的最终结论或取消原因）。issue-closed 事件只带 id/title/status，不带 note；需要判断关闭后的后续时用这个读取，不要猜。",
+      "读取一个 Issue 的详情，包括已关闭 Issue 的 closeNote（用户的最终结论或取消原因）。issue-closed 事件带 id/title/workdir/status，不带 note；需要判断关闭后的后续时用这个读取，不要猜。",
       {
         type: "object",
         properties: {

@@ -39,7 +39,7 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("当前这一步结束后进入同一轮");
     expect(first.systemPrompt).not.toContain("interrupt");
     expect(first.systemPrompt).toContain("谁在哪个频道问");
-    expect(first.systemPrompt).toContain("没指明渠道时默认 `app` 为 `muse`");
+    expect(first.systemPrompt).toContain("没指明渠道时 `app` 也传 `muse`");
     expect(first.systemPrompt).toContain("干活的是 Issue 会话");
     expect(first.systemPrompt).not.toContain("`Agent`");
     expect(first.systemPrompt).toContain("做成的不要再做");

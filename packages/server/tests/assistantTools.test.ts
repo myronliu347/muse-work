@@ -7,6 +7,7 @@ import { createSessionStore } from "../src/services/sessionStore.js";
 import { createAutomationStore } from "../src/services/automationStore.js";
 import { createAssistantMessageLog } from "../src/services/assistant/messages.js";
 import { createAssistantTools } from "../src/services/assistant/tools.js";
+import { ASSISTANT_TOOLS } from "../src/services/assistant/session.js";
 import type { WsHub } from "../src/services/wsHub.js";
 import type { OpenIssueBody } from "../src/services/issueOpen.js";
 
@@ -75,6 +76,9 @@ describe("assistant tools", () => {
       },
     });
     const context = { workdir, taskManager: {} as never };
+    // 会话的 tools 是允许列表，没列进去的工具模型根本看不到。
+    const allowed = new Set<string>([...ASSISTANT_TOOLS]);
+    expect(tools.map((entry) => entry.name).filter((name) => !allowed.has(name))).toEqual([]);
     expect(tool(tools, "SendMessage").config.function.description).toContain(
       "回合正文不会发出去",
     );

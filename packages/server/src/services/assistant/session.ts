@@ -7,6 +7,7 @@ import { ASSISTANT_SYSTEM_PROMPT } from "./prompt.js";
 /** 协调工具，加上查改文件、抓网页、Tavily 搜索，以及 Skill 和 Bash。 */
 export const ASSISTANT_TOOLS = [
   "ListIssues",
+  "GetIssue",
   "ListWorkdirs",
   "CreateIssue",
   "UpdateIssue",
