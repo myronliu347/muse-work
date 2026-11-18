@@ -2063,7 +2063,9 @@ describe("assistant dock detail", () => {
 
     await user.click(screen.getByRole("button", { name: "查看全部" }));
     expect(onLoadUpdates).toHaveBeenCalledWith("radii", { limit: 30 });
-    expect(await screen.findByRole("button", { name: "收起" })).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "收起" }));
+    expect(onLoadUpdates).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "查看全部" })).toBeInTheDocument();
   });
 
 describe("session dock detail", () => {
@@ -2071,6 +2073,60 @@ describe("session dock detail", () => {
     cleanup();
     vi.unstubAllGlobals();
     resetWebviewStores();
+  });
+
+  it("does not leave a dead collapse control when full history adds no rows", async () => {
+    const user = userEvent.setup();
+    const now = Date.now();
+    const base = [
+      {
+        id: "primary",
+        at: now,
+        kind: "assistant" as const,
+        summary: "最新进展",
+      },
+      ...Array.from({ length: 7 }, (_, index) => ({
+        id: `status-${index}`,
+        at: now - index,
+        kind: "status" as const,
+        summary: `状态 ${index}`,
+      })),
+    ];
+    const turns = Array.from({ length: 12 }, (_, index) => ({
+      id: `turn-${index}`,
+      at: now - 100 - index,
+      kind: "turn" as const,
+      summary: "回合结束",
+    }));
+    const onLoadUpdates = vi.fn().mockResolvedValue({
+      updates: turns,
+      hasMore: false,
+    });
+    const radii = {
+      ...issue({ issueId: "radii", title: RADII, priority: "p1" }),
+      updates: base,
+      updateCount: 20,
+    };
+    render(
+      <MuseTheme>
+        <DockDetail
+          selection={{ kind: "issue", issue: radii }}
+          actionLabel={null}
+          onOpenSession={() => {}}
+          onLoadUpdates={onLoadUpdates}
+        />
+      </MuseTheme>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "查看全部" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "收起" })).toBeNull(),
+    );
+    expect(screen.queryByRole("button", { name: "查看全部" })).toBeNull();
+    expect(screen.getByText("没有更多")).toBeInTheDocument();
+    expect(screen.getByTestId("dock-detail-timeline")).toHaveTextContent(
+      "状态 6",
+    );
   });
 
   it("does not show the issue detail tab", async () => {

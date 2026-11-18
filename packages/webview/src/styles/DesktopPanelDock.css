@@ -1501,6 +1501,11 @@
   color: var(--text-tertiary);
   cursor: default;
 }
+.dock-detail-updates-done {
+  margin-left: 8px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+}
 .dock-detail-permission {
   margin: 0 0 16px;
   padding: 12px;

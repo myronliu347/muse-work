@@ -692,6 +692,7 @@ export function DockDetail({
   const [latestExpanded, setLatestExpanded] = useState(false);
   const [extraUpdates, setExtraUpdates] = useState<DesktopIssueUpdate[]>([]);
   const [updatesExpanded, setUpdatesExpanded] = useState(false);
+  const [updatesLoaded, setUpdatesLoaded] = useState(false);
   const [loadingUpdates, setLoadingUpdates] = useState(false);
   const [resolvingPermission, setResolvingPermission] = useState<string | null>(null);
   const [resolvedPermissions, setResolvedPermissions] = useState<Set<string>>(new Set());
@@ -827,6 +828,7 @@ export function DockDetail({
     setLatestExpanded(false);
     setExtraUpdates([]);
     setUpdatesExpanded(false);
+    setUpdatesLoaded(false);
     setResolvingPermission(null);
     setResolvedPermissions(new Set());
     setPermissionError(null);
@@ -1006,12 +1008,14 @@ export function DockDetail({
   const latestHasMore =
     Boolean(primaryUpdate) &&
     (primaryUpdate!.summary.length > 180 || Boolean(primaryUpdate!.detail));
-  const canLoadMore = Boolean(onLoadUpdates) && (
-    updatesExpanded
-      ? updates.length > 8
-      : (issue.updateCount ?? baseUpdates.length) > baseUpdates.length ||
-        timelineUpdates.length > 8
-  );
+  // The expand/collapse control is about timeline rows, not the raw update
+  // count: hidden turn rows can make "查看全部" fetch more data without adding
+  // a single visible row. Do not leave a dead "收起" behind for that case.
+  const canLoadMore =
+    Boolean(onLoadUpdates) &&
+    (timelineUpdates.length > 8 ||
+      (!updatesLoaded &&
+        (issue.updateCount ?? baseUpdates.length) > baseUpdates.length));
   const permissionUpdate = updates.find((update) => {
     if (
       update.kind !== "permission" ||
@@ -1170,6 +1174,7 @@ export function DockDetail({
     try {
       const page = await onLoadUpdates(issue.issueId, { limit: 30 });
       setExtraUpdates(page.updates);
+      setUpdatesLoaded(true);
       setUpdatesExpanded(true);
     } finally {
       setLoadingUpdates(false);
@@ -1488,6 +1493,8 @@ export function DockDetail({
                     >
                       {loadingUpdates ? "加载中…" : updatesExpanded ? "收起" : "查看全部"}
                     </button>
+                  ) : updatesLoaded ? (
+                    <span className="dock-detail-updates-done">没有更多</span>
                   ) : null}
                 </div>
                 <ol className="dock-detail-update-list">
