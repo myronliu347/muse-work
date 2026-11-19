@@ -59,7 +59,10 @@ const KINDS: DesktopPanelKind[] = ["preview", "diff", "terminal", "file"];
 function issue(
   partial: Pick<DesktopIssueGroup, "issueId" | "title" | "priority"> &
     Partial<
-      Pick<DesktopIssueGroup, "items" | "status" | "closeNote">
+      Pick<
+        DesktopIssueGroup,
+        "items" | "status" | "closeNote" | "description" | "updatedAt"
+      >
     >,
 ): DesktopIssueGroup {
   return {
@@ -675,6 +678,36 @@ describe("dock detail tab", () => {
     expect(screen.getByTestId("dock-detail-checklist")).toHaveTextContent(
       "统一页脚",
     );
+  });
+
+  it("loads the description of an open issue on demand", async () => {
+    const open = issue({
+      issueId: "open",
+      title: "进行中",
+      priority: "p1",
+      status: "executing",
+      description: "",
+      updatedAt: 42,
+    });
+    const onLoadIssue = vi.fn(async () => ({
+      description: "活跃事项的完整正文",
+      items: [],
+    }));
+    render(
+      <DockDetail
+        selection={{ kind: "issue", issue: open }}
+        actionLabel={null}
+        issues={[]}
+        closedIssues={[]}
+        onLoadIssue={onLoadIssue}
+        onOpenSession={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByTestId("dock-detail-description")).toHaveTextContent(
+      "活跃事项的完整正文",
+    );
+    expect(onLoadIssue).toHaveBeenCalledWith("open");
   });
 
   it("renders description markdown and checklist status", () => {

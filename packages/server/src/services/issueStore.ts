@@ -49,6 +49,8 @@ export interface Issue {
   planningSessionId?: string;
   executionSessionId?: string;
   items: ChecklistItem[];
+  /** 正文最后一次被改的时间；详情按需拉取时用作缓存键。 */
+  descriptionUpdatedAt?: number;
   /** 完成时的结果结论，或取消时的原因。 */
   closeNote?: string;
   /** 派活时留给自己的交代，例如做完发到群里。 */
@@ -74,6 +76,11 @@ export interface IssueStore {
   get(id: string): Issue | undefined;
   listActive(): Issue[];
   listClosed(): Issue[];
+  /** Closed issues, newest first; clones only the requested page. */
+  listClosedPage(offset: number, limit: number): Issue[];
+  countClosed(): number;
+  /** Session ids owned by closed issues, without cloning every record. */
+  listClosedSessionIds(): string[];
   listAll(): Issue[];
   update(
     id: string,
@@ -305,9 +312,18 @@ export function createIssueStore(
     }
   }
 
+  /**
+   * 归档只在关闭/撤销时变。进展、标题、清单等 active 变更不该重写 1.7MB 的
+   * 月份归档——那是一次 ~17ms 的同步落盘，随归档增长。写 active 时跳过归档，
+   * 真正搬到 closed 时把 dirty 置上。
+   */
+  let closedDirty = false;
+
   function persistClosed(): void {
+    if (!closedDirty) return;
     saveClosedIssues(home, [...closed.values()]);
     finalizeLegacyClosedIndexMigration(home);
+    closedDirty = false;
   }
 
   function persist(): void {
@@ -326,6 +342,7 @@ export function createIssueStore(
       path.join(getMuseHomeDir(home), "db", "issues-closed.json"),
     );
   if (needsPersist) {
+    closedDirty = true;
     persist();
   }
 
@@ -333,9 +350,23 @@ export function createIssueStore(
     return issues.get(id) ?? closed.get(id);
   }
 
+  /** Sorted view of the archive; rebuilt only when an issue moves or its time changes. */
+  let closedOrder: Issue[] | null = null;
+
+  function sortedClosed(): Issue[] {
+    if (!closedOrder) {
+      closedOrder = [...closed.values()].sort(
+        (a, b) => b.updatedAt - a.updatedAt,
+      );
+    }
+    return closedOrder;
+  }
+
   function archive(issue: Issue): void {
     issues.delete(issue.id);
     closed.set(issue.id, issue);
+    closedDirty = true;
+    closedOrder = null;
     persist();
   }
 
@@ -386,9 +417,26 @@ export function createIssueStore(
     },
 
     listClosed(): Issue[] {
-      return [...closed.values()]
-        .sort((a, b) => b.updatedAt - a.updatedAt)
-        .map(cloneIssue);
+      return sortedClosed().map(cloneIssue);
+    },
+
+    listClosedPage(offset, limit): Issue[] {
+      const start = Math.max(0, Math.floor(offset));
+      const count = Math.max(0, Math.floor(limit));
+      return sortedClosed().slice(start, start + count).map(cloneIssue);
+    },
+
+    countClosed(): number {
+      return closed.size;
+    },
+
+    listClosedSessionIds(): string[] {
+      const ids: string[] = [];
+      for (const issue of closed.values()) {
+        if (issue.planningSessionId) ids.push(issue.planningSessionId);
+        if (issue.executionSessionId) ids.push(issue.executionSessionId);
+      }
+      return ids;
     },
 
     listAll(): Issue[] {
@@ -401,6 +449,11 @@ export function createIssueStore(
         return undefined;
       }
       issue.updatedAt = Date.now();
+      // 进展写入只改 active Issue 的排序时间；只有碰到已关闭事项才需要重写归档。
+      if (closed.has(id)) {
+        closedDirty = true;
+        closedOrder = null;
+      }
       persist();
       return cloneIssue(issue);
     },
@@ -419,6 +472,7 @@ export function createIssueStore(
       }
       if (patch.description !== undefined) {
         issue.description = patch.description;
+        issue.descriptionUpdatedAt = Date.now();
       }
       if (patch.priority !== undefined) {
         issue.priority = patch.priority;
@@ -601,6 +655,8 @@ export function createIssueStore(
       issue.updatedAt = Date.now();
       closed.delete(id);
       issues.set(id, issue);
+      closedDirty = true;
+      closedOrder = null;
       persist();
       emit("created", issue);
       return cloneIssue(issue);

@@ -72,6 +72,13 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
         ...(g.agentMode ? { agentMode: g.agentMode } : {}),
         ...(g.closeNote ? { closeNote: g.closeNote } : {}),
         ...(g.closedAt !== undefined ? { closedAt: g.closedAt } : {}),
+        ...(g.updatedAt !== undefined ? { updatedAt: g.updatedAt } : {}),
+        ...(g.descriptionPreview !== undefined
+          ? { descriptionPreview: g.descriptionPreview }
+          : {}),
+        ...(g.descriptionUpdatedAt !== undefined
+          ? { descriptionUpdatedAt: g.descriptionUpdatedAt }
+          : {}),
         ...(g.workdir ? { workdir: g.workdir } : {}),
         ...(g.baseBranch ? { baseBranch: g.baseBranch } : {}),
         sessions: (g.sessions ?? []).map(toEntry),
@@ -92,6 +99,13 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
         ...(g.agentMode ? { agentMode: g.agentMode } : {}),
         ...(g.closeNote ? { closeNote: g.closeNote } : {}),
         ...(g.closedAt !== undefined ? { closedAt: g.closedAt } : {}),
+        ...(g.updatedAt !== undefined ? { updatedAt: g.updatedAt } : {}),
+        ...(g.descriptionPreview !== undefined
+          ? { descriptionPreview: g.descriptionPreview }
+          : {}),
+        ...(g.descriptionUpdatedAt !== undefined
+          ? { descriptionUpdatedAt: g.descriptionUpdatedAt }
+          : {}),
         ...(g.workdir ? { workdir: g.workdir } : {}),
         ...(g.baseBranch ? { baseBranch: g.baseBranch } : {}),
         sessions: (g.sessions ?? []).map(toEntry),

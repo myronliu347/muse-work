@@ -68,6 +68,7 @@ sessionsRoutes.get("/sessions", (c) => {
         closeNote?: string;
         workdir?: string;
         baseBranch?: string;
+        descriptionUpdatedAt?: number;
         updatedAt: number;
       },
       closed = false,
@@ -93,13 +94,29 @@ sessionsRoutes.get("/sessions", (c) => {
             return latest ? withPermissionState(latest) : undefined;
           })();
       const updateCount = closed ? 0 : ctx.issueProgress.count(issue.id);
+      // Only the first 400 units are needed; do not scan a 200KB body.
+      const descriptionPreview = (issue.description ?? "").slice(0, 400).trim();
       return {
         issueId: issue.id,
         title: issue.title,
-        // Closed issues stay in the tree for the archive list and for resolving
-        // a session that still points at one; the long-form body is fetched on
-        // demand when the closed detail is opened.
-        description: closed ? "" : (issue.description ?? ""),
+        // The tree carries no long-form body: a 200KB description would ride
+        // on every issue:changed refresh. The detail dock fetches it on demand
+        // (both open and closed) and keys its cache by descriptionUpdatedAt.
+        description: "",
+        // The sidebar hover card only needs a short preview; the dock's full
+        // body is fetched on demand.
+        ...(descriptionPreview
+          ? {
+              descriptionPreview:
+                descriptionPreview.length > 200
+                  ? `${descriptionPreview.slice(0, 200)}…`
+                  : descriptionPreview,
+            }
+          : {}),
+        updatedAt: issue.updatedAt,
+        ...(issue.descriptionUpdatedAt
+          ? { descriptionUpdatedAt: issue.descriptionUpdatedAt }
+          : {}),
         priority: issue.priority,
         type: issue.type,
         status: issue.status,
@@ -118,19 +135,23 @@ sessionsRoutes.get("/sessions", (c) => {
       };
     };
     const activeIssues = ctx.issueStore.listActive();
-    const closedIssues = ctx.issueStore.listClosed();
+    const closedIssues = ctx.issueStore.listClosedPage(0, CLOSED_ISSUE_PAGE_SIZE);
     const issueGroups = activeIssues.map((issue) => toGroup(issue));
-    const closedIssueGroups = closedIssues
-      .slice(0, CLOSED_ISSUE_PAGE_SIZE)
-      .map((issue) => toGroup(issue, true));
+    const closedIssueGroups = closedIssues.map((issue) =>
+      toGroup(issue, true),
+    );
     // Every issue session stays out of 工作空间, not only the ones whose group
     // rides in the tree: the archive only carries its first page, and issues
     // closed before close-deleted their sessions still have live sessions in
     // the store. Both would otherwise leak into `recent` as ordinary sessions.
+    // Read the ids without cloning the whole archive on every tree refresh.
     const issueSessionIds = new Set<string>();
-    for (const issue of [...activeIssues, ...closedIssues]) {
+    for (const issue of activeIssues) {
       if (issue.planningSessionId) issueSessionIds.add(issue.planningSessionId);
       if (issue.executionSessionId) issueSessionIds.add(issue.executionSessionId);
+    }
+    for (const id of ctx.issueStore.listClosedSessionIds()) {
+      issueSessionIds.add(id);
     }
     // Exclude issue sessions before the 50-item recent cap: they are listed in
     // 待办事项 / 已关闭, and a closed-issue backlog must not crowd ordinary

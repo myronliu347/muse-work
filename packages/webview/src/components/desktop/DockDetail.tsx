@@ -127,7 +127,7 @@ const closeSummaryRequests = new Map<
   { key: string; promise: Promise<string> }
 >();
 
-/** Closed issues arrive without their long-form body; fetch it once on demand. */
+/** The tree carries no long-form body; fetch it on demand and key by updatedAt. */
 type ClosedIssueDetail = {
   issueId: string;
   description: string;
@@ -142,10 +142,11 @@ function loadClosedIssueDetail(
     items?: DesktopIssueGroup["items"];
   }>,
   issueId: string,
+  cacheKey: string,
 ): Promise<ClosedIssueDetail> {
-  const cached = closedIssueDetails.get(issueId);
+  const cached = closedIssueDetails.get(cacheKey);
   if (cached) return Promise.resolve(cached);
-  const pending = closedIssueDetailRequests.get(issueId);
+  const pending = closedIssueDetailRequests.get(cacheKey);
   if (pending) return pending;
   const request = load(issueId)
     .then((detail) => {
@@ -154,13 +155,13 @@ function loadClosedIssueDetail(
         description: detail.description ?? "",
         items: detail.items ?? [],
       };
-      closedIssueDetails.set(issueId, next);
+      closedIssueDetails.set(cacheKey, next);
       return next;
     })
     .finally(() => {
-      closedIssueDetailRequests.delete(issueId);
+      closedIssueDetailRequests.delete(cacheKey);
     });
-  closedIssueDetailRequests.set(issueId, request);
+  closedIssueDetailRequests.set(cacheKey, request);
   return request;
 }
 
@@ -630,6 +631,7 @@ function dockIssueToGroup(issue: DockDetailIssue): DesktopIssueGroup {
     items: [],
     ...(issue.closeNote ? { closeNote: issue.closeNote } : {}),
     ...(issue.closedAt !== undefined ? { closedAt: issue.closedAt } : {}),
+    ...(issue.closedAt !== undefined ? { updatedAt: issue.closedAt } : {}),
     ...(issue.workdir ? { workdir: issue.workdir } : {}),
     ...(issue.baseBranch ? { baseBranch: issue.baseBranch } : {}),
     sessions: [],
@@ -766,12 +768,14 @@ export function DockDetail({
     }
   };
 
-  const selectedIssueId =
-    selection.kind === "issue" ? selection.issue.issueId : "";
-  const selectedIssueClosed =
-    selection.kind === "issue" &&
-    (selection.issue.status === "completed" ||
-      selection.issue.status === "cancelled");
+  const selectedIssue = selection.kind === "issue" ? selection.issue : undefined;
+  const selectedIssueId = selectedIssue?.issueId ?? "";
+  // Open and closed issues both arrive without their body now; short
+  // descriptions may still ride in older payloads, so only fetch when blank.
+  const selectedNeedsBody = selectedIssue
+    ? !selectedIssue.description?.trim()
+    : false;
+  const selectedBodyKey = `${selectedIssueId}:${selectedIssue?.descriptionUpdatedAt ?? 0}`;
 
   useEffect(() => {
     if (fits) setPeek(false);
@@ -783,16 +787,16 @@ export function DockDetail({
   }, [selectedIssueId]);
 
   useEffect(() => {
-    if (!selectedIssueClosed || !selectedIssueId || !onLoadIssue) return;
+    if (!selectedNeedsBody || !selectedIssueId || !onLoadIssue) return;
     let cancelled = false;
-    const cached = closedIssueDetails.get(selectedIssueId);
+    const cached = closedIssueDetails.get(selectedBodyKey);
     if (cached) {
       setLoadedIssue(cached);
       setClosedLoading(false);
       return;
     }
     setClosedLoading(true);
-    loadClosedIssueDetail(onLoadIssue, selectedIssueId)
+    loadClosedIssueDetail(onLoadIssue, selectedIssueId, selectedBodyKey)
       .then((detail) => {
         if (!cancelled) setLoadedIssue(detail);
       })
@@ -802,8 +806,8 @@ export function DockDetail({
           description: "",
           items: [],
         };
-        // A missing closed issue must not retry on every parent render.
-        closedIssueDetails.set(selectedIssueId, empty);
+        // Show the fallback, but do not cache a failed fetch: the effect only
+        // reruns when the body key changes, so a reopen should get a retry.
         if (!cancelled) setLoadedIssue(empty);
       })
       .finally(() => {
@@ -812,7 +816,7 @@ export function DockDetail({
     return () => {
       cancelled = true;
     };
-  }, [onLoadIssue, selectedIssueClosed, selectedIssueId]);
+  }, [onLoadIssue, selectedBodyKey, selectedIssueId, selectedNeedsBody]);
 
   useEffect(() => {
     setLatestExpanded(false);

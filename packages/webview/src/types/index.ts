@@ -320,6 +320,12 @@ export interface DesktopIssueGroup {
   closeNote?: string;
   /** 关闭时间（毫秒）；已完成的列表按它分组。 */
   closedAt?: number;
+  /** 最近更新时间（毫秒）；详情正文按需拉取时用它做缓存键。 */
+  updatedAt?: number;
+  /** 侧栏悬停卡用的短预览；完整正文按需拉取。 */
+  descriptionPreview?: string;
+  /** 正文最后一次被改的时间；详情按需拉取时用作缓存键。 */
+  descriptionUpdatedAt?: number;
   workdir?: string;
   /** 创建 worktree 时使用的基准分支。 */
   baseBranch?: string;

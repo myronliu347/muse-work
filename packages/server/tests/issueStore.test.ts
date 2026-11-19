@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -422,6 +422,57 @@ describe("issueStore", () => {
     reloaded.markReplyPending(issue.id);
     expect(createIssueStore({ home }).get(issue.id)?.replyPending).toBe(true);
     expect(reloaded.setReplyNote(issue.id, "  ")?.replyNote).toBeUndefined();
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("pages the closed archive and reports its session ids", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-page-"));
+    const store = createIssueStore({ home });
+    const first = store.create({ title: "一" });
+    store.setPlanning(first.id, {
+      planningSessionId: "plan-1",
+      workdir: "/tmp/a",
+      worktreeEnabled: false,
+      agentMode: "split",
+    });
+    store.setExecutionSessionId(first.id, "exec-1");
+    store.complete(first.id, "完成");
+    const second = store.create({ title: "二" });
+    store.complete(second.id, "完成");
+
+    expect(store.countClosed()).toBe(2);
+    expect(store.listClosedPage(0, 1)).toHaveLength(1);
+    expect(store.listClosedPage(1, 5)).toHaveLength(1);
+    expect(store.listClosedPage(2, 5)).toHaveLength(0);
+    expect(store.listClosedSessionIds()).toEqual(
+      expect.arrayContaining(["plan-1", "exec-1"]),
+    );
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("touch does not rewrite the closed archive", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-touch-"));
+    const store = createIssueStore({ home });
+    const open = store.create({ title: "进行中" });
+    const done = store.create({ title: "已做" });
+    store.complete(done.id, "done");
+
+    const writes: string[] = [];
+    const originalWrite = fs.writeFileSync;
+    const spy = vi.spyOn(fs, "writeFileSync").mockImplementation(((
+      ...args: Parameters<typeof fs.writeFileSync>
+    ) => {
+      writes.push(String(args[0]));
+      return originalWrite(...args);
+    }) as typeof fs.writeFileSync);
+    try {
+      store.touch(open.id);
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(writes.some((file) => file.includes("issues-closed"))).toBe(false);
+    expect(writes.some((file) => file.includes("issues.json"))).toBe(true);
     fs.rmSync(home, { recursive: true, force: true });
   });
 });

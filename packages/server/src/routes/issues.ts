@@ -98,8 +98,9 @@ issuesRoutes.get("/issues/closed", (c) => {
   const limit = Number.isFinite(limitRaw)
     ? Math.min(100, Math.max(1, Math.floor(limitRaw)))
     : CLOSED_ISSUE_PAGE_SIZE;
-  const all = ctx.issueStore.listClosed();
-  const issues = all.slice(offset, offset + limit).map((issue) => ({
+  const all = ctx.issueStore.listClosedPage(offset, limit);
+  const total = ctx.issueStore.countClosed();
+  const issues = all.map((issue) => ({
     issueId: issue.id,
     title: issue.title,
     priority: issue.priority,
@@ -112,8 +113,8 @@ issuesRoutes.get("/issues/closed", (c) => {
   }));
   return c.json({
     issues,
-    hasMore: offset + limit < all.length,
-    total: all.length,
+    hasMore: offset + limit < total,
+    total,
   });
 });
 

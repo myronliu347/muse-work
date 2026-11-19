@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { normalizeIssueType } from "../../issueStore.js";
+import { normalizeIssueType, type Issue } from "../../issueStore.js";
 import { openIssueSession, type OpenIssueBody } from "../../issueOpen.js";
 import { deleteIssueSessions, plainCloseSummary } from "../../issueClose.js";
 import { createServerWorktree } from "../../gitWorktree.js";
@@ -22,6 +22,47 @@ function queuedPreview(item: unknown): string | undefined {
   return chars.length <= 80 ? content : `${chars.slice(0, 80).join("")}…`;
 }
 
+/** ListIssues 只带描述预览；完整正文走 GetIssue，避免每条都塞进 transcript。 */
+const LIST_ISSUES_DESCRIPTION_MAX = 1200;
+
+function descriptionPreview(description: string): {
+  description: string;
+  descriptionTruncated?: true;
+} {
+  const chars = [...description];
+  if (chars.length <= LIST_ISSUES_DESCRIPTION_MAX) return { description };
+  return {
+    description: `${chars.slice(0, LIST_ISSUES_DESCRIPTION_MAX).join("")}…`,
+    descriptionTruncated: true,
+  };
+}
+
+/**
+ * 工具回执只带标识和变更字段，不回整条 Issue。
+ *
+ * `UpdateIssue` 以前返回 `ok(issue)`：description 可能上百 KB，每次改一个字段
+ * 都会把全文再写进会话 transcript。实测一个 211KB 描述的 Issue 被回显 218 次，
+ * 单这一项就占了 transcript 的 38MB。
+ */
+function issueAck(
+  issue: Pick<
+    Issue,
+    "id" | "title" | "status" | "priority" | "type" | "replyPending" | "replyNote"
+  >,
+  changed: string[],
+): Record<string, unknown> {
+  return {
+    id: issue.id,
+    title: issue.title,
+    status: issue.status,
+    priority: issue.priority,
+    type: issue.type,
+    changed,
+    replyPending: Boolean(issue.replyPending),
+    ...(issue.replyNote ? { replyNote: issue.replyNote } : {}),
+  };
+}
+
 export function createIssueTools(deps: AssistantToolDeps) {
   const open = deps.openIssue ?? openIssueSession;
   const ctx = {
@@ -33,7 +74,7 @@ export function createIssueTools(deps: AssistantToolDeps) {
   return [
     tool(
       "ListIssues",
-      "列出未完成、且不是待关闭的 Issue：id、标题、描述、工作目录、会话是否已打开。已打开的还有 sessionStatus（idle、running、error）和 queued（还没收进当前轮、等当前这一步结束后进入同一轮的消息摘要）。待关闭的不在这里，除非 replyPending。replyPending 表示这一轮结束了，还没决定要不要告诉用户。replyNote 是派活时的交代，例如完全做完再告诉我。用户点名后用 MessageIssue，它会回到进行中。",
+      "列出未完成、且不是待关闭的 Issue：id、标题、描述、工作目录、会话是否已打开。描述是预览，超过 1200 字会截断并带 descriptionTruncated，需要全文用 GetIssue。已打开的还有 sessionStatus（idle、running、error）和 queued（还没收进当前轮、等当前这一步结束后进入同一轮的消息摘要）。待关闭的不在这里，除非 replyPending。replyPending 表示这一轮结束了，还没决定要不要告诉用户。replyNote 是派活时的交代，例如完全做完再告诉我。用户点名后用 MessageIssue，它会回到进行中。",
       { type: "object", properties: {} },
       async () =>
         ok(
@@ -57,7 +98,7 @@ export function createIssueTools(deps: AssistantToolDeps) {
                 id: issue.id,
                 title: issue.title,
                 type: issue.type,
-                description: issue.description,
+                ...descriptionPreview(issue.description),
                 workdir: issue.workdir,
                 sessionOpen: Boolean(sessionId),
                 ...(session ? { sessionStatus: session.status, queued } : {}),
@@ -156,7 +197,15 @@ export function createIssueTools(deps: AssistantToolDeps) {
           args.note === undefined
             ? created
             : deps.issues.setReplyNote(created.id, text(args.note)) ?? created;
-        return ok(issue);
+        return ok(
+          issueAck(issue, [
+            "title",
+            "description",
+            "priority",
+            "type",
+            ...(args.note === undefined ? [] : ["note"]),
+          ]),
+        );
       },
       (params) => compactText(params.title),
     ),
@@ -238,7 +287,13 @@ export function createIssueTools(deps: AssistantToolDeps) {
           }
           if (settle) issue = deps.issues.clearReplyPending(issueId) ?? issue;
           deps.hub.broadcastAll({ type: "issue:changed" });
-          return ok(issue);
+          return ok(
+            issueAck(issue, [
+              ...Object.keys(patch),
+              ...(hasNote ? ["note"] : []),
+              ...(settle ? ["settle"] : []),
+            ]),
+          );
         } catch (err) {
           return fail(err instanceof Error ? err.message : String(err));
         }

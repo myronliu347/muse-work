@@ -114,6 +114,7 @@ describe("assistant tools", () => {
     const issue = JSON.parse(created.content) as { id: string; priority: string; type: string };
     expect(issue.priority).toBe("p1");
     expect(issue.type).toBe("work");
+    expect(issue).not.toHaveProperty("description");
 
     const updated = await tool(tools, "UpdateIssue").execute(
       {
@@ -132,6 +133,20 @@ describe("assistant tools", () => {
       priority: "p0",
       type: "bug",
     });
+
+    // A mutation acknowledgement must not echo the issue body: an Issue
+    // description can be hundreds of KB, and every echo lands in the session
+    // transcript. The result stays a small changed-fields receipt.
+    const hugeDescription = "描".repeat(200_000);
+    const huge = await tool(tools, "UpdateIssue").execute(
+      { issueId: issue.id, description: hugeDescription },
+      context,
+    );
+    expect(huge.success).toBe(true);
+    expect(huge.content.length).toBeLessThan(2_000);
+    const hugeAck = JSON.parse(huge.content) as Record<string, unknown>;
+    expect(hugeAck).not.toHaveProperty("description");
+    expect(hugeAck.changed).toEqual(["description"]);
 
     const missing = await tool(tools, "OpenIssue").execute(
       { issueId: issue.id, workdir: path.join(workdir, "nope") },
@@ -508,6 +523,21 @@ describe("assistant tools", () => {
       sessionStatus: "running",
       queued: ["先看日志"],
     });
+
+    const longIssue = issues.create({
+      title: "长描述",
+      description: "描".repeat(2_000),
+    });
+    const previewRows = JSON.parse(
+      (await tool(tools, "ListIssues").execute({}, context)).content,
+    ) as Array<{
+      id: string;
+      description: string;
+      descriptionTruncated?: boolean;
+    }>;
+    const longRow = previewRows.find((row) => row.id === longIssue.id);
+    expect(longRow?.descriptionTruncated).toBe(true);
+    expect([...(longRow?.description ?? "")].length).toBe(1_201);
 
     const queued = await tool(tools, "MessageIssue").execute(
       { issueId: busy.id, message: "再看一下配置" },
