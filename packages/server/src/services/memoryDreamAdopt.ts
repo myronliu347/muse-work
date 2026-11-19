@@ -8,7 +8,11 @@ import {
   rollbackMemoryDir,
   type ApplyDreamResult,
 } from "./memoryDreamApplier.js";
-import { memoryDirStats } from "./memoryDreamLint.js";
+import {
+  hasCriticalMemoryLint,
+  lintMemoryDir,
+  memoryDirStats,
+} from "./memoryDreamLint.js";
 
 /**
  * Human-in-the-loop finishing moves for a dream run: adopt, discard, roll back.
@@ -30,6 +34,8 @@ export function adoptDreamRun(options: {
   runId: string;
   backupRoot: string;
   memoryDirFor?: (workdir: string) => string;
+  /** The person accepted non-critical warnings (orphans / over-cap files). */
+  allowWarnings?: boolean;
   now?: () => Date;
 }): AdoptOutcome {
   const run = options.store.getRun(options.runId);
@@ -53,11 +59,26 @@ export function adoptDreamRun(options: {
     ? options.memoryDirFor(target.workdir)
     : resolveAutoMemoryDirectory(target.workdir);
 
+  const draftLint = lintMemoryDir(draftMemory);
+  if (
+    !draftLint.ok &&
+    (!options.allowWarnings || hasCriticalMemoryLint(draftLint))
+  ) {
+    return {
+      ok: false,
+      error: hasCriticalMemoryLint(draftLint)
+        ? "草稿索引不可用（断链/索引超限/frontmatter 不合法），不能替换"
+        : "草稿还有未进索引或超 4 KB 的文件，确认后仍可替换",
+      lint: draftLint,
+    };
+  }
+
   const applied = applyDream({
     memoryDir,
     draftDir: draftMemory,
     backupRoot: options.backupRoot,
     targetId: target.id,
+    allowWarnings: options.allowWarnings,
     now: (options.now ?? (() => new Date()))(),
   });
 
@@ -117,6 +138,8 @@ export function rollbackDream(options: {
   backupPath: string;
   backupRoot: string;
   memoryDirFor?: (workdir: string) => string;
+  /** The person accepted non-critical warnings (orphans / over-cap files). */
+  allowWarnings?: boolean;
   now?: () => Date;
 }): AdoptOutcome {
   const target: MemoryDreamTarget | undefined = options.store.getTarget(

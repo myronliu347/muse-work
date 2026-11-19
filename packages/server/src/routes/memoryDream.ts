@@ -11,6 +11,7 @@ import {
   rollbackDream,
 } from "../services/memoryDreamAdopt.js";
 import { defaultDreamBackupRoot } from "../services/memoryDreams.js";
+import { lintMemoryDir } from "../services/memoryDreamLint.js";
 
 /**
  * Backend for the settings page's "memory tidying" section.
@@ -112,12 +113,16 @@ memoryDreamRoutes.get("/memory-dream/targets/:id/runs", (c) => {
 });
 
 
-memoryDreamRoutes.post("/memory-dream/runs/:id/adopt", (c) => {
+memoryDreamRoutes.post("/memory-dream/runs/:id/adopt", async (c) => {
   const ctx = c.get("ctx");
+  const body = (await c.req.json().catch(() => ({}))) as {
+    allowWarnings?: unknown;
+  };
   const outcome = adoptDreamRun({
     store: ctx.memoryDreamStore,
     runId: c.req.param("id"),
     backupRoot: defaultDreamBackupRoot(ctx.home),
+    allowWarnings: body.allowWarnings === true,
   });
   if (!outcome.ok) {
     return c.json(
@@ -273,6 +278,8 @@ memoryDreamRoutes.get("/memory-dream/runs/:id/report", (c) => {
   const liveMemory = resolveAutoMemoryDirectory(target.workdir);
   const draft = memoryFileHashes(draftMemory);
   const live = memoryFileHashes(liveMemory);
+  const draftLint = lintMemoryDir(draftMemory);
+  const liveLint = lintMemoryDir(liveMemory);
 
   const added: string[] = [];
   const changed: string[] = [];
@@ -294,6 +301,24 @@ memoryDreamRoutes.get("/memory-dream/runs/:id/report", (c) => {
 
   return c.json({
     report,
+    draftLint: {
+      ok: draftLint.ok,
+      orphans: draftLint.orphans,
+      overCap: draftLint.overCap.length,
+      dangling: draftLint.dangling.length,
+      badFrontmatter: draftLint.badFrontmatter.length,
+      badType: draftLint.badType.length,
+      indexChars: draftLint.indexChars,
+      indexLines: draftLint.indexLines,
+    },
+    liveLint: {
+      ok: liveLint.ok,
+      orphans: liveLint.orphans,
+      overCap: liveLint.overCap.length,
+      dangling: liveLint.dangling.length,
+      indexChars: liveLint.indexChars,
+      indexLines: liveLint.indexLines,
+    },
     durationMs:
       run.endedAt && run.startedAt ? run.endedAt - run.startedAt : undefined,
     counts: {

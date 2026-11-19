@@ -1338,7 +1338,10 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
-  async adoptMemoryDreamRun(runId: string): Promise<{
+  async adoptMemoryDreamRun(
+    runId: string,
+    allowWarnings = false,
+  ): Promise<{
     ok: boolean;
     error?: string;
     backupPath?: string;
@@ -1346,7 +1349,11 @@ export class MuseApiClient {
   }> {
     const res = await this.request(
       `/memory-dream/runs/${encodeURIComponent(runId)}/adopt`,
-      { method: "POST" },
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ allowWarnings }),
+      },
     );
     const body = (await res.json().catch(() => ({}))) as {
       ok?: boolean;
@@ -1435,6 +1442,14 @@ export interface MemoryDreamRunView {
   adoptedAt?: number;
   discardedAt?: number;
   progress?: MemoryDreamProgress;
+  lint?: {
+    ok: boolean;
+    orphans: number;
+    overCap: number;
+    dangling: number;
+    indexChars: number;
+    indexLines: number;
+  };
 }
 
 export interface MemoryDreamTargetView {
@@ -1470,8 +1485,21 @@ export interface MemoryFileMeta {
   description: string;
 }
 
+export interface MemoryDreamLintView {
+  ok: boolean;
+  orphans: number;
+  overCap: number;
+  dangling: number;
+  badFrontmatter?: number;
+  badType?: number;
+  indexChars: number;
+  indexLines: number;
+}
+
 export interface MemoryDreamReport {
   report: string;
+  draftLint?: MemoryDreamLintView;
+  liveLint?: MemoryDreamLintView;
   durationMs?: number;
   counts: {
     added: number;

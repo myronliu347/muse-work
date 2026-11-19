@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Muse workbench",
+    "description": "Issues, coordinator tools, and agent-driven execution sessions on top of DeepSeek Harness.",
+    "detail": "docs/DETAIL.md"
+  }
+}

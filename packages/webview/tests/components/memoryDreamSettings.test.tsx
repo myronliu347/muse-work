@@ -122,7 +122,7 @@ describe("MemoryDreamSettings", () => {
     await screen.findByRole("button", { name: "确认替换" });
     await userEvent.click(screen.getByRole("button", { name: "确认替换" }));
     await waitFor(() =>
-      expect(api.adoptMemoryDreamRun).toHaveBeenCalledWith("run-1"),
+      expect(api.adoptMemoryDreamRun).toHaveBeenCalledWith("run-1", false),
     );
   });
 
@@ -150,6 +150,30 @@ describe("MemoryDreamSettings", () => {
     expect(
       screen.getByRole("button", { name: "收起详细报告" }),
     ).toBeTruthy();
+  });
+
+  it("offers a confirmed replace for a failed draft that only has warnings", async () => {
+    const failed = state();
+    failed.runs[0] = {
+      ...failed.runs[0],
+      status: "failed",
+      error: "draft lint failed",
+      lint: {
+        ok: false,
+        orphans: 213,
+        overCap: 232,
+        dangling: 0,
+        indexChars: 19966,
+        indexLines: 139,
+      },
+    };
+    const api = mockApi(failed);
+    renderPanel(api);
+    await screen.findByText(/草稿校验：孤儿 213/);
+    await userEvent.click(screen.getByRole("button", { name: "仍然替换" }));
+    await waitFor(() =>
+      expect(api.adoptMemoryDreamRun).toHaveBeenCalledWith("run-1", true),
+    );
   });
 
   it("marks an adopted run instead of offering the buttons again", async () => {

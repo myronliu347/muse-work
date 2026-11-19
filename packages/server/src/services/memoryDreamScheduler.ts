@@ -99,6 +99,18 @@ export function createMemoryDreamScheduler(options: {
       status: result.ok ? "succeeded" : "failed",
       endedAt: now().getTime(),
       summary: result.stats,
+      ...(result.lint
+        ? {
+            lint: {
+              ok: result.lint.ok,
+              orphans: result.lint.orphans,
+              overCap: result.lint.overCap.length,
+              dangling: result.lint.dangling.length,
+              indexChars: result.lint.indexChars,
+              indexLines: result.lint.indexLines,
+            },
+          }
+        : {}),
       error: result.error,
     });
 

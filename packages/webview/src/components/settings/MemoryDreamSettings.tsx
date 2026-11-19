@@ -208,6 +208,17 @@ function DraftReview({
         </pre>
       ) : null}
 
+      {data.draftLint && !data.draftLint.ok ? (
+        <p className="md-run-lint">
+          草稿仍有 {data.draftLint.orphans} 个文件未进索引、
+          {data.draftLint.overCap} 个超过 4 KB
+          {data.liveLint
+            ? `（现有记忆 ${data.liveLint.orphans} / ${data.liveLint.overCap}）`
+            : ""}
+          。校验未过不等于不能用；替换前会备份，可回滚。
+        </p>
+      ) : null}
+
       {open ? (
         <>
           <FileGroup title="新增记忆" tone="add" count={data.counts.added}>
@@ -354,9 +365,12 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
   };
 
   const adopt = async (run: MemoryDreamRunView) => {
+    const warnings = run.lint && !run.lint.ok
+      ? `\n\n注意：草稿校验未过（孤儿 ${run.lint.orphans}、超 4 KB ${run.lint.overCap}）。替换不会修好这些，但也不会让记忆更差；会先备份，可回滚。`
+      : "";
     if (
       !window.confirm(
-        "用这次草稿替换当前记忆？会先备份现有记忆，替换后可以回滚。",
+        `用这次草稿替换当前记忆？会先备份现有记忆，替换后可以回滚。${warnings}`,
       )
     ) {
       return;
@@ -364,7 +378,10 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
     setBusy(run.id);
     setNotice(null);
     try {
-      const result = await client.adoptMemoryDreamRun(run.id);
+      const result = await client.adoptMemoryDreamRun(
+        run.id,
+        run.status === "failed",
+      );
       if (!result.ok) {
         setError(result.error ?? "替换失败");
       } else {
@@ -556,9 +573,9 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
 
           {latestRuns.map((run) => {
             const badge = statusBadge(run);
-            const canReview =
+            const canAdopt =
               run.draftReady &&
-              run.status === "succeeded" &&
+              (run.status === "succeeded" || run.status === "failed") &&
               !run.adoptedAt &&
               !run.discardedAt;
             const isOpen = expandedRun === run.id;
@@ -587,14 +604,14 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
                         {isOpen ? "收起草稿" : "查看草稿"}
                       </Button>
                     ) : null}
-                    {canReview ? (
+                    {canAdopt ? (
                       <>
                         <Button
                           size="1"
                           disabled={busy === run.id}
                           onClick={() => void adopt(run)}
                         >
-                          确认替换
+                          {run.status === "failed" ? "仍然替换" : "确认替换"}
                         </Button>
                         <Button
                           size="1"
@@ -616,6 +633,13 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
                 </div>
 
                 {run.error ? <p className="md-run-error">{run.error}</p> : null}
+                {run.lint && !run.lint.ok ? (
+                  <p className="md-run-lint">
+                    草稿校验：孤儿 {run.lint.orphans} · 超 4 KB{" "}
+                    {run.lint.overCap} · 断链 {run.lint.dangling} · 索引{" "}
+                    {run.lint.indexChars} 字符
+                  </p>
+                ) : null}
 
                 {isOpen && report?.runId === run.id ? (
                   <DraftReview

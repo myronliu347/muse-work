@@ -153,6 +153,25 @@ export function lintMemoryDir(dir: string): MemoryLintResult {
   };
 }
 
+/**
+ * Failures that must block adoption even when a person accepts warnings:
+ * the index is unusable (missing/over capacity) or points at files that are
+ * not there / files that cannot be read by the memory layer.
+ *
+ * Orphans and over-cap files are warnings: an existing store already has
+ * them, and a draft may reduce them without reaching zero.
+ */
+export function hasCriticalMemoryLint(lint: MemoryLintResult): boolean {
+  return (
+    lint.indexMissing ||
+    lint.indexOverChars ||
+    lint.indexOverLines ||
+    lint.dangling.length > 0 ||
+    lint.badFrontmatter.length > 0 ||
+    lint.badType.length > 0
+  );
+}
+
 export function memoryDirStats(dir: string): MemoryDirStats {
   const lint = lintMemoryDir(dir);
   return {

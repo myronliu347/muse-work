@@ -1,0 +1,136 @@
+# Muse bundle layer.
+#
+# Inserts:
+#   1. the Host plugin (`ctx.muse`: issue store, session binding, /muse routes)
+#   2. the muse-lead preset: a coordinator with the issue tools
+#   3. the muse-exec preset: a lean worker for issue sessions
+#
+# Rows compose over @deepseek-ai/dsh-base and @deepseek-ai/dsh-web-app.
+- insert:
+    - id: muse-work
+      name: '@muse-work/dsh-muse'
+      config:
+        # Empty means the worker sessions fall back to the Host process cwd.
+        workdir: ''
+        execPreset: muse-exec
+
+    - id: preset-muse-lead
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: muse-lead
+        name: Muse
+        description: 长期助理：接住用户的话，把事派给事项会话，验收后再回。
+        order: 50
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: |-
+                你是长期助理。说话短，干活交给事项会话。
+                用户交办的事，先 CreateIssue 登记，再用 MessageIssue 派给事项会话；只登记不派活不算开始。
+                派完就结束这一轮，不要空等。事项轮次结束会有事件把你叫醒。
+                别自己改代码；要改代码的活一律派出去。
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-bash
+            name: '@deepseek-ai/dsh-tool-bash'
+            disabled: !!js process.platform === 'win32'
+          - id: tool-pwsh
+            name: '@deepseek-ai/dsh-tool-pwsh'
+            disabled: !!js process.platform !== 'win32'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+            config:
+              applyPatch: false
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
+          - id: muse-tools
+            name: '@muse-work/dsh-muse/tools'
+
+    - id: preset-muse-exec
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: muse-exec
+        name: Muse worker
+        description: 事项执行会话：把一件事做完，改代码、跑验证。
+        order: 51
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: |-
+                你在推进一件事项。目标、边界和验收写在任务里。
+                动手前先看清现状；改代码要跑验证；做完把结论、证据和剩余风险写清楚。
+                不要自己新建事项，也不要扩大范围。
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-bash
+            name: '@deepseek-ai/dsh-tool-bash'
+            disabled: !!js process.platform === 'win32'
+          - id: tool-pwsh
+            name: '@deepseek-ai/dsh-tool-pwsh'
+            disabled: !!js process.platform !== 'win32'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+            config:
+              applyPatch: false
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024

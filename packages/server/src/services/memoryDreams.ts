@@ -68,6 +68,15 @@ export interface MemoryDreamRun {
   /** Per-run draft directory (`dreams/<target>/<runId>`), when the run got that far. */
   draftDir?: string;
   summary?: DreamTargetSummary;
+  /** Lint snapshot of the draft, kept so the UI can explain a failure. */
+  lint?: {
+    ok: boolean;
+    orphans: number;
+    overCap: number;
+    dangling: number;
+    indexChars: number;
+    indexLines: number;
+  };
   error?: string;
   /** Set when a person (or the auto path) swapped the draft into live memory. */
   adoptedAt?: number;

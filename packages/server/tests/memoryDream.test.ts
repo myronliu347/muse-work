@@ -780,6 +780,44 @@ describe("memoryDreamAdopt", () => {
     expect(fs.readFileSync(path.join(ctx.live, "a.md"), "utf-8")).toBe(before);
   });
 
+  it("refuses non-critical warnings unless the caller accepts them", () => {
+    const ctx = setup();
+    writeMemory(ctx.draftMemory, "big.md", "big", "feedback", "x".repeat(5000));
+    const refused = adoptDreamRun({
+      store: ctx.store,
+      runId: ctx.runId,
+      backupRoot: path.join(ctx.home, "backups"),
+      memoryDirFor: () => ctx.live,
+    });
+    expect(refused.ok).toBe(false);
+
+    const accepted = adoptDreamRun({
+      store: ctx.store,
+      runId: ctx.runId,
+      backupRoot: path.join(ctx.home, "backups"),
+      memoryDirFor: () => ctx.live,
+      allowWarnings: true,
+    });
+    expect(accepted.ok).toBe(true);
+    expect(fs.existsSync(path.join(ctx.live, "big.md"))).toBe(true);
+  });
+
+  it("still refuses a dangling index even when warnings are accepted", () => {
+    const ctx = setup();
+    fs.appendFileSync(
+      path.join(ctx.draftMemory, "MEMORY.md"),
+      "- [gone](gone.md) — dangling\n",
+    );
+    const outcome = adoptDreamRun({
+      store: ctx.store,
+      runId: ctx.runId,
+      backupRoot: path.join(ctx.home, "backups"),
+      memoryDirFor: () => ctx.live,
+      allowWarnings: true,
+    });
+    expect(outcome.ok).toBe(false);
+  });
+
   it("discards the draft but keeps the run record", () => {
     const ctx = setup();
     expect(discardDreamRun({ store: ctx.store, runId: ctx.runId })).toBe(true);

@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import {
+  hasCriticalMemoryLint,
   lintMemoryDir,
   memoryDirStats,
   type MemoryDirStats,
@@ -67,6 +68,8 @@ export function applyDream(options: {
   draftDir: string;
   backupRoot: string;
   targetId: string;
+  /** A person accepted the draft's non-critical warnings (orphans/over-cap). */
+  allowWarnings?: boolean;
   now?: Date;
 }): ApplyDreamResult {
   const { memoryDir, draftDir } = options;
@@ -75,7 +78,10 @@ export function applyDream(options: {
   }
 
   const draftLint = lintMemoryDir(draftDir);
-  if (!draftLint.ok) {
+  if (
+    !draftLint.ok &&
+    (!options.allowWarnings || hasCriticalMemoryLint(draftLint))
+  ) {
     return { ok: false, reason: "draft_lint", lint: draftLint };
   }
 
@@ -93,7 +99,10 @@ export function applyDream(options: {
   copyDir(draftDir, memoryDir);
 
   const liveLint = lintMemoryDir(memoryDir);
-  if (!liveLint.ok) {
+  if (
+    !liveLint.ok &&
+    (!options.allowWarnings || hasCriticalMemoryLint(liveLint))
+  ) {
     fs.rmSync(memoryDir, { recursive: true, force: true });
     copyDir(backupPath, memoryDir);
     return {
