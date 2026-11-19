@@ -9,10 +9,12 @@ import {
   type MemoryDreamTarget,
 } from "./memoryDreams.js";
 import {
+  hasCriticalMemoryLint,
   lintMemoryDir,
   memoryDirStats,
   type MemoryLintResult,
 } from "./memoryDreamLint.js";
+import { rebuildHierarchicalIndex } from "./memoryDreamIndex.js";
 import { lastAssistantText } from "./issueDispatch.js";
 import {
   buildAnalyzerSystemPrompt,
@@ -283,6 +285,7 @@ export function createMemoryDreamEngine(options: {
     summaries: string[];
     lint: MemoryLintResult;
     passes: number;
+    hubs: number;
   }): void {
     const lines = [
       `# 记忆整理报告 · ${input.target.label}`,
@@ -292,6 +295,7 @@ export function createMemoryDreamEngine(options: {
       `- transcript：${input.transcripts} 份`,
       `- 整理轮次：${input.passes}`,
       `- 文件数：${input.lint.files}`,
+      `- 目录页：${input.hubs}`,
       `- 孤儿：${input.lint.orphans}`,
       `- 索引：${input.lint.indexChars} 字符 / ${input.lint.indexLines} 行`,
       `- lint：${input.lint.ok ? "通过" : "未通过"}`,
@@ -334,10 +338,9 @@ export function createMemoryDreamEngine(options: {
     );
   }
 
+  /** Only blocking problems drive repair passes; orphans/over-cap are warnings. */
   function lintScore(lint: MemoryLintResult): number {
     return (
-      lint.orphans +
-      lint.overCap.length * 1.5 +
       lint.dangling.length * 5 +
       lint.badFrontmatter.length * 2 +
       lint.badType.length * 2 +
@@ -446,6 +449,9 @@ export function createMemoryDreamEngine(options: {
         index: transcripts.length,
         total: transcripts.length,
       });
+      // The index is derived data: rebuild it from frontmatter instead of
+      // asking the model to keep several hundred entries in sync.
+      const indexed = rebuildHierarchicalIndex(draftMemory);
       let lint = lintMemoryDir(draftMemory);
       let passes = 1;
       let score = lintScore(lint);
@@ -454,7 +460,7 @@ export function createMemoryDreamEngine(options: {
       // and over-cap files. Keep repairing while the lint score improves, with
       // a hard pass and wall-clock budget so a night cannot run forever.
       while (
-        !lint.ok &&
+        hasCriticalMemoryLint(lint) &&
         passes <= MAX_REPAIR_PASSES &&
         Date.now() - startedAt < MAX_RUN_DURATION_MS
       ) {
@@ -476,16 +482,19 @@ export function createMemoryDreamEngine(options: {
             files: lint.files,
             maxFiles: maxIndexedFiles(lint),
             sampleOrphans: lint.orphanFiles.slice(0, 20),
+            badFrontmatter: lint.badFrontmatter.slice(0, 20),
+            badType: lint.badType.slice(0, 20),
           }),
           task: buildRepairTask(),
           model: input.target.model,
         });
         if (repair.text) result.summaries.push(repair.text);
+        rebuildHierarchicalIndex(draftMemory);
         const next = lintMemoryDir(draftMemory);
         const nextScore = lintScore(next);
         passes += 1;
         lint = next;
-        if (!next.ok && nextScore >= score) break; // no progress: stop early
+        if (hasCriticalMemoryLint(next) && nextScore >= score) break; // no progress
         score = nextScore;
       }
 
@@ -499,9 +508,10 @@ export function createMemoryDreamEngine(options: {
         summaries: result.summaries,
         lint,
         passes,
+        hubs: indexed.hubs,
       });
-      result.ok = lint.ok;
-      if (!lint.ok) result.error = "draft lint failed";
+      result.ok = !hasCriticalMemoryLint(lint);
+      if (!result.ok) result.error = "draft index is unusable";
       writeProgress(draftDir, {
         phase: "done",
         startedAt,

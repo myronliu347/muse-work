@@ -117,6 +117,8 @@ export interface RepairPromptOptions {
   /** Files that can still fit the index at the current per-entry length. */
   maxFiles: number;
   sampleOrphans: string[];
+  badFrontmatter: string[];
+  badType: string[];
 }
 
 export function buildRepairSystemPrompt(options: RepairPromptOptions): string {
@@ -135,6 +137,11 @@ export function buildRepairSystemPrompt(options: RepairPromptOptions): string {
     "## 未进索引的文件（部分）",
     ...(options.sampleOrphans.length > 0
       ? options.sampleOrphans.map((file) => `- ${file}`)
+      : ["- （无）"]),
+    "",
+    "## frontmatter 不合法的文件",
+    ...(options.badFrontmatter.length + options.badType.length > 0
+      ? [...options.badFrontmatter, ...options.badType].map((file) => `- ${file}`)
       : ["- （无）"]),
     "",
     "## 这一轮要做的",

@@ -348,6 +348,34 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
     }
   };
 
+  const reindex = async () => {
+    if (!target) return;
+    if (
+      !window.confirm(
+        "从现有文件重建索引？只改 MEMORY.md 和目录页，不改记忆内容；会先备份，可回滚。",
+      )
+    ) {
+      return;
+    }
+    setBusy("reindex");
+    setNotice(null);
+    try {
+      const result = await client.reindexMemoryDream(target.id);
+      if (!result.ok) {
+        setError(result.error ?? "重建索引失败");
+      } else {
+        setNotice(
+          `索引已重建：${result.entries ?? "?"} 条 → ${result.hubs ?? "?"} 个目录页，孤儿 0。`,
+        );
+      }
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const toggleDraft = async (run: MemoryDreamRunView) => {
     if (expandedRun === run.id) {
       setExpandedRun(null);
@@ -384,7 +412,7 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
     try {
       const result = await client.adoptMemoryDreamRun(
         run.id,
-        run.status === "failed",
+        run.status === "failed" || Boolean(run.lint && !run.lint.ok),
       );
       if (!result.ok) {
         setError(result.error ?? "替换失败");
@@ -492,20 +520,30 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
                 上次整理 {formatWhen(target.lastRunAt)}
               </div>
             </div>
-            <Button
-              size="2"
-              variant="soft"
-              disabled={running || busy === "run"}
-              onClick={() => void runNow()}
-            >
-              {running ? "整理中…" : "立即整理"}
-            </Button>
+            <div className="md-target-actions">
+              <Button
+                size="2"
+                variant="surface"
+                disabled={running || busy === "reindex"}
+                onClick={() => void reindex()}
+              >
+                重建索引
+              </Button>
+              <Button
+                size="2"
+                variant="soft"
+                disabled={running || busy === "run"}
+                onClick={() => void runNow()}
+              >
+                {running ? "整理中…" : "立即整理"}
+              </Button>
+            </div>
           </div>
 
           <div className="md-metrics">
             <div className="md-metric">
               <strong>{target.lastSummary?.files ?? "—"}</strong>
-              <span>条记忆</span>
+              <span>文件</span>
             </div>
             <div className="md-metric">
               <strong>{target.lastSummary?.orphans ?? "—"}</strong>

@@ -2,6 +2,12 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { resolveAutoMemoryDirectory } from "@muse-work/agent";
+import {
+  backupMemoryDir,
+  rollbackMemoryDir,
+} from "../services/memoryDreamApplier.js";
+import { rebuildHierarchicalIndex } from "../services/memoryDreamIndex.js";
+import { hasCriticalMemoryLint } from "../services/memoryDreamLint.js";
 import { Hono } from "hono";
 import type { HonoEnv } from "../honoEnv.js";
 import {
@@ -333,5 +339,78 @@ memoryDreamRoutes.get("/memory-dream/runs/:id/report", (c) => {
       beforeBytes: readMemoryMeta(liveMemory, file).bytes,
     })),
     removed: removed.sort().map((file) => readMemoryMeta(liveMemory, file)),
+  });
+});
+
+
+/**
+ * Rebuild the derived index from frontmatter. No model call: this is how a
+ * store with hundreds of invisible files becomes navigable again in one step.
+ * The old index and files are backed up first, and a rebuild that would leave
+ * an unusable index is rolled back.
+ */
+memoryDreamRoutes.post("/memory-dream/reindex", async (c) => {
+  const ctx = c.get("ctx");
+  const body = (await c.req.json().catch(() => ({}))) as {
+    targetId?: unknown;
+  };
+  const targetId =
+    typeof body.targetId === "string" ? body.targetId : "assistant";
+  const target = ctx.memoryDreamStore.getTarget(targetId);
+  if (!target) return c.json({ error: "target not found" }, 404);
+
+  const memoryDir = resolveAutoMemoryDirectory(target.workdir);
+  if (!fs.existsSync(memoryDir)) {
+    return c.json({ error: "memory directory missing" }, 404);
+  }
+
+  const backupRoot = defaultDreamBackupRoot(ctx.home);
+  const backupPath = backupMemoryDir({
+    memoryDir,
+    backupRoot,
+    targetId: target.id,
+  });
+  const rebuilt = rebuildHierarchicalIndex(memoryDir);
+  const lint = lintMemoryDir(memoryDir);
+  if (hasCriticalMemoryLint(lint)) {
+    rollbackMemoryDir({
+      memoryDir,
+      backupPath,
+      backupRoot,
+      targetId: target.id,
+    });
+    return c.json(
+      {
+        error: "rebuild produced an unusable index; restored the previous one",
+        lint,
+      },
+      422,
+    );
+  }
+
+  // Drop the assistant's live agent so its cached index is rebuilt next turn.
+  const assistant = ctx.store
+    .list()
+    .find((session) => session.origin === "assistant");
+  if (assistant) {
+    try {
+      await ctx.runner.disposeAgent(assistant.id);
+    } catch {
+      // Best effort: the next app restart also clears the cache.
+    }
+  }
+  ctx.hub.broadcastAll({ type: "memory-dream:changed" });
+  return c.json({
+    ok: true,
+    hubs: rebuilt.hubs,
+    entries: rebuilt.entries,
+    backupPath,
+    lint: {
+      ok: lint.ok,
+      orphans: lint.orphans,
+      overCap: lint.overCap.length,
+      indexChars: lint.indexChars,
+      indexLines: lint.indexLines,
+    },
   });
 });

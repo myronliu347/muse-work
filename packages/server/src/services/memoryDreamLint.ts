@@ -61,7 +61,9 @@ function listMemoryFiles(dir: string): string[] {
     .sort();
 }
 
-function readFrontmatter(raw: string): Record<string, string> | undefined {
+export function readMemoryFrontmatter(
+  raw: string,
+): Record<string, string> | undefined {
   if (!raw.startsWith("---\n")) return undefined;
   const end = raw.indexOf("\n---", 4);
   if (end < 0) return undefined;
@@ -86,9 +88,27 @@ export function lintMemoryDir(dir: string): MemoryLintResult {
     ...indexRaw.matchAll(/\]\(([^)]+\.md)\)/g),
   ].map((match) => match[1]);
 
+  // Two-level index: MEMORY.md may point at hub pages (`index_*.md`), and the
+  // hub lists the topic files. Being reachable at either level counts as
+  // indexed; hub pages themselves must still appear in MEMORY.md.
   const linked = new Set(links);
-  const dangling = links.filter((link) => !fs.existsSync(path.join(dir, link)));
-  const orphanFiles = files.filter((file) => !linked.has(file));
+  const hubFiles = files.filter((file) => file.startsWith("index_"));
+  const hubLinks = new Set<string>();
+  for (const hub of hubFiles) {
+    try {
+      const raw = fs.readFileSync(path.join(dir, hub), "utf-8");
+      for (const match of raw.matchAll(/\]\(([^)]+\.md)\)/g)) {
+        hubLinks.add(match[1]);
+      }
+    } catch {
+      // Unreadable hub: its members surface as orphans.
+    }
+  }
+  const reachable = new Set([...linked, ...hubLinks]);
+  const dangling = [...reachable].filter(
+    (link) => !fs.existsSync(path.join(dir, link)),
+  );
+  const orphanFiles = files.filter((file) => !reachable.has(file));
 
   const overCap: string[] = [];
   const badType: string[] = [];
@@ -101,7 +121,7 @@ export function lintMemoryDir(dir: string): MemoryLintResult {
     if (Buffer.byteLength(raw, "utf-8") > MEMORY_FILE_MAX_BYTES) {
       overCap.push(file);
     }
-    const frontmatter = readFrontmatter(raw);
+    const frontmatter = readMemoryFrontmatter(raw);
     if (!frontmatter?.name || !frontmatter?.description) {
       badFrontmatter.push(file);
     }

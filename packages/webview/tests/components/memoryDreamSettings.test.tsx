@@ -82,6 +82,11 @@ function mockApi(next: MemoryDreamState) {
     }),
     discardMemoryDreamRun: vi.fn().mockResolvedValue({ ok: true }),
     rollbackMemoryDream: vi.fn().mockResolvedValue({ ok: true }),
+    reindexMemoryDream: vi.fn().mockResolvedValue({
+      ok: true,
+      hubs: 81,
+      entries: 519,
+    }),
   } as unknown as MuseApiClient & Record<string, ReturnType<typeof vi.fn>>;
 }
 
@@ -103,7 +108,7 @@ describe("MemoryDreamSettings", () => {
     renderPanel(api);
     await screen.findByText("助手记忆");
     expect(screen.getByText("513")).toBeTruthy();
-    expect(screen.getByText("条记忆")).toBeTruthy();
+    expect(screen.getByText("文件")).toBeTruthy();
     expect(screen.getByTestId("memory-dream-model")).toBeTruthy();
     expect(screen.getByRole("button", { name: "立即整理" })).toBeTruthy();
   });

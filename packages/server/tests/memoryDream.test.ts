@@ -13,6 +13,7 @@ import {
   listChangedMemoryFiles,
 } from "../src/services/memoryDreamGate.js";
 import { lintMemoryDir } from "../src/services/memoryDreamLint.js";
+import { rebuildHierarchicalIndex } from "../src/services/memoryDreamIndex.js";
 import {
   applyDream,
   listBackups,
@@ -854,8 +855,31 @@ describe("memoryDreamAdopt", () => {
   });
 });
 
-describe("memoryDreamEngine repair loop", () => {
-  it("keeps repairing while the lint score improves, then stops when clean", async () => {
+describe("memoryDreamIndex", () => {
+  it("builds hubs and keeps the entrypoint inside the line budget", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-index-"));
+    // 120 files across a few real topics plus many singletons.
+    for (let i = 0; i < 120; i += 1) {
+      const topic = i < 60 ? `review${i}` : `misc${i}`;
+      writeMemory(dir, `feedback_${topic}.md`, `rule ${i}`);
+    }
+    fs.writeFileSync(path.join(dir, "MEMORY.md"), "# Memory\n");
+    const rebuilt = rebuildHierarchicalIndex(dir);
+    const lint = lintMemoryDir(dir);
+    expect(rebuilt.entries).toBe(120);
+    expect(rebuilt.hubs).toBeGreaterThan(0);
+    expect(lint.orphans).toBe(0);
+    expect(lint.indexLines).toBeLessThanOrEqual(200);
+    expect(lint.indexChars).toBeLessThanOrEqual(22_000);
+    expect(lint.ok).toBe(true);
+  });
+});
+
+describe("memoryDreamEngine index rebuild", () => {
+  function setup(
+    files: (dir: string) => void,
+    onRepair?: (dir: string) => void,
+  ) {
     const home = tempHome();
     const workdir = path.join(home, "assistant-chat");
     fs.mkdirSync(workdir, { recursive: true });
@@ -868,12 +892,9 @@ describe("memoryDreamEngine repair loop", () => {
       path.join(mem, "MEMORY.md"),
       "# Memory\n\n- [alpha](a.md) — alpha\n",
     );
-    writeMemory(mem, "o1.md", "orphan one");
-    writeMemory(mem, "o2.md", "orphan two");
+    files(mem);
 
-    const created: Array<{ id: string; title?: string; systemPrompt?: string }> =
-      [];
-    const remaining = ["o1.md", "o2.md"];
+    const created: Array<{ id: string; title?: string; systemPrompt?: string }> = [];
     let repairs = 0;
     const sessions = {
       create(input: { title?: string; systemPrompt?: string }) {
@@ -893,13 +914,7 @@ describe("memoryDreamEngine repair loop", () => {
           const dir = /记忆目录（可读写）：(.+)/.exec(
             session.systemPrompt ?? "",
           )?.[1];
-          const next = remaining.shift();
-          if (dir && next) {
-            fs.appendFileSync(
-              path.join(dir, "MEMORY.md"),
-              `- [${next}](${next}) — ${next}\n`,
-            );
-          }
+          if (dir && onRepair) onRepair(dir);
         }
         queueMicrotask(() => engine.handleTurnSettled(sessionId, { ok: true }));
         return { accepted: true as const };
@@ -920,27 +935,63 @@ describe("memoryDreamEngine repair loop", () => {
       draftRoot: path.join(home, "dreams"),
       memoryDirFor,
     });
+    const run = () =>
+      engine.run({
+        target: {
+          id: "assistant",
+          kind: "assistant",
+          workdir,
+          label: "助手记忆",
+          enabled: true,
+          mode: "auto",
+          cadence: "daily",
+          withIssueProgress: true,
+          consecutiveFailures: 0,
+          createdAt: 0,
+          updatedAt: 0,
+        },
+        runId: "run-index",
+        since: Date.now(),
+      });
+    const draftMemory = path.join(home, "dreams", "assistant", "run-index", "memory");
+    return { mem, draftMemory, run, repairs: () => repairs };
+  }
 
-    const result = await engine.run({
-      target: {
-        id: "assistant",
-        kind: "assistant",
-        workdir,
-        label: "助手记忆",
-        enabled: true,
-        mode: "auto",
-        cadence: "daily",
-        withIssueProgress: true,
-        consecutiveFailures: 0,
-        createdAt: 0,
-        updatedAt: 0,
-      },
-      runId: "run-repair",
-      since: Date.now(),
+  it("rebuilds a two-level index instead of asking the model to index orphans", async () => {
+    const ctx = setup((mem) => {
+      writeMemory(mem, "o1.md", "orphan one");
+      writeMemory(mem, "o2.md", "orphan two");
     });
-
-    expect(repairs).toBe(2);
+    const result = await ctx.run();
+    expect(ctx.repairs()).toBe(0);
     expect(result.ok).toBe(true);
     expect(result.lint?.orphans).toBe(0);
+    const index = fs.readFileSync(
+      path.join(ctx.draftMemory, "MEMORY.md"),
+      "utf-8",
+    );
+    expect(index).toContain("index_");
+  });
+
+  it("still runs a repair pass when frontmatter is invalid", async () => {
+    const ctx = setup(
+      (mem) => {
+        fs.writeFileSync(
+          path.join(mem, "bad.md"),
+          "---\nname: bad\ndescription: bad type\ntype: nope\n---\n\n- rule\n",
+        );
+      },
+      (dir) => {
+        // The repair session fixes the frontmatter on the draft copy.
+        fs.writeFileSync(
+          path.join(dir, "bad.md"),
+          "---\nname: bad\ndescription: bad type\ntype: feedback\n---\n\n- rule\n",
+        );
+      },
+    );
+    const result = await ctx.run();
+    expect(ctx.repairs()).toBe(1);
+    expect(result.ok).toBe(true);
+    expect(result.lint?.badType).toEqual([]);
   });
 });
