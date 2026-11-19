@@ -7,26 +7,26 @@ import {
 } from "./memoryDreamLint.js";
 
 /**
- * Build a flat `MEMORY.md` with an overflow archive.
+ * Maintain a flat `MEMORY.md` with an overflow archive, without rewriting the
+ * lines a person or an earlier pass already wrote.
  *
- * The entrypoint stays a one-line-per-file list — no intermediate hub layer —
- * but a few hundred long filenames do not fit its 25k-character budget with
- * full descriptions. Important files are listed directly; the low-priority
- * remainder is listed in `archive.md`, which MEMORY.md points at with a single
- * line. That keeps every file reachable without changing how a memory entry
- * looks.
+ * An earlier version regenerated every entry from filenames and truncated the
+ * titles to 12 characters, which destroyed the curated index: descriptions were
+ * gone and almost every line ended in "…". This version instead:
  *
- * `MEMORY.md`, `archive*.md` and legacy `index_*` pages are derived data; this
- * function regenerates them from frontmatter.
+ * - keeps existing index lines verbatim (title + description stay as written);
+ * - appends only the files that have no pointer yet, with their full title;
+ * - when the entrypoint is over budget, moves whole lines (oldest files first)
+ *   to `archive.md` instead of shortening what stays.
+ *
+ * `MEMORY.md` and `archive*.md` are still derived in the sense that this
+ * function may move lines around, but it never invents a shorter title.
  */
 
 export const ARCHIVE_FILE = "archive.md";
 export const INDEX_BUDGET_CHARS = 20_000;
-const MAX_TITLE_CHARS = 12;
-/** Rough per-entry cost: `[title](file) · ` + a little slack. */
-function entryChars(name: string, file: string): number {
-  return 6 + Math.min(name.length, MAX_TITLE_CHARS) + file.length;
-}
+const MAX_INDEX_LINES = 195;
+const MAX_LINE_CHARS = 160;
 
 const TYPE_ORDER = ["user", "feedback", "project", "reference"] as const;
 const TYPE_LABEL: Record<string, string> = {
@@ -40,6 +40,13 @@ const TYPE_RANK: Record<string, number> = {
   feedback: 1,
   project: 2,
   reference: 3,
+};
+/** Existing indexes use English headings (Claude Code style); accept both. */
+const SECTION_ALIASES: Record<string, string[]> = {
+  user: ["User", "用户"],
+  feedback: ["Feedback", "规则"],
+  project: ["Project", "项目"],
+  reference: ["Reference", "参考"],
 };
 
 export interface RebuildIndexResult {
@@ -80,150 +87,202 @@ function readEntries(dir: string): MemoryEntry[] {
       continue;
     }
     const frontmatter = readMemoryFrontmatter(raw) ?? {};
-    const type = frontmatter.type?.trim() ?? "reference";
     entries.push({
       file,
       name: frontmatter.name?.trim() || file.replace(/\.md$/, ""),
       description: frontmatter.description?.trim() ?? "",
-      type,
+      type: MEMORY_TYPES.includes(frontmatter.type as never)
+        ? (frontmatter.type as string)
+        : "reference",
       mtime,
     });
   }
   return entries;
 }
 
-function titleOf(entry: MemoryEntry): string {
-  const title = entry.name.replace(/\s+/g, " ").trim();
-  return title.length > MAX_TITLE_CHARS
-    ? `${title.slice(0, MAX_TITLE_CHARS)}…`
-    : title;
+function linksIn(line: string): string[] {
+  return [...line.matchAll(/\]\(([^)]+\.md)\)/g)].map((match) => match[1]);
 }
 
-function renderSections(
-  entries: MemoryEntry[],
-  perLine: number,
-  lineBudget = 110,
-): string[] {
-  const lines: string[] = [];
-  const present = new Set(entries.map((entry) => entry.type));
-  const types = [
-    ...TYPE_ORDER.filter((type) => present.has(type)),
-    ...[...present].filter(
-      (type) => !(TYPE_ORDER as readonly string[]).includes(type),
-    ),
-  ];
-  for (const type of types) {
-    const list = entries.filter((entry) => entry.type === type);
-    if (list.length === 0) continue;
-    lines.push(`## ${TYPE_LABEL[type] ?? type}`);
-    let current: string[] = [];
-    for (const entry of list) {
-      const item = `[${titleOf(entry)}](${entry.file})`;
-      const candidate = current.length === 0 ? item : `${current.join(" · ")} · ${item}`;
-      if (current.length > 0 && (candidate.length > lineBudget || current.length >= perLine)) {
-        lines.push(`- ${current.join(" · ")}`);
-        current = [item];
-      } else {
-        current.push(item);
-      }
-    }
-    if (current.length > 0) lines.push(`- ${current.join(" · ")}`);
-    lines.push("");
+function readIfExists(filePath: string): string {
+  try {
+    return fs.readFileSync(filePath, "utf-8");
+  } catch {
+    return "";
   }
-  return lines;
+}
+
+function entryLine(entry: MemoryEntry): string {
+  const prefix = `- [${entry.name}](${entry.file})`;
+  const withDescription = entry.description
+    ? `${prefix} — ${entry.description}`
+    : prefix;
+  if (withDescription.length <= MAX_LINE_CHARS) return withDescription;
+  // Never truncate a title, and never leave a half sentence: keep the pointer
+  // and drop the description instead of appending an ellipsis.
+  return prefix;
+}
+
+function sectionFor(lines: string[], type: string): number {
+  const aliases = SECTION_ALIASES[type] ?? [];
+  return lines.findIndex((line) => {
+    if (!line.startsWith("## ")) return false;
+    const label = line.slice(3).trim();
+    return aliases.includes(label);
+  });
+}
+
+function insertEntry(lines: string[], type: string, line: string): void {
+  const headerIndex = sectionFor(lines, type);
+  if (headerIndex === -1) {
+    if (lines.length > 0 && lines[lines.length - 1].trim() !== "") lines.push("");
+    lines.push(`## ${TYPE_LABEL[type] ?? type}`, line);
+    return;
+  }
+  let insertAt = headerIndex + 1;
+  for (let i = headerIndex + 1; i < lines.length; i += 1) {
+    if (lines[i].startsWith("## ")) break;
+    if (lines[i].trim() !== "") insertAt = i + 1;
+  }
+  lines.splice(insertAt, 0, line);
+}
+
+function archiveLinkLines(raw: string): string[] {
+  return raw
+    .split("\n")
+    .filter((line) => !line.startsWith("---") && !line.startsWith("name:"))
+    .filter((line) => !line.startsWith("description:"))
+    .filter((line) => !line.startsWith("type:"))
+    .filter((line) => !line.startsWith("archive:"))
+    .filter((line) => linksIn(line).length > 0 || line.startsWith("## "));
 }
 
 export function rebuildFlatIndex(dir: string): RebuildIndexResult {
   for (const file of fs.readdirSync(dir)) {
-    if (file === ARCHIVE_FILE || file.startsWith("archive_") || file.startsWith("index_")) {
-      fs.rmSync(path.join(dir, file), { force: true });
-    }
+    if (file.startsWith("index_")) fs.rmSync(path.join(dir, file), { force: true });
   }
 
-  const entries = readEntries(dir).sort((a, b) => {
-    const rank = (TYPE_RANK[a.type] ?? 9) - (TYPE_RANK[b.type] ?? 9);
-    if (rank !== 0) return rank;
-    if (b.mtime !== a.mtime) return b.mtime - a.mtime;
-    return a.file.localeCompare(b.file);
-  });
+  const entries = readEntries(dir);
+  const byFile = new Map(entries.map((entry) => [entry.file, entry]));
+  const existingIndex = readIfExists(path.join(dir, MEMORY_INDEX_NAME));
+  const existingArchive = readIfExists(path.join(dir, ARCHIVE_FILE));
 
-  // Reserve room for the archive pointer itself.
-  const budget = INDEX_BUDGET_CHARS - 200;
-  const direct: MemoryEntry[] = [];
-  const archived: MemoryEntry[] = [];
-  let used = 0;
-  for (const entry of entries) {
-    const cost = entryChars(entry.name, entry.file);
-    if (used + cost <= budget) {
-      direct.push(entry);
-      used += cost;
-    } else {
-      archived.push(entry);
-    }
+  const lines = existingIndex.trim()
+    ? existingIndex.trimEnd().split("\n")
+    : ["# 记忆索引", ""];
+  // The archive pointer is regenerated below; drop stale copies first.
+  const withoutPointer = lines.filter(
+    (line) => !/\]\(archive(?:_\d+)?\.md\)/.test(line),
+  );
+  lines.length = 0;
+  lines.push(...withoutPointer);
+
+  const archivedLines = archiveLinkLines(existingArchive);
+  const indexed = new Set(
+    [...lines, ...archivedLines].flatMap((line) => linksIn(line)),
+  );
+
+  const missing = entries
+    .filter((entry) => !indexed.has(entry.file))
+    .sort((a, b) => {
+      const rank = (TYPE_RANK[a.type] ?? 9) - (TYPE_RANK[b.type] ?? 9);
+      if (rank !== 0) return rank;
+      return b.mtime - a.mtime;
+    });
+  for (const entry of missing) {
+    insertEntry(lines, entry.type, entryLine(entry));
   }
 
-  const renderAll = () => {
-    const lines = [
-      "# 记忆索引",
-      "",
-      "> 一行一条直指文件；标为「归档」的低优先级文件在 archive.md 里。",
-      "",
-      ...renderSections(direct, 3, 180),
-    ];
-    if (archived.length > 0) {
-      lines.push(
-        "## 归档",
-        `- [归档：${archived.length} 个低优先级文件](${ARCHIVE_FILE}) — 旧项目/参考记录，需要时再打开`,
-        "",
-      );
-    }
-    const archiveContent =
-      archived.length > 0
-        ? [
-            "---",
-            "name: 归档索引",
-            `description: ${archived.length} 个低优先级记忆文件的清单；需要翻旧记录时先读这里，再打开具体文件。`,
-            "type: reference",
-            "archive: true",
-            "---",
-            "",
-            "# 归档（低优先级）",
-            "",
-            ...renderSections(archived, 4, 200),
-          ]
-            .join("\n")
-            .trim() + "\n"
-        : "";
-    return { content: `${lines.join("\n").trim()}\n`, archiveContent };
+  const lineMtime = (line: string): number => {
+    const times = linksIn(line)
+      .map((file) => byFile.get(file)?.mtime ?? 0)
+      .filter((time) => time > 0);
+    return times.length > 0 ? Math.min(...times) : 0;
   };
 
-  // The estimate above is approximate (titles, ellipses, section headers).
-  // Move the lowest-priority entries to the archive until the entrypoint
-  // really fits the character budget.
-  let rendered = renderAll();
+  const contentLength = () => lines.join("\n").trimEnd().length;
+  const movable = () =>
+    lines
+      .map((line, index) => ({ line, index }))
+      .filter(
+        ({ line }) =>
+          linksIn(line).length > 0 &&
+          !/\]\(archive(?:_\d+)?\.md\)/.test(line) &&
+          !line.startsWith("#"),
+      );
+
   while (
-    rendered.content.trim().length > INDEX_BUDGET_CHARS &&
-    direct.length > 0
+    (contentLength() > INDEX_BUDGET_CHARS || lines.length > MAX_INDEX_LINES) &&
+    movable().length > 0
   ) {
-    const moved = direct.pop();
-    if (!moved) break;
-    archived.unshift(moved);
-    rendered = renderAll();
+    const victim = movable().sort((a, b) => {
+      // Archive low-value types first: reference, then project, then feedback,
+      // and only then user notes.
+      const rankOf = (line: string) => {
+        const files = linksIn(line);
+        const ranks = files.map((file) => {
+          const type = byFile.get(file)?.type ?? "reference";
+          return type === "reference"
+            ? 0
+            : type === "project"
+              ? 1
+              : type === "feedback"
+                ? 2
+                : 3;
+        });
+        return ranks.length > 0 ? Math.min(...ranks) : 0;
+      };
+      const rank = rankOf(a.line) - rankOf(b.line);
+      if (rank !== 0) return rank;
+      return lineMtime(a.line) - lineMtime(b.line);
+    })[0];
+    archivedLines.push(victim.line);
+    lines.splice(victim.index, 1);
   }
 
-  if (rendered.archiveContent) {
-    fs.writeFileSync(
-      path.join(dir, ARCHIVE_FILE),
-      rendered.archiveContent,
-      "utf-8",
+  let archiveContent = "";
+  if (archivedLines.length > 0) {
+    const archivedCount = archivedLines.reduce(
+      (sum, line) => sum + linksIn(line).length,
+      0,
     );
+    archiveContent =
+      [
+        "---",
+        "name: 归档索引",
+        `description: ${archivedCount} 个低优先级记忆文件的清单；需要翻旧记录时先读这里，再打开具体文件。`,
+        "type: reference",
+        "archive: true",
+        "---",
+        "",
+        "# 归档（低优先级）",
+        "",
+        ...archivedLines,
+      ]
+        .join("\n")
+        .trim() + "\n";
+    fs.writeFileSync(path.join(dir, ARCHIVE_FILE), archiveContent, "utf-8");
+    lines.push(
+      "",
+      "## 归档",
+      `- [归档：${archivedCount} 个低优先级文件](${ARCHIVE_FILE}) — 旧项目/参考记录，需要时再打开`,
+      "",
+    );
+  } else {
+    fs.rmSync(path.join(dir, ARCHIVE_FILE), { force: true });
   }
 
-  const content = rendered.content;
+  const content = `${lines.join("\n").trim()}\n`;
   fs.writeFileSync(path.join(dir, MEMORY_INDEX_NAME), content, "utf-8");
+
+  const direct = [...content.matchAll(/\]\(([^)]+\.md)\)/g)].filter(
+    (match) => match[1] !== ARCHIVE_FILE,
+  ).length;
   return {
-    direct: direct.length,
-    archived: archived.length,
+    direct,
+    archived: archivedLines.length > 0
+      ? archivedLines.reduce((sum, line) => sum + linksIn(line).length, 0)
+      : 0,
     indexChars: content.trim().length,
     indexLines: content.trim().split("\n").length,
   };
@@ -233,5 +292,3 @@ export function rebuildFlatIndex(dir: string): RebuildIndexResult {
 export function memoryTypeLabel(type: string): string {
   return TYPE_LABEL[type] ?? type;
 }
-
-export { MEMORY_TYPES };
