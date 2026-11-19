@@ -1382,31 +1382,6 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
-  async reindexMemoryDream(targetId: string): Promise<{
-    ok: boolean;
-    hubs?: number;
-    entries?: number;
-    error?: string;
-    lint?: MemoryDreamLintView;
-  }> {
-    const res = await this.request("/memory-dream/reindex", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ targetId }),
-    });
-    const body = (await res.json().catch(() => ({}))) as {
-      ok?: boolean;
-      hubs?: number;
-      entries?: number;
-      error?: string;
-      lint?: MemoryDreamLintView;
-    };
-    if (!res.ok) {
-      return { ok: false, error: body.error ?? res.statusText, lint: body.lint };
-    }
-    return { ok: true, ...body };
-  }
-
   async getMemoryDreamReport(runId: string): Promise<MemoryDreamReport> {
     const res = await this.request(
       `/memory-dream/runs/${encodeURIComponent(runId)}/report`,

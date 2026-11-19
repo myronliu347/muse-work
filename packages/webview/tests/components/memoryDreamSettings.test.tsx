@@ -82,11 +82,6 @@ function mockApi(next: MemoryDreamState) {
     }),
     discardMemoryDreamRun: vi.fn().mockResolvedValue({ ok: true }),
     rollbackMemoryDream: vi.fn().mockResolvedValue({ ok: true }),
-    reindexMemoryDream: vi.fn().mockResolvedValue({
-      ok: true,
-      hubs: 81,
-      entries: 519,
-    }),
   } as unknown as MuseApiClient & Record<string, ReturnType<typeof vi.fn>>;
 }
 
