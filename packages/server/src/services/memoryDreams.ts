@@ -373,6 +373,15 @@ export function defaultDreamBackupRoot(home: string): string {
   return path.join(getMuseHomeDir(home), "dreams", "backups");
 }
 
+/** One place for the draft layout: scheduler, engine and routes must agree. */
+export function dreamDraftDir(
+  draftRoot: string,
+  targetId: string,
+  runId: string,
+): string {
+  return path.join(draftRoot, targetId, runId);
+}
+
 export function defaultDreamDraftRoot(home: string): string {
   return path.join(getMuseHomeDir(home), "dreams", "drafts");
 }

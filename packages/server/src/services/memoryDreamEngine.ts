@@ -4,7 +4,10 @@ import { pathEncoder, resolveAutoMemoryDirectory } from "@muse-work/agent";
 import { DEFAULT_ACTIVE_MODEL_ID, getMuseHomeDir } from "@muse-work/provider";
 import type { SessionRunner } from "./sessionRunner/ctx.js";
 import type { SessionStore } from "./sessionStore.js";
-import type { MemoryDreamTarget } from "./memoryDreams.js";
+import {
+  dreamDraftDir,
+  type MemoryDreamTarget,
+} from "./memoryDreams.js";
 import {
   lintMemoryDir,
   memoryDirStats,
@@ -329,7 +332,7 @@ export function createMemoryDreamEngine(options: {
     since: number;
   }): Promise<DreamRunResult> {
     sessionBudget = 0;
-    const draftDir = path.join(draftRoot, input.target.id, input.runId);
+    const draftDir = dreamDraftDir(draftRoot, input.target.id, input.runId);
     const draftMemory = path.join(draftDir, "memory");
     const result: DreamRunResult = {
       ok: false,

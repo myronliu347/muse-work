@@ -322,6 +322,7 @@ export function createAppContext(
     store: memoryDreams,
     engine: memoryDreamEngine,
     memoryDirFor: (workdir) => resolveAutoMemoryDirectory(workdir),
+    draftRoot: path.join(getMuseHomeDir(home), "dreams", "drafts"),
     now: options?.now,
     onChanged: () => sessions.hub.broadcastAll({ type: "memory-dream:changed" }),
     resolveAssistantWorkdir: () =>
@@ -411,6 +412,7 @@ export function createAppContext(
     });
   });
   automationRuntime.start();
+  memoryDreams.failStaleRunning("进程退出");
   memoryDreamScheduler.start();
   void assistantRuntime.start();
   const preparedPlugins = options?.preparedPlugins ?? [];

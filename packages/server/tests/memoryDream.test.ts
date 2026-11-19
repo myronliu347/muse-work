@@ -655,6 +655,7 @@ describe("memoryDreamScheduler", () => {
       store,
       engine,
       memoryDirFor: () => dir,
+      draftRoot: path.join(home, "dreams"),
       now: () => new Date(2026, 10, 20, 4, 0, 0),
       hour: options?.hour ?? 3,
     });
@@ -667,6 +668,9 @@ describe("memoryDreamScheduler", () => {
     expect(ctx.runs).toHaveLength(1);
     const runs = ctx.store.listRuns("assistant");
     expect(runs[0]?.status).toBe("succeeded");
+    expect(runs[0]?.draftDir).toBe(
+      path.join(ctx.home, "dreams", "assistant", runs[0].id),
+    );
     expect(ctx.store.getTarget("assistant")?.lastStatus).toBe("succeeded");
     expect(ctx.store.getTarget("assistant")?.lastRunAt).toBeTruthy();
   });

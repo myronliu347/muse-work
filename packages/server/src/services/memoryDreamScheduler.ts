@@ -1,8 +1,9 @@
 import crypto from "node:crypto";
-import type {
-  MemoryDreamRun,
-  MemoryDreamStore,
-  MemoryDreamTarget,
+import {
+  dreamDraftDir,
+  type MemoryDreamRun,
+  type MemoryDreamStore,
+  type MemoryDreamTarget,
 } from "./memoryDreams.js";
 import { dreamCutoff } from "./memoryDreamGate.js";
 import { planDreams } from "./memoryDreamSchedule.js";
@@ -39,6 +40,8 @@ export function createMemoryDreamScheduler(options: {
   store: MemoryDreamStore;
   engine: DreamEngine;
   memoryDirFor: (workdir: string) => string;
+  /** Root of dream drafts; the run record carries its directory from the start. */
+  draftRoot: string;
   /** Resolve the assistant workdir at runtime; seeds/refreshes its target. */
   resolveAssistantWorkdir?: () => string | undefined;
   now?: () => Date;
@@ -72,12 +75,16 @@ export function createMemoryDreamScheduler(options: {
     since: number,
     trigger: "schedule" | "manual",
   ): Promise<MemoryDreamRun | undefined> {
+    const runId = crypto.randomUUID();
     const run = options.store.addRun({
-      id: crypto.randomUUID(),
+      id: runId,
       targetId: target.id,
       status: "running",
       trigger,
       startedAt: now().getTime(),
+      // Written now, not on completion: the settings page needs the draft
+      // directory to read progress.json while the run is still in flight.
+      draftDir: dreamDraftDir(options.draftRoot, target.id, runId),
     });
     options.store.patchTarget(target.id, { lastAttemptAt: now().getTime() });
     notify();
@@ -91,7 +98,6 @@ export function createMemoryDreamScheduler(options: {
     const finished = options.store.patchRun(run.id, {
       status: result.ok ? "succeeded" : "failed",
       endedAt: now().getTime(),
-      draftDir: result.draftDir,
       summary: result.stats,
       error: result.error,
     });
