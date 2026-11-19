@@ -7,42 +7,40 @@ import {
 } from "./memoryDreamLint.js";
 
 /**
- * Maintain a flat `MEMORY.md` with an overflow archive, without rewriting the
- * lines a person or an earlier pass already wrote.
+ * Rebuild MEMORY.md by importance, with an overflow archive.
  *
- * An earlier version regenerated every entry from filenames and truncated the
- * titles to 12 characters, which destroyed the curated index: descriptions were
- * gone and almost every line ended in "…". This version instead:
+ * Placement is decided by priority, not by "what happened to overflow":
  *
- * - keeps existing index lines verbatim (title + description stay as written);
- * - appends only the files that have no pointer yet, with their full title;
- * - when the entrypoint is over budget, moves whole lines (oldest files first)
- *   to `archive.md` instead of shortening what stays.
+ * - importance = type (user > feedback > project > reference), then recency;
+ * - MEMORY.md keeps as many of the most important units as fit its budget;
+ * - everything else goes to archive.md, one pointer line in the entrypoint.
  *
- * `MEMORY.md` and `archive*.md` are still derived in the sense that this
- * function may move lines around, but it never invents a shorter title.
+ * A unit is an existing index line kept verbatim (full title + description,
+ * including a packed line written by an earlier pass) or a generated line for a
+ * file that had no pointer. Because the split is recomputed from file type and
+ * mtime on every rebuild, a file that becomes important again moves back out of
+ * the archive; this is not a one-way door.
  */
 
 export const ARCHIVE_FILE = "archive.md";
 export const INDEX_BUDGET_CHARS = 20_000;
 const MAX_INDEX_LINES = 195;
-const MAX_LINE_CHARS = 160;
 
 const TYPE_ORDER = ["user", "feedback", "project", "reference"] as const;
-const TYPE_LABEL: Record<string, string> = {
-  user: "用户",
-  feedback: "规则",
-  project: "项目",
-  reference: "参考",
-};
 const TYPE_RANK: Record<string, number> = {
   user: 0,
   feedback: 1,
   project: 2,
   reference: 3,
 };
-/** Existing indexes use English headings (Claude Code style); accept both. */
-const SECTION_ALIASES: Record<string, string[]> = {
+const DEFAULT_LABEL: Record<string, string> = {
+  user: "User",
+  feedback: "Feedback",
+  project: "Project",
+  reference: "Reference",
+};
+/** Existing indexes use English headings; Chinese headings are accepted too. */
+const LABEL_ALIASES: Record<string, string[]> = {
   user: ["User", "用户"],
   feedback: ["Feedback", "规则"],
   project: ["Project", "项目"],
@@ -61,6 +59,15 @@ interface MemoryEntry {
   name: string;
   description: string;
   type: string;
+  mtime: number;
+}
+
+interface Unit {
+  text: string;
+  files: string[];
+  type: string;
+  /** Sort key: smaller is more important. */
+  rank: number;
   mtime: number;
 }
 
@@ -112,49 +119,57 @@ function readIfExists(filePath: string): string {
   }
 }
 
-function entryLine(entry: MemoryEntry): string {
+function generatedLine(entry: MemoryEntry): string {
   const prefix = `- [${entry.name}](${entry.file})`;
   const withDescription = entry.description
     ? `${prefix} — ${entry.description}`
     : prefix;
-  if (withDescription.length <= MAX_LINE_CHARS) return withDescription;
-  // Never truncate a title, and never leave a half sentence: keep the pointer
-  // and drop the description instead of appending an ellipsis.
-  return prefix;
+  // Never truncate the title and never emit a half sentence: if the line does
+  // not fit, keep the pointer and drop the description.
+  return withDescription.length <= 160 ? withDescription : prefix;
 }
 
-function sectionFor(lines: string[], type: string): number {
-  const aliases = SECTION_ALIASES[type] ?? [];
-  return lines.findIndex((line) => {
-    if (!line.startsWith("## ")) return false;
-    const label = line.slice(3).trim();
-    return aliases.includes(label);
+function makeUnit(
+  text: string,
+  files: string[],
+  byFile: Map<string, MemoryEntry>,
+): Unit | undefined {
+  const known = files.filter((file) => byFile.has(file));
+  if (known.length === 0) return undefined;
+  const entries = known.map((file) => byFile.get(file)!);
+  const type = entries.reduce(
+    (best, entry) =>
+      (TYPE_RANK[entry.type] ?? 9) < (TYPE_RANK[best.type] ?? 9) ? entry : best,
+    entries[0],
+  ).type;
+  return {
+    text,
+    files: known,
+    type,
+    rank: Math.min(...entries.map((entry) => TYPE_RANK[entry.type] ?? 9)),
+    mtime: Math.max(...entries.map((entry) => entry.mtime)),
+  };
+}
+
+function sortUnits(units: Unit[]): Unit[] {
+  return units.sort((a, b) => {
+    if (a.rank !== b.rank) return a.rank - b.rank;
+    if (b.mtime !== a.mtime) return b.mtime - a.mtime;
+    return a.text.localeCompare(b.text);
   });
 }
 
-function insertEntry(lines: string[], type: string, line: string): void {
-  const headerIndex = sectionFor(lines, type);
-  if (headerIndex === -1) {
-    if (lines.length > 0 && lines[lines.length - 1].trim() !== "") lines.push("");
-    lines.push(`## ${TYPE_LABEL[type] ?? type}`, line);
-    return;
+function readArchiveUnits(
+  raw: string,
+  byFile: Map<string, MemoryEntry>,
+): Unit[] {
+  const units: Unit[] = [];
+  for (const line of raw.split("\n")) {
+    if (!line.startsWith("- ")) continue;
+    const unit = makeUnit(line, linksIn(line), byFile);
+    if (unit) units.push(unit);
   }
-  let insertAt = headerIndex + 1;
-  for (let i = headerIndex + 1; i < lines.length; i += 1) {
-    if (lines[i].startsWith("## ")) break;
-    if (lines[i].trim() !== "") insertAt = i + 1;
-  }
-  lines.splice(insertAt, 0, line);
-}
-
-function archiveLinkLines(raw: string): string[] {
-  return raw
-    .split("\n")
-    .filter((line) => !line.startsWith("---") && !line.startsWith("name:"))
-    .filter((line) => !line.startsWith("description:"))
-    .filter((line) => !line.startsWith("type:"))
-    .filter((line) => !line.startsWith("archive:"))
-    .filter((line) => linksIn(line).length > 0 || line.startsWith("## "));
+  return units;
 }
 
 export function rebuildFlatIndex(dir: string): RebuildIndexResult {
@@ -167,128 +182,139 @@ export function rebuildFlatIndex(dir: string): RebuildIndexResult {
   const existingIndex = readIfExists(path.join(dir, MEMORY_INDEX_NAME));
   const existingArchive = readIfExists(path.join(dir, ARCHIVE_FILE));
 
-  const lines = existingIndex.trim()
+  // Keep the original preamble and the section labels it used.
+  const originalLines = existingIndex.trim()
     ? existingIndex.trimEnd().split("\n")
-    : ["# 记忆索引", ""];
-  // The archive pointer is regenerated below; drop stale copies first.
-  const withoutPointer = lines.filter(
-    (line) => !/\]\(archive(?:_\d+)?\.md\)/.test(line),
-  );
-  lines.length = 0;
-  lines.push(...withoutPointer);
-
-  const archivedLines = archiveLinkLines(existingArchive);
-  const indexed = new Set(
-    [...lines, ...archivedLines].flatMap((line) => linksIn(line)),
-  );
-
-  const missing = entries
-    .filter((entry) => !indexed.has(entry.file))
-    .sort((a, b) => {
-      const rank = (TYPE_RANK[a.type] ?? 9) - (TYPE_RANK[b.type] ?? 9);
-      if (rank !== 0) return rank;
-      return b.mtime - a.mtime;
-    });
-  for (const entry of missing) {
-    insertEntry(lines, entry.type, entryLine(entry));
+    : ["# Memory", "", "This file serves as an index for the project's auto-memory."];
+  const firstSection = originalLines.findIndex((line) => line.startsWith("## "));
+  const preamble =
+    firstSection === -1 ? originalLines : originalLines.slice(0, firstSection);
+  while (preamble.length > 0 && preamble[preamble.length - 1].trim() === "") {
+    preamble.pop();
+  }
+  const labels: Record<string, string> = { ...DEFAULT_LABEL };
+  for (let i = 0; i < originalLines.length; i += 1) {
+    if (!originalLines[i].startsWith("## ")) continue;
+    const label = originalLines[i].slice(3).trim();
+    const type = Object.keys(LABEL_ALIASES).find((key) =>
+      LABEL_ALIASES[key].includes(label),
+    );
+    if (type) labels[type] = label;
   }
 
-  const lineMtime = (line: string): number => {
-    const times = linksIn(line)
-      .map((file) => byFile.get(file)?.mtime ?? 0)
-      .filter((time) => time > 0);
-    return times.length > 0 ? Math.min(...times) : 0;
+  const seen = new Set<string>();
+  const units: Unit[] = [];
+
+  for (const line of originalLines) {
+    if (!line.startsWith("- ")) continue;
+    if (/\]\(archive(?:_\d+)?\.md\)/.test(line)) continue;
+    const files = linksIn(line).filter((file) => !seen.has(file));
+    if (files.length === 0) continue;
+    files.forEach((file) => seen.add(file));
+    const unit = makeUnit(line, files, byFile);
+    if (unit) units.push(unit);
+  }
+  for (const unit of readArchiveUnits(existingArchive, byFile)) {
+    if (unit.files.some((file) => seen.has(file))) continue;
+    unit.files.forEach((file) => seen.add(file));
+    units.push(unit);
+  }
+  for (const entry of entries) {
+    if (seen.has(entry.file)) continue;
+    seen.add(entry.file);
+    units.push({
+      text: generatedLine(entry),
+      files: [entry.file],
+      type: entry.type,
+      rank: TYPE_RANK[entry.type] ?? 9,
+      mtime: entry.mtime,
+    });
+  }
+
+  const ordered = sortUnits(units);
+  const direct: Unit[] = [];
+  const archived: Unit[] = [];
+  let usedChars = 0;
+  for (const unit of ordered) {
+    const cost = unit.text.length + 1 + (direct.length === 0 ? 10 : 0);
+    if (usedChars + cost <= INDEX_BUDGET_CHARS && direct.length < MAX_INDEX_LINES) {
+      direct.push(unit);
+      usedChars += cost;
+    } else {
+      archived.push(unit);
+    }
+  }
+
+  const archiveLinkCount = archived.reduce(
+    (sum, unit) => sum + unit.files.length,
+    0,
+  );
+
+  const render = (): { content: string; lines: number; chars: number } => {
+    const lines = [...preamble];
+    for (const type of TYPE_ORDER) {
+      const section = direct.filter((unit) => unit.type === type);
+      if (section.length === 0) continue;
+      lines.push("", `## ${labels[type] ?? DEFAULT_LABEL[type]}`, ...section.map((unit) => unit.text));
+    }
+    if (archiveLinkCount > 0) {
+      lines.push(
+        "",
+        "## 归档",
+        `- [归档：${archiveLinkCount} 个低优先级文件](${ARCHIVE_FILE}) — 旧项目/参考记录，需要时再打开`,
+      );
+    }
+    const content = `${lines.join("\n").trim()}\n`;
+    return {
+      content,
+      lines: content.trim().split("\n").length,
+      chars: content.trim().length,
+    };
   };
 
-  const contentLength = () => lines.join("\n").trimEnd().length;
-  const movable = () =>
-    lines
-      .map((line, index) => ({ line, index }))
-      .filter(
-        ({ line }) =>
-          linksIn(line).length > 0 &&
-          !/\]\(archive(?:_\d+)?\.md\)/.test(line) &&
-          !line.startsWith("#"),
-      );
-
+  let rendered = render();
   while (
-    (contentLength() > INDEX_BUDGET_CHARS || lines.length > MAX_INDEX_LINES) &&
-    movable().length > 0
+    (rendered.chars > INDEX_BUDGET_CHARS || rendered.lines > MAX_INDEX_LINES) &&
+    direct.length > 0
   ) {
-    const victim = movable().sort((a, b) => {
-      // Archive low-value types first: reference, then project, then feedback,
-      // and only then user notes.
-      const rankOf = (line: string) => {
-        const files = linksIn(line);
-        const ranks = files.map((file) => {
-          const type = byFile.get(file)?.type ?? "reference";
-          return type === "reference"
-            ? 0
-            : type === "project"
-              ? 1
-              : type === "feedback"
-                ? 2
-                : 3;
-        });
-        return ranks.length > 0 ? Math.min(...ranks) : 0;
-      };
-      const rank = rankOf(a.line) - rankOf(b.line);
-      if (rank !== 0) return rank;
-      return lineMtime(a.line) - lineMtime(b.line);
-    })[0];
-    archivedLines.push(victim.line);
-    lines.splice(victim.index, 1);
+    const moved = direct.pop();
+    if (!moved) break;
+    archived.push(moved);
+    rendered = render();
   }
 
-  let archiveContent = "";
-  if (archivedLines.length > 0) {
-    const archivedCount = archivedLines.reduce(
-      (sum, line) => sum + linksIn(line).length,
-      0,
-    );
-    archiveContent =
-      [
-        "---",
-        "name: 归档索引",
-        `description: ${archivedCount} 个低优先级记忆文件的清单；需要翻旧记录时先读这里，再打开具体文件。`,
-        "type: reference",
-        "archive: true",
-        "---",
-        "",
-        "# 归档（低优先级）",
-        "",
-        ...archivedLines,
-      ]
-        .join("\n")
-        .trim() + "\n";
+  rendered = render();
+  if (archiveLinkCount > 0) {
+    const archiveContent = `${[
+      "---",
+      "name: 归档索引",
+      `description: ${archiveLinkCount} 个低优先级记忆文件的清单；需要翻旧记录时先读这里，再打开具体文件。`,
+      "type: reference",
+      "archive: true",
+      "---",
+      "",
+      "# 归档（低优先级）",
+      "",
+      ...sortUnits(archived).map((unit) => unit.text),
+    ]
+      .join("\n")
+      .trim()}\n`;
     fs.writeFileSync(path.join(dir, ARCHIVE_FILE), archiveContent, "utf-8");
-    lines.push(
-      "",
-      "## 归档",
-      `- [归档：${archivedCount} 个低优先级文件](${ARCHIVE_FILE}) — 旧项目/参考记录，需要时再打开`,
-      "",
-    );
   } else {
     fs.rmSync(path.join(dir, ARCHIVE_FILE), { force: true });
   }
 
-  const content = `${lines.join("\n").trim()}\n`;
-  fs.writeFileSync(path.join(dir, MEMORY_INDEX_NAME), content, "utf-8");
+  fs.writeFileSync(path.join(dir, MEMORY_INDEX_NAME), rendered.content, "utf-8");
 
-  const direct = [...content.matchAll(/\]\(([^)]+\.md)\)/g)].filter(
-    (match) => match[1] !== ARCHIVE_FILE,
-  ).length;
   return {
-    direct,
-    archived: archivedLines.length > 0
-      ? archivedLines.reduce((sum, line) => sum + linksIn(line).length, 0)
-      : 0,
-    indexChars: content.trim().length,
-    indexLines: content.trim().split("\n").length,
+    direct: direct.reduce((sum, unit) => sum + unit.files.length, 0),
+    archived: archiveLinkCount,
+    indexChars: rendered.chars,
+    indexLines: rendered.lines,
   };
 }
 
 /** Kept for callers that only care about the type label. */
 export function memoryTypeLabel(type: string): string {
-  return TYPE_LABEL[type] ?? type;
+  return DEFAULT_LABEL[type] ?? type;
 }
