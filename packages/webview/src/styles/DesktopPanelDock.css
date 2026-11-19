@@ -1446,13 +1446,8 @@
   overflow-wrap: anywhere;
 }
 
-/* Reading measure: the dock can be wide, prose should not be. */
-.dock-detail-progress-text,
-.dock-detail-progress-full,
-.dock-detail-description-body,
-.dock-detail-update-text {
-  max-width: 70ch;
-}
+/* Prose uses the card's width: the dock already constrains how wide it gets,
+   and a second measure left a dead gutter inside wide cards. */
 .dock-detail-artifacts-inline {
   display: flex;
   flex-wrap: wrap;
