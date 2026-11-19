@@ -46,7 +46,7 @@ function dedupe<T extends PageMessage>(messages: T[]): T[] {
 export function pageTranscript<T extends PageMessage>(
   disk: T[],
   live: T[] = [],
-  opts?: { before?: string; limit?: number },
+  opts?: { before?: string; limit?: number; hasOlder?: boolean },
 ): TranscriptPage<T> {
   const history = dedupe(disk);
   const limit =
@@ -73,9 +73,23 @@ export function pageTranscript<T extends PageMessage>(
   const start = Math.max(0, fullTail.length - TRANSCRIPT_INITIAL_LIMIT);
   const tail = fullTail.slice(start);
   const known = new Set(history.map((message) => message.id));
-  const unsaved = dedupe(live).filter((message) => !known.has(message.id));
+  const unsaved = dedupe(live);
+  // When the disk side is only a tail window, older live messages are not in
+  // `known`; append only what comes after the newest disk message instead of
+  // replaying the whole in-memory context.
+  const lastDiskId = history.at(-1)?.id;
+  const liveAfterDisk =
+    opts?.hasOlder && lastDiskId
+      ? (() => {
+          const index = unsaved.findIndex((message) => message.id === lastDiskId);
+          return index >= 0 ? unsaved.slice(index + 1) : unsaved;
+        })()
+      : unsaved;
   return {
-    messages: [...tail, ...unsaved],
-    hasMore: start > 0 || lastCompact > 0,
+    messages: [
+      ...tail,
+      ...liveAfterDisk.filter((message) => !known.has(message.id)),
+    ],
+    hasMore: start > 0 || lastCompact > 0 || Boolean(opts?.hasOlder),
   };
 }

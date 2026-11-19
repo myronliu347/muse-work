@@ -4,6 +4,7 @@ export {
   setSessionCustomTitle,
   truncateContent,
   loadSessionFromJsonl,
+  loadRecentSessionMessages,
   loadFullMessageThread,
   deleteSession,
   generateSessionFilePath,

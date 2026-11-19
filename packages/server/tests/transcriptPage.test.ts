@@ -80,3 +80,35 @@ describe("pageTranscript", () => {
     expect(page.hasMore).toBe(true);
   });
 });
+
+describe("pageTranscript tail window", () => {
+  const msg = (id: string, type: "text" | "compact" = "text"): PageMessage => ({
+    id,
+    blocks: [{ type }],
+  });
+
+  it("does not replay older live messages when disk holds only a tail", () => {
+    const diskTail = [msg("a3"), msg("a4")];
+    const live = [
+      msg("c1", "compact"),
+      msg("u2"),
+      msg("a2"),
+      msg("a3"),
+      msg("a4"),
+      msg("u5"),
+    ];
+    const page = pageTranscript(diskTail, live, { hasOlder: true });
+    expect(page.messages.map((message) => message.id)).toEqual([
+      "a3",
+      "a4",
+      "u5",
+    ]);
+    expect(page.hasMore).toBe(true);
+  });
+
+  it("reports more history when the tail window itself is truncated", () => {
+    const page = pageTranscript([msg("a1"), msg("a2")], [], { hasOlder: true });
+    expect(page.messages.map((message) => message.id)).toEqual(["a1", "a2"]);
+    expect(page.hasMore).toBe(true);
+  });
+});

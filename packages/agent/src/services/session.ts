@@ -442,6 +442,53 @@ async function findSessionFileAcrossProjects(
  * @param sessionType - Type of session ("main" or "subagent", defaults to "main")
  * @returns Promise that resolves to session data or null if session doesn't exist
  */
+/**
+ * Resolve a session's JSONL path, falling back to the cross-project search
+ * when the session lives under a different project directory.
+ */
+async function resolveSessionFilePath(
+  sessionId: string,
+  workdir: string,
+  sessionType: "main" | "subagent",
+): Promise<string | null> {
+  const filePath = await generateSessionFilePath(
+    sessionId,
+    workdir,
+    sessionType,
+  );
+  try {
+    await fs.access(filePath);
+    return filePath;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    return (await findSessionFileAcrossProjects(sessionId, sessionType)) ?? null;
+  }
+}
+
+/**
+ * Read only the newest messages of a session, without parsing the whole
+ * append-only JSONL. Used by the messages endpoint for the first page; older
+ * pages (and rewind/resume) still use {@link loadSessionFromJsonl}.
+ */
+export async function loadRecentSessionMessages(
+  sessionId: string,
+  workdir: string,
+  maxMessages: number,
+  sessionType: "main" | "subagent" = "main",
+): Promise<{ messages: Message[]; hasOlder: boolean } | null> {
+  try {
+    const resolvedPath = await resolveSessionFilePath(
+      sessionId,
+      workdir,
+      sessionType,
+    );
+    if (!resolvedPath) return null;
+    return await new JsonlHandler().readTailMessages(resolvedPath, maxMessages);
+  } catch {
+    return null;
+  }
+}
+
 export async function loadSessionFromJsonl(
   sessionId: string,
   workdir: string,
@@ -449,34 +496,12 @@ export async function loadSessionFromJsonl(
 ): Promise<SessionData | null> {
   try {
     const jsonlHandler = new JsonlHandler();
-
-    // Generate the session file path directly using known session type
-    const filePath = await generateSessionFilePath(
+    const resolvedPath = await resolveSessionFilePath(
       sessionId,
       workdir,
       sessionType,
     );
-
-    // Check if file exists
-    let resolvedPath = filePath;
-    try {
-      await fs.access(resolvedPath);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        // Cross-project fallback: the session may live in a different project
-        // directory (e.g. restore-by-id run from another cwd).
-        const fallbackPath = await findSessionFileAcrossProjects(
-          sessionId,
-          sessionType,
-        );
-        if (!fallbackPath) {
-          return null;
-        }
-        resolvedPath = fallbackPath;
-      } else {
-        throw error;
-      }
-    }
+    if (!resolvedPath) return null;
 
     const { messages: allMessages, customTitle } =
       await jsonlHandler.readMessagesAndCustomTitle(resolvedPath);

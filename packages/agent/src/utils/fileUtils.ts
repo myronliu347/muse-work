@@ -208,6 +208,61 @@ export async function getLastLine(
  * @param {number} maxBytes - Size of the tail window (default 64KB).
  * @return {Promise<string[]>} - Trailing non-empty lines, or [] if unreadable.
  */
+/**
+ * Read complete trailing lines, growing the window until it holds at least
+ * `minLines` lines (or the window reaches `maxBytes` / the file start).
+ *
+ * The window may begin mid-line; that partial first line is dropped so every
+ * returned line is complete. `hasOlder` is true when older lines were left
+ * outside the window (or trimmed to `minLines`).
+ *
+ * @param filePath - File to read.
+ * @param minLines - Minimum number of trailing lines wanted.
+ * @param opts - Initial window (default 256KB) and hard cap (default 32MB).
+ */
+export async function readTailLinesUntil(
+  filePath: string,
+  minLines: number,
+  opts: { startBytes?: number; maxBytes?: number } = {},
+): Promise<{ lines: string[]; hasOlder: boolean }> {
+  const wanted = Math.max(1, Math.floor(minLines));
+  const maxBytes = opts.maxBytes ?? 32 * 1024 * 1024;
+  let fileHandle;
+  try {
+    const stats = await fs.stat(filePath);
+    const fileSize = stats.size;
+    if (fileSize === 0) return { lines: [], hasOlder: false };
+
+    fileHandle = await fs.open(filePath, "r");
+    let window = Math.min(opts.startBytes ?? 256 * 1024, fileSize);
+    for (;;) {
+      const readSize = Math.min(window, fileSize, maxBytes);
+      const start = fileSize - readSize;
+      const buffer = Buffer.alloc(readSize);
+      const { bytesRead } = await fileHandle.read(buffer, 0, readSize, start);
+      const text = buffer.subarray(0, bytesRead).toString("utf8");
+      let lines = text.split("\n");
+      if (start > 0) lines.shift(); // partial line (window began mid-line)
+      lines = lines.map((line) => line.trim()).filter((line) => line !== "");
+      const hasOlderBytes = start > 0;
+      if (lines.length >= wanted || !hasOlderBytes || readSize >= maxBytes) {
+        const trimmed = lines.length > wanted;
+        return {
+          lines: lines.slice(-wanted),
+          hasOlder: hasOlderBytes || trimmed,
+        };
+      }
+      window = Math.min(window * 2, fileSize, maxBytes);
+    }
+  } catch {
+    return { lines: [], hasOlder: false };
+  } finally {
+    if (fileHandle) {
+      await fileHandle.close();
+    }
+  }
+}
+
 export async function readTailLines(
   filePath: string,
   maxBytes = 64 * 1024,

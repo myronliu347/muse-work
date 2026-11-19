@@ -2,7 +2,11 @@ import type { WsBroadcastEvent } from "../wsHub.js";
 import { closeAgentLogger } from "../../utils/logger.js";
 import { mapSdkMessages } from "../../utils/messageMapper.js";
 import { enrichFileHistory, revertSnapshots } from "../../utils/fileHistoryDiff.js";
-import { pageTranscript, type PageMessage } from "../../utils/transcriptPage.js";
+import {
+  pageTranscript,
+  TRANSCRIPT_INITIAL_LIMIT,
+  type PageMessage,
+} from "../../utils/transcriptPage.js";
 import { pruneMissingImageRefs } from "../../utils/pruneMissingImages.js";
 import {
   isRewindTargetMessage,
@@ -59,15 +63,36 @@ export function createActions(ctx: RunnerContext): SessionRunner {
   const core = ctx.core;
   const agent = ctx.agent;
 
+  function toPageMessages(messages: unknown[]): PageMessage[] {
+    return (messages as PageMessage[]).filter(
+      (message) => Boolean(message) && typeof message.id === "string",
+    );
+  }
+
   async function readDiskMessages(sessionId: string): Promise<PageMessage[]> {
     const session = store.get(sessionId);
     if (!session) return [];
     // SDK persists under museSessionId, not the server store's session id.
     const diskId = session.museSessionId ?? sessionId;
     const data = await agent.loadMainSessionFromDisk(diskId, session.workdir);
-    return ((data?.messages ?? []) as PageMessage[]).filter(
-      (message) => Boolean(message) && typeof message.id === "string",
-    );
+    return toPageMessages(data?.messages ?? []);
+  }
+
+  /** Newest messages only, read from the file tail (first page of the UI). */
+  async function readRecentDiskMessages(
+    sessionId: string,
+    tail: number,
+  ): Promise<{ messages: PageMessage[]; hasOlder: boolean }> {
+    const session = store.get(sessionId);
+    if (!session) return { messages: [], hasOlder: false };
+    const diskId = session.museSessionId ?? sessionId;
+    const data = await agent.loadMainSessionFromDisk(diskId, session.workdir, {
+      tail,
+    });
+    return {
+      messages: toPageMessages(data?.messages ?? []),
+      hasOlder: Boolean(data?.hasOlder),
+    };
   }
 
   /** Disk transcript when it exists; otherwise the live folded context (unsaved session). */
@@ -80,6 +105,7 @@ export function createActions(ctx: RunnerContext): SessionRunner {
   async function loadPage(
     sessionId: string,
     opts?: { before?: string; limit?: number },
+    read?: { tail?: boolean },
   ): Promise<{ messages: unknown[]; hasMore: boolean }> {
     const session = store.get(sessionId);
     if (!session) {
@@ -87,11 +113,30 @@ export function createActions(ctx: RunnerContext): SessionRunner {
         statusCode: 404,
       });
     }
-    const disk = await readDiskMessages(sessionId);
+    // Older pages need the whole history to find the cursor. The first page
+    // only needs a tail window: parsing a 100MB+ append-only transcript to
+    // show its last 80 messages is what made session switches stall.
+    const tail =
+      read?.tail && !opts?.before
+        ? Math.max(TRANSCRIPT_INITIAL_LIMIT, opts?.limit ?? 0) + 40
+        : 0;
+    let disk: PageMessage[];
+    let hasOlder = false;
+    if (tail > 0) {
+      const recent = await readRecentDiskMessages(sessionId, tail);
+      disk = recent.messages;
+      hasOlder = recent.hasOlder;
+    } else {
+      disk = await readDiskMessages(sessionId);
+    }
     const existing = agents.get(sessionId);
     if (existing) core.touchAgent(sessionId);
     const live = (existing?.getMessages?.() ?? []) as PageMessage[];
-    const page = pageTranscript(disk, live, opts);
+    const page = pageTranscript(
+      disk,
+      live,
+      hasOlder ? { ...opts, hasOlder } : opts,
+    );
     const nested = await agent.attachNestedMessages(
       sessionId,
       session.workdir,
@@ -334,7 +379,7 @@ export function createActions(ctx: RunnerContext): SessionRunner {
     },
 
     async getMessagePage(sessionId, opts) {
-      return loadPage(sessionId, opts);
+      return loadPage(sessionId, opts, { tail: !opts?.before });
     },
 
     async compact(sessionId) {
@@ -433,7 +478,10 @@ export function createActions(ctx: RunnerContext): SessionRunner {
       }
       const inputContent = userMessageText(messages[index]);
       await existing.truncateHistory(index);
-      pushTranscript(sessionId, await loadPage(sessionId));
+      pushTranscript(
+        sessionId,
+        await loadPage(sessionId, undefined, { tail: true }),
+      );
       return { ok: true as const, inputContent };
     },
 
@@ -474,7 +522,10 @@ export function createActions(ctx: RunnerContext): SessionRunner {
           timestamp?: number;
         }>,
       );
-      pushTranscript(sessionId, await loadPage(sessionId));
+      pushTranscript(
+        sessionId,
+        await loadPage(sessionId, undefined, { tail: true }),
+      );
       return { ok: true as const, revertedCount };
     },
 

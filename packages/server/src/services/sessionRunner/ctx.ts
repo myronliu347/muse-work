@@ -315,7 +315,8 @@ export interface CreateSessionRunnerOptions {
   loadMainSessionFromDisk?: (
     sessionId: string,
     workdir: string,
-  ) => Promise<{ messages: unknown[] } | null>;
+    opts?: { tail?: number },
+  ) => Promise<{ messages: unknown[]; hasOlder?: boolean } | null>;
   /**
    * Called when a turn settles for sessions whose status was running. Lets
    * external schedulers react to turn completion without
@@ -369,7 +370,8 @@ export interface AgentLayer {
   loadMainSessionFromDisk(
     sessionId: string,
     workdir: string,
-  ): Promise<{ messages: unknown[] } | null>;
+    opts?: { tail?: number },
+  ): Promise<{ messages: unknown[]; hasOlder?: boolean } | null>;
   reconcileBackgroundTasks(sessionId: string): Promise<unknown[]>;
   getSkillsForWorkdir(workdir: string): Promise<unknown[]>;
   invalidateSkillsListCache(): void;

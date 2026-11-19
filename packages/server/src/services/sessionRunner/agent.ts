@@ -1,6 +1,7 @@
 import {
   generateSessionFilePath,
   listSkillMetadataForWorkdir,
+  loadRecentSessionMessages,
   loadSessionFromJsonl,
   type PermissionDecision,
   type ToolPlugin,
@@ -264,10 +265,20 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
   async function loadMainSessionFromDisk(
     sessionId: string,
     workdir: string,
-  ): Promise<{ messages: unknown[] } | null> {
+    opts?: { tail?: number },
+  ): Promise<{ messages: unknown[]; hasOlder?: boolean } | null> {
     return (
       options.loadMainSessionFromDisk ??
-      (async (id: string, dir: string) => {
+      (async (id: string, dir: string, readOpts?: { tail?: number }) => {
+        // The first UI page only needs the newest messages. Reading back from
+        // the tail keeps a 100MB+ append-only transcript from being parsed in
+        // full (and cached in full) on every session switch.
+        const tail = readOpts?.tail;
+        if (tail && tail > 0) {
+          const recent = await loadRecentSessionMessages(id, dir, tail, "main");
+          if (!recent?.messages.length) return null;
+          return { messages: recent.messages, hasOlder: recent.hasOlder };
+        }
         const cacheKey = `${id}\0${dir}`;
         let fingerprint = "";
         try {
@@ -301,7 +312,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
           return null;
         }
       })
-    )(sessionId, workdir);
+    )(sessionId, workdir, opts);
   }
 
   /**

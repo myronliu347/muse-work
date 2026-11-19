@@ -19,6 +19,7 @@ import {
   getLastLine,
   readFirstNLines,
   readTailLines,
+  readTailLinesUntil,
 } from "../utils/fileUtils.js";
 
 import type { Message } from "../types/index.js";
@@ -225,6 +226,45 @@ export class JsonlHandler {
    */
   async read(filePath: string): Promise<Message[]> {
     return (await this.readMessagesAndCustomTitle(filePath)).messages;
+  }
+
+  /**
+   * Read only the newest messages from the end of a large JSONL transcript.
+   * Grows a byte window from the tail instead of parsing the whole file, so
+   * opening a multi-MB session stays proportional to the page size.
+   *
+   * @param filePath - Session JSONL file.
+   * @param maxMessages - Number of newest messages to return.
+   * @returns Newest messages oldest-first, plus whether older lines exist.
+   */
+  async readTailMessages(
+    filePath: string,
+    maxMessages: number,
+  ): Promise<{ messages: Message[]; hasOlder: boolean }> {
+    const wanted = Math.max(1, Math.floor(maxMessages));
+    // +2 slots absorb the metadata header and a custom-title entry.
+    const { lines, hasOlder } = await readTailLinesUntil(filePath, wanted + 2);
+    const messages: Message[] = [];
+    const seen = new Set<string>();
+    for (const line of lines) {
+      try {
+        const message = JSON.parse(line) as Message & { type?: string };
+        if (message.type === "custom-title" || isReservedEntry(message.type)) {
+          continue;
+        }
+        if (!message.timestamp) continue;
+        if (message.id && seen.has(message.id)) continue;
+        if (message.id) seen.add(message.id);
+        messages.push(message);
+      } catch {
+        // A partial/corrupt line at the tail must not fail the page.
+      }
+    }
+    const trimmed = messages.length > wanted;
+    return {
+      messages: trimmed ? messages.slice(-wanted) : messages,
+      hasOlder: hasOlder || trimmed,
+    };
   }
 
   /**
