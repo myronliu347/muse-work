@@ -18,6 +18,7 @@ import { createSkillMarketRoutes } from "./routes/skillMarket.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { issuesRoutes } from "./routes/issues.js";
 import { automationsRoutes } from "./routes/automations.js";
+import { memoryDreamRoutes } from "./routes/memoryDream.js";
 import { assistantRoutes } from "./routes/assistant.js";
 import { hostPluginRoutes } from "./routes/hostPlugins.js";
 
@@ -49,6 +50,7 @@ export function createHonoApp(ctx: AppContext): Hono<HonoEnv> {
   );
   app.route("/", issuesRoutes);
   app.route("/", automationsRoutes);
+  app.route("/", memoryDreamRoutes);
   app.route("/", assistantRoutes);
   app.route("/", hostPluginRoutes);
 

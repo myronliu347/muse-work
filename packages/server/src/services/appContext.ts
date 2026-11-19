@@ -4,11 +4,13 @@ import {
   createOpenAiCompatibleProvider,
   createProviderRegistry,
   DEEPSEEK_API_KEY_ENV,
+  getMuseHomeDir,
   loadProvidersConfig,
   reconcileActiveProvider,
   type AiProvider,
   type ProviderRegistry,
 } from "@muse-work/provider";
+import path from "node:path";
 import type { AssistantApp, AssistantTool, SettingsPanel } from "@muse-work/plugin-sdk";
 import type { AssistantBridge } from "../plugins/hostPlugins.js";
 import {
@@ -57,6 +59,10 @@ import {
 import { createAssistantTools } from "./assistant/tools.js";
 import { enqueueIssuePermission, enqueueIssueSessionTurn } from "./assistant/observe.js";
 import { lastAssistantText } from "./issueDispatch.js";
+import { resolveAutoMemoryDirectory } from "@muse-work/agent";
+import { createMemoryDreamStore } from "./memoryDreams.js";
+import { createMemoryDreamEngine } from "./memoryDreamEngine.js";
+import { createMemoryDreamScheduler } from "./memoryDreamScheduler.js";
 
 export { resolveHome };
 
@@ -77,6 +83,8 @@ export interface AppContext {
   ) => IssueUpdate | undefined;
   automationStore: AutomationStore;
   automationRuntime: ReturnType<typeof createAutomationRuntime>;
+  memoryDreamStore: ReturnType<typeof createMemoryDreamStore>;
+  memoryDreamScheduler: ReturnType<typeof createMemoryDreamScheduler>;
   issueDispatcher: ReturnType<typeof createIssueDispatcher>;
   assistantLog: ReturnType<typeof createAssistantMessageLog>;
   assistantRuntime: ReturnType<typeof createAssistantRuntime>;
@@ -302,6 +310,25 @@ export function createAppContext(
     home,
     recordIssueUpdate,
   });
+  const memoryDreams = createMemoryDreamStore({ home, now: options?.now });
+  const memoryDreamEngine = createMemoryDreamEngine({
+    home,
+    sessions: sessions.store,
+    runner: sessions.runner,
+    draftRoot: path.join(getMuseHomeDir(home), "dreams", "drafts"),
+  });
+  const memoryDreamScheduler = createMemoryDreamScheduler({
+    home,
+    store: memoryDreams,
+    engine: memoryDreamEngine,
+    memoryDirFor: (workdir) => resolveAutoMemoryDirectory(workdir),
+    now: options?.now,
+    onChanged: () => sessions.hub.broadcastAll({ type: "memory-dream:changed" }),
+    resolveAssistantWorkdir: () =>
+      sessions.store.list().find((session) => session.origin === "assistant")
+        ?.workdir,
+  });
+
   const automationRuntime = createAutomationRuntime({
     store: automations,
     hub: sessions.hub,
@@ -370,6 +397,7 @@ export function createAppContext(
   sessions.runner.setOnTurnSettled((sessionId, result) => {
     dispatcher.handleTurnSettled(sessionId, result);
     automationRuntime.handleTurnSettled(sessionId, result);
+    memoryDreamScheduler.handleTurnSettled(sessionId, result);
     assistantRuntime.onAssistantTurnSettled(sessionId, result);
     void enqueueIssueSessionTurn({
       issues,
@@ -383,6 +411,7 @@ export function createAppContext(
     });
   });
   automationRuntime.start();
+  memoryDreamScheduler.start();
   void assistantRuntime.start();
   const preparedPlugins = options?.preparedPlugins ?? [];
   return {
@@ -399,6 +428,8 @@ export function createAppContext(
     recordIssueUpdate,
     automationStore: automations,
     automationRuntime,
+    memoryDreamStore: memoryDreams,
+    memoryDreamScheduler,
     issueDispatcher: dispatcher,
     assistantLog,
     assistantRuntime,

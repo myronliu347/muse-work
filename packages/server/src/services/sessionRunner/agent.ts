@@ -442,6 +442,9 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       // 缺省时 SDK 用 MUSE_BASE_SYSTEM_PROMPT。
       systemPrompt: session?.systemPrompt,
       permissionMode: session?.permissionMode ?? "acceptEdits",
+      ...(session?.autoMemoryEnabled === false
+        ? { autoMemoryEnabled: false }
+        : {}),
       restoreSessionId,
       // agent 的 tools（允许列表）与 permission（拒绝/豁免）展开后存在会话里，透传 SDK
       ...(session?.tools && session.tools.length > 0 ? { tools: session.tools } : {}),

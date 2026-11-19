@@ -1311,4 +1311,181 @@ export class MuseApiClient {
     });
     return parseJson(res);
   }
+
+  async getMemoryDream(): Promise<MemoryDreamState> {
+    const res = await this.request("/memory-dream");
+    return parseJson(res);
+  }
+
+  async setMemoryDreamEnabled(
+    enabled: boolean,
+  ): Promise<{ ok: boolean; enabled: boolean }> {
+    const res = await this.request("/memory-dream/enabled", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ enabled }),
+    });
+    return parseJson(res);
+  }
+
+  async runMemoryDream(
+    targetId: string,
+  ): Promise<{ ok: boolean; started?: boolean; error?: string }> {
+    const res = await this.request(
+      `/memory-dream/targets/${encodeURIComponent(targetId)}/run`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
+  async adoptMemoryDreamRun(runId: string): Promise<{
+    ok: boolean;
+    error?: string;
+    backupPath?: string;
+    lint?: unknown;
+  }> {
+    const res = await this.request(
+      `/memory-dream/runs/${encodeURIComponent(runId)}/adopt`,
+      { method: "POST" },
+    );
+    const body = (await res.json().catch(() => ({}))) as {
+      ok?: boolean;
+      error?: string;
+      backupPath?: string;
+      lint?: unknown;
+    };
+    if (!res.ok) {
+      return { ok: false, error: body.error ?? res.statusText, lint: body.lint };
+    }
+    return { ok: true, ...body };
+  }
+
+  async updateMemoryDreamTarget(
+    targetId: string,
+    patch: { model?: string },
+  ): Promise<{ ok: boolean; target: MemoryDreamTargetView }> {
+    const res = await this.request(
+      `/memory-dream/targets/${encodeURIComponent(targetId)}`,
+      {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(patch),
+      },
+    );
+    return parseJson(res);
+  }
+
+  async getMemoryDreamReport(runId: string): Promise<MemoryDreamReport> {
+    const res = await this.request(
+      `/memory-dream/runs/${encodeURIComponent(runId)}/report`,
+    );
+    return parseJson(res);
+  }
+
+  async discardMemoryDreamRun(
+    runId: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    const res = await this.request(
+      `/memory-dream/runs/${encodeURIComponent(runId)}`,
+      { method: "DELETE" },
+    );
+    return parseJson(res);
+  }
+
+  async listMemoryDreamBackups(
+    targetId: string,
+  ): Promise<{ backups: string[] }> {
+    const res = await this.request(
+      `/memory-dream/backups?targetId=${encodeURIComponent(targetId)}`,
+    );
+    return parseJson(res);
+  }
+
+  async rollbackMemoryDream(
+    targetId: string,
+    backupPath: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    const res = await this.request("/memory-dream/rollback", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ targetId, backupPath }),
+    });
+    return parseJson(res);
+  }
+}
+
+export type MemoryDreamRunStatus =
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "skipped";
+
+export interface MemoryDreamRunView {
+  id: string;
+  targetId: string;
+  status: MemoryDreamRunStatus;
+  trigger?: "schedule" | "manual";
+  skipReason?: string;
+  startedAt: number;
+  endedAt?: number;
+  draftDir?: string;
+  draftReady: boolean;
+  summary?: { files: number; orphans: number; indexChars: number };
+  error?: string;
+  adoptedAt?: number;
+  discardedAt?: number;
+  progress?: MemoryDreamProgress;
+}
+
+export interface MemoryDreamTargetView {
+  id: string;
+  kind: "assistant" | "project";
+  workdir: string;
+  label: string;
+  enabled: boolean;
+  mode: "draft" | "auto";
+  cadence: "daily" | "weekly";
+  model?: string;
+  lastRunAt?: number;
+  lastAttemptAt?: number;
+  lastStatus?: MemoryDreamRunStatus;
+  lastSummary?: { files: number; orphans: number; indexChars: number };
+  consecutiveFailures: number;
+}
+
+export interface MemoryDreamProgress {
+  phase: "copy" | "export" | "analyze" | "organize" | "lint" | "done";
+  index?: number;
+  total?: number;
+  detail?: string;
+  startedAt: number;
+  updatedAt: number;
+}
+
+export interface MemoryFileMeta {
+  file: string;
+  bytes: number;
+  type: string;
+  name: string;
+  description: string;
+}
+
+export interface MemoryDreamReport {
+  report: string;
+  durationMs?: number;
+  counts: {
+    added: number;
+    changed: number;
+    removed: number;
+    conflicts: number;
+  };
+  added: MemoryFileMeta[];
+  changed: Array<MemoryFileMeta & { beforeBytes: number }>;
+  removed: MemoryFileMeta[];
+}
+
+export interface MemoryDreamState {
+  enabled: boolean;
+  targets: MemoryDreamTargetView[];
+  runs: MemoryDreamRunView[];
 }

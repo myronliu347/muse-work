@@ -1,13 +1,12 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { homedir } from "node:os";
-import { USER_MEMORY_FILE, DATA_DIRECTORY, CONFIG_DIR_NAME } from "../utils/constants.js";
+import { USER_MEMORY_FILE, DATA_DIRECTORY } from "../utils/constants.js";
 import { logger } from "../utils/globalLogger.js";
 import { atomicWriteFile } from "../utils/atomicWrite.js";
 import { Container } from "../utils/container.js";
-import { getGitCommonDir } from "../utils/gitUtils.js";
-import { pathEncoder } from "../utils/pathEncoder.js";
 import { MEMORY_ENTRYPOINT_NAME } from "../constants/memory.js";
+import { resolveAutoMemoryDirectory } from "../utils/memoryPaths.js";
 import { truncateEntrypointContent } from "../utils/memoryEntrypoint.js";
 import {
   buildMemoryEntrypoint,
@@ -42,13 +41,7 @@ export class MemoryService {
    * Uses the git common directory to ensure worktrees share the same memory.
    */
   getAutoMemoryDirectory(workdir: string): string {
-    const commonDir = getGitCommonDir(workdir);
-    // If the common directory is a .git directory, use its parent as the project root
-    // for a cleaner encoded name while maintaining stability across worktrees.
-    const projectRoot =
-      path.basename(commonDir) === ".git" ? path.dirname(commonDir) : commonDir;
-    const encodedName = pathEncoder.encodeSync(projectRoot);
-    return path.join(homedir(), CONFIG_DIR_NAME, "projects", encodedName, "memory");
+    return resolveAutoMemoryDirectory(workdir);
   }
 
   /**

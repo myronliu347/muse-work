@@ -51,6 +51,11 @@ export interface Session {
   modelExplicit?: boolean;
   /** 会话 systemPrompt 是否由用户显式指定（POST body.systemPrompt，完全接管）。true 时切换 agent 保留。 */
   systemPromptExplicit?: boolean;
+  /**
+   * 会话级 auto-memory 开关。离线维护会话（记忆整理）设 false，避免把
+   * 生产记忆索引注入 system prompt、也避免这一轮再写记忆。
+   */
+  autoMemoryEnabled?: boolean;
   /** user = 日常会话树；automation = 隐藏的无人值守运行；assistant = 长期助理。缺省 user。 */
   origin?: "user" | "automation" | "assistant";
 }
@@ -85,6 +90,7 @@ export interface SessionStore {
     allowedTools?: string[];
     modelExplicit?: boolean;
     systemPromptExplicit?: boolean;
+    autoMemoryEnabled?: boolean;
     origin?: "user" | "automation" | "assistant";
   }): Session;
   get(id: string): Session | undefined;

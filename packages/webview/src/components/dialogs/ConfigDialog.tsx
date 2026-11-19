@@ -20,6 +20,7 @@ import {
   type MuseProviderSettingsHandle,
 } from "../settings/MuseProviderSettings";
 import { AppearanceSettings } from "../settings/AppearanceSettings";
+import { MemoryDreamSettings } from "../settings/MemoryDreamSettings";
 import { DesktopUpdateChrome } from "../desktop/DesktopUpdateChrome";
 import { HostPluginPanel } from "../settings/HostPluginPanel";
 import {
@@ -136,6 +137,7 @@ const ConfigDialog = forwardRef<
       {([
         ["appearance", "外观", "config-appearance-panel"],
         ["agent", "Agent", "config-agent-panel"],
+        ["memory", "记忆", "config-memory-panel"],
         ["provider", "供应商", "config-provider-panel"],
         ...panels.map(
           (panel) =>
@@ -288,6 +290,13 @@ const ConfigDialog = forwardRef<
               hidden={activeTab !== "agent"}
             >
               <AgentSettings ref={agentSettingsRef} />
+            </div>
+            <div
+              id="config-memory-panel"
+              role="tabpanel"
+              hidden={activeTab !== "memory"}
+            >
+              <MemoryDreamSettings />
             </div>
             <div
               id="config-provider-panel"
