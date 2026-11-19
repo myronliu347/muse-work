@@ -208,6 +208,9 @@ export function rebuildFlatIndex(dir: string): RebuildIndexResult {
   for (const line of originalLines) {
     if (!line.startsWith("- ")) continue;
     if (/\]\(archive(?:_\d+)?\.md\)/.test(line)) continue;
+    // A line that points at a file the organizer deleted must not survive:
+    // preserving it would leave a dangling link the index can never satisfy.
+    if (linksIn(line).some((file) => !byFile.has(file))) continue;
     const files = linksIn(line).filter((file) => !seen.has(file));
     if (files.length === 0) continue;
     files.forEach((file) => seen.add(file));
@@ -215,6 +218,7 @@ export function rebuildFlatIndex(dir: string): RebuildIndexResult {
     if (unit) units.push(unit);
   }
   for (const unit of readArchiveUnits(existingArchive, byFile)) {
+    if (linksIn(unit.text).some((file) => !byFile.has(file))) continue;
     if (unit.files.some((file) => seen.has(file))) continue;
     unit.files.forEach((file) => seen.add(file));
     units.push(unit);
