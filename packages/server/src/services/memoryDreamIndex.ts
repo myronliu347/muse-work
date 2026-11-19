@@ -21,7 +21,7 @@ import {
  */
 
 export const ARCHIVE_FILE = "archive.md";
-export const INDEX_BUDGET_CHARS = 21_500;
+export const INDEX_BUDGET_CHARS = 20_000;
 const MAX_TITLE_CHARS = 12;
 /** Rough per-entry cost: `[title](file) · ` + a little slack. */
 function entryChars(name: string, file: string): number {

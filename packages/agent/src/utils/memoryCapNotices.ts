@@ -57,8 +57,14 @@ function worstDimension(dimensions: CapDimension[]): CapDimension | null {
 function overlongIndexLineNotice(raw: string): string | null {
   const overlong: number[] = [];
   raw.split("\n").forEach((line, index) => {
-    if (line.length > MEMORY_INDEX_LINE_GUIDANCE_CHARS)
-      overlong.push(index + 1);
+    // Packed lines hold 2-3 entries; allow the guidance per entry instead of
+    // per physical line so the packed index is not reported as over-long.
+    const links = (line.match(/\]\([^)]+\)/g) ?? []).length;
+    const allowance =
+      links > 0
+        ? MEMORY_INDEX_LINE_GUIDANCE_CHARS * links + 30
+        : MEMORY_INDEX_LINE_GUIDANCE_CHARS;
+    if (line.length > allowance) overlong.push(index + 1);
   });
   if (overlong.length === 0) return null;
 
@@ -70,7 +76,7 @@ function overlongIndexLineNotice(raw: string): string | null {
     overlong.length > 5
       ? ` (+${overlong.length - 5} more over-long lines)`
       : "";
-  return `${overlong.length} index line(s) exceed the ~${MEMORY_INDEX_LINE_GUIDANCE_CHARS}-character guidance: ${shown}${more}. Derive each line from the topic file's frontmatter \`description\` and move the rest of the detail into that file.`;
+  return `${overlong.length} index line(s) exceed the ~${MEMORY_INDEX_LINE_GUIDANCE_CHARS}-character guidance: ${shown}${more}. Keep each entry to ~${MEMORY_INDEX_LINE_GUIDANCE_CHARS} characters: derive it from the topic file's frontmatter \`description\` and move the rest of the detail into that file.`;
 }
 
 /**

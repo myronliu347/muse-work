@@ -10,6 +10,7 @@ import {
   type MemoryType,
 } from "../constants/memory.js";
 import { parseFrontmatter } from "./markdownParser.js";
+import { isDerivedIndexFile } from "./memoryIndexMaintenance.js";
 
 export interface MemoryHeader {
   filename: string;
@@ -51,7 +52,8 @@ export async function scanMemoryFiles(
       .filter(
         (entry) =>
           entry.endsWith(".md") &&
-          path.basename(entry) !== MEMORY_ENTRYPOINT_NAME,
+          path.basename(entry) !== MEMORY_ENTRYPOINT_NAME &&
+          !isDerivedIndexFile(entry),
       )
       .map(async (filename): Promise<MemoryHeader | null> => {
         const filePath = path.join(memoryDir, filename);

@@ -6,6 +6,7 @@ import { MemoryService } from "./memory.js";
 import { ConfigurationService } from "./configurationService.js";
 import { logger } from "../utils/globalLogger.js";
 import { isPathInside } from "../utils/pathSafety.js";
+import { isDerivedIndexFile } from "../utils/memoryIndexMaintenance.js";
 import { formatMemoryManifest, scanMemoryFiles } from "../utils/memoryIndex.js";
 import { buildAutoMemoryExtractionPrompt } from "../prompts/autoMemoryExtraction.js";
 import {
@@ -106,7 +107,10 @@ export class AutoMemoryService {
                 const absolutePath = path.isAbsolute(filePath)
                   ? filePath
                   : path.resolve(workdir, filePath);
-                return isPathInside(absolutePath, memoryDir);
+                return (
+        isPathInside(absolutePath, memoryDir) &&
+        !isDerivedIndexFile(path.basename(absolutePath))
+      );
               }
             } catch {
               return false;
@@ -235,7 +239,10 @@ export class AutoMemoryService {
       const absolutePath = path.isAbsolute(filePath)
         ? filePath
         : path.resolve(workdir, filePath);
-      return isPathInside(absolutePath, memoryDir);
+      return (
+        isPathInside(absolutePath, memoryDir) &&
+        !isDerivedIndexFile(path.basename(absolutePath))
+      );
     }
 
     if (name === "Bash") {

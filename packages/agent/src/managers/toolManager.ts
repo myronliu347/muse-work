@@ -1,3 +1,4 @@
+import * as path from "node:path";
 import type { ToolContext, ToolPlugin, ToolResult } from "../tools/types.js";
 import { bashTool } from "../tools/bashTool.js";
 import { taskStopTool } from "../tools/taskStopTool.js";
@@ -35,6 +36,10 @@ import * as aiService from "../services/aiService.js";
 
 import { Container } from "../utils/container.js";
 import { appendMemoryCapNotice } from "../utils/memoryCapNotices.js";
+import {
+  ensureArchivePointer,
+  ensureMemoryIndexEntry,
+} from "../utils/memoryIndexMaintenance.js";
 import { validateToolInput } from "../tools/inputValidation.js";
 import { isLeanPromptEnabled } from "../services/leanPrompt.js";
 
@@ -369,6 +374,27 @@ class ToolManager {
         enhancedContext.workdir,
         enhancedContext.autoMemoryDir,
       );
+      if (result.success && (name === "Write" || name === "Edit")) {
+        const filePath = args.file_path ?? args.path;
+        if (typeof filePath === "string" && filePath) {
+          const absolutePath = path.isAbsolute(filePath)
+            ? filePath
+            : path.resolve(enhancedContext.workdir, filePath);
+          const indexNote = await ensureMemoryIndexEntry(
+            absolutePath,
+            enhancedContext.autoMemoryDir,
+          );
+          const archiveNote = await ensureArchivePointer(
+            enhancedContext.autoMemoryDir,
+          );
+          const note = indexNote ?? archiveNote;
+          if (note) {
+            result.content = result.content
+              ? `${result.content}\n\n${note}`
+              : note;
+          }
+        }
+      }
       return result;
     }
 

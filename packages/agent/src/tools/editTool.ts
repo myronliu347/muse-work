@@ -7,6 +7,7 @@ import { resolvePath, getDisplayPath } from "../utils/path.js";
 import { escapeRegExp, analyzeEditMismatch } from "../utils/editUtils.js";
 import { EDIT_TOOL_NAME, READ_TOOL_NAME } from "../constants/tools.js";
 import { rejectEntrypointWrite } from "../utils/memoryCapNotices.js";
+import { rejectDerivedIndexWrite } from "../utils/memoryIndexMaintenance.js";
 
 /**
  * Prepended to the result of an edit that applied to a file which changed on
@@ -269,11 +270,9 @@ Usage:
         }
       }
 
-      const entrypointRejectionMessage = rejectEntrypointWrite(
-        resolvedPath,
-        newContent,
-        context.autoMemoryDir,
-      );
+      const entrypointRejectionMessage =
+        rejectDerivedIndexWrite(resolvedPath, context.autoMemoryDir) ??
+        rejectEntrypointWrite(resolvedPath, newContent, context.autoMemoryDir);
       if (entrypointRejectionMessage) {
         return {
           success: false,

@@ -7,6 +7,7 @@ import type { ToolPlugin, ToolResult, ToolContext } from "./types.js";
 import { resolvePath, getDisplayPath } from "../utils/path.js";
 import { READ_TOOL_NAME } from "../constants/tools.js";
 import { rejectEntrypointWrite } from "../utils/memoryCapNotices.js";
+import { rejectDerivedIndexWrite } from "../utils/memoryIndexMaintenance.js";
 
 /**
  * File Write Tool Plugin
@@ -178,11 +179,9 @@ When to use: creating a new file, or fully replacing one. Prefer ${READ_TOOL_NAM
         }
       }
 
-      const entrypointRejectionMessage = rejectEntrypointWrite(
-        resolvedPath,
-        content,
-        context.autoMemoryDir,
-      );
+      const entrypointRejectionMessage =
+        rejectDerivedIndexWrite(resolvedPath, context.autoMemoryDir) ??
+        rejectEntrypointWrite(resolvedPath, content, context.autoMemoryDir);
       if (entrypointRejectionMessage) {
         return {
           success: false,
