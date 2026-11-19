@@ -13,7 +13,7 @@ import {
   listChangedMemoryFiles,
 } from "../src/services/memoryDreamGate.js";
 import { lintMemoryDir } from "../src/services/memoryDreamLint.js";
-import { rebuildHierarchicalIndex } from "../src/services/memoryDreamIndex.js";
+import { rebuildFlatIndex } from "../src/services/memoryDreamIndex.js";
 import {
   applyDream,
   listBackups,
@@ -856,7 +856,7 @@ describe("memoryDreamAdopt", () => {
 });
 
 describe("memoryDreamIndex", () => {
-  it("builds hubs and keeps the entrypoint inside the line budget", () => {
+  it("lists important entries directly and archives the overflow", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-index-"));
     // 120 files across a few real topics plus many singletons.
     for (let i = 0; i < 120; i += 1) {
@@ -864,14 +864,16 @@ describe("memoryDreamIndex", () => {
       writeMemory(dir, `feedback_${topic}.md`, `rule ${i}`);
     }
     fs.writeFileSync(path.join(dir, "MEMORY.md"), "# Memory\n");
-    const rebuilt = rebuildHierarchicalIndex(dir);
+    const rebuilt = rebuildFlatIndex(dir);
     const lint = lintMemoryDir(dir);
-    expect(rebuilt.entries).toBe(120);
-    expect(rebuilt.hubs).toBeGreaterThan(0);
+    expect(rebuilt.direct + rebuilt.archived).toBe(120);
+    expect(rebuilt.direct).toBeGreaterThan(0);
     expect(lint.orphans).toBe(0);
     expect(lint.indexLines).toBeLessThanOrEqual(200);
     expect(lint.indexChars).toBeLessThanOrEqual(22_000);
     expect(lint.ok).toBe(true);
+    const index = fs.readFileSync(path.join(dir, "MEMORY.md"), "utf-8");
+    if (rebuilt.archived > 0) expect(index).toContain("archive.md");
   });
 });
 
@@ -957,7 +959,7 @@ describe("memoryDreamEngine index rebuild", () => {
     return { mem, draftMemory, run, repairs: () => repairs };
   }
 
-  it("rebuilds a two-level index instead of asking the model to index orphans", async () => {
+  it("rebuilds a flat index instead of asking the model to index orphans", async () => {
     const ctx = setup((mem) => {
       writeMemory(mem, "o1.md", "orphan one");
       writeMemory(mem, "o2.md", "orphan two");
@@ -970,7 +972,7 @@ describe("memoryDreamEngine index rebuild", () => {
       path.join(ctx.draftMemory, "MEMORY.md"),
       "utf-8",
     );
-    expect(index).toContain("index_");
+    expect(index).not.toContain("index_");
   });
 
   it("still runs a repair pass when frontmatter is invalid", async () => {

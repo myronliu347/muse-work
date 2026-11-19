@@ -3,27 +3,30 @@ import path from "node:path";
 import {
   MEMORY_INDEX_NAME,
   MEMORY_TYPES,
-  MEMORY_FILE_MAX_BYTES,
   readMemoryFrontmatter,
 } from "./memoryDreamLint.js";
 
 /**
- * Build a two-level index for a memory directory.
+ * Build a flat `MEMORY.md` with an overflow archive.
  *
- * A flat `MEMORY.md` cannot hold several hundred entries under its 22k-char
- * budget (each entry costs ~65 chars). Instead, `MEMORY.md` lists a handful of
- * generated hub pages (`index_<type>_<topic>.md`), and each hub lists the files
- * of that topic with their descriptions. Reading an entry costs one extra hop,
- * but every file becomes discoverable again without rewriting its content.
+ * The entrypoint stays a one-line-per-file list — no intermediate hub layer —
+ * but a few hundred long filenames do not fit its 25k-character budget with
+ * full descriptions. Important files are listed directly; the low-priority
+ * remainder is listed in `archive.md`, which MEMORY.md points at with a single
+ * line. That keeps every file reachable without changing how a memory entry
+ * looks.
  *
- * The hubs and the entrypoint are derived data: rebuild them from frontmatter
- * whenever the store changes. Files named `index_*` are reserved for this.
+ * `MEMORY.md`, `archive*.md` and legacy `index_*` pages are derived data; this
+ * function regenerates them from frontmatter.
  */
 
-export const HUB_PREFIX = "index_";
-export const MAX_ENTRIES_PER_HUB = 30;
-/** Topics smaller than this are pooled into a per-type misc hub. */
-const MIN_TOPIC_ENTRIES = 3;
+export const ARCHIVE_FILE = "archive.md";
+export const INDEX_BUDGET_CHARS = 21_500;
+const MAX_TITLE_CHARS = 12;
+/** Rough per-entry cost: `[title](file) · ` + a little slack. */
+function entryChars(name: string, file: string): number {
+  return 6 + Math.min(name.length, MAX_TITLE_CHARS) + file.length;
+}
 
 const TYPE_ORDER = ["user", "feedback", "project", "reference"] as const;
 const TYPE_LABEL: Record<string, string> = {
@@ -32,10 +35,16 @@ const TYPE_LABEL: Record<string, string> = {
   project: "项目",
   reference: "参考",
 };
+const TYPE_RANK: Record<string, number> = {
+  user: 0,
+  feedback: 1,
+  project: 2,
+  reference: 3,
+};
 
 export interface RebuildIndexResult {
-  hubs: number;
-  entries: number;
+  direct: number;
+  archived: number;
   indexChars: number;
   indexLines: number;
 }
@@ -45,39 +54,28 @@ interface MemoryEntry {
   name: string;
   description: string;
   type: string;
-  topic: string;
-  bytes: number;
+  mtime: number;
 }
 
-function isHub(file: string): boolean {
-  return file.startsWith(HUB_PREFIX) && file.endsWith(".md");
+function isDerived(file: string): boolean {
+  return (
+    file === MEMORY_INDEX_NAME ||
+    file === ARCHIVE_FILE ||
+    file.startsWith("archive_") ||
+    file.startsWith("index_")
+  );
 }
 
-function sanitize(value: string): string {
-  return value.replace(/[^a-z0-9_-]/gi, "").toLowerCase() || "misc";
-}
-
-function topicOf(file: string, type: string): string {
-  const stem = file.replace(/\.md$/, "");
-  const parts = stem.split("_");
-  if ((MEMORY_TYPES as readonly string[]).includes(type) && parts[0] === type) {
-    return sanitize(parts[1] ?? "misc");
-  }
-  const first = MEMORY_TYPES.find((t) => parts[0] === t);
-  if (first) return sanitize(parts[1] ?? "misc");
-  return sanitize(parts[0] ?? "misc");
-}
-
-function listEntries(dir: string): MemoryEntry[] {
+function readEntries(dir: string): MemoryEntry[] {
   const entries: MemoryEntry[] = [];
   for (const file of fs.readdirSync(dir)) {
-    if (!file.endsWith(".md") || file === MEMORY_INDEX_NAME || isHub(file)) {
-      continue;
-    }
+    if (!file.endsWith(".md") || isDerived(file)) continue;
     const full = path.join(dir, file);
     let raw = "";
+    let mtime = 0;
     try {
       raw = fs.readFileSync(full, "utf-8");
+      mtime = fs.statSync(full).mtimeMs;
     } catch {
       continue;
     }
@@ -88,169 +86,152 @@ function listEntries(dir: string): MemoryEntry[] {
       name: frontmatter.name?.trim() || file.replace(/\.md$/, ""),
       description: frontmatter.description?.trim() ?? "",
       type,
-      topic: topicOf(file, type),
-      bytes: Buffer.byteLength(raw, "utf-8"),
+      mtime,
     });
   }
   return entries;
 }
 
-function hubHeader(
-  type: string,
-  topic: string,
-  count: number,
-  chunk: number,
-  chunks: number,
-): { name: string; description: string; title: string } {
-  const label = TYPE_LABEL[type] ?? type;
-  const suffix = chunks > 1 ? ` ${chunk}/${chunks}` : "";
-  const name = `${label} · ${topic}${suffix}`;
-  return {
-    name,
-    description: `${label}类中「${topic}」相关的 ${count} 个记忆文件；找这一类内容时先读这个目录页。`,
-    title: `${label} · ${topic}${suffix}（${count} 条）`,
-  };
+function titleOf(entry: MemoryEntry): string {
+  const title = entry.name.replace(/\s+/g, " ").trim();
+  return title.length > MAX_TITLE_CHARS
+    ? `${title.slice(0, MAX_TITLE_CHARS)}…`
+    : title;
 }
 
-function hubBody(
-  header: { name: string; description: string; title: string },
+function renderSections(
   entries: MemoryEntry[],
-): string {
-  const lines = [
-    "---",
-    `name: ${header.name}`,
-    `description: ${header.description}`,
-    "type: reference",
-    "hub: true",
-    "---",
-    "",
-    `# ${header.title}`,
-    "",
-    ...entries.map(
-      (entry) =>
-        `- [${entry.name}](${entry.file})${entry.description ? ` — ${entry.description}` : ""}`,
-    ),
-    "",
-  ];
-  return lines.join("\n");
-}
-
-/** Split entries so one hub stays under the per-file byte cap. */
-function chunkEntries(
-  entries: MemoryEntry[],
-): Array<{ header: ReturnType<typeof hubHeader>; body: string }> {
-  const chunks: MemoryEntry[][] = [];
-  let current: MemoryEntry[] = [];
-  for (const entry of entries) {
-    const candidate = [...current, entry];
-    const body = hubBody(hubHeader(entry.type, entry.topic, candidate.length, 1, 1), candidate);
-    const tooBig = Buffer.byteLength(body, "utf-8") > MEMORY_FILE_MAX_BYTES;
-    if (current.length > 0 && (candidate.length > MAX_ENTRIES_PER_HUB || tooBig)) {
-      chunks.push(current);
-      current = [entry];
-    } else {
-      current = candidate;
-    }
-  }
-  if (current.length > 0) chunks.push(current);
-
-  return chunks.map((members, index) => {
-    const header = hubHeader(
-      members[0].type,
-      members[0].topic,
-      members.length,
-      index + 1,
-      chunks.length,
-    );
-    return { header, body: hubBody(header, members) };
-  });
-}
-
-export function rebuildHierarchicalIndex(dir: string): RebuildIndexResult {
-  // Generated hubs are derived: drop them before regenerating.
-  for (const file of fs.readdirSync(dir)) {
-    if (isHub(file)) fs.rmSync(path.join(dir, file), { force: true });
-  }
-
-  const entries = listEntries(dir);
-  const byType = new Map<string, MemoryEntry[]>();
-  for (const entry of entries) {
-    const list = byType.get(entry.type) ?? [];
-    list.push(entry);
-    byType.set(entry.type, list);
-  }
-
-  const indexLines: string[] = [
-    "# 记忆索引",
-    "",
-    "> 顶层只列族目录。找具体规则/结论时先打开对应目录页，再读其中列出的文件。",
-    "",
-  ];
-  let hubs = 0;
-
+  perLine: number,
+  lineBudget = 110,
+): string[] {
+  const lines: string[] = [];
+  const present = new Set(entries.map((entry) => entry.type));
   const types = [
-    ...TYPE_ORDER.filter((type) => byType.has(type)),
-    ...[...byType.keys()].filter(
+    ...TYPE_ORDER.filter((type) => present.has(type)),
+    ...[...present].filter(
       (type) => !(TYPE_ORDER as readonly string[]).includes(type),
     ),
   ];
-
   for (const type of types) {
-    const members = (byType.get(type) ?? []).sort((a, b) =>
-      a.topic.localeCompare(b.topic) || a.file.localeCompare(b.file),
-    );
-    indexLines.push(`## ${TYPE_LABEL[type] ?? type}`);
-
-    const byTopic = new Map<string, MemoryEntry[]>();
-    for (const entry of members) {
-      const list = byTopic.get(entry.topic) ?? [];
-      list.push(entry);
-      byTopic.set(entry.topic, list);
-    }
-
-    // Hundreds of singleton topics would produce hundreds of hubs and blow the
-    // entrypoint's line cap. Keep real topics as their own hub and pool the
-    // scattered ones per type.
-    const small: MemoryEntry[] = [];
-    const topics: Array<[string, MemoryEntry[]]> = [];
-    for (const [topic, topicEntries] of [...byTopic.entries()].sort()) {
-      if (topicEntries.length >= MIN_TOPIC_ENTRIES) topics.push([topic, topicEntries]);
-      else small.push(...topicEntries);
-    }
-    if (small.length > 0) topics.push(["misc", small]);
-
-    for (const [topic, topicEntries] of topics) {
-      const chunks = chunkEntries(topicEntries);
-      let chunk = 1;
-      for (const hub of chunks) {
-        const suffix = chunks.length > 1 ? `_${chunk}` : "";
-        let fileName = `${HUB_PREFIX}${sanitize(type)}_${topic}${suffix}.md`;
-        let attempt = 1;
-        while (fs.existsSync(path.join(dir, fileName))) {
-          fileName = `${HUB_PREFIX}${sanitize(type)}_${topic}${suffix}_${attempt}.md`;
-          attempt += 1;
-        }
-        fs.writeFileSync(path.join(dir, fileName), hub.body, "utf-8");
-        indexLines.push(
-          `- [${hub.header.name}（${chunkEntriesCount(hub.body)}）](${fileName}) — ${hub.header.description}`,
-        );
-        hubs += 1;
-        chunk += 1;
+    const list = entries.filter((entry) => entry.type === type);
+    if (list.length === 0) continue;
+    lines.push(`## ${TYPE_LABEL[type] ?? type}`);
+    let current: string[] = [];
+    for (const entry of list) {
+      const item = `[${titleOf(entry)}](${entry.file})`;
+      const candidate = current.length === 0 ? item : `${current.join(" · ")} · ${item}`;
+      if (current.length > 0 && (candidate.length > lineBudget || current.length >= perLine)) {
+        lines.push(`- ${current.join(" · ")}`);
+        current = [item];
+      } else {
+        current.push(item);
       }
     }
-    indexLines.push("");
+    if (current.length > 0) lines.push(`- ${current.join(" · ")}`);
+    lines.push("");
+  }
+  return lines;
+}
+
+export function rebuildFlatIndex(dir: string): RebuildIndexResult {
+  for (const file of fs.readdirSync(dir)) {
+    if (file === ARCHIVE_FILE || file.startsWith("archive_") || file.startsWith("index_")) {
+      fs.rmSync(path.join(dir, file), { force: true });
+    }
   }
 
-  const content = `${indexLines.join("\n").trim()}\n`;
+  const entries = readEntries(dir).sort((a, b) => {
+    const rank = (TYPE_RANK[a.type] ?? 9) - (TYPE_RANK[b.type] ?? 9);
+    if (rank !== 0) return rank;
+    if (b.mtime !== a.mtime) return b.mtime - a.mtime;
+    return a.file.localeCompare(b.file);
+  });
+
+  // Reserve room for the archive pointer itself.
+  const budget = INDEX_BUDGET_CHARS - 200;
+  const direct: MemoryEntry[] = [];
+  const archived: MemoryEntry[] = [];
+  let used = 0;
+  for (const entry of entries) {
+    const cost = entryChars(entry.name, entry.file);
+    if (used + cost <= budget) {
+      direct.push(entry);
+      used += cost;
+    } else {
+      archived.push(entry);
+    }
+  }
+
+  const renderAll = () => {
+    const lines = [
+      "# 记忆索引",
+      "",
+      "> 一行一条直指文件；标为「归档」的低优先级文件在 archive.md 里。",
+      "",
+      ...renderSections(direct, 3, 180),
+    ];
+    if (archived.length > 0) {
+      lines.push(
+        "## 归档",
+        `- [归档：${archived.length} 个低优先级文件](${ARCHIVE_FILE}) — 旧项目/参考记录，需要时再打开`,
+        "",
+      );
+    }
+    const archiveContent =
+      archived.length > 0
+        ? [
+            "---",
+            "name: 归档索引",
+            `description: ${archived.length} 个低优先级记忆文件的清单；需要翻旧记录时先读这里，再打开具体文件。`,
+            "type: reference",
+            "archive: true",
+            "---",
+            "",
+            "# 归档（低优先级）",
+            "",
+            ...renderSections(archived, 4, 200),
+          ]
+            .join("\n")
+            .trim() + "\n"
+        : "";
+    return { content: `${lines.join("\n").trim()}\n`, archiveContent };
+  };
+
+  // The estimate above is approximate (titles, ellipses, section headers).
+  // Move the lowest-priority entries to the archive until the entrypoint
+  // really fits the character budget.
+  let rendered = renderAll();
+  while (
+    rendered.content.trim().length > INDEX_BUDGET_CHARS &&
+    direct.length > 0
+  ) {
+    const moved = direct.pop();
+    if (!moved) break;
+    archived.unshift(moved);
+    rendered = renderAll();
+  }
+
+  if (rendered.archiveContent) {
+    fs.writeFileSync(
+      path.join(dir, ARCHIVE_FILE),
+      rendered.archiveContent,
+      "utf-8",
+    );
+  }
+
+  const content = rendered.content;
   fs.writeFileSync(path.join(dir, MEMORY_INDEX_NAME), content, "utf-8");
   return {
-    hubs,
-    entries: entries.length,
+    direct: direct.length,
+    archived: archived.length,
     indexChars: content.trim().length,
     indexLines: content.trim().split("\n").length,
   };
 }
 
-function chunkEntriesCount(body: string): number {
-  return body.split("\n").filter((line) => line.startsWith("- [")).length;
+/** Kept for callers that only care about the type label. */
+export function memoryTypeLabel(type: string): string {
+  return TYPE_LABEL[type] ?? type;
 }
+
+export { MEMORY_TYPES };

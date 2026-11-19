@@ -88,23 +88,25 @@ export function lintMemoryDir(dir: string): MemoryLintResult {
     ...indexRaw.matchAll(/\]\(([^)]+\.md)\)/g),
   ].map((match) => match[1]);
 
-  // Two-level index: MEMORY.md may point at hub pages (`index_*.md`), and the
-  // hub lists the topic files. Being reachable at either level counts as
-  // indexed; hub pages themselves must still appear in MEMORY.md.
+  // Overflow archive: MEMORY.md lists most files directly; lower-priority ones
+  // sit in `archive*.md`, which MEMORY.md points at with one line. Reachable
+  // at either level counts as indexed.
   const linked = new Set(links);
-  const hubFiles = files.filter((file) => file.startsWith("index_"));
-  const hubLinks = new Set<string>();
-  for (const hub of hubFiles) {
+  const archiveFiles = files.filter(
+    (file) => file === "archive.md" || file.startsWith("archive_"),
+  );
+  const archiveLinks = new Set<string>();
+  for (const archive of archiveFiles) {
     try {
-      const raw = fs.readFileSync(path.join(dir, hub), "utf-8");
+      const raw = fs.readFileSync(path.join(dir, archive), "utf-8");
       for (const match of raw.matchAll(/\]\(([^)]+\.md)\)/g)) {
-        hubLinks.add(match[1]);
+        archiveLinks.add(match[1]);
       }
     } catch {
-      // Unreadable hub: its members surface as orphans.
+      // Unreadable archive: its members surface as orphans.
     }
   }
-  const reachable = new Set([...linked, ...hubLinks]);
+  const reachable = new Set([...linked, ...archiveLinks]);
   const dangling = [...reachable].filter(
     (link) => !fs.existsSync(path.join(dir, link)),
   );
@@ -118,7 +120,11 @@ export function lintMemoryDir(dir: string): MemoryLintResult {
   for (const file of files) {
     const fullPath = path.join(dir, file);
     const raw = fs.readFileSync(fullPath, "utf-8");
-    if (Buffer.byteLength(raw, "utf-8") > MEMORY_FILE_MAX_BYTES) {
+    // Archive pages are indexes, not memory notes; their size scales with the
+    // number of archived files and is not the 4 KB note budget.
+    const isIndexPage =
+      file === "archive.md" || file.startsWith("archive_");
+    if (!isIndexPage && Buffer.byteLength(raw, "utf-8") > MEMORY_FILE_MAX_BYTES) {
       overCap.push(file);
     }
     const frontmatter = readMemoryFrontmatter(raw);
