@@ -99,6 +99,7 @@ export function createMemoryDreamScheduler(options: {
       status: result.ok ? "succeeded" : "failed",
       endedAt: now().getTime(),
       summary: result.stats,
+      fallbackIndex: result.fallbackIndex === true,
       ...(result.lint
         ? {
             lint: {

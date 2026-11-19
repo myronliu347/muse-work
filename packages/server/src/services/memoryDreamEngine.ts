@@ -60,6 +60,8 @@ export interface DreamRunResult {
   draftDir: string;
   transcripts: number;
   summaries: string[];
+  /** True when the AI did not finish the index and code had to rebuild it. */
+  fallbackIndex?: boolean;
   stats?: ReturnType<typeof memoryDirStats>;
   lint?: MemoryLintResult;
   error?: string;
@@ -285,8 +287,7 @@ export function createMemoryDreamEngine(options: {
     summaries: string[];
     lint: MemoryLintResult;
     passes: number;
-    direct: number;
-    archived: number;
+    fallbackIndex: boolean;
   }): void {
     const lines = [
       `# 记忆整理报告 · ${input.target.label}`,
@@ -296,7 +297,7 @@ export function createMemoryDreamEngine(options: {
       `- transcript：${input.transcripts} 份`,
       `- 整理轮次：${input.passes}`,
       `- 文件数：${input.lint.files}`,
-      `- 直挂索引：${input.direct} 条 / 归档：${input.archived} 条`,
+      `- 索引维护：${input.fallbackIndex ? "程序兜底重建" : "AI 维护"}`,
       `- 孤儿：${input.lint.orphans}`,
       `- 索引：${input.lint.indexChars} 字符 / ${input.lint.indexLines} 行`,
       `- lint：${input.lint.ok ? "通过" : "未通过"}`,
@@ -450,12 +451,12 @@ export function createMemoryDreamEngine(options: {
         index: transcripts.length,
         total: transcripts.length,
       });
-      // The index is derived data: rebuild it from frontmatter instead of
-      // asking the model to keep several hundred entries in sync.
-      const indexed = rebuildFlatIndex(draftMemory);
+      // The AI owns the index. Code only checks it and, when the AI cannot
+      // finish, rebuilds it as a visible fallback.
       let lint = lintMemoryDir(draftMemory);
       let passes = 1;
       let score = lintScore(lint);
+      let fallbackIndex = false;
 
       // One organizer pass rarely finishes a large store: it still has orphans
       // and over-cap files. Keep repairing while the lint score improves, with
@@ -490,7 +491,6 @@ export function createMemoryDreamEngine(options: {
           model: input.target.model,
         });
         if (repair.text) result.summaries.push(repair.text);
-        rebuildFlatIndex(draftMemory);
         const next = lintMemoryDir(draftMemory);
         const nextScore = lintScore(next);
         passes += 1;
@@ -499,7 +499,17 @@ export function createMemoryDreamEngine(options: {
         score = nextScore;
       }
 
+      if (hasCriticalMemoryLint(lint)) {
+        // Last resort: the AI left files without pointers (or the index
+        // unusable). Rebuild mechanically and mark the run so a person knows
+        // the structure was not authored by the model.
+        rebuildFlatIndex(draftMemory);
+        fallbackIndex = true;
+        lint = lintMemoryDir(draftMemory);
+      }
+
       result.lint = lint;
+      result.fallbackIndex = fallbackIndex;
       result.stats = memoryDirStats(draftMemory);
       writeReport({
         draftDir,
@@ -509,8 +519,7 @@ export function createMemoryDreamEngine(options: {
         summaries: result.summaries,
         lint,
         passes,
-        direct: indexed.direct,
-        archived: indexed.archived,
+        fallbackIndex,
       });
       result.ok = !hasCriticalMemoryLint(lint);
       if (!result.ok) result.error = "draft index is unusable";

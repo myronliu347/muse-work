@@ -1441,6 +1441,7 @@ export interface MemoryDreamRunView {
   error?: string;
   adoptedAt?: number;
   discardedAt?: number;
+  fallbackIndex?: boolean;
   progress?: MemoryDreamProgress;
   lint?: {
     ok: boolean;

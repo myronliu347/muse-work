@@ -78,6 +78,8 @@ export interface MemoryDreamRun {
     indexLines: number;
   };
   error?: string;
+  /** The AI left the index unusable and code rebuilt it (shown for review). */
+  fallbackIndex?: boolean;
   /** Set when a person (or the auto path) swapped the draft into live memory. */
   adoptedAt?: number;
   /** Set when the draft was thrown away. */

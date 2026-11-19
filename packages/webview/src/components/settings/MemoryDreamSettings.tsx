@@ -637,6 +637,12 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
                 </div>
 
                 {run.error ? <p className="md-run-error">{run.error}</p> : null}
+                {run.fallbackIndex ? (
+                  <p className="md-run-lint">
+                    这一轮的索引由程序兜底重建（AI 没在轮次内补全），建议看一遍草稿里的
+                    MEMORY.md。
+                  </p>
+                ) : null}
                 {run.lint && !run.lint.ok ? (
                   <p className="md-run-lint">
                     草稿校验：孤儿 {run.lint.orphans} · 超 4 KB{" "}

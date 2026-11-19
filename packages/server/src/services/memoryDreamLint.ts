@@ -193,6 +193,7 @@ export function hasCriticalMemoryLint(lint: MemoryLintResult): boolean {
     lint.indexOverChars ||
     lint.indexOverLines ||
     lint.dangling.length > 0 ||
+    lint.orphanFiles.length > 0 ||
     lint.badFrontmatter.length > 0 ||
     lint.badType.length > 0
   );

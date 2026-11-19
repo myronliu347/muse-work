@@ -784,6 +784,10 @@ describe("memoryDreamAdopt", () => {
   it("refuses non-critical warnings unless the caller accepts them", () => {
     const ctx = setup();
     writeMemory(ctx.draftMemory, "big.md", "big", "feedback", "x".repeat(5000));
+    fs.appendFileSync(
+      path.join(ctx.draftMemory, "MEMORY.md"),
+      "- [big](big.md) — big\n",
+    );
     const refused = adoptDreamRun({
       store: ctx.store,
       runId: ctx.runId,
@@ -877,10 +881,13 @@ describe("memoryDreamIndex", () => {
   });
 });
 
-describe("memoryDreamEngine index rebuild", () => {
+describe("memoryDreamEngine index ownership", () => {
   function setup(
     files: (dir: string) => void,
-    onRepair?: (dir: string) => void,
+    handlers: {
+      onRepair?: (dir: string) => void;
+      onOrganizer?: (dir: string) => void;
+    } = {},
   ) {
     const home = tempHome();
     const workdir = path.join(home, "assistant-chat");
@@ -908,15 +915,18 @@ describe("memoryDreamEngine index rebuild", () => {
     } as unknown as SessionStore;
 
     let engine: ReturnType<typeof createMemoryDreamEngine>;
+    const dirOf = (systemPrompt: string | undefined) =>
+      /记忆目录[^：]*：(\/[^。\s]+)/.exec(systemPrompt ?? "")?.[1];
     const runner = {
       async sendMessage(sessionId: string) {
         const session = created.find((item) => item.id === sessionId);
         if (session?.title?.includes("修复")) {
           repairs += 1;
-          const dir = /记忆目录（可读写）：(.+)/.exec(
-            session.systemPrompt ?? "",
-          )?.[1];
-          if (dir && onRepair) onRepair(dir);
+          const dir = dirOf(session.systemPrompt);
+          if (dir && handlers.onRepair) handlers.onRepair(dir);
+        } else if (session?.title?.includes("汇总")) {
+          const dir = dirOf(session.systemPrompt);
+          if (dir && handlers.onOrganizer) handlers.onOrganizer(dir);
         }
         queueMicrotask(() => engine.handleTurnSettled(sessionId, { ok: true }));
         return { accepted: true as const };
@@ -937,6 +947,7 @@ describe("memoryDreamEngine index rebuild", () => {
       draftRoot: path.join(home, "dreams"),
       memoryDirFor,
     });
+    const draftMemory = path.join(home, "dreams", "assistant", "run-index", "memory");
     const run = () =>
       engine.run({
         target: {
@@ -955,24 +966,46 @@ describe("memoryDreamEngine index rebuild", () => {
         runId: "run-index",
         since: Date.now(),
       });
-    const draftMemory = path.join(home, "dreams", "assistant", "run-index", "memory");
     return { mem, draftMemory, run, repairs: () => repairs };
   }
 
-  it("rebuilds a flat index instead of asking the model to index orphans", async () => {
+  it("accepts an index the AI wrote itself", async () => {
+    const ctx = setup(
+      (mem) => {
+        writeMemory(mem, "o1.md", "orphan one");
+        writeMemory(mem, "o2.md", "orphan two");
+      },
+      {
+        onOrganizer: (dir) => {
+          fs.appendFileSync(
+            path.join(dir, "MEMORY.md"),
+            "- [orphan one](o1.md) — orphan one\n- [orphan two](o2.md) — orphan two\n",
+          );
+        },
+      },
+    );
+    const result = await ctx.run();
+    expect(result.ok).toBe(true);
+    expect(result.fallbackIndex).toBe(false);
+    expect(ctx.repairs()).toBe(0);
+    expect(result.lint?.orphans).toBe(0);
+  });
+
+  it("rebuilds mechanically when the AI leaves orphans, and says so", async () => {
     const ctx = setup((mem) => {
       writeMemory(mem, "o1.md", "orphan one");
       writeMemory(mem, "o2.md", "orphan two");
     });
     const result = await ctx.run();
-    expect(ctx.repairs()).toBe(0);
     expect(result.ok).toBe(true);
+    expect(result.fallbackIndex).toBe(true);
+    expect(ctx.repairs()).toBeGreaterThanOrEqual(1);
     expect(result.lint?.orphans).toBe(0);
     const index = fs.readFileSync(
       path.join(ctx.draftMemory, "MEMORY.md"),
       "utf-8",
     );
-    expect(index).not.toContain("index_");
+    expect(index).toContain("o1.md");
   });
 
   it("still runs a repair pass when frontmatter is invalid", async () => {
@@ -983,17 +1016,23 @@ describe("memoryDreamEngine index rebuild", () => {
           "---\nname: bad\ndescription: bad type\ntype: nope\n---\n\n- rule\n",
         );
       },
-      (dir) => {
-        // The repair session fixes the frontmatter on the draft copy.
-        fs.writeFileSync(
-          path.join(dir, "bad.md"),
-          "---\nname: bad\ndescription: bad type\ntype: feedback\n---\n\n- rule\n",
-        );
+      {
+        onRepair: (dir) => {
+          fs.writeFileSync(
+            path.join(dir, "bad.md"),
+            "---\nname: bad\ndescription: bad type\ntype: feedback\n---\n\n- rule\n",
+          );
+          fs.appendFileSync(
+            path.join(dir, "MEMORY.md"),
+            "- [bad](bad.md) — bad type\n",
+          );
+        },
       },
     );
     const result = await ctx.run();
     expect(ctx.repairs()).toBe(1);
     expect(result.ok).toBe(true);
+    expect(result.fallbackIndex).toBe(false);
     expect(result.lint?.badType).toEqual([]);
   });
 });
