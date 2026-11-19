@@ -42,9 +42,6 @@ export function adoptDreamRun(options: {
   if (!run) return { ok: false, error: "run not found" };
   if (run.adoptedAt) return { ok: false, error: "run already adopted" };
   if (run.discardedAt) return { ok: false, error: "run discarded" };
-  if (run.status !== "succeeded") {
-    return { ok: false, error: `run is ${run.status}, not succeeded` };
-  }
   if (!run.draftDir) return { ok: false, error: "run has no draft" };
 
   const target = options.store.getTarget(run.targetId);
@@ -60,15 +57,24 @@ export function adoptDreamRun(options: {
     : resolveAutoMemoryDirectory(target.workdir);
 
   const draftLint = lintMemoryDir(draftMemory);
-  if (
-    !draftLint.ok &&
-    (!options.allowWarnings || hasCriticalMemoryLint(draftLint))
-  ) {
+  if (hasCriticalMemoryLint(draftLint)) {
     return {
       ok: false,
-      error: hasCriticalMemoryLint(draftLint)
-        ? "草稿索引不可用（断链/索引超限/frontmatter 不合法），不能替换"
-        : "草稿还有未进索引或超 4 KB 的文件，确认后仍可替换",
+      error: "草稿索引不可用（断链/索引超限/frontmatter 不合法），不能替换",
+      lint: draftLint,
+    };
+  }
+  if (run.status !== "succeeded" && !options.allowWarnings) {
+    return {
+      ok: false,
+      error: `run is ${run.status}, not succeeded`,
+      lint: draftLint,
+    };
+  }
+  if (!draftLint.ok && !options.allowWarnings) {
+    return {
+      ok: false,
+      error: "草稿还有未进索引或超 4 KB 的文件，确认后仍可替换",
       lint: draftLint,
     };
   }

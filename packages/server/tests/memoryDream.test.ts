@@ -807,6 +807,29 @@ describe("memoryDreamAdopt", () => {
     expect(fs.existsSync(path.join(ctx.live, "big.md"))).toBe(true);
   });
 
+  it("can adopt a failed run's draft once warnings are accepted", () => {
+    const ctx = setup();
+    ctx.store.patchRun(ctx.runId, { status: "failed", error: "draft index is unusable" });
+
+    const refused = adoptDreamRun({
+      store: ctx.store,
+      runId: ctx.runId,
+      backupRoot: path.join(ctx.home, "backups"),
+      memoryDirFor: () => ctx.live,
+    });
+    expect(refused.ok).toBe(false);
+
+    const accepted = adoptDreamRun({
+      store: ctx.store,
+      runId: ctx.runId,
+      backupRoot: path.join(ctx.home, "backups"),
+      memoryDirFor: () => ctx.live,
+      allowWarnings: true,
+    });
+    expect(accepted.ok).toBe(true);
+    expect(fs.existsSync(path.join(ctx.live, "merged.md"))).toBe(true);
+  });
+
   it("still refuses a dangling index even when warnings are accepted", () => {
     const ctx = setup();
     fs.appendFileSync(
