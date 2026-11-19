@@ -853,3 +853,94 @@ describe("memoryDreamAdopt", () => {
     expect(fs.existsSync(path.join(ctx.live, "a.md"))).toBe(true);
   });
 });
+
+describe("memoryDreamEngine repair loop", () => {
+  it("keeps repairing while the lint score improves, then stops when clean", async () => {
+    const home = tempHome();
+    const workdir = path.join(home, "assistant-chat");
+    fs.mkdirSync(workdir, { recursive: true });
+    const memoryDirFor = (dir: string) =>
+      path.join(home, ".muse-work", "projects", pathEncoder.encodeSync(dir), "memory");
+    const mem = memoryDirFor(workdir);
+    fs.mkdirSync(mem, { recursive: true });
+    writeMemory(mem, "a.md", "alpha");
+    fs.writeFileSync(
+      path.join(mem, "MEMORY.md"),
+      "# Memory\n\n- [alpha](a.md) — alpha\n",
+    );
+    writeMemory(mem, "o1.md", "orphan one");
+    writeMemory(mem, "o2.md", "orphan two");
+
+    const created: Array<{ id: string; title?: string; systemPrompt?: string }> =
+      [];
+    const remaining = ["o1.md", "o2.md"];
+    let repairs = 0;
+    const sessions = {
+      create(input: { title?: string; systemPrompt?: string }) {
+        const session = { id: `s-${created.length + 1}`, ...input };
+        created.push(session);
+        return session;
+      },
+      list: () => [],
+    } as unknown as SessionStore;
+
+    let engine: ReturnType<typeof createMemoryDreamEngine>;
+    const runner = {
+      async sendMessage(sessionId: string) {
+        const session = created.find((item) => item.id === sessionId);
+        if (session?.title?.includes("修复")) {
+          repairs += 1;
+          const dir = /记忆目录（可读写）：(.+)/.exec(
+            session.systemPrompt ?? "",
+          )?.[1];
+          const next = remaining.shift();
+          if (dir && next) {
+            fs.appendFileSync(
+              path.join(dir, "MEMORY.md"),
+              `- [${next}](${next}) — ${next}\n`,
+            );
+          }
+        }
+        queueMicrotask(() => engine.handleTurnSettled(sessionId, { ok: true }));
+        return { accepted: true as const };
+      },
+      async abortMessage() {
+        return { ok: true as const };
+      },
+      async getMessages() {
+        return [{ role: "assistant", blocks: [{ type: "text", content: "ok" }] }];
+      },
+      async disposeSession() {},
+    } as unknown as SessionRunner;
+
+    engine = createMemoryDreamEngine({
+      home,
+      sessions,
+      runner,
+      draftRoot: path.join(home, "dreams"),
+      memoryDirFor,
+    });
+
+    const result = await engine.run({
+      target: {
+        id: "assistant",
+        kind: "assistant",
+        workdir,
+        label: "助手记忆",
+        enabled: true,
+        mode: "auto",
+        cadence: "daily",
+        withIssueProgress: true,
+        consecutiveFailures: 0,
+        createdAt: 0,
+        updatedAt: 0,
+      },
+      runId: "run-repair",
+      since: Date.now(),
+    });
+
+    expect(repairs).toBe(2);
+    expect(result.ok).toBe(true);
+    expect(result.lint?.orphans).toBe(0);
+  });
+});

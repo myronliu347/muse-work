@@ -19,6 +19,8 @@ import {
   buildAnalyzerTask,
   buildOrganizerSystemPrompt,
   buildOrganizerTask,
+  buildRepairSystemPrompt,
+  buildRepairTask,
 } from "../prompts/memoryDream.js";
 
 /**
@@ -32,13 +34,17 @@ import {
 const DEFAULT_TURN_TIMEOUT_MS = 20 * 60 * 1000;
 const MAX_TRANSCRIPT_BYTES = 4 * 1024 * 1024;
 const MAX_TRANSCRIPTS_PER_RUN = 6;
-const MAX_SESSIONS_PER_RUN = 8;
+const MAX_SESSIONS_PER_RUN = 12;
+/** One initial pass plus this many repair passes, bounded by wall clock too. */
+const MAX_REPAIR_PASSES = 2;
+const MAX_RUN_DURATION_MS = 45 * 60 * 1000;
+const INDEX_MAX_CHARS = 22_000;
 
 const MEMORY_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep"];
 const DENIED_TOOLS = ["Bash", "Workflow", "AskUserQuestion", "WebFetch", "WebSearch"];
 
 export interface DreamProgress {
-  phase: "copy" | "export" | "analyze" | "organize" | "lint" | "done";
+  phase: "copy" | "export" | "analyze" | "organize" | "repair" | "lint" | "done";
   /** 1-based index for the analyze phase. */
   index?: number;
   total?: number;
@@ -276,6 +282,7 @@ export function createMemoryDreamEngine(options: {
     transcripts: number;
     summaries: string[];
     lint: MemoryLintResult;
+    passes: number;
   }): void {
     const lines = [
       `# 记忆整理报告 · ${input.target.label}`,
@@ -283,6 +290,7 @@ export function createMemoryDreamEngine(options: {
       `- 目标：${input.target.workdir}`,
       `- 窗口起点：${new Date(input.since).toISOString()}`,
       `- transcript：${input.transcripts} 份`,
+      `- 整理轮次：${input.passes}`,
       `- 文件数：${input.lint.files}`,
       `- 孤儿：${input.lint.orphans}`,
       `- 索引：${input.lint.indexChars} 字符 / ${input.lint.indexLines} 行`,
@@ -324,6 +332,26 @@ export function createMemoryDreamEngine(options: {
       lines.join("\n"),
       "utf-8",
     );
+  }
+
+  function lintScore(lint: MemoryLintResult): number {
+    return (
+      lint.orphans +
+      lint.overCap.length * 1.5 +
+      lint.dangling.length * 5 +
+      lint.badFrontmatter.length * 2 +
+      lint.badType.length * 2 +
+      (lint.indexMissing ? 100 : 0) +
+      (lint.indexOverChars ? 50 : 0) +
+      (lint.indexOverLines ? 50 : 0)
+    );
+  }
+
+  /** How many files the index can still hold at the current entry length. */
+  function maxIndexedFiles(lint: MemoryLintResult): number {
+    const linked = Math.max(1, lint.files - lint.orphans);
+    const perEntry = lint.indexChars > 0 ? lint.indexChars / linked : 65;
+    return Math.max(1, Math.floor(INDEX_MAX_CHARS / Math.max(40, perEntry)));
   }
 
   async function run(input: {
@@ -418,7 +446,49 @@ export function createMemoryDreamEngine(options: {
         index: transcripts.length,
         total: transcripts.length,
       });
-      const lint = lintMemoryDir(draftMemory);
+      let lint = lintMemoryDir(draftMemory);
+      let passes = 1;
+      let score = lintScore(lint);
+
+      // One organizer pass rarely finishes a large store: it still has orphans
+      // and over-cap files. Keep repairing while the lint score improves, with
+      // a hard pass and wall-clock budget so a night cannot run forever.
+      while (
+        !lint.ok &&
+        passes <= MAX_REPAIR_PASSES &&
+        Date.now() - startedAt < MAX_RUN_DURATION_MS
+      ) {
+        writeProgress(draftDir, {
+          phase: "repair",
+          startedAt,
+          index: passes,
+          total: MAX_REPAIR_PASSES + 1,
+        });
+        const repair = await runChildSession({
+          title: `记忆整理 · ${input.target.label} · 修复 ${passes}`,
+          workdir: sessionWorkdir,
+          systemPrompt: buildRepairSystemPrompt({
+            memoryDir: draftMemory,
+            orphans: lint.orphans,
+            overCap: lint.overCap.length,
+            indexChars: lint.indexChars,
+            indexLines: lint.indexLines,
+            files: lint.files,
+            maxFiles: maxIndexedFiles(lint),
+            sampleOrphans: lint.orphanFiles.slice(0, 20),
+          }),
+          task: buildRepairTask(),
+          model: input.target.model,
+        });
+        if (repair.text) result.summaries.push(repair.text);
+        const next = lintMemoryDir(draftMemory);
+        const nextScore = lintScore(next);
+        passes += 1;
+        lint = next;
+        if (!next.ok && nextScore >= score) break; // no progress: stop early
+        score = nextScore;
+      }
+
       result.lint = lint;
       result.stats = memoryDirStats(draftMemory);
       writeReport({
@@ -428,6 +498,7 @@ export function createMemoryDreamEngine(options: {
         transcripts: transcripts.length,
         summaries: result.summaries,
         lint,
+        passes,
       });
       result.ok = lint.ok;
       if (!lint.ok) result.error = "draft lint failed";

@@ -1469,7 +1469,7 @@ export interface MemoryDreamTargetView {
 }
 
 export interface MemoryDreamProgress {
-  phase: "copy" | "export" | "analyze" | "organize" | "lint" | "done";
+  phase: "copy" | "export" | "analyze" | "organize" | "repair" | "lint" | "done";
   index?: number;
   total?: number;
   detail?: string;

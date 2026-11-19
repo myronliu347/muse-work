@@ -105,3 +105,52 @@ export function buildOrganizerTask(): string {
     "不要新增事实。完成后返回 {index_entries, changes}。",
   ].join("\n");
 }
+
+
+export interface RepairPromptOptions {
+  memoryDir: string;
+  orphans: number;
+  overCap: number;
+  indexChars: number;
+  indexLines: number;
+  files: number;
+  /** Files that can still fit the index at the current per-entry length. */
+  maxFiles: number;
+  sampleOrphans: string[];
+}
+
+export function buildRepairSystemPrompt(options: RepairPromptOptions): string {
+  const needMerge = Math.max(0, options.files - options.maxFiles);
+  return [
+    "你是记忆目录的修复者。上一轮整理没有通过校验；这一轮只修校验问题，不重新分析 transcript、不新增事实。",
+    `记忆目录（可读写）：${options.memoryDir}`,
+    "",
+    "## 当前问题",
+    `- 文件总数：${options.files}`,
+    `- 没进 MEMORY.md 索引：${options.orphans} 个`,
+    `- 超过 4096 字节：${options.overCap} 个`,
+    `- 索引：${options.indexChars} 字符 / ${options.indexLines} 行（上限 22000 字符 / 200 行）`,
+    `- 按当前每条目长度，索引最多容纳约 ${options.maxFiles} 个文件 ⇒ 需要把文件数减少约 ${needMerge} 个`,
+    "",
+    "## 未进索引的文件（部分）",
+    ...(options.sampleOrphans.length > 0
+      ? options.sampleOrphans.map((file) => `- ${file}`)
+      : ["- （无）"]),
+    "",
+    "## 这一轮要做的",
+    "1. 合并：同主题/同族的文件合并进命名更好的文件，直到文件总数接近上限；每个合并后的文件 ≤4096 字节。",
+    "2. 补索引：合并后重建 MEMORY.md，确保每个文件都有条目，按 `## 领域` 分组，一行可挂 2–3 个同族链接。",
+    "3. 拆分：超过 4096 字节的文件按子主题拆开，不要硬删规则。",
+    "4. 不改内容语义：不新增判断、不删事实；只做合并、拆分、补索引。",
+    "5. 索引不要超 22000 字符 / 200 行；如果这一步还压不进去，优先继续合并，不要截断条目。",
+    "",
+    "完成后返回一段 summary：合并了哪些、文件数从多少降到多少、还剩哪些没解决。",
+  ].join("\n");
+}
+
+export function buildRepairTask(): string {
+  return [
+    "按系统提示修复这个记忆目录：合并到索引装得下、补全 MEMORY.md、拆分超过 4 KB 的文件。",
+    "只修校验问题，不新增事实。完成后返回 summary。",
+  ].join("\n");
+}

@@ -48,6 +48,10 @@ function phaseText(progress: MemoryDreamProgress | undefined): string {
         : "分析会话";
     case "organize":
       return "合并重复、整理索引";
+    case "repair":
+      return progress.total
+        ? `修复校验问题 ${progress.index}/${Math.max(1, progress.total - 1)}`
+        : "修复校验问题";
     case "lint":
       return "校验草稿";
     case "done":

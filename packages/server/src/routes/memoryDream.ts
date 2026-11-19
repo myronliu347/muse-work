@@ -185,7 +185,7 @@ memoryDreamRoutes.post("/memory-dream/rollback", async (c) => {
 
 
 interface DreamProgressView {
-  phase: "copy" | "export" | "analyze" | "organize" | "lint" | "done";
+  phase: "copy" | "export" | "analyze" | "organize" | "repair" | "lint" | "done";
   index?: number;
   total?: number;
   detail?: string;
