@@ -331,6 +331,30 @@ export function memoryTypeLabel(type: string): string {
  * If the added pointers no longer fit the entrypoint caps, the remaining files
  * stay unindexed and the run fails so a person can look.
  */
+function insertLineIntoSection(lines: string[], type: string, line: string): void {
+  const aliases = LABEL_ALIASES[type] ?? [];
+  const header = lines.findIndex(
+    (item) => item.startsWith("## ") && aliases.includes(item.slice(3).trim()),
+  );
+  if (header === -1) {
+    const archive = lines.findIndex((item) => item.trim() === "## 归档");
+    const block = [`## ${DEFAULT_LABEL[type] ?? type}`, line, ""];
+    if (archive === -1) {
+      if (lines.length > 0 && lines[lines.length - 1].trim() !== "") lines.push("");
+      lines.push(...block);
+    } else {
+      lines.splice(archive, 0, ...block);
+    }
+    return;
+  }
+  let insertAt = header + 1;
+  for (let i = header + 1; i < lines.length; i += 1) {
+    if (lines[i].startsWith("## ")) break;
+    if (lines[i].trim() !== "") insertAt = i + 1;
+  }
+  lines.splice(insertAt, 0, line);
+}
+
 export function appendMissingPointers(dir: string): {
   added: number;
   remaining: number;
@@ -362,15 +386,13 @@ export function appendMissingPointers(dir: string): {
 
   let added = 0;
   for (const entry of missing) {
-    const candidate = [...live, generatedLine(entry)];
+    const candidate = [...live];
+    insertLineIntoSection(candidate, entry.type, generatedLine(entry));
     const trimmed = candidate.join("\n").trim();
-    if (
-      trimmed.split("\n").length > 199 ||
-      trimmed.length > 24_500
-    ) {
+    if (trimmed.split("\n").length > 199 || trimmed.length > 24_500) {
       break;
     }
-    live.push(generatedLine(entry));
+    live.splice(0, live.length, ...candidate);
     added += 1;
   }
 

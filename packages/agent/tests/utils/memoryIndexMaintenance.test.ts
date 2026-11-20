@@ -46,6 +46,35 @@ describe("memoryIndexMaintenance", () => {
     expect(again).toBeNull();
   });
 
+  it("puts a new pointer in its type section, not under 归档", async () => {
+    const dir = await memoryDir();
+    await fs.writeFile(
+      path.join(dir, "MEMORY.md"),
+      [
+        "# Memory",
+        "",
+        "## Feedback",
+        "- [old rule](old.md) — old",
+        "",
+        "## 归档",
+        "- [归档：1 个低优先级文件](archive.md) — 旧记录",
+        "",
+      ].join("\n"),
+    );
+    await fs.writeFile(path.join(dir, "archive.md"), "# Archive\n");
+    await fs.writeFile(path.join(dir, "new_rule.md"), topicFile("New rule"));
+
+    await ensureMemoryIndexEntry(path.join(dir, "new_rule.md"), dir);
+    const lines = (await fs.readFile(path.join(dir, "MEMORY.md"), "utf-8"))
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const newRuleAt = lines.findIndex((line) => line.includes("new_rule.md"));
+    const archiveAt = lines.findIndex((line) => line === "## 归档");
+    expect(newRuleAt).toBeGreaterThan(-1);
+    expect(archiveAt).toBeGreaterThan(newRuleAt);
+  });
+
   it("does not duplicate a pointer that lives in an archive page", async () => {
     const dir = await memoryDir();
     await fs.writeFile(

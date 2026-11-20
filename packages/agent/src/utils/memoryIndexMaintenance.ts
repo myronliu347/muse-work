@@ -4,6 +4,7 @@ import {
   MAX_MEMORY_ENTRYPOINT_CHARS,
   MAX_MEMORY_ENTRYPOINT_LINES,
   MEMORY_ENTRYPOINT_NAME,
+  MEMORY_TYPES,
 } from "../constants/memory.js";
 import { atomicWriteFile } from "./atomicWrite.js";
 import { parseFrontmatter } from "./markdownParser.js";
@@ -27,6 +28,49 @@ import { isPathInside } from "./pathSafety.js";
  * The nightly tidy still rebuilds the whole index from frontmatter; this only
  * keeps the window between tidy runs from drifting.
  */
+
+const SECTION_ALIASES: Record<string, string[]> = {
+  user: ["User", "用户"],
+  feedback: ["Feedback", "规则"],
+  project: ["Project", "项目"],
+  reference: ["Reference", "参考"],
+};
+const TYPE_LABEL: Record<string, string> = {
+  user: "User",
+  feedback: "Feedback",
+  project: "Project",
+  reference: "Reference",
+};
+
+/**
+ * Put a new pointer into its type's section instead of at the end of the file.
+ * Appending at the end lands under whatever section happens to be last — with
+ * the overflow archive that is `## 归档`, so a fresh memory would look archived.
+ */
+function insertEntryLine(lines: string[], type: string, line: string): void {
+  const aliases = SECTION_ALIASES[type] ?? [];
+  const headerIndex = lines.findIndex(
+    (item) =>
+      item.startsWith("## ") && aliases.includes(item.slice(3).trim()),
+  );
+  if (headerIndex === -1) {
+    const archiveIndex = lines.findIndex((item) => item.trim() === "## 归档");
+    const block = [`## ${TYPE_LABEL[type] ?? type}`, line, ""];
+    if (archiveIndex === -1) {
+      if (lines.length > 0 && lines[lines.length - 1].trim() !== "") lines.push("");
+      lines.push(...block);
+    } else {
+      lines.splice(archiveIndex, 0, ...block);
+    }
+    return;
+  }
+  let insertAt = headerIndex + 1;
+  for (let i = headerIndex + 1; i < lines.length; i += 1) {
+    if (lines[i].startsWith("## ")) break;
+    if (lines[i].trim() !== "") insertAt = i + 1;
+  }
+  lines.splice(insertAt, 0, line);
+}
 
 export function isDerivedIndexFile(fileName: string): boolean {
   const base = path.basename(fileName);
@@ -133,9 +177,16 @@ export async function ensureMemoryIndexEntry(
     if (alreadyIndexed) return null;
 
     const entry = indexEntry(fileName, name, description);
-    const next = indexRaw.trim()
-      ? `${indexRaw.trimEnd()}\n${entry}\n`
-      : `# Memory\n\n${entry}\n`;
+    const rawType =
+      typeof frontmatter?.type === "string" ? frontmatter.type : "";
+    const type = (MEMORY_TYPES as readonly string[]).includes(rawType)
+      ? rawType
+      : "reference";
+    const lines = indexRaw.trim()
+      ? indexRaw.trimEnd().split("\n")
+      : ["# Memory", ""];
+    insertEntryLine(lines, type, entry);
+    const next = `${lines.join("\n").trimEnd()}\n`;
     const trimmed = next.trim();
     const lineCount = trimmed.split("\n").length;
     const charCount = trimmed.length;
@@ -184,10 +235,16 @@ export async function ensureArchivePointer(
     );
     if (missing.length === 0) return null;
 
-    const lines = missing.map(
-      (entry) => `- [归档](${entry}) — 低优先级记忆的清单，需要翻旧记录时再打开`,
+    const lines = indexRaw.trimEnd().split("\n");
+    if (!lines.some((line) => line.trim() === "## 归档")) {
+      lines.push("", "## 归档");
+    }
+    lines.push(
+      ...missing.map(
+        (entry) => `- [归档](${entry}) — 低优先级记忆的清单，需要翻旧记录时再打开`,
+      ),
     );
-    const next = `${indexRaw.trimEnd()}\n${lines.join("\n")}\n`;
+    const next = `${lines.join("\n").trimEnd()}\n`;
     const trimmed = next.trim();
     if (
       trimmed.split("\n").length > MAX_MEMORY_ENTRYPOINT_LINES ||
