@@ -194,9 +194,22 @@ export async function ensureMemoryIndexEntry(
       lineCount > MAX_MEMORY_ENTRYPOINT_LINES ||
       charCount > MAX_MEMORY_ENTRYPOINT_CHARS
     ) {
+      const overLines = Math.max(
+        0,
+        lineCount - MAX_MEMORY_ENTRYPOINT_LINES,
+      );
+      const overChars = Math.max(
+        0,
+        charCount - MAX_MEMORY_ENTRYPOINT_CHARS,
+      );
       return (
-        `"${fileName}" is not indexed yet: MEMORY.md is at its size cap. ` +
-        "Merge or archive older entries; the nightly tidy rebuilds the index too."
+        `"${fileName}" is not indexed yet: MEMORY.md is full ` +
+        `(${lineCount}/${MAX_MEMORY_ENTRYPOINT_LINES} lines, ${charCount}/${MAX_MEMORY_ENTRYPOINT_CHARS} chars; ` +
+        `over by ${overLines} lines / ${overChars} chars). ` +
+        "Read MEMORY.md, pick the entries that are least important or least recently used " +
+        "(old project/reference notes first), move those whole lines to archive.md verbatim, " +
+        "keep the archive pointer, then add this memory's pointer to the matching section. " +
+        "Do not truncate titles or delete rules to make room."
       );
     }
 

@@ -104,7 +104,9 @@ describe("memoryIndexMaintenance", () => {
     await fs.writeFile(path.join(dir, "late.md"), topicFile("Late"));
 
     const note = await ensureMemoryIndexEntry(path.join(dir, "late.md"), dir);
-    expect(note).toContain("size cap");
+    expect(note).toContain("MEMORY.md is full");
+    expect(note).toContain("archive.md");
+    expect(note).toContain("least recently used");
     const index = await fs.readFile(path.join(dir, "MEMORY.md"), "utf-8");
     expect(index).not.toContain("late.md");
   });
