@@ -639,7 +639,7 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
                 {run.error ? <p className="md-run-error">{run.error}</p> : null}
                 {run.fallbackIndex ? (
                   <p className="md-run-lint">
-                    这一轮的索引由程序兜底重建（AI 没在轮次内补全），建议看一遍草稿里的
+                    这一轮 AI 没在轮次内补全索引，程序只补了缺失的指针，没有替它决定归档；建议看一遍草稿里的
                     MEMORY.md。
                   </p>
                 ) : null}

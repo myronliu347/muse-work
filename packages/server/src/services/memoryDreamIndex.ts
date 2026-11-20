@@ -322,3 +322,59 @@ export function rebuildFlatIndex(dir: string): RebuildIndexResult {
 export function memoryTypeLabel(type: string): string {
   return DEFAULT_LABEL[type] ?? type;
 }
+
+
+/**
+ * Completeness fallback: add pointers for files that have none, and drop
+ * pointers whose file is gone. It never decides what to archive — which
+ * memories stay in MEMORY.md and which move to archive.md is the model's call.
+ * If the added pointers no longer fit the entrypoint caps, the remaining files
+ * stay unindexed and the run fails so a person can look.
+ */
+export function appendMissingPointers(dir: string): {
+  added: number;
+  remaining: number;
+  droppedDead: number;
+} {
+  const entries = readEntries(dir);
+  const byFile = new Map(entries.map((entry) => [entry.file, entry]));
+  const indexRaw = readIfExists(path.join(dir, MEMORY_INDEX_NAME));
+  const lines = indexRaw.trim()
+    ? indexRaw.trimEnd().split("\n")
+    : ["# Memory", "", "This file serves as an index for the project's auto-memory."];
+
+  const live = lines.filter(
+    (line) => !line.startsWith("- ") || !linksIn(line).some((file) => !byFile.has(file)),
+  );
+  const droppedDead = lines.length - live.length;
+
+  const archiveRaw = readIfExists(path.join(dir, ARCHIVE_FILE));
+  const indexed = new Set(
+    [...live, ...archiveRaw.split("\n")].flatMap((line) => linksIn(line)),
+  );
+  const missing = entries
+    .filter((entry) => !indexed.has(entry.file))
+    .sort((a, b) => {
+      const rank = (TYPE_RANK[a.type] ?? 9) - (TYPE_RANK[b.type] ?? 9);
+      if (rank !== 0) return rank;
+      return b.mtime - a.mtime;
+    });
+
+  let added = 0;
+  for (const entry of missing) {
+    const candidate = [...live, generatedLine(entry)];
+    const trimmed = candidate.join("\n").trim();
+    if (
+      trimmed.split("\n").length > 199 ||
+      trimmed.length > 24_500
+    ) {
+      break;
+    }
+    live.push(generatedLine(entry));
+    added += 1;
+  }
+
+  const content = `${live.join("\n").trim()}\n`;
+  fs.writeFileSync(path.join(dir, MEMORY_INDEX_NAME), content, "utf-8");
+  return { added, remaining: missing.length - added, droppedDead };
+}

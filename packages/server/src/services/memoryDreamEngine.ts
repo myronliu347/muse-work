@@ -14,7 +14,7 @@ import {
   memoryDirStats,
   type MemoryLintResult,
 } from "./memoryDreamLint.js";
-import { rebuildFlatIndex } from "./memoryDreamIndex.js";
+import { appendMissingPointers } from "./memoryDreamIndex.js";
 import { lastAssistantText } from "./issueDispatch.js";
 import {
   buildAnalyzerSystemPrompt,
@@ -297,7 +297,7 @@ export function createMemoryDreamEngine(options: {
       `- transcript：${input.transcripts} 份`,
       `- 整理轮次：${input.passes}`,
       `- 文件数：${input.lint.files}`,
-      `- 索引维护：${input.fallbackIndex ? "程序兜底重建" : "AI 维护"}`,
+      `- 索引维护：${input.fallbackIndex ? "程序只补齐缺失指针" : "AI 维护"}`,
       `- 孤儿：${input.lint.orphans}`,
       `- 索引：${input.lint.indexChars} 字符 / ${input.lint.indexLines} 行`,
       `- lint：${input.lint.ok ? "通过" : "未通过"}`,
@@ -500,11 +500,12 @@ export function createMemoryDreamEngine(options: {
       }
 
       if (hasCriticalMemoryLint(lint)) {
-        // Last resort: the AI left files without pointers (or the index
-        // unusable). Rebuild mechanically and mark the run so a person knows
-        // the structure was not authored by the model.
-        rebuildFlatIndex(draftMemory);
-        fallbackIndex = true;
+        // Completeness fallback only: add pointers for files the model left
+        // unindexed and drop dead pointers. It never decides what to archive;
+        // that stays the model's judgement, so a still-broken index fails the
+        // run instead of silently reprioritising the store.
+        const appended = appendMissingPointers(draftMemory);
+        fallbackIndex = appended.added > 0 || appended.droppedDead > 0;
         lint = lintMemoryDir(draftMemory);
       }
 
