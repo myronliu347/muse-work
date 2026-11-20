@@ -26,7 +26,7 @@ export interface MuseChatLine {
   app?: string;
   /** 渠道发出去的消息 id，用来撤回。 */
   msgIds?: string[];
-  /** 这句在说的 Issue。引用没写进正文时也记着，用来判断下一句要不要再带。 */
+  /** 这句在说的 Issue。用于进展归属，以及引用标题的点击跳转。 */
   issueId?: string;
   /** 助手本轮的 id；同一轮的多条消息共用。 */
   turnId?: string;

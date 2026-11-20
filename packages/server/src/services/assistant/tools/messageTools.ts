@@ -119,11 +119,6 @@ function issueMentionLabel(title: string): string {
   return cleaned || "Issue";
 }
 
-function mentionedIssueId(message: string): string | undefined {
-  const match = message.match(/\[@issue:([^\s\]]+)/);
-  return match?.[1];
-}
-
 type AtTarget = { type: "issue" | "user"; id: string };
 
 function parseAts(value: unknown): AtTarget[] | string {
@@ -139,17 +134,6 @@ function parseAts(value: unknown): AtTarget[] | string {
     ats.push({ type, id });
   }
   return ats;
-}
-
-function previousIssueId(log: AssistantToolDeps["log"]): string | undefined {
-  const messages = log.page({ limit: 50 }).messages;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const line = messages[i];
-    if (!line || line.app) continue;
-    const issueId = line.issueId || mentionedIssueId(line.message);
-    if (issueId) return issueId;
-  }
-  return undefined;
 }
 
 function withIssueLead(message: string, lead: string, joiner: string): string {
@@ -168,7 +152,7 @@ function truncateCodePoints(input: string, max: number): { text: string; truncat
 export function createMessageTools(deps: AssistantToolDeps) {
   const channels = deps.apps ?? [];
   const sendDescription = [
-    "人只能看见这次调用。回合正文不会发出去，写在那里等于没说。短回复也走这里。app 为 muse。ats 用来 @ issue。本地图片和文件用 files 传绝对路径，链接用 links。正文超过 200 字且没有 files 会被拒绝。",
+    "人只能看见这次调用。回合正文不会发出去，写在那里等于没说。短回复也走这里。app 为 muse。ats 用来 @；引用 Issue 任何渠道都能传，@ 人的类型看各 app 说明。本地图片和文件用 files 传绝对路径，链接用 links。正文超过 200 字且没有 files 会被拒绝。",
     ...channels.map((app) => app.description),
   ].join("");
   return [
@@ -193,7 +177,7 @@ export function createMessageTools(deps: AssistantToolDeps) {
               required: ["type", "id"],
             },
             description:
-              "Muse 用 { type: issue, id }。换了才加引用，跟上一条是同一条时不加。连着发几条不用每条都传。",
+              "引用 Issue 用 { type: issue, id }，任何渠道都能传：Muse 会渲染成可点击引用，其他渠道把标题写在正文开头。支持 @ 人的渠道（如 POPO 群）另按该 app 说明传 { type: user, id }。换了才加引用，跟上一条是同一条时不加。连着发几条不用每条都传。",
           },
           files: { type: "array", items: { type: "string" } },
           links: { type: "array", items: { type: "string" } },
@@ -247,32 +231,32 @@ export function createMessageTools(deps: AssistantToolDeps) {
         if (typeof parsedAts === "string") return fail(parsedAts);
         const issueAts = parsedAts.filter((at) => at.type === "issue");
         const userAts = parsedAts.filter((at) => at.type === "user");
-        let rememberedIssueId: string | undefined;
+        let citedIssueId: string | undefined;
         // A stale @ is not a reason to drop the whole message: skip the missing
         // quote and let the assistant see a warning instead of a send failure.
         const missingAts: string[] = [];
-        if (args.app === "muse") {
-          if (userAts.length > 0) return fail("muse 只能 @ issue");
-          if (issueAts.length === 1 && previousIssueId(deps.log) === issueAts[0]?.id) {
-            const remembered = deps.issues.get(issueAts[0]!.id);
-            if (remembered) rememberedIssueId = remembered.id;
-            else missingAts.push(issueAts[0]!.id);
-          } else if (issueAts.length > 0) {
-            const quotes: string[] = [];
-            for (const at of issueAts) {
-              const issue = deps.issues.get(at.id);
-              if (!issue) {
-                missingAts.push(at.id);
-                continue;
-              }
-              quotes.push(`> ${issueMentionLabel(issue.title)}`);
-              rememberedIssueId = issue.id;
+        if (args.app === "muse" && userAts.length > 0) return fail("muse 只能 @ issue");
+        if (issueAts.length > 0) {
+          // Muse 用它渲染可点击引用；其他渠道把标题写进正文，同时把 issue
+          // 从透传的 ats 里摘掉，插件只处理自己的 @ 人。
+          const quotes: string[] = [];
+          for (const at of issueAts) {
+            const issue = deps.issues.get(at.id);
+            if (!issue) {
+              missingAts.push(at.id);
+              continue;
             }
-            if (quotes.length > 0) {
-              message = withIssueLead(message, quotes.join("\n"), "\n\n");
-            }
+            quotes.push(`> ${issueMentionLabel(issue.title)}`);
+            citedIssueId = issue.id;
+          }
+          if (quotes.length > 0) {
+            message = withIssueLead(message, quotes.join("\n"), "\n\n");
           }
         }
+        const atsWarnings =
+          missingAts.length > 0
+            ? [`ignored missing issue ats: ${[...new Set(missingAts)].join(", ")}`]
+            : [];
         if (!message && files.length === 0 && links.length === 0) return fail("message required");
         for (const filePath of files) {
           const problem = localFile(filePath);
@@ -286,7 +270,7 @@ export function createMessageTools(deps: AssistantToolDeps) {
             undefined,
             undefined,
             undefined,
-            issueId || rememberedIssueId,
+            issueId || citedIssueId,
             turn?.turnId,
           );
           if (issueId && deps.recordIssueUpdate) {
@@ -306,20 +290,20 @@ export function createMessageTools(deps: AssistantToolDeps) {
           deps.onReplySent?.();
           return ok({
             line,
-            ...(missingAts.length > 0
-              ? {
-                  warnings: [
-                    `ignored missing issue ats: ${[...new Set(missingAts)].join(", ")}`,
-                  ],
-                }
-              : {}),
+            ...(atsWarnings.length > 0 ? { warnings: atsWarnings } : {}),
           });
         }
         const channel = channels.find((app) => app.id === args.app);
         if (!channel) return fail(`unknown app: ${String(args.app ?? "")}`);
         let result: Awaited<ReturnType<AssistantApp["send"]>>;
         try {
-          result = await channel.send({ ...args, message, files, links });
+          result = await channel.send({
+            ...args,
+            ats: userAts,
+            message,
+            files,
+            links,
+          });
         } catch (err: unknown) {
           return fail(err instanceof Error ? err.message : String(err));
         }
@@ -341,10 +325,16 @@ export function createMessageTools(deps: AssistantToolDeps) {
             undefined,
             result.line.app,
             result.line.msgIds,
-            settleId || rememberedIssueId,
+            settleId || citedIssueId,
           );
           deps.hub.broadcastAll({ type: "assistant:chat", line });
           body.line = line;
+        }
+        if (atsWarnings.length > 0) {
+          const existing = Array.isArray(body.warnings)
+            ? (body.warnings as unknown[])
+            : [];
+          body.warnings = [...existing, ...atsWarnings];
         }
         deps.onReplySent?.();
         return { success: true, content: JSON.stringify(body) };

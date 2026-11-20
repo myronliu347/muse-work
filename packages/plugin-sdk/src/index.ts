@@ -26,6 +26,10 @@ export interface AssistantApp {
   prompt?: string;
   /** Queue title prefixes keyed by chat event `from`. */
   queueLabels?: Record<string, string>;
+  /**
+   * `args.ats` 里 type 为 `issue` 的引用由核心消费（Muse 渲染成引用，其他
+   * 渠道写进正文开头），这里只会收到渠道自己的 @ 目标（如 `user`）。
+   */
   send(args: Record<string, unknown>): Promise<{
     success: boolean;
     content: string;

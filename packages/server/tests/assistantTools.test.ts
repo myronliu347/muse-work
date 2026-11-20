@@ -610,7 +610,7 @@ describe("assistant tools", () => {
     expect(missing.success).toBe(false);
   });
 
-  it("prefixes a reply when the issue changes and skips it when the last one matches", async () => {
+  it("prefixes a reply for every issue the assistant cites with ats", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-mention-"));
     const issues = createIssueStore({ home });
     const log = createAssistantMessageLog({ home });
@@ -627,13 +627,24 @@ describe("assistant tools", () => {
     const analysis = issues.create({ title: "高码澄清", description: "查" });
     const design = issues.create({ title: "设计系统", description: "做" });
 
-    log.append("user", `接着看 [@issue:${analysis.id} 高码澄清]`);
+    // An attributed but uncited line must not swallow the next explicit ats.
+    log.append(
+      "assistant",
+      "先报一句",
+      undefined,
+      undefined,
+      undefined,
+      analysis.id,
+      "turn-0",
+    );
     const same = await tool(tools, "SendMessage").execute(
       { app: "muse", ats: [{ type: "issue", id: analysis.id }], message: "查到了" },
       context,
     );
     expect(same.success).toBe(true);
-    expect(log.page().messages.at(-1)?.message).toBe("查到了");
+    expect(log.page().messages.at(-1)?.message).toBe(
+      `> 高码澄清\n\n查到了`,
+    );
 
     const switched = await tool(tools, "SendMessage").execute(
       { app: "muse", ats: [{ type: "issue", id: design.id }], message: "卡在提问上" },
@@ -649,7 +660,9 @@ describe("assistant tools", () => {
       context,
     );
     expect(again.success).toBe(true);
-    expect(log.page().messages.at(-1)?.message).toBe("还是这条");
+    expect(log.page().messages.at(-1)?.message).toBe(
+      `> 设计系统\n\n还是这条`,
+    );
 
     const museUser = await tool(tools, "SendMessage").execute(
       { app: "muse", ats: [{ type: "user", id: "a@corp.netease.com" }], message: "不行" },
@@ -666,6 +679,118 @@ describe("assistant tools", () => {
       warnings: [expect.stringContaining("missing")],
     });
     expect(log.page().messages.at(-1)?.message).toBe("没有");
+  });
+
+  it("passes user ats through to a non-Muse channel", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-channel-at-"));
+    const issues = createIssueStore({ home });
+    const log = createAssistantMessageLog({ home });
+    const sent: Array<Record<string, unknown>> = [];
+    const tools = createAssistantTools({
+      home,
+      issues,
+      sessions: createSessionStore({ home }),
+      automations: createAutomationStore({ home }),
+      log,
+      hub: { broadcastAll: () => undefined } as WsHub,
+      runner: {} as never,
+      apps: [
+        {
+          id: "popo",
+          description: "POPO 群只能 @ 邮箱。",
+          send: async (args) => {
+            sent.push(args);
+            return {
+              success: true,
+              content: "",
+              line: { app: "popo", message: String(args.message) },
+            };
+          },
+        },
+      ],
+    });
+    const result = await tool(tools, "SendMessage").execute(
+      {
+        app: "popo",
+        groupId: "group-1",
+        ats: [{ type: "user", id: "a@corp.netease.com" }],
+        message: "看下",
+      },
+      { sessionId: "assistant", toolUseId: "tool-1" },
+    );
+    expect(result.success).toBe(true);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.ats).toEqual([
+      { type: "user", id: "a@corp.netease.com" },
+    ]);
+    expect(log.page().messages.at(-1)).toMatchObject({
+      app: "popo",
+      message: "看下",
+    });
+  });
+
+  it("renders issue ats into the body for a non-Muse channel", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-channel-issue-"));
+    const issues = createIssueStore({ home });
+    const log = createAssistantMessageLog({ home });
+    const sent: Array<Record<string, unknown>> = [];
+    const tools = createAssistantTools({
+      home,
+      issues,
+      sessions: createSessionStore({ home }),
+      automations: createAutomationStore({ home }),
+      log,
+      hub: { broadcastAll: () => undefined } as WsHub,
+      runner: {} as never,
+      apps: [
+        {
+          id: "popo",
+          description: "POPO 群只能 @ 邮箱。",
+          send: async (args) => {
+            sent.push(args);
+            return {
+              success: true,
+              content: "",
+              line: { app: "popo", message: String(args.message) },
+            };
+          },
+        },
+      ],
+    });
+    const issue = issues.create({ title: "修登录" });
+    const result = await tool(tools, "SendMessage").execute(
+      {
+        app: "popo",
+        groupId: "group-1",
+        ats: [{ type: "issue", id: issue.id }],
+        message: "看下",
+      },
+      { sessionId: "assistant", toolUseId: "tool-1" },
+    );
+    expect(result.success).toBe(true);
+    expect(sent[0]?.message).toBe("> 修登录\n\n看下");
+    // The channel only gets its own @ targets; the issue quote is already text.
+    expect(sent[0]?.ats).toEqual([]);
+    expect(log.page().messages.at(-1)).toMatchObject({
+      app: "popo",
+      message: "> 修登录\n\n看下",
+      issueId: issue.id,
+    });
+
+    const missing = await tool(tools, "SendMessage").execute(
+      {
+        app: "popo",
+        groupId: "group-1",
+        ats: [{ type: "issue", id: "missing" }],
+        message: "还是看下",
+      },
+      { sessionId: "assistant", toolUseId: "tool-1" },
+    );
+    expect(missing.success).toBe(true);
+    expect(sent[1]?.message).toBe("还是看下");
+    expect(JSON.parse(missing.content)).toMatchObject({
+      warnings: [expect.stringContaining("missing")],
+    });
   });
 
   it("hides awaiting-close issues and resumes them when messaging", async () => {
