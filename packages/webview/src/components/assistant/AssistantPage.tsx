@@ -837,16 +837,21 @@ export const AssistantPage: React.FC<{
     previewClosers.current.add(openImagePreview(src, alt, gallery, index));
   }, []);
 
+  // The virtualizer must be sized by display rows, not raw lines: one receipt
+  // row collapses a whole turn of per-Issue messages, so `lines.length` can be
+  // larger than `rows.length`. Sizing by lines left phantom rows at the end of
+  // the spacer — a blank gap between the last bubble and 「工作中…」.
   const virtualizer = useVirtualizer({
-    count: lines.length,
+    count: rows.length,
     getScrollElement: () => scroller.current,
-    estimateSize: (index) => logRowHeights.get(lines[index]?.id ?? "") ?? LOG_ROW_ESTIMATE,
+    estimateSize: (index) =>
+      logRowHeights.get(rows[index]?.id ?? "") ?? LOG_ROW_ESTIMATE,
     measureElement: (node, entry) => {
       const element = node as HTMLElement;
       const box = entry?.borderBoxSize?.[0]?.blockSize;
       const measured = typeof box === "number" ? box : element.offsetHeight;
       const height = measured > 0 ? Math.round(measured) : 0;
-      const id = lines[Number(element.getAttribute("data-index"))]?.id;
+      const id = rows[Number(element.getAttribute("data-index"))]?.id;
       if (id && height > 0) logRowHeights.set(id, height);
       if (height > 0) return height;
       return (id && logRowHeights.get(id)) || LOG_ROW_ESTIMATE;
@@ -858,7 +863,7 @@ export const AssistantPage: React.FC<{
     // prepended, and follows new lines only while already at the bottom.
     anchorTo: "end",
     followOnAppend: true,
-    getItemKey: (index) => lines[index]?.id ?? index,
+    getItemKey: (index) => rows[index]?.id ?? index,
     directDomUpdates: true,
     directDomUpdatesMode: "position",
     useFlushSync: false,

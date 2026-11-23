@@ -58,6 +58,44 @@ describe("AssistantPage", () => {
     expect(screen.getByText(/上一条助手消息/)).toBeInTheDocument();
   });
 
+  it("sizes the transcript spacer by display rows, not raw assistant lines", async () => {
+    // A turn whose per-Issue replies are folded into one 本轮结果 row: three
+    // chat lines become two display rows. Sizing the virtualizer by lines used
+    // to leave phantom rows at the end of the spacer — a blank gap above
+    // 「工作中…」 while the assistant was still running.
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          { id: "u1", at: 1, role: "user", message: "跑一下" },
+          {
+            id: "a1",
+            at: 2,
+            role: "assistant",
+            message: "A 完成",
+            turnId: "turn-1",
+            issueId: "i1",
+          },
+          {
+            id: "a2",
+            at: 3,
+            role: "assistant",
+            message: "B 完成",
+            turnId: "turn-1",
+            issueId: "i2",
+          },
+        ],
+        hasMore: false,
+      }),
+    };
+    const { container } = render(<AssistantPage api={api as never} />);
+
+    expect(await screen.findByTestId("assistant-turn-receipt")).toBeTruthy();
+    const spacer = container.querySelector(".virtual-spacer") as HTMLElement;
+    expect(spacer).toBeTruthy();
+    // Two rows (user + receipt) at the 96px estimate plus one 18px gap.
+    expect(parseFloat(spacer.style.height)).toBe(2 * 96 + 18);
+  });
+
   it("follows the watched agent session over the socket instead of polling", async () => {
     const api = {
       listAssistantMessages: vi
