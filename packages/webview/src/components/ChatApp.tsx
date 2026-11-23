@@ -30,9 +30,9 @@ import { registerDesktopSettingsOpener } from "../muse/desktopSettingsNav";
 import { registerUnfocusedClose } from "../muse/sidePanelTabs";
 import { draftSessionMetadata } from "../utils/session";
 import { issueGroupSessionWorkdir } from "../utils/issueGroups";
-import { fileBaseName, fileLinkKind } from "../utils/fileLinkKind";
+import { fileLinkKind } from "../utils/fileLinkKind";
 import { resolveWorkspaceFilePath } from "../utils/filePathDisplay";
-import { resolveImageSrc } from "../utils/resolveImageSrc";
+import { artifactImageGallery } from "../utils/artifactPreview";
 import { openImagePreview } from "./message/imagePreview";
 import { uniqueWorkdirs } from "../utils/workdirScope";
 import { issueTabSessionId } from "./desktop/botWorkspace";
@@ -1047,11 +1047,15 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       }
       handleOpenFile(path);
     },
-    openArtifact: (path, workdir) => {
-      const resolved = resolveWorkspaceFilePath(path, workdir ?? effectiveWorkdir);
+    openArtifact: (path, workdir, gallery) => {
+      const base = workdir ?? effectiveWorkdir;
       const kind = fileLinkKind(path);
       if (kind === "image") {
-        openImagePreview(resolveImageSrc(resolved), fileBaseName(resolved));
+        // Every image in the artifact group becomes one gallery, so the
+        // preview's arrows / ← → can move between 产物 screenshots without
+        // closing it first.
+        const { images, index } = artifactImageGallery(path, gallery, base);
+        openImagePreview(images[index].url, images[index].alt, images, index);
         return;
       }
       if (kind === "browser") {

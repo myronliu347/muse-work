@@ -1780,12 +1780,21 @@ describe("assistant dock detail", () => {
     expect(screen.getByText("a.ts")).toBeInTheDocument();
     expect(screen.getByTestId("dock-detail-artifacts")).toBeInTheDocument();
 
+    const artifacts = ["/work/radii/report.html", "/work/radii/shot.png"];
     await user.click(screen.getByText("a.ts"));
     expect(onOpenChangedFile).toHaveBeenCalledWith("/work/radii/src/a.ts");
     await user.click(screen.getByText("report.html"));
-    expect(onOpenArtifact).toHaveBeenCalledWith("/work/radii/report.html", undefined);
+    expect(onOpenArtifact).toHaveBeenCalledWith(
+      "/work/radii/report.html",
+      undefined,
+      artifacts,
+    );
     await user.click(screen.getByRole("button", { name: "预览 shot.png" }));
-    expect(onOpenArtifact).toHaveBeenCalledWith("/work/radii/shot.png", undefined);
+    expect(onOpenArtifact).toHaveBeenCalledWith(
+      "/work/radii/shot.png",
+      undefined,
+      artifacts,
+    );
   });
 
   it("renders a pending permission as read-only", () => {

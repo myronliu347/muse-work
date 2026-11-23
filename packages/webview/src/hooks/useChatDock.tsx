@@ -112,7 +112,7 @@ export function useChatDock(input: {
   handleOpenFile: (path: string, startLine?: number, endLine?: number, pinned?: boolean) => void;
   handleOpenFilePin: (path: string) => void;
   openChangedFile: (path: string) => void;
-  openArtifact: (path: string, workdir?: string) => void;
+  openArtifact: (path: string, workdir?: string, gallery?: string[]) => void;
   loadIssue?: (issueId: string) => Promise<{
     description?: string;
     items?: DesktopIssueGroup["items"];

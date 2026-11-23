@@ -278,8 +278,13 @@ export interface DockDetailProps {
   }>;
   /** 点击本轮改动文件：打开 diff。 */
   onOpenChangedFile?: (path: string) => void;
-  /** 点击产物附件：图片看大图、HTML 进浏览器、其余开文件。 */
-  onOpenArtifact?: (path: string, workdir?: string) => void;
+  /** 点击产物附件：图片看大图（同组图片可左右切换）、HTML 进浏览器、其余开文件。 */
+  onOpenArtifact?: (
+    path: string,
+    workdir?: string,
+    /** 当前展示的全部产物路径，图片预览用它组画廊。 */
+    gallery?: string[],
+  ) => void;
   /** 已结束 Issue 的描述 / 清单不在 grouped 接口里，选中后按需拉取。 */
   onLoadIssue?: (issueId: string) => Promise<{
     description?: string;
@@ -1322,7 +1327,11 @@ export function DockDetail({
                         key={filePath}
                         path={filePath}
                         onOpen={(path) =>
-                          onOpenArtifact?.(path, selectedIssue?.workdir)
+                          onOpenArtifact?.(
+                            path,
+                            selectedIssue?.workdir,
+                            artifactFiles,
+                          )
                         }
                       />
                     ))}
