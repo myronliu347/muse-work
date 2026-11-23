@@ -1,13 +1,7 @@
 import { decodeFileHref } from "../../utils/filePathDisplay";
 import { linkifyFilePaths } from "../../utils/messageUtils";
 
-const HTML_PREVIEW_PATH = /\.(html?|xhtml)$/i;
-
-/** Local HTML opens in the built-in browser instead of the file source. */
-export function isHtmlPreviewPath(filePath: string): boolean {
-  const base = filePath.split(/[?#]/)[0] ?? filePath;
-  return HTML_PREVIEW_PATH.test(base);
-}
+export { isHtmlPreviewPath } from "../../utils/fileLinkKind";
 
 export type AssistantLinkTarget =
   | { kind: "file"; path: string; startLine?: number; endLine?: number }

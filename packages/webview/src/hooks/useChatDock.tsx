@@ -112,8 +112,7 @@ export function useChatDock(input: {
   handleOpenFile: (path: string, startLine?: number, endLine?: number, pinned?: boolean) => void;
   handleOpenFilePin: (path: string) => void;
   openChangedFile: (path: string) => void;
-  openArtifact: (path: string) => void;
-  openArtifactInBrowser?: (path: string) => void;
+  openArtifact: (path: string, workdir?: string) => void;
   loadIssue?: (issueId: string) => Promise<{
     description?: string;
     items?: DesktopIssueGroup["items"];
@@ -226,7 +225,6 @@ export function useChatDock(input: {
     handleOpenFilePin,
     openChangedFile,
     openArtifact,
-    openArtifactInBrowser,
     loadIssue,
     loadClosedIssuePage,
     loadIssueUpdates,
@@ -403,7 +401,6 @@ export function useChatDock(input: {
         onLoadIssue={loadIssue}
         onOpenChangedFile={openChangedFile}
         onOpenArtifact={openArtifact}
-        onOpenArtifactInBrowser={openArtifactInBrowser}
         onLoadUpdates={loadIssueUpdates}
         pendingPermissionIds={pendingPermissionIds}
         currentSessionId={state.currentSession?.id}

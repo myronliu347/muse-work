@@ -1743,7 +1743,6 @@ describe("assistant dock detail", () => {
     const user = userEvent.setup();
     const onOpenChangedFile = vi.fn();
     const onOpenArtifact = vi.fn();
-    const onOpenArtifactInBrowser = vi.fn();
     const radii = issue({
       issueId: "radii",
       title: RADII,
@@ -1756,7 +1755,7 @@ describe("assistant dock detail", () => {
           summary: "圆角已对齐，报告已出。",
           next: "等按钮高度统一后收口。",
           changedFiles: ["/work/radii/src/a.ts"],
-          files: ["/work/radii/report.html"],
+          files: ["/work/radii/report.html", "/work/radii/shot.png"],
         },
       ],
       updateCount: 1,
@@ -1769,7 +1768,6 @@ describe("assistant dock detail", () => {
           onOpenSession={() => {}}
           onOpenChangedFile={onOpenChangedFile}
           onOpenArtifact={onOpenArtifact}
-          onOpenArtifactInBrowser={onOpenArtifactInBrowser}
         />
       </MuseTheme>,
     );
@@ -1785,9 +1783,9 @@ describe("assistant dock detail", () => {
     await user.click(screen.getByText("a.ts"));
     expect(onOpenChangedFile).toHaveBeenCalledWith("/work/radii/src/a.ts");
     await user.click(screen.getByText("report.html"));
-    expect(onOpenArtifact).toHaveBeenCalledWith("/work/radii/report.html");
-    await user.click(screen.getByRole("button", { name: "在浏览器中打开" }));
-    expect(onOpenArtifactInBrowser).toHaveBeenCalledWith("/work/radii/report.html");
+    expect(onOpenArtifact).toHaveBeenCalledWith("/work/radii/report.html", undefined);
+    await user.click(screen.getByRole("button", { name: "预览 shot.png" }));
+    expect(onOpenArtifact).toHaveBeenCalledWith("/work/radii/shot.png", undefined);
   });
 
   it("renders a pending permission as read-only", () => {

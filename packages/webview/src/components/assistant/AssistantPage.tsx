@@ -22,7 +22,7 @@ import {
 } from "./agentTranscript";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { MessageList } from "../chat/MessageList";
-import { FileIcon } from "../panels/FileIcon";
+import { FileChip } from "../shared/FileChip";
 import { ContextTag } from "../shared/ContextTag";
 import { MarkdownView } from "../message/MarkdownView";
 import { linkifyFilePaths, parseMentions } from "../../utils/messageUtils";
@@ -36,6 +36,8 @@ import {
 import { ResolvedImage, useResolvedImageSrc } from "../message/ResolvedImage";
 import { resolveImageSrc } from "../../utils/resolveImageSrc";
 import { pathToFileUrl } from "../../utils/pathToFileUrl";
+import { isImageFileName } from "../../utils/localFileMention";
+import { fileBaseName } from "../../utils/fileLinkKind";
 import {
   readAssistantTranscriptCache,
   writeAssistantTranscriptCache,
@@ -563,45 +565,6 @@ function UserLine({
   );
 }
 
-function fileBaseName(filePath: string): string {
-  return filePath.replace(/\\/g, "/").split("/").pop() || filePath;
-}
-
-function AssistantFileChip({
-  path,
-  closed,
-  onOpen,
-}: {
-  path: string;
-  closed: boolean;
-  onOpen: (path: string) => void;
-}) {
-  const name = fileBaseName(path);
-  const html = isHtmlPreviewPath(path);
-  if (closed) {
-    return (
-      <span className="assistant-file-chip assistant-file-chip-closed" title={path}>
-        <FileIcon name={name} className="assistant-file-chip-icon" />
-        <span className="assistant-file-chip-name">{name}</span>
-      </span>
-    );
-  }
-  return (
-    <button
-      type="button"
-      className="assistant-file-chip"
-      data-testid="assistant-file-chip"
-      data-path={path}
-      title={path}
-      aria-label={html ? `在内置浏览器中打开 ${name}` : `打开 ${name}`}
-      onClick={() => onOpen(path)}
-    >
-      <FileIcon name={name} className="assistant-file-chip-icon" />
-      <span className="assistant-file-chip-name">{name}</span>
-    </button>
-  );
-}
-
 function AssistantBubbleBody({
   line,
   closedFilePaths,
@@ -613,7 +576,10 @@ function AssistantBubbleBody({
   line: AssistantLine;
   closedFilePaths: ReadonlySet<string>;
   onLinkClick: (event: MouseEvent) => void;
-  onOpenAttachment: (path: string) => void;
+  onOpenAttachment: (
+    path: string,
+    images?: { paths: string[]; index: number },
+  ) => void;
   onSelectIssue?: (issueId: string) => void;
   onPreviewImage: (
     src: string,
@@ -642,6 +608,9 @@ function AssistantBubbleBody({
           );
         }
         const { text: body, files } = splitAssistantFileLines(part.content);
+        const imagePaths = files.filter(
+          (file) => isImageFileName(file) && !closedFilePaths.has(file),
+        );
         return (
           <div key={`${line.id}:text:${index}`}>
             {body.trim() ? (
@@ -666,14 +635,23 @@ function AssistantBubbleBody({
             ) : null}
             {files.length > 0 ? (
               <div className="assistant-file-list">
-                {files.map((path) => (
-                  <AssistantFileChip
-                    key={path}
-                    path={path}
-                    closed={closedFilePaths.has(path)}
-                    onOpen={onOpenAttachment}
-                  />
-                ))}
+                {files.map((path) => {
+                  const open = imagePaths.includes(path)
+                    ? (target: string) =>
+                        onOpenAttachment(target, {
+                          paths: imagePaths,
+                          index: imagePaths.indexOf(target),
+                        })
+                    : onOpenAttachment;
+                  return (
+                    <FileChip
+                      key={path}
+                      path={path}
+                      closed={closedFilePaths.has(path)}
+                      onOpen={open}
+                    />
+                  );
+                })}
               </div>
             ) : null}
           </div>
@@ -1251,12 +1229,33 @@ export const AssistantPage: React.FC<{
     }
   }, [api, hasMore, lines]);
 
-  const openHref = (href: string) => {
+  const openHref = (
+    href: string,
+    images?: { paths: string[]; index: number },
+  ) => {
     const target = classifyAssistantHref(href);
     if (!target) return;
     if (target.kind === "file") {
       if (closedFilePaths.has(target.path)) return;
       const resolved = resolveWorkspaceFilePath(target.path, agentWorkdir);
+      // Pictures belong in the image preview, not in a text tab. A message
+      // with several attachments opens as one gallery.
+      if (isImageFileName(target.path)) {
+        const paths = images?.paths?.length ? images.paths : [target.path];
+        const gallery = paths.map((path) => {
+          const absolute =
+            path === target.path
+              ? resolved
+              : resolveWorkspaceFilePath(path, agentWorkdir);
+          return { url: resolveImageSrc(absolute), alt: fileBaseName(absolute) };
+        });
+        const index =
+          images && images.index >= 0 && images.index < gallery.length
+            ? images.index
+            : 0;
+        previewImage(gallery[index].url, gallery[index].alt, gallery, index);
+        return;
+      }
       if (isHtmlPreviewPath(target.path)) {
         onOpenUrl?.(pathToFileUrl(resolved));
         return;

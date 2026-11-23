@@ -12,8 +12,7 @@ import DOMPurify from "dompurify";
 import { marked } from "marked";
 import type { DesktopIssueGroup, DesktopIssueUpdate } from "../../types";
 import { issueSidebarStatusLabel } from "../../utils/issueStatusLabel";
-import { FileIcon } from "../panels/FileIcon";
-import { isHtmlPreviewPath } from "../assistant/assistantLinks";
+import { FileChip } from "../shared/FileChip";
 import { IssueRowContent, type BotListIssue } from "./BotLists";
 import { Disclosure } from "../shared/Disclosure";
 import type { IssuePresence } from "../session/SessionStatusGlyph";
@@ -279,10 +278,8 @@ export interface DockDetailProps {
   }>;
   /** 点击本轮改动文件：打开 diff。 */
   onOpenChangedFile?: (path: string) => void;
-  /** 点击产物附件：打开文件/预览。 */
-  onOpenArtifact?: (path: string) => void;
-  /** HTML 产物：在内置浏览器打开。 */
-  onOpenArtifactInBrowser?: (path: string) => void;
+  /** 点击产物附件：图片看大图、HTML 进浏览器、其余开文件。 */
+  onOpenArtifact?: (path: string, workdir?: string) => void;
   /** 已结束 Issue 的描述 / 清单不在 grouped 接口里，选中后按需拉取。 */
   onLoadIssue?: (issueId: string) => Promise<{
     description?: string;
@@ -650,7 +647,6 @@ export function DockDetail({
   onLoadClosedIssues,
   onOpenChangedFile,
   onOpenArtifact,
-  onOpenArtifactInBrowser,
   onLoadIssue,
   onLoadUpdates,
   pendingPermissionIds,
@@ -1322,43 +1318,13 @@ export function DockDetail({
                   <div className="dock-detail-artifacts-inline" data-testid="dock-detail-artifacts">
                     <span className="dock-detail-artifacts-label">产物</span>
                     {artifactFiles.map((filePath) => (
-                      <div
+                      <FileChip
                         key={filePath}
-                        className="dock-detail-artifact-row"
-                        title={filePath}
-                      >
-                        <FileIcon
-                          name={fileName(filePath)}
-                          className="dock-detail-file-chip-icon"
-                        />
-                        <button
-                          type="button"
-                          className="dock-detail-artifact-name"
-                          onClick={() => onOpenArtifact?.(filePath)}
-                        >
-                          {fileName(filePath)}
-                        </button>
-                        <button
-                          type="button"
-                          className="dock-detail-artifact-action"
-                          aria-label="打开文件"
-                          title="打开文件"
-                          onClick={() => onOpenArtifact?.(filePath)}
-                        >
-                          <i className="codicon codicon-go-to-file" aria-hidden />
-                        </button>
-                        {isHtmlPreviewPath(filePath) ? (
-                          <button
-                            type="button"
-                            className="dock-detail-artifact-action"
-                            aria-label="在浏览器中打开"
-                            title="在浏览器中打开"
-                            onClick={() => onOpenArtifactInBrowser?.(filePath)}
-                          >
-                            <i className="codicon codicon-globe" aria-hidden />
-                          </button>
-                        ) : null}
-                      </div>
+                        path={filePath}
+                        onOpen={(path) =>
+                          onOpenArtifact?.(path, selectedIssue?.workdir)
+                        }
+                      />
                     ))}
                   </div>
                 ) : null}

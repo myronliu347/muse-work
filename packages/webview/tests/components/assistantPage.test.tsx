@@ -670,6 +670,43 @@ describe("AssistantPage", () => {
     expect(onOpenFile).toHaveBeenCalledWith(runtime, undefined, undefined);
   });
 
+  it("opens image attachments in the image preview instead of a file tab", async () => {
+    const onOpenFile = vi.fn();
+    const plain = "/tmp/proj/chat-after-plain.png";
+    const code = "/tmp/proj/chat-after-code.png";
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "1",
+            at: 1,
+            role: "assistant",
+            message: `改完了。\n${plain}\n${code}`,
+          },
+        ],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    render(<AssistantPage api={api} onOpenFile={onOpenFile} />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "预览 chat-after-plain.png" }),
+    );
+    const modal = document.querySelector(".image-preview-modal");
+    expect(modal).toBeTruthy();
+    const shot = () => modal!.querySelector("img") as HTMLImageElement;
+    expect(shot().src).toBe("file:///tmp/proj/chat-after-plain.png");
+    expect(modal!.querySelector(".image-preview-count")?.textContent).toBe("1 / 2");
+
+    fireEvent.click(within(modal as HTMLElement).getByRole("button", { name: "下一张" }));
+    expect(shot().src).toBe("file:///tmp/proj/chat-after-code.png");
+    expect(modal!.querySelector(".image-preview-count")?.textContent).toBe("2 / 2");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(document.querySelector(".image-preview-modal")).toBeNull();
+    expect(onOpenFile).not.toHaveBeenCalled();
+  });
+
   it("opens an absolute html path in the browser before the workdir probe answers", async () => {
     const onOpenFile = vi.fn();
     const onOpenUrl = vi.fn();

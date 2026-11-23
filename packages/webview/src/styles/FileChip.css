@@ -1,0 +1,46 @@
+/* One row per local file: message attachment or issue artifact. */
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-1);
+  line-height: 1.45;
+  text-align: left;
+  cursor: pointer;
+}
+
+.file-chip-closed {
+  cursor: default;
+}
+
+.file-chip-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.file-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dark: the chip sits on a bubble or a card; a raised translucent surface
+   plus a hairline keeps it from looking like a cut-out. */
+.radix-themes.dark .file-chip {
+  background: color-mix(in srgb, var(--text-on-accent) 8%, transparent);
+  border: 1px solid var(--border-subtle);
+}
+.radix-themes.dark .file-chip:hover {
+  background: color-mix(in srgb, var(--text-on-accent) 12%, transparent);
+}

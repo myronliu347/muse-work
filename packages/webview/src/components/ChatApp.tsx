@@ -30,6 +30,10 @@ import { registerDesktopSettingsOpener } from "../muse/desktopSettingsNav";
 import { registerUnfocusedClose } from "../muse/sidePanelTabs";
 import { draftSessionMetadata } from "../utils/session";
 import { issueGroupSessionWorkdir } from "../utils/issueGroups";
+import { fileBaseName, fileLinkKind } from "../utils/fileLinkKind";
+import { resolveWorkspaceFilePath } from "../utils/filePathDisplay";
+import { resolveImageSrc } from "../utils/resolveImageSrc";
+import { openImagePreview } from "./message/imagePreview";
 import { uniqueWorkdirs } from "../utils/workdirScope";
 import { issueTabSessionId } from "./desktop/botWorkspace";
 import {
@@ -1043,8 +1047,19 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       }
       handleOpenFile(path);
     },
-    openArtifact: (path) => handleOpenFile(path),
-    openArtifactInBrowser: handleOpenLocalFilePreview,
+    openArtifact: (path, workdir) => {
+      const resolved = resolveWorkspaceFilePath(path, workdir ?? effectiveWorkdir);
+      const kind = fileLinkKind(path);
+      if (kind === "image") {
+        openImagePreview(resolveImageSrc(resolved), fileBaseName(resolved));
+        return;
+      }
+      if (kind === "browser") {
+        handleOpenLocalFilePreview(path);
+        return;
+      }
+      handleOpenFile(path);
+    },
     loadIssue,
     loadClosedIssuePage,
     loadIssueUpdates: (issueId, opts) => museApi.listIssueUpdates(issueId, opts),
