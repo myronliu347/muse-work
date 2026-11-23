@@ -13,6 +13,14 @@ export function openImagePreview(
 
   const modal = document.createElement("div");
   modal.className = "image-preview-modal";
+  modal.setAttribute("role", "dialog");
+  modal.setAttribute("aria-modal", "true");
+  modal.setAttribute("aria-label", "图片预览");
+  // Give focus back to whatever opened the preview when it closes.
+  const returnFocus =
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
 
   let closed = false;
   const img = document.createElement("img");
@@ -26,6 +34,7 @@ export function openImagePreview(
     closed = true;
     document.removeEventListener("keydown", onKeyDown, true);
     modal.remove();
+    returnFocus?.focus?.();
   };
 
   const show = (next: number) => {
@@ -51,9 +60,11 @@ export function openImagePreview(
 
   modal.onclick = close;
 
-  const closeBtn = document.createElement("div");
+  const closeBtn = document.createElement("button");
+  closeBtn.type = "button";
   closeBtn.className = "image-preview-close";
-  closeBtn.innerHTML = '<i class="codicon codicon-close"></i>';
+  closeBtn.setAttribute("aria-label", "关闭图片预览");
+  closeBtn.innerHTML = '<i class="codicon codicon-close" aria-hidden="true"></i>';
   closeBtn.onclick = (event) => {
     event.stopPropagation();
     close();
@@ -82,7 +93,13 @@ export function openImagePreview(
     counter.textContent = `${index + 1} / ${images.length}`;
     modal.appendChild(counter);
   }
-  document.body.appendChild(modal);
+  // Mount inside the theme-scoped overlay host: the scrim and the control
+  // colors are Radix tokens defined on `.radix-themes`, and a body-level
+  // modal sits outside them (it painted as a transparent layer).
+  const host =
+    document.getElementById("muse-overlay-root") ?? document.body;
+  host.appendChild(modal);
+  closeBtn.focus();
   document.addEventListener("keydown", onKeyDown, true);
   return close;
 }

@@ -557,17 +557,16 @@
   outline-offset: var(--space-1);
 }
 
-/* Image Preview Modal */
+/* Image Preview Modal — a full-window scrim; the picture is the content and
+   everything else stays out of the way. Mounted inside #muse-overlay-root so
+   the overlay tokens resolve. */
 .image-preview-modal {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: var(--overlay-scrim-strong);
+  inset: 0;
   display: flex;
   justify-content: center;
   align-items: center;
+  background-color: var(--overlay-scrim-strong);
   z-index: 10000;
   cursor: zoom-out;
 }
@@ -576,24 +575,26 @@
   max-width: 90%;
   max-height: 90%;
   object-fit: contain;
-  box-shadow: 0 0 var(--space-4) var(--shadow-color-strong);
+  box-shadow: 0 0 24px var(--shadow-color-strong);
   cursor: default;
 }
 
 .image-preview-close {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  color: white;
-  font-size: var(--font-size-6);
-  cursor: pointer;
-  width: 40px;
-  height: 40px;
+  top: var(--space-5);
+  right: var(--space-5);
+  width: var(--space-7);
+  height: var(--space-7);
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: var(--overlay-control-soft);
+  padding: 0;
+  border: 0;
   border-radius: 50%;
+  background-color: var(--overlay-control-soft);
+  color: white;
+  font-size: var(--font-size-3);
+  cursor: pointer;
   transition: background-color 0.2s;
 }
 
@@ -605,8 +606,8 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
+  width: var(--space-7);
+  height: var(--space-7);
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -615,25 +616,32 @@
   justify-content: center;
   background-color: var(--overlay-control-soft);
   color: white;
-  font-size: var(--font-size-5);
+  font-size: var(--font-size-3);
   cursor: pointer;
 }
 
 .image-preview-nav--prev {
-  left: 20px;
+  left: var(--space-5);
 }
 
 .image-preview-nav--next {
-  right: 20px;
+  right: var(--space-5);
 }
 
 .image-preview-nav:hover {
   background-color: var(--overlay-control);
 }
 
+/* The global `.codicon` rule sets its own text color, which beats the inherited
+   white of the overlay controls and left the glyphs muddy on the dark scrim. */
+.image-preview-close .codicon,
+.image-preview-nav .codicon {
+  color: inherit;
+}
+
 .image-preview-count {
   position: absolute;
-  bottom: 20px;
+  bottom: var(--space-5);
   left: 50%;
   transform: translateX(-50%);
   color: white;
