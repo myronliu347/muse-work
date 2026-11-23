@@ -95,7 +95,7 @@ describe("botWorkspace", () => {
     expect(closed.lastIssueId).toBe("radii");
   });
 
-  it("closing the issue on the right clears that tab and the detail binding", () => {
+  it("closing the issue tab keeps the detail on that issue", () => {
     const opened = selectDock(
       focusTab(openIssueSession(initialBotWorkspace("radii"), "radii"), "radii"),
       "file",
@@ -103,9 +103,10 @@ describe("botWorkspace", () => {
     const closed = closeIssueTab(opened, "radii");
     expect(closed.active).toBe("bot");
     expect(closed.openIssueIds).toEqual([]);
-    expect(closed.panel).toEqual({ kind: "none" });
-    expect(closed.lastIssueId).toBeNull();
-    // Closing the tab must not move the right side off the tab being read.
+    // The issue is still listed in 事项 (open or 已完成), so the detail must
+    // not fall back to the empty page.
+    expect(closed.panel).toEqual({ kind: "issue", issueId: "radii" });
+    expect(closed.lastIssueId).toBe("radii");
     expect(closed.dock).toBe("file");
     expect(closed.docks.bot).toBe("file");
   });
@@ -126,14 +127,14 @@ describe("botWorkspace", () => {
     expect(closed.dock).toBe("diff");
   });
 
-  it("falls back to 详情 when the closed tab was the last issue 变更 could show", () => {
+  it("keeps 变更 when the closed tab's issue is still shown on the right", () => {
     const opened = selectDock(
       focusTab(openIssueSession(initialBotWorkspace("radii"), "radii"), "radii"),
       "diff",
     );
     const closed = closeIssueTab(opened, "radii");
-    expect(closed.panel).toEqual({ kind: "none" });
-    expect(closed.dock).toBe("detail");
+    expect(closed.panel).toEqual({ kind: "issue", issueId: "radii" });
+    expect(closed.dock).toBe("diff");
   });
 
   it("selecting another issue keeps the dock tab the user is reading", () => {

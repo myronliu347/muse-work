@@ -122,17 +122,13 @@ export function closeIssueTab(state: BotWorkspaceState, issueId: string): BotWor
   const lastWasThis = state.lastIssueId === issueId;
   const activeWasThis = state.active === issueId;
   if (!hadTab && !panelWasThis && !lastWasThis && !activeWasThis) return state;
-  // 关标签只回收中间栏和详情绑定。右侧停在哪个标签是用户的阅读状态，
-  // 不因为少了一条 Issue 就跳回详情；文件、终端、浏览器、详情都可以留着。
-  // 只有 变更 在关掉后连一个可看的事项都没有时才退回详情。
+  // 关标签只回收中间栏。Issue 还在右侧「事项」列表里（进行中或已完成），
+  // 详情绑定必须留着——否则关掉会话标签会把它从列表旁边变成空态。
+  // 真正从两个列表里消失时由 pruneBotWorkspace 回收详情绑定。
   const docks = { ...state.docks };
   delete docks[issueId];
   const active = activeWasThis ? "bot" : state.active;
-  const keptPanelIssue =
-    !panelWasThis && state.panel.kind === "issue" ? state.panel.issueId : undefined;
-  const keptLastIssue = lastWasThis ? undefined : state.lastIssueId ?? undefined;
-  const issueLeft = Boolean(keptPanelIssue || keptLastIssue);
-  const dock = state.dock === "diff" && !issueLeft ? "detail" : state.dock;
+  const dock = state.dock;
   docks[active] = dock;
   return {
     ...state,
@@ -140,8 +136,6 @@ export function closeIssueTab(state: BotWorkspaceState, issueId: string): BotWor
       ? state.openIssueIds.filter((id) => id !== issueId)
       : state.openIssueIds,
     active,
-    panel: panelWasThis ? { kind: "none" } : state.panel,
-    lastIssueId: lastWasThis ? null : state.lastIssueId,
     dock,
     docks,
   };

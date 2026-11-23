@@ -641,7 +641,7 @@ describe("ChatApp pending and issue lists", () => {
     expect(frame.querySelectorAll(".bot-tab")).toHaveLength(2);
   });
 
-  it("drops the open tab and the right detail when that issue is closed", async () => {
+  it("drops the open tab but keeps the closed issue in the right detail", async () => {
     resetWebviewStores();
     stubAssistant(QUEUE);
     const media = installMatchMedia();
@@ -686,8 +686,45 @@ describe("ChatApp pending and issue lists", () => {
     await waitFor(() => {
       expect(frame.querySelector('[data-bot-tab="a11y"]')).toBeNull();
     });
-    expect(within(frame).getByTestId("desktop-panel-tab-detail")).not.toHaveTextContent(A11Y);
+    // The issue moved to 已完成 but is still listed in 事项, so the detail
+    // stays on it instead of falling back to the empty page.
+    expect(within(frame).getByTestId("desktop-panel-tab-detail")).toHaveTextContent(A11Y);
+    expect(within(frame).getByTestId("dock-detail-toolbar")).toHaveTextContent("已完成");
+    expect(within(frame).queryByTestId("dock-detail-empty")).toBeNull();
     expect(within(frame).getByRole("button", { name: "小盏" })).toBeInTheDocument();
+  });
+
+  it("keeps the 事项 detail when its open session tab is closed", async () => {
+    resetWebviewStores();
+    stubAssistant(QUEUE);
+    const media = installMatchMedia();
+    media.setWidth(1600);
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={listsHost().host} />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    await user.click(within(frame).getByTestId("panel-toggle-btn"));
+    const lists = await within(frame).findByTestId("bot-lists");
+    const row = within(lists).getByRole("button", { name: new RegExp(A11Y) });
+    await user.hover(row);
+    await user.click(
+      within(row.parentElement as HTMLElement).getByRole("button", { name: "打开会话" }),
+    );
+    const tab = frame.querySelector('[data-bot-tab="a11y"]') as HTMLElement;
+    expect(tab).toBeTruthy();
+
+    await user.click(within(tab).getByRole("button", { name: "关闭" }));
+    await waitFor(() => {
+      expect(frame.querySelector('[data-bot-tab="a11y"]')).toBeNull();
+    });
+    // The issue is still listed in 事项, so closing its tab must not clear the
+    // detail selection.
+    expect(within(frame).getByTestId("desktop-panel-tab-detail")).toHaveTextContent(A11Y);
+    expect(within(frame).queryByTestId("dock-detail-empty")).toBeNull();
   });
 
   it("starts with the detail dock closed and reopens it without a tool", async () => {
