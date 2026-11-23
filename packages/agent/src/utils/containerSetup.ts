@@ -340,6 +340,7 @@ export function setupAgentContainer(
   const subagentManager = new SubagentManager(container, {
     workdir,
     callbacks: {
+      onSubagentSpawned: callbacks.onSubagentSpawned,
       onSubagentUserMessageAdded: callbacks.onSubagentUserMessageAdded,
       onSubagentAssistantMessageAdded:
         callbacks.onSubagentAssistantMessageAdded,

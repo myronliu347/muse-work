@@ -202,6 +202,16 @@ export function routeStream(message: any, ctx: MessageRouteContext): boolean {
           payload: { error: message.error },
         });
         break;
+      case "bindSubagentToTool":
+        if (!forThisPane(message)) break;
+        dispatch({
+          type: "BIND_SUBAGENT_TO_TOOL",
+          payload: {
+            toolId: message.toolId,
+            subagentId: message.subagentId,
+          },
+        });
+        break;
       case "appendSubagentMessage":
         if (!forThisPane(message)) break;
         dispatch({

@@ -47,6 +47,7 @@ describe("SubagentManager - Callback Integration", () => {
   beforeEach(async () => {
     // Set up subagent callbacks with spies
     callbacks = {
+      onSubagentSpawned: vi.fn(),
       onSubagentUserMessageAdded: vi.fn(),
       onSubagentAssistantMessageAdded: vi.fn(),
       onSubagentAssistantContentUpdated: vi.fn(),
@@ -127,6 +128,43 @@ describe("SubagentManager - Callback Integration", () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe("Spawn callback", () => {
+    const spawnConfig: SubagentConfiguration = {
+      name: "test-subagent",
+      description: "A test subagent",
+      systemPrompt: "You are a test subagent",
+      tools: [],
+      model: "inherit",
+      filePath: "/tmp/test-subagent.md",
+      scope: "project",
+      priority: 1,
+    };
+
+    it("reports the spawned subagent with its originating tool call id", async () => {
+      const instance = await subagentManager.createInstance(spawnConfig, {
+        description: "pair me",
+        prompt: "do work",
+        subagent_type: "test-subagent",
+        toolCallId: "call-1",
+      });
+
+      expect(callbacks.onSubagentSpawned).toHaveBeenCalledWith(
+        instance.subagentId,
+        "call-1",
+      );
+    });
+
+    it("does not report a spawn without a tool call id", async () => {
+      await subagentManager.createInstance(spawnConfig, {
+        description: "no tool",
+        prompt: "do work",
+        subagent_type: "test-subagent",
+      });
+
+      expect(callbacks.onSubagentSpawned).not.toHaveBeenCalled();
+    });
   });
 
   describe("T010: User Message Forwarding Integration", () => {

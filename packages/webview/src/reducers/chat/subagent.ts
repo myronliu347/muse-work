@@ -4,15 +4,20 @@ import {
   applyStreamingContent,
   applyToolBlock,
   bindAgentTools,
+  bindSubagentToTool,
   enqueueSubagent,
   ensureMessage,
   patchTranscript,
 } from "./shared";
 
-type Action = Extract<ChatAction, { type: "APPEND_SUBAGENT_MESSAGE" | "SET_SUBAGENT_MESSAGES" | "UPDATE_SUBAGENT_STREAMING_CONTENT" | "UPDATE_SUBAGENT_TOOL_BLOCK" }>;
+type Action = Extract<ChatAction, { type: "APPEND_SUBAGENT_MESSAGE" | "SET_SUBAGENT_MESSAGES" | "BIND_SUBAGENT_TO_TOOL" | "UPDATE_SUBAGENT_STREAMING_CONTENT" | "UPDATE_SUBAGENT_TOOL_BLOCK" }>;
 
 export function reduceSubagent(state: ChatState, action: Action): ChatState {
   switch (action.type) {
+    case "BIND_SUBAGENT_TO_TOOL": {
+      const { toolId, subagentId } = action.payload;
+      return bindSubagentToTool(state, toolId, subagentId);
+    }
     case "APPEND_SUBAGENT_MESSAGE": {
       const { subagentId, messageId } = action.payload;
       return bindAgentTools(

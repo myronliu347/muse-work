@@ -301,6 +301,7 @@ describe("sessions + websocket streaming", () => {
           opts.callbacks?.onCompactionStateChange?.(true);
           opts.callbacks?.onCompactBlockAdded?.("summary");
           opts.callbacks?.onCompactionStateChange?.(false);
+          opts.callbacks?.onSubagentSpawned?.("sa1", "call-1");
           opts.callbacks?.onSubagentAssistantMessageAdded?.("sa1", "sm1");
           opts.callbacks?.onSubagentAssistantContentUpdated?.({
             subagentId: "sa1",
@@ -344,6 +345,7 @@ describe("sessions + websocket streaming", () => {
         e.type === "compaction:state" ||
         e.type === "messages:append" ||
         e.type === "messages:replace" ||
+        e.type === "subagent:spawned" ||
         e.type === "subagent:assistant:message" ||
         e.type === "subagent:message:delta" ||
         e.type === "subagent:tool:update",
@@ -362,6 +364,12 @@ describe("sessions + websocket streaming", () => {
         { type: "compaction:state", isCompacting: true, sessionId: session.id },
         { type: "messages:append", messages: compacted, sessionId: session.id },
         { type: "compaction:state", isCompacting: false, sessionId: session.id },
+        {
+          type: "subagent:spawned",
+          subagentId: "sa1",
+          toolId: "call-1",
+          sessionId: session.id,
+        },
         {
           type: "subagent:assistant:message",
           subagentId: "sa1",
@@ -538,6 +546,127 @@ describe("sessions + websocket streaming", () => {
         { timeout: 3000 },
       )
       .toEqual(nested);
+  });
+
+  it("pairs parallel Agent transcripts by the reported spawn, not arrival order", async () => {
+    const transcriptA = [
+      {
+        id: "sa-1",
+        role: "assistant",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        blocks: [{ type: "text", content: "from agent a" }],
+      },
+    ];
+    const transcriptB = [
+      {
+        id: "sb-1",
+        role: "assistant",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        blocks: [{ type: "text", content: "from agent b" }],
+      },
+    ];
+    const parent = [
+      {
+        id: "m1",
+        role: "assistant",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        blocks: [
+          {
+            type: "tool",
+            id: "call-1",
+            name: "Agent",
+            stage: "end",
+            compactParams: "Explore: a",
+          },
+          {
+            type: "tool",
+            id: "call-2",
+            name: "Agent",
+            stage: "end",
+            compactParams: "Explore: b",
+          },
+        ],
+      },
+    ];
+    const A = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+    const B = "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff";
+
+    const createAgent: CreateAgent = async (opts) => {
+      const agent: SessionAgent = {
+        sendMessage: async () => {
+          opts.callbacks?.onToolBlockUpdated?.({
+            messageId: "m1",
+            id: "call-1",
+            name: "Agent",
+            stage: "running",
+          });
+          opts.callbacks?.onToolBlockUpdated?.({
+            messageId: "m1",
+            id: "call-2",
+            name: "Agent",
+            stage: "running",
+          });
+          opts.callbacks?.onSubagentSpawned?.(A, "call-1");
+          opts.callbacks?.onSubagentSpawned?.(B, "call-2");
+          // Both subagents report messages in the reverse order of their tool
+          // calls — arrival order alone would swap the two popups.
+          opts.callbacks?.onSubagentMessagesChange?.(B, transcriptB);
+          opts.callbacks?.onSubagentMessagesChange?.(A, transcriptA);
+          opts.callbacks?.onAssistantContentUpdated?.({
+            messageId: "m1",
+            chunk: "",
+            stage: "end",
+          });
+        },
+        dispose: async () => {},
+        getMessages: () => parent,
+      };
+      return agent;
+    };
+
+    const app = await listenSessionsApp({
+      createAgent,
+      loadSubagentMessages: async (subagentId) => {
+        if (subagentId === A) return transcriptA;
+        if (subagentId === B) return transcriptB;
+        return null;
+      },
+    });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "run both" }),
+    });
+
+    await expect
+      .poll(
+        async () => {
+          const loaded = await fetch(
+            `${app.baseUrl}/sessions/${session.id}/messages`,
+          );
+          const body = (await loaded.json()) as {
+            messages: Array<{
+              blocks: Array<{ id?: string; nestedMessages?: unknown }>;
+            }>;
+          };
+          return [
+            body.messages[0]?.blocks[0]?.nestedMessages,
+            body.messages[0]?.blocks[1]?.nestedMessages,
+          ];
+        },
+        { timeout: 3000 },
+      )
+      .toEqual([transcriptA, transcriptB]);
   });
 
   it("canUseTool hangs until POST permission allow resolves", async () => {

@@ -330,4 +330,162 @@ describe("subagent transcript", () => {
     });
     expect(next.subagentMessages["call-1"]).toEqual(nested);
   });
+
+  const withAgentTool = (toolId: string, state = initialState) => {
+    const withMessage = chatReducer(state, {
+      type: "APPEND_MESSAGE",
+      payload: {
+        id: "main-1",
+        role: "assistant",
+        timestamp: "0",
+        blocks: [],
+      },
+    });
+    return chatReducer(withMessage, {
+      type: "UPDATE_TOOL_BLOCK",
+      payload: {
+        messageId: "main-1",
+        id: toolId,
+        name: "Agent",
+        stage: "running",
+      },
+    });
+  };
+
+  const textOf = (messages: Message[]) =>
+    messages
+      .flatMap((message) => message.blocks)
+      .filter((block) => block.type === "text")
+      .map((block) => (block.type === "text" ? block.content : ""))
+      .join("\n")
+      .trim();
+
+  it("binds an Agent tool call to the subagent the host reports", () => {
+    const withTool = withAgentTool("call-1");
+    expect(withTool.pendingAgentToolIds).toEqual(["call-1"]);
+
+    const bound = chatReducer(withTool, {
+      type: "BIND_SUBAGENT_TO_TOOL",
+      payload: { toolId: "call-1", subagentId: "uuid-a" },
+    });
+
+    expect(bound.agentToolSubagentIds["call-1"]).toBe("uuid-a");
+    expect(bound.pendingAgentToolIds).toEqual([]);
+    expect(bound.unboundSubagentIds).toEqual([]);
+  });
+
+  it("binds before the Agent tool block reaches the transcript", () => {
+    const bound = chatReducer(initialState, {
+      type: "BIND_SUBAGENT_TO_TOOL",
+      payload: { toolId: "call-1", subagentId: "uuid-a" },
+    });
+    const withTool = withAgentTool("call-1", bound);
+
+    expect(withTool.agentToolSubagentIds["call-1"]).toBe("uuid-a");
+    expect(withTool.pendingAgentToolIds).toEqual([]);
+  });
+
+  it("keeps two concurrent Agent transcripts from crossing", () => {
+    // Two parallel Agent calls start together; their subagents finish in the
+    // opposite order, which is exactly when arrival-order pairing used to swap
+    // the popups.
+    let state = withAgentTool("call-1");
+    state = withAgentTool("call-2", state);
+    state = chatReducer(state, {
+      type: "BIND_SUBAGENT_TO_TOOL",
+      payload: { toolId: "call-1", subagentId: "uuid-a" },
+    });
+    state = chatReducer(state, {
+      type: "BIND_SUBAGENT_TO_TOOL",
+      payload: { toolId: "call-2", subagentId: "uuid-b" },
+    });
+
+    state = chatReducer(state, {
+      type: "APPEND_SUBAGENT_MESSAGE",
+      payload: { subagentId: "uuid-b", messageId: "msg-b" },
+    });
+    state = chatReducer(state, {
+      type: "UPDATE_SUBAGENT_STREAMING_CONTENT",
+      payload: {
+        subagentId: "uuid-b",
+        messageId: "msg-b",
+        chunk: "from b",
+        stage: "end",
+      },
+    });
+    state = chatReducer(state, {
+      type: "APPEND_SUBAGENT_MESSAGE",
+      payload: { subagentId: "uuid-a", messageId: "msg-a" },
+    });
+    state = chatReducer(state, {
+      type: "UPDATE_SUBAGENT_STREAMING_CONTENT",
+      payload: {
+        subagentId: "uuid-a",
+        messageId: "msg-a",
+        chunk: "from a",
+        stage: "end",
+      },
+    });
+
+    const resolve = (toolId: string) =>
+      resolveSubagentMessages(
+        state.subagentMessages,
+        state.agentToolSubagentIds,
+        toolId,
+      );
+    expect(textOf(resolve("call-1"))).toBe("from a");
+    expect(textOf(resolve("call-2"))).toBe("from b");
+  });
+
+  it("does not borrow a sibling transcript while a bound Agent has no messages", () => {
+    const sibling: Message[] = [
+      {
+        id: "msg-a",
+        role: "assistant",
+        timestamp: "0",
+        blocks: [{ type: "text", content: "from a" }],
+      },
+    ];
+    const subagentMessages = { "uuid-a": sibling };
+    const binds = { "call-1": "uuid-a", "call-2": "uuid-b" };
+
+    // call-2's subagent has not produced anything yet: showing call-1's
+    // transcript here is the popup "串" bug.
+    expect(
+      resolveSubagentMessages(subagentMessages, binds, "call-2"),
+    ).toEqual([]);
+    expect(
+      textOf(
+        resolveSubagentMessages(subagentMessages, binds, "call-2", {
+          fallbackText: "result b",
+        }),
+      ),
+    ).toBe("result b");
+  });
+
+  it("corrects an arrival-order guess when the explicit pairing arrives", () => {
+    // Worst-case ordering: messages land before the spawn events, so the
+    // fallback queue pairs them the wrong way round.
+    let state = withAgentTool("call-1");
+    state = withAgentTool("call-2", state);
+    state = chatReducer(state, {
+      type: "APPEND_SUBAGENT_MESSAGE",
+      payload: { subagentId: "uuid-b", messageId: "msg-b" },
+    });
+    expect(state.agentToolSubagentIds["call-1"]).toBe("uuid-b");
+
+    state = chatReducer(state, {
+      type: "BIND_SUBAGENT_TO_TOOL",
+      payload: { toolId: "call-1", subagentId: "uuid-a" },
+    });
+    state = chatReducer(state, {
+      type: "BIND_SUBAGENT_TO_TOOL",
+      payload: { toolId: "call-2", subagentId: "uuid-b" },
+    });
+
+    expect(state.agentToolSubagentIds).toMatchObject({
+      "call-1": "uuid-a",
+      "call-2": "uuid-b",
+    });
+  });
 });

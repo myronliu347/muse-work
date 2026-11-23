@@ -1051,6 +1051,10 @@ export type ChatAction =
         payload: { subagentId: string; messages: Message[] };
       }
     | {
+        type: "BIND_SUBAGENT_TO_TOOL";
+        payload: { toolId: string; subagentId: string };
+      }
+    | {
         type: "APPEND_SUBAGENT_MESSAGE";
       payload: { subagentId: string; messageId: string };
     }

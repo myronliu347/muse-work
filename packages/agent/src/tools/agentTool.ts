@@ -209,6 +209,9 @@ When using the Agent tool, you must specify a subagent_type parameter to select 
           description,
           prompt,
           subagent_type,
+          // Deterministic Agent tool block ↔ subagent pairing for transcript
+          // popups; parallel Agent calls otherwise get paired by arrival order.
+          toolCallId: context.toolCallId,
         },
         run_in_background,
         () => {

@@ -36,6 +36,15 @@ import { substitutePluginRoot } from "../utils/museEnv.js";
 
 export interface SubagentManagerCallbacks {
   // Granular subagent message callbacks (009-subagent)
+  /**
+   * Triggered as soon as a subagent instance exists, carrying the id of the
+   * tool call that spawned it. This is the only deterministic link between an
+   * Agent tool block and its subagent: the instance UUID is generated here,
+   * while the parent tool block only knows its own tool call id. Consumers must
+   * not infer the pairing from callback arrival order — parallel Agent calls
+   * start concurrently, so their first messages can arrive in any order.
+   */
+  onSubagentSpawned?: (subagentId: string, toolCallId: string) => void;
   /** Triggered when subagent adds user message */
   onSubagentUserMessageAdded?: (
     subagentId: string,
@@ -407,6 +416,8 @@ export class SubagentManager {
       stream?: boolean;
       permissionModeOverride?: PermissionMode;
       maxTurns?: number;
+      /** Id of the Agent tool call that created this instance, when spawned by one. */
+      toolCallId?: string;
     },
     runInBackground?: boolean,
     onUpdate?: () => void,
@@ -581,6 +592,13 @@ export class SubagentManager {
     };
 
     this.instances.set(subagentId, instance);
+
+    // Announce the spawn together with its originating tool call before any
+    // message callback fires, so parents can pair Agent tool blocks with the
+    // right subagent even when several Agent calls run concurrently.
+    if (parameters.toolCallId) {
+      this.callbacks?.onSubagentSpawned?.(subagentId, parameters.toolCallId);
+    }
 
     return instance;
   }

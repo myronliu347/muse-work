@@ -185,6 +185,40 @@ export function enqueueSubagent(state: ChatState, subagentId: string): ChatState
   };
 }
 
+/**
+ * Bind an Agent tool block to the subagent it actually spawned. The host
+ * forwards this pairing from the SDK, so parallel Agent calls cannot be
+ * cross-wired the way the arrival-order queue in `bindAgentTools` would.
+ * The transcript alias under `toolId` is refreshed so a popup opened from the
+ * tool row (which only knows its tool id) resolves the right transcript.
+ */
+export function bindSubagentToTool(
+  state: ChatState,
+  toolId: string,
+  subagentId: string,
+): ChatState {
+  if (!toolId || !subagentId) return state;
+  const subagentMessages = { ...state.subagentMessages };
+  const transcript = subagentMessages[subagentId];
+  if (transcript) {
+    subagentMessages[toolId] = transcript;
+  }
+  return {
+    ...state,
+    subagentMessages,
+    agentToolSubagentIds: {
+      ...state.agentToolSubagentIds,
+      [toolId]: subagentId,
+    },
+    pendingAgentToolIds: state.pendingAgentToolIds.filter(
+      (id) => id !== toolId,
+    ),
+    unboundSubagentIds: state.unboundSubagentIds.filter(
+      (id) => id !== subagentId,
+    ),
+  };
+}
+
 export function bindAgentTools(state: ChatState): ChatState {
   const pending = [...state.pendingAgentToolIds];
   const unbound = [...state.unboundSubagentIds];

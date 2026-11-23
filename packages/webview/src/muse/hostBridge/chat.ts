@@ -240,6 +240,15 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
 
     // Subagent streams belong inside the parent Agent tool block. Forward them
     // into the nested transcript store — never as top-level chat messages.
+    if (event.type === "subagent:spawned") {
+      postToWebview({
+        command: "bindSubagentToTool",
+        toolId: event.toolId,
+        subagentId: event.subagentId,
+      });
+      return;
+    }
+
     if (event.type === "subagent:assistant:message") {
       postToWebview({
         command: "appendSubagentMessage",

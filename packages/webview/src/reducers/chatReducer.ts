@@ -103,6 +103,7 @@ function reduceChat(state: ChatState, action: ChatAction): ChatState {
       return reduceDialogs(state, action);
     case "APPEND_SUBAGENT_MESSAGE":
     case "SET_SUBAGENT_MESSAGES":
+    case "BIND_SUBAGENT_TO_TOOL":
     case "UPDATE_SUBAGENT_STREAMING_CONTENT":
     case "UPDATE_SUBAGENT_TOOL_BLOCK":
       return reduceSubagent(state, action);

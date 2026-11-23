@@ -819,6 +819,43 @@ describe("Agent Tool Background Execution", () => {
     expect(result.content).toContain("429 Too Many Requests");
   });
 
+  it("passes the originating tool call id to createInstance", async () => {
+    const mockInstance = {
+      subagentId: "gp-test-id",
+      usedTools: [],
+      messageManager: {
+        getMessages: vi.fn(() => []),
+        getLatestTotalTokens: vi.fn(() => 0),
+      },
+    };
+    vi.mocked(mockSubagentManager.findSubagent).mockResolvedValue(gpConfig);
+    vi.mocked(mockSubagentManager.createInstance).mockResolvedValue(
+      mockInstance as unknown as SubagentInstance,
+    );
+    vi.mocked(mockSubagentManager.executeAgent).mockResolvedValue("task_1");
+
+    const context: ToolContext = {
+      ...mockToolContext,
+      toolCallId: "call-xyz",
+    };
+    await agentTool.execute(
+      {
+        description: "Pairing",
+        prompt: "Do it",
+        subagent_type: "general-purpose",
+        run_in_background: true,
+      },
+      context,
+    );
+
+    expect(mockSubagentManager.createInstance).toHaveBeenCalledWith(
+      gpConfig,
+      expect.objectContaining({ toolCallId: "call-xyz" }),
+      true,
+      expect.any(Function),
+    );
+  });
+
   it("should format compact params", () => {
     const params = {
       subagent_type: "Explore",

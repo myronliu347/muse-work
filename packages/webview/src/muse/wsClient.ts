@@ -46,6 +46,12 @@ export type MuseWsEventPayload =
       messages: Array<{ messageId: string; snapshots: unknown[] }>;
     }
   | {
+      type: "subagent:spawned";
+      subagentId: string;
+      /** Agent tool block id that spawned this subagent. */
+      toolId: string;
+    }
+  | {
       type: "subagent:assistant:message";
       subagentId: string;
       messageId: string;

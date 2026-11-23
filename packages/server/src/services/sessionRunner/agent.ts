@@ -214,6 +214,33 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     agentToolBinds.set(sessionId, binds);
   }
 
+  /**
+   * Bind an Agent tool call to the subagent it actually spawned. The SDK
+   * reports both ids from the Agent tool execution, so this is exact — unlike
+   * the arrival-order fallback below, which cannot tell two parallel Agent
+   * calls apart.
+   */
+  function bindSubagentToTool(
+    sessionId: string,
+    toolId: string,
+    subagentId: string,
+  ): void {
+    if (!toolId || !subagentId) return;
+    const binds = agentToolBinds.get(sessionId) ?? new Map<string, string>();
+    binds.set(toolId, subagentId);
+    agentToolBinds.set(sessionId, binds);
+    pendingAgentToolIds.set(
+      sessionId,
+      (pendingAgentToolIds.get(sessionId) ?? []).filter((id) => id !== toolId),
+    );
+    unboundSubagentIds.set(
+      sessionId,
+      (unboundSubagentIds.get(sessionId) ?? []).filter(
+        (id) => id !== subagentId,
+      ),
+    );
+  }
+
   function rememberAgentTool(
     sessionId: string,
     params: Record<string, unknown>,
@@ -655,6 +682,17 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
           hub.broadcast(sessionId, {
             type: "compaction:state",
             isCompacting: false,
+          });
+        },
+        onSubagentSpawned: (subagentId, toolId) => {
+          if (disposed.has(sessionId)) return;
+          // Exact pairing first; the arrival-order binder in rememberSubagentId
+          // stays only as a fallback for spawns without a tool call id.
+          bindSubagentToTool(sessionId, toolId, subagentId);
+          hub.broadcast(sessionId, {
+            type: "subagent:spawned",
+            subagentId,
+            toolId,
           });
         },
         onSubagentAssistantMessageAdded: (subagentId, messageId) => {

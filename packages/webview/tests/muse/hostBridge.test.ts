@@ -2433,6 +2433,12 @@ describe("createHostBridge desktop workdir bootstrap", () => {
 
     messages.length = 0;
     handler!({
+      type: "subagent:spawned",
+      sessionId: "sess-active",
+      subagentId: "sa1",
+      toolId: "call-1",
+    });
+    handler!({
       type: "subagent:assistant:message",
       sessionId: "sess-active",
       subagentId: "sa1",
@@ -2481,6 +2487,11 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(messages).not.toContainEqual(
       expect.objectContaining({ command: "updateToolBlock" }),
     );
+    expect(messages).toContainEqual({
+      command: "bindSubagentToTool",
+      toolId: "call-1",
+      subagentId: "sa1",
+    });
     expect(messages).toContainEqual({
       command: "appendSubagentMessage",
       subagentId: "sa1",

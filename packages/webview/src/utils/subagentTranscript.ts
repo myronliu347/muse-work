@@ -106,6 +106,12 @@ export function resolveSubagentMessages(
   },
 ): Message[] {
   const mappedId = (toolId && agentToolSubagentIds[toolId]) || toolId;
+  // A tool id with an explicit (host-reported) subagent pairing must never
+  // borrow a sibling transcript: when two Agent calls run in parallel, the
+  // slower subagent has no messages yet and the only transcript in the store
+  // belongs to the other one. That is exactly the cross-wiring the old
+  // "single transcript" fallback used to leak into the popup.
+  const explicitlyBound = Boolean(toolId && agentToolSubagentIds[toolId]);
   const candidates = uniqueTranscripts([
     mappedId ? subagentMessages[mappedId] : undefined,
     toolId && toolId !== mappedId ? subagentMessages[toolId] : undefined,
@@ -114,22 +120,21 @@ export function resolveSubagentMessages(
   let resolved: Message[] = [];
   if (candidates.length > 0) {
     resolved = pickRichest(candidates);
-  } else {
+  } else if (!explicitlyBound) {
     const unique = uniqueTranscripts(Object.values(subagentMessages));
-    if (unique.length === 1) {
-      resolved = unique[0];
-    } else {
-      const trimmed = options?.fallbackText?.trim();
-      if (trimmed) {
-        resolved = [
-          {
-            id: "agent-fallback",
-            role: "assistant",
-            timestamp: new Date().toISOString(),
-            blocks: [{ type: "text", content: trimmed }],
-          },
-        ];
-      }
+    if (unique.length === 1) resolved = unique[0];
+  }
+  if (resolved.length === 0) {
+    const trimmed = options?.fallbackText?.trim();
+    if (trimmed) {
+      resolved = [
+        {
+          id: "agent-fallback",
+          role: "assistant",
+          timestamp: new Date().toISOString(),
+          blocks: [{ type: "text", content: trimmed }],
+        },
+      ];
     }
   }
   return withLeadingPrompt(resolved, options?.prompt);
