@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>灵光 · 事项进展原型</title>
+<title>小盏 · 事项进展原型</title>
 <style>
   :root {
     color-scheme: dark;
@@ -1032,7 +1032,7 @@
 <div class="app">
   <aside class="rail" aria-label="主导航">
     <div class="rail-logo">✦</div>
-    <button class="rail-btn active" title="灵光" onclick="toast('原型：当前是灵光主页')">
+    <button class="rail-btn active" title="小盏" onclick="toast('原型：当前是小盏主页')">
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 3.2l1.9 5.4 5.4 1.9-5.4 1.9L12 17.8l-1.9-5.4-5.4-1.9 5.4-1.9L12 3.2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M18.6 15.7l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7.7-2Z" fill="currentColor" opacity=".55"/></svg>
     </button>
     <button class="rail-btn" title="会话" onclick="toast('原型：会话列表不在本次演示里')">
@@ -1308,7 +1308,7 @@
     mount.innerHTML = `
       <button class="tab ${state.view === "bot" ? "active" : ""}" onclick="focusTab('bot')">
         ${state.botUnread && state.view !== "bot" ? '<span class="tab-dot"></span>' : ""}
-        <span class="tab-glyph">✦</span><span class="tab-label">灵光</span>
+        <span class="tab-glyph">✦</span><span class="tab-label">小盏</span>
       </button>
       ${open}
     `;

@@ -39,7 +39,7 @@ export interface BotTabsProps {
   presence?: Record<string, IssuePresence | null>;
   /** Three columns already show Muse Bot on the left, so its tab is not a destination. */
   lockBotTab?: boolean;
-  /** Issue 进展有未读；和 assistant notice 一起点亮「灵光」标签。 */
+  /** Issue 进展有未读；和 assistant notice 一起点亮「小盏」标签。 */
   progressUnread?: boolean;
   /** Which tabs this bar owns. Three columns give Muse Bot and issues their own bars. */
   scope?: "all" | "bot" | "issues";
@@ -228,7 +228,7 @@ export function BotTabs({
   return (
     <OverflowScroller
       className={`bot-tabs${singleTab ? " bot-tabs--single" : ""}`}
-      aria-label="灵光"
+      aria-label="小盏"
       ref={scrollerRef}
     >
       {tabs.map((tab) => {
@@ -250,7 +250,7 @@ export function BotTabs({
                   <IssuePresenceMark presence="unread" />
                 </span>
               ) : null}
-              灵光
+              小盏
             </button>
           );
         }

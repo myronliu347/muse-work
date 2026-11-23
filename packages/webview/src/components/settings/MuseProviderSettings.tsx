@@ -583,7 +583,7 @@ export const MuseProviderSettings = forwardRef<
       <Field
         label="Tavily API Key"
         htmlFor="muse-tavily-api-key"
-        hint="灵光用它搜索网页。留空则保持不变。"
+        hint="小盏用它搜索网页。留空则保持不变。"
       >
         <TextField.Root
           id="muse-tavily-api-key"

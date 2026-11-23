@@ -37,7 +37,7 @@ function AssistantWelcome() {
   return (
     <div className="assistant-welcome">
       <h1 className="welcome-headline" data-testid="welcome-headline">
-        灵光一现 迎刃而解
+        今天想让我帮你办点什么？
       </h1>
     </div>
   );

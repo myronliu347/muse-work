@@ -31,7 +31,7 @@ export const ASSISTANT_TOOLS = [
   "WebSearch",
 ] as const;
 
-export const ASSISTANT_TITLE = "灵光";
+export const ASSISTANT_TITLE = "小盏";
 
 export function ensureAssistantSession(
   store: SessionStore,

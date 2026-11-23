@@ -155,7 +155,7 @@ function RailIcon({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** 灵光：按产品 logo 描的坐姿猫，面前一台电脑。黑耳朵、尾巴尖和眼睛留空。 */
+/** 小盏：按产品 logo 描的坐姿猫，面前一台电脑。黑耳朵、尾巴尖和眼睛留空。 */
 function MuseBotIcon() {
   const cat =
     "M 17.71 1.57 Q 18.20 2.17 18.20 4.48 Q 18.20 6.79 18.88 8.20 Q 19.57 9.62 19.26 9.91 Q 18.95 10.21 19.19 10.58 Q 19.44 10.96 18.76 11.78 Q 18.08 12.60 19.26 14.61 Q 20.43 16.62 20.68 18.18 Q 20.93 19.75 21.30 19.08 Q 21.67 18.41 21.30 15.58 Q 20.93 12.74 21.43 12.07 Q 21.92 11.40 22.48 11.63 Q 23.04 11.85 22.60 13.04 Q 22.17 14.23 22.48 16.84 Q 22.79 19.45 22.23 20.34 Q 21.67 21.24 20.56 21.91 Q 19.44 22.58 17.64 22.88 Q 15.84 23.17 14.60 22.43 Q 13.36 21.68 14.17 21.46 Q 14.98 21.24 15.10 20.72 Q 15.22 20.19 13.43 20.12 Q 11.63 20.05 11.75 19.00 Q 11.88 17.96 10.88 18.63 Q 9.89 19.30 10.08 20.79 Q 10.26 22.28 9.15 17.81 Q 8.03 13.34 4.62 12.74 Q 1.21 12.15 4.74 12.67 Q 8.28 13.19 8.96 15.05 Q 9.64 16.92 10.33 15.58 Q 11.01 14.23 10.02 13.64 Q 9.02 13.04 8.34 12.07 Q 7.66 11.11 7.54 10.51 Q 7.41 9.91 7.91 8.50 Q 8.40 7.08 8.16 4.40 Q 7.91 1.72 8.59 1.64 Q 9.27 1.57 10.39 2.54 Q 11.50 3.51 13.12 3.43 Q 14.73 3.36 15.91 2.24 Q 17.08 1.12 17.15 1.05 Q 17.21 0.97 17.71 1.57 Z";
@@ -289,12 +289,12 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
     >
       <div className="desktop-sidebar-titlebar-drag" aria-hidden="true" />
       <nav className="desktop-rail" aria-label="主导航">
-        <Tooltip text="灵光" position="right" wrap={false}>
+        <Tooltip text="小盏" position="right" wrap={false}>
           <button
             type="button"
             className={`desktop-rail-btn${activeMenu === "assistant" ? " active" : ""}`}
             onClick={() => onOpenAssistant?.()}
-            aria-label="灵光"
+            aria-label="小盏"
             data-testid="desktop-assistant-menu"
           >
             <MuseBotIcon />

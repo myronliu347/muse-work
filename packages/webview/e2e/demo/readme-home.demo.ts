@@ -38,7 +38,7 @@ test("capture Muse Bot home", async ({ webviewPage }) => {
     /active/,
   );
   await expect(webviewPage.getByTestId("welcome-headline")).toContainText(
-    "灵光一现 迎刃而解",
+    "今天想让我帮你办点什么？",
   );
   await expect(webviewPage.getByTestId("new-session-page")).toHaveCount(0);
   await expect(webviewPage.locator(".assistant-error")).toHaveCount(0);
@@ -52,14 +52,24 @@ test("capture Muse Bot home", async ({ webviewPage }) => {
     );
   });
   await expect(webviewPage.locator("html")).toHaveAttribute("data-theme", "dark");
+  // Newer Chromium serializes composite colors as `color(srgb r g b)` with
+  // 0..1 channels, so accept both forms; dark means all channels under ~80.
   await webviewPage.waitForFunction(() => {
     const layout = document.querySelector(".desktop-layout");
     if (!layout) return false;
     const bg = getComputedStyle(layout).backgroundColor;
-    const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-    if (!match) return false;
-    return Number(match[1]) < 80 && Number(match[2]) < 80 && Number(match[3]) < 80;
+    const rgb = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (rgb) {
+      return Number(rgb[1]) < 80 && Number(rgb[2]) < 80 && Number(rgb[3]) < 80;
+    }
+    const srgb = bg.match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
+    if (!srgb) return false;
+    return [1, 2, 3].every((i) => Number(srgb[i]) < 0.32);
   });
+
+  // Leave the composer unfocused so the screenshot has no focus ring.
+  await webviewPage.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await webviewPage.waitForTimeout(300);
 
   await screenshotWebp(
     webviewPage,

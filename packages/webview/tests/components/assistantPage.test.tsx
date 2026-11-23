@@ -65,7 +65,7 @@ describe("AssistantPage", () => {
         .mockResolvedValue({ messages: [], hasMore: false }),
       getAssistantSession: vi.fn().mockResolvedValue({
         sessionId: "agent-1",
-        title: "灵光",
+        title: "小盏",
         workdir: "/tmp/proj",
         working: false,
       }),
@@ -144,7 +144,7 @@ describe("AssistantPage", () => {
     expect(await screen.findByText("你好")).toBeTruthy();
     expect(screen.getByText("你好").closest(".assistant-bubble-user")).toBeTruthy();
     expect(screen.getByText("在").closest(".assistant-bubble-assistant")).toBeTruthy();
-    expect(screen.getAllByText("灵光")).toHaveLength(1);
+    expect(screen.getAllByText("小盏")).toHaveLength(1);
     expect(document.querySelectorAll(".assistant-bubble-time").length).toBe(2);
     const input = screen.getByTestId("message-input");
     input.textContent = "继续";
@@ -295,7 +295,7 @@ describe("AssistantPage", () => {
       }),
     };
     render(<AssistantPage api={api} />);
-    expect(await screen.findByText("灵光")).toBeTruthy();
+    expect(await screen.findByText("小盏")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "轨迹" }));
     expect(await screen.findByText("工具调用了")).toBeTruthy();
     expect(api.getMessages).toHaveBeenCalledWith("asst");
@@ -519,7 +519,7 @@ describe("AssistantPage", () => {
       sendAssistantMessage: vi.fn(),
       getAssistantSession: vi.fn().mockResolvedValue({
         sessionId: "asst",
-        title: "灵光",
+        title: "小盏",
         workdir: "/tmp/assistant-chat",
       }),
       getMessages: vi.fn().mockResolvedValue({ messages: [] }),

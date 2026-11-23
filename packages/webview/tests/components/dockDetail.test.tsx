@@ -128,7 +128,7 @@ function stubAssistant(fetched: string[]) {
       if (url.includes("/assistant/session")) {
         return jsonResponse({
           sessionId: "assistant",
-          title: "灵光",
+          title: "小盏",
           workdir: "/tmp/proj",
           working: false,
         });

@@ -10,7 +10,7 @@ export type AssistantTranscriptSnapshot = {
 const MAX_AGE_MS = 30 * 60 * 1000;
 
 /**
- * Last loaded 灵光 transcript. The assistant page unmounts when the user moves
+ * Last loaded 小盏 transcript. The assistant page unmounts when the user moves
  * to 会话 / 设置, so without this every return remounts with an empty list and
  * refetches `/assistant/messages` — the column paints empty (or the welcome)
  * for a beat before the conversation comes back.

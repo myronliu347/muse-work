@@ -64,7 +64,7 @@ assistantRoutes.post("/assistant/messages", async (c) => {
   return c.json(line);
 });
 
-/** 清空灵光可见记录，并清掉助手会话里的模型上下文。正在处理时忽略。 */
+/** 清空小盏可见记录，并清掉助手会话里的模型上下文。正在处理时忽略。 */
 assistantRoutes.post("/assistant/clear", async (c) => {
   const ctx = c.get("ctx");
   if (ctx.assistantRuntime.working()) {

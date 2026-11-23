@@ -53,7 +53,7 @@ function stubAssistant(queue: unknown[]) {
       if (url.includes("/assistant/session")) {
         return jsonResponse({
           sessionId: "assistant",
-          title: "灵光",
+          title: "小盏",
           workdir: "/tmp/proj",
           working: false,
         });
@@ -352,9 +352,9 @@ describe("ChatApp pending and issue lists", () => {
       "aria-current",
       "true",
     );
-    expect(within(frame).getAllByRole("button", { name: "灵光" })).toHaveLength(1);
+    expect(within(frame).getAllByRole("button", { name: "小盏" })).toHaveLength(1);
     expect(frame.querySelectorAll(".bot-tab")).toHaveLength(1);
-    expect(within(frame).getByRole("button", { name: "灵光" }).className).toContain("active");
+    expect(within(frame).getByRole("button", { name: "小盏" }).className).toContain("active");
     await user.click(within(frame).getByTestId("panel-toggle-btn"));
     expect(screen.getByTestId("desktop-panel-tab-detail")).toBeInTheDocument();
 
@@ -687,7 +687,7 @@ describe("ChatApp pending and issue lists", () => {
       expect(frame.querySelector('[data-bot-tab="a11y"]')).toBeNull();
     });
     expect(within(frame).getByTestId("desktop-panel-tab-detail")).not.toHaveTextContent(A11Y);
-    expect(within(frame).getByRole("button", { name: "灵光" })).toBeInTheDocument();
+    expect(within(frame).getByRole("button", { name: "小盏" })).toBeInTheDocument();
   });
 
   it("starts with the detail dock closed and reopens it without a tool", async () => {

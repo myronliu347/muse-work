@@ -1351,7 +1351,7 @@ export const AssistantPage: React.FC<{
         viewSwitchHost ? createPortal(viewSwitch, viewSwitchHost) : null
       ) : (
         <header className="assistant-header">
-          <div className="assistant-header-title">灵光</div>
+          <div className="assistant-header-title">小盏</div>
           {viewSwitch}
         </header>
       )}

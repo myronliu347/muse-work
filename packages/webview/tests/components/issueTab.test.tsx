@@ -192,7 +192,7 @@ function stubAssistant(fetched: string[]) {
       if (url.includes("/assistant/session")) {
         return jsonResponse({
           sessionId: "assistant",
-          title: "灵光",
+          title: "小盏",
           workdir: "/tmp/proj",
           working: false,
         });
@@ -375,7 +375,7 @@ describe("issue tab", () => {
     sendExtensionMessage({
       command: "setInitialState",
       messages: [],
-      session: { id: "assistant", title: "灵光" },
+      session: { id: "assistant", title: "小盏" },
       workdir: "/tmp/proj",
     });
 
@@ -677,7 +677,7 @@ describe("issue tab", () => {
     expect(within(frame).queryByRole("button", { name: "待处理" })).toBeNull();
     expect(within(frame).getByRole("button", { name: "事项" })).toBeInTheDocument();
 
-    await user.click(within(frame).getByRole("button", { name: "灵光" }));
+    await user.click(within(frame).getByRole("button", { name: "小盏" }));
     const lists = within(frame).getByTestId("bot-lists");
     await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
     expect(within(frame).queryByTestId("issue-session-title")).toBeNull();
@@ -1198,7 +1198,7 @@ describe("issue tab", () => {
     expect(close).not.toBeNull();
     await user.click(close!);
 
-    expect(botTab(frame, "灵光")).toHaveClass("active");
+    expect(botTab(frame, "小盏")).toHaveClass("active");
     expect(within(frame).getByTestId("desktop-panel-tab-file")).toHaveClass(
       "desktop-panel-tab--active",
     );
@@ -1790,7 +1790,7 @@ describe("issue tab", () => {
       sessionId: "plan-radii",
     });
 
-    await user.click(within(frame).getByRole("button", { name: "灵光" }));
+    await user.click(within(frame).getByRole("button", { name: "小盏" }));
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 30));
     });
@@ -2390,7 +2390,7 @@ describe("issue tab", () => {
       command: "desktopClearUnread",
       sessionIds: ["plan-radii"],
     });
-    expect(within(frame).getAllByRole("button", { name: "灵光" })).toHaveLength(1);
+    expect(within(frame).getAllByRole("button", { name: "小盏" })).toHaveLength(1);
 
     const dock = await ensureAssistantDock(frame, user);
     await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
@@ -2451,7 +2451,7 @@ describe("issue tab", () => {
     expect(screen.getByTestId("assistant-notice")).toHaveTextContent("事项那边有回复");
     expect(within(frame).getByTestId("bot-tab-unread-dot")).toBeTruthy();
 
-    await user.click(within(frame).getByRole("button", { name: "灵光" }));
+    await user.click(within(frame).getByRole("button", { name: "小盏" }));
     expect(screen.queryByTestId("assistant-notice")).toBeNull();
     expect(within(frame).queryByTestId("bot-tab-unread-dot")).toBeNull();
   });

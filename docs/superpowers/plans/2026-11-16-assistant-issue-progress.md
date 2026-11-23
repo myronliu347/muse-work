@@ -874,7 +874,7 @@ onMarkAllProgressRead?: () => void;
 - 点击某一条 → 调用 `selectBotPanel({ kind: "issue", issueId })`，右侧详情打开，同时 `markIssueSeen`。
 - 点“全部已读” → 只把当前这些 Issue 标为已读，不影响之后的新更新。
 - 在 `transcript` 模式也显示？P0 只在 `chat` 模式显示，避免轨迹页干扰。
-- **在 Issue 标签页时 catch-up 条不可见**：`BotTabs` 增加 `progressUnread?: boolean`，`AssistantFrame` 传 `board.botIssues.some((item) => item.unreadCount > 0)`；`botUnread` 与现有 `useAssistantNotice().unread` 取 OR，保证后台来的进展在「灵光」标签上有一个点，不抢当前会话。
+- **在 Issue 标签页时 catch-up 条不可见**：`BotTabs` 增加 `progressUnread?: boolean`，`AssistantFrame` 传 `board.botIssues.some((item) => item.unreadCount > 0)`；`botUnread` 与现有 `useAssistantNotice().unread` 取 OR，保证后台来的进展在「小盏」标签上有一个点，不抢当前会话。
 - `AssistantFrame` 的 `BotTabs` 在 issue scope（三栏/独立 issue 标签栏）也要传同一个 `progressUnread`，否则窄布局下信号会丢。
 
 **测试：** 3 条未读显示 3 个 chip；点一个后只剩 2 个；全部已读后消失。
@@ -1011,7 +1011,7 @@ pnpm type-check
 - 多事件回合里没带 `issueId` 的消息不会误挂到任意 Issue；宁可不写，也不写错。
 - `single` 模式（无清单）的事项，详情展示 bot 的 `assistant` 消息；没有消息时显示“回合结束”标记 + “看这一轮”，不伪造摘要。
 - 三件事同时有进展时，助手页顶部显示 3 个未读 chip；点其中一个只清那一条，其余还在。
-- 在 Issue 会话里产生的新进展，不抢当前正在看的会话；「灵光」标签出现未读点。
+- 在 Issue 会话里产生的新进展，不抢当前正在看的会话；「小盏」标签出现未读点。
 - 同一个 Issue 的后续消息即使没有重复 `@`，也归到该 Issue；超过 30 分钟不再误挂。
 - split 模式下，执行会话每轮结束就有进展，不依赖规划会话转发；规划会话的回合仍会多一条 `turn`，P1 合并。
 - 没有进展文件的 Issue 正常启动，详情退回旧布局；`issues.json` 里不出现 `updates`。
