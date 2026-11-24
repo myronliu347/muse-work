@@ -24,6 +24,36 @@ import {
   buildRepairSystemPrompt,
   buildRepairTask,
 } from "../prompts/memoryDream.js";
+import {
+  buildSkillExtractorPrompt,
+  buildSkillExtractorTask,
+  summarizeSkillDrafts,
+} from "../prompts/skillDream.js";
+import {
+  appendRuleObservations,
+  parseRuleCandidates,
+  readAssistantRules,
+  summarizeRuleDrafts,
+  writeRuleDrafts,
+  type RuleDraft,
+} from "./ruleDream.js";
+import {
+  appendSkillObservations,
+  cursorsPath,
+  exportIncrementalSkillTranscripts,
+  loadSkillCursors,
+  loadSuppressed,
+  suppressedPath,
+  observationsPath,
+  parseSkillCandidates,
+  readAssistantSkills,
+  readOptionalText,
+  readRecentObservations,
+  saveSkillCursors,
+  skillRootForWorkdir,
+  writeSkillDrafts,
+  type SkillDraft,
+} from "./skillDream.js";
 
 /**
  * The dream engine: one analyzer per transcript (serial), then one organizer.
@@ -46,7 +76,7 @@ const MEMORY_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep"];
 const DENIED_TOOLS = ["Bash", "Workflow", "AskUserQuestion", "WebFetch", "WebSearch"];
 
 export interface DreamProgress {
-  phase: "copy" | "export" | "analyze" | "organize" | "repair" | "lint" | "done";
+  phase: "copy" | "export" | "analyze" | "organize" | "repair" | "skills" | "lint" | "done";
   /** 1-based index for the analyze phase. */
   index?: number;
   total?: number;
@@ -64,6 +94,12 @@ export interface DreamRunResult {
   fallbackIndex?: boolean;
   stats?: ReturnType<typeof memoryDirStats>;
   lint?: MemoryLintResult;
+  /** Assistant-only SOP drafts. Never written live by the engine. */
+  skills?: ReturnType<typeof summarizeSkillDrafts>;
+  /** Assistant-only always-on rule drafts. Never written live by the engine. */
+  rules?: ReturnType<typeof summarizeRuleDrafts>;
+  /** Best-effort skill pass failure; the memory draft can still be usable. */
+  skillError?: string;
   error?: string;
 }
 
@@ -91,6 +127,8 @@ export function createMemoryDreamEngine(options: {
   model?: string;
   /** Override for tests / custom homes; defaults to the agent memory resolver. */
   memoryDirFor?: (workdir: string) => string;
+  /** Assistant-target skill extraction. Off by default so older callers are unchanged. */
+  skillPass?: boolean;
 }): DreamEngine {
   const { home, sessions, runner, draftRoot } = options;
   const pending = new Map<string, PendingTurn>();
@@ -142,6 +180,9 @@ export function createMemoryDreamEngine(options: {
     systemPrompt: string;
     task: string;
     model?: string;
+    tools?: string[];
+    disallowedTools?: string[];
+    maxTextChars?: number;
   }): Promise<{ ok: boolean; text: string; error?: string }> {
     if (sessionBudget >= MAX_SESSIONS_PER_RUN) {
       return { ok: false, text: "", error: "dream session budget exhausted" };
@@ -157,15 +198,18 @@ export function createMemoryDreamEngine(options: {
       // The dream must not see or write the live memory: its own copy is the
       // only store it works on.
       autoMemoryEnabled: false,
-      tools: [...MEMORY_TOOLS],
-      disallowedTools: [...DENIED_TOOLS],
+      tools: [...(input.tools ?? MEMORY_TOOLS)],
+      disallowedTools: [...(input.disallowedTools ?? DENIED_TOOLS)],
       model: input.model || options.model || DEFAULT_ACTIVE_MODEL_ID,
     });
     try {
       const turn = await waitForTurn(session.id, input.task);
       let text = "";
       try {
-        text = lastAssistantText(await runner.getMessages(session.id), 4000);
+        text = lastAssistantText(
+          await runner.getMessages(session.id),
+          input.maxTextChars ?? 4000,
+        );
       } catch {
         text = "";
       }
@@ -177,6 +221,143 @@ export function createMemoryDreamEngine(options: {
         /* the session is hidden; failing to clean it up must not fail the dream */
       }
     }
+  }
+
+  async function runLearningPass(input: {
+    target: MemoryDreamTarget;
+    runId: string;
+    since: number;
+    draftDir: string;
+    sessionWorkdir: string;
+    memoryDir: string;
+  }): Promise<{ drafts: SkillDraft[]; ruleDrafts: RuleDraft[]; error?: string }> {
+    if (!options.skillPass || input.target.kind !== "assistant") {
+      return { drafts: [], ruleDrafts: [] };
+    }
+
+    const cursorFile = cursorsPath(home);
+    const cursorBefore = loadSkillCursors(cursorFile);
+    // Discarding a run must not strand the transcript it consumed: keep the
+    // pre-run cursor beside the draft so discardDreamRun can restore it.
+    try {
+      fs.writeFileSync(
+        path.join(input.draftDir, "skill-cursors.before.json"),
+        JSON.stringify(cursorBefore, null, 2),
+        "utf-8",
+      );
+    } catch {
+      // A missing snapshot only means discard cannot rewind the cursor.
+    }
+    const exported = exportIncrementalSkillTranscripts({
+      home,
+      workdir: input.target.workdir,
+      since: input.since,
+      outDir: path.join(input.draftDir, "skill-transcripts"),
+      cursors: cursorBefore,
+    });
+    if (exported.files.length === 0) {
+      return { drafts: [], ruleDrafts: [] };
+    }
+
+    writeProgress(input.draftDir, {
+      phase: "skills",
+      startedAt: Date.now(),
+      detail: `${exported.files.length} 份新会话`,
+    });
+
+    const agentsMd = readOptionalText(
+      path.join(input.target.workdir, "AGENTS.md"),
+      8000,
+    );
+    const existingRules = readAssistantRules(input.target.workdir);
+    const prompt = buildSkillExtractorPrompt({
+      transcriptPaths: exported.files.map((file) => file.path),
+      existingSkills: readAssistantSkills(input.target.workdir),
+      existingRules,
+      agentsMd,
+      memoryIndex: readOptionalText(path.join(input.memoryDir, "MEMORY.md"), 12_000),
+      observations: readRecentObservations(observationsPath(home)),
+      workdir: input.target.workdir,
+      skillRoot: skillRootForWorkdir(input.target.workdir),
+      maxCandidates: 3,
+    });
+
+    const turn = await runChildSession({
+      title: `学习整理 · ${input.target.label} · 技能`,
+      workdir: input.sessionWorkdir,
+      systemPrompt: prompt,
+      task: buildSkillExtractorTask(exported.files.map((file) => file.path)),
+      model: input.target.model,
+      tools: ["Read", "Grep", "Glob"],
+      disallowedTools: [
+        "Bash",
+        "Write",
+        "Edit",
+        "Workflow",
+        "AskUserQuestion",
+        "WebFetch",
+        "WebSearch",
+      ],
+      maxTextChars: 24_000,
+    });
+
+    if (!turn.ok) {
+      return {
+        drafts: [],
+        ruleDrafts: [],
+        error: turn.error ?? "learning extractor failed",
+      };
+    }
+
+    if (
+      turn.text.trim() &&
+      !turn.text.includes('"candidates"') &&
+      !turn.text.includes('"rules"')
+    ) {
+      // A prose-only answer is a parse failure, not "nothing to save": keep the
+      // cursors so the next run retries this window.
+      return {
+        drafts: [],
+        ruleDrafts: [],
+        error: "learning extractor returned no candidates JSON",
+      };
+    }
+    const candidates = parseSkillCandidates(turn.text);
+    const ruleCandidates = parseRuleCandidates(turn.text);
+    const suppressed = loadSuppressed(suppressedPath(home));
+    const day = new Date().toISOString().slice(0, 10);
+    const drafts = writeSkillDrafts({
+      draftDir: input.draftDir,
+      candidates,
+      suppressed,
+      runId: input.runId,
+      day,
+    });
+    const ruleDrafts = writeRuleDrafts({
+      draftDir: input.draftDir,
+      candidates: ruleCandidates,
+      agentsMd,
+      existingRules: existingRules.map((rule) => rule.text),
+      suppressed,
+      runId: input.runId,
+      day,
+    });
+    appendSkillObservations({
+      file: observationsPath(home),
+      candidates,
+      drafts,
+      runId: input.runId,
+      day,
+    });
+    appendRuleObservations({
+      file: observationsPath(home),
+      candidates: ruleCandidates,
+      drafts: ruleDrafts,
+      runId: input.runId,
+      day,
+    });
+    saveSkillCursors(cursorFile, exported.cursors);
+    return { drafts, ruleDrafts };
   }
 
   function writeProgress(
@@ -512,6 +693,29 @@ export function createMemoryDreamEngine(options: {
       result.lint = lint;
       result.fallbackIndex = fallbackIndex;
       result.stats = memoryDirStats(draftMemory);
+
+      // Assistant-only SOP drafts. This is best-effort: a skill-pass failure
+      // must not discard a usable memory draft, and it must not advance the
+      // transcript cursors (the next run retries the same window).
+      try {
+        const skillPass = await runLearningPass({
+          target: input.target,
+          runId: input.runId,
+          since: input.since,
+          draftDir,
+          sessionWorkdir,
+          memoryDir: liveMemory,
+        });
+        if (skillPass.drafts.length > 0) {
+          result.skills = summarizeSkillDrafts(skillPass.drafts);
+        }
+        if (skillPass.ruleDrafts.length > 0) {
+          result.rules = summarizeRuleDrafts(skillPass.ruleDrafts);
+        }
+        if (skillPass.error) result.skillError = skillPass.error;
+      } catch (error) {
+        result.skillError = error instanceof Error ? error.message : String(error);
+      }
       writeReport({
         draftDir,
         target: input.target,

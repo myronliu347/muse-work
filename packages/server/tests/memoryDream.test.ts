@@ -28,6 +28,7 @@ import {
   listDreamBackups,
   rollbackDream,
 } from "../src/services/memoryDreamAdopt.js";
+import { cursorsPath, observationsPath } from "../src/services/skillDream.js";
 import { pathEncoder, resolveAutoMemoryDirectory } from "@muse-work/agent";
 import type { SessionStore } from "../src/services/sessionStore.js";
 import type { SessionRunner } from "../src/services/sessionRunner/ctx.js";
@@ -184,6 +185,36 @@ describe("memoryDreamGate", () => {
     expect(
       listChangedMemoryFiles(dir, Date.now() - 10 * 60 * 1000),
     ).toContain("MEMORY.md");
+  });
+
+  it("runs the assistant target when its transcript is newer than the cutoff", () => {
+    const home = tempHome();
+    const store = createMemoryDreamStore({ home });
+    const workdir = "/assistant-activity";
+    const target = store.ensureAssistantTarget(workdir);
+    const dir = makeMemoryDir([{ name: "a.md" }]);
+    const now = Date.now();
+    const transcriptDir = path.join(
+      home,
+      ".muse-work",
+      "projects",
+      pathEncoder.encodeSync(workdir),
+    );
+    fs.mkdirSync(transcriptDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(transcriptDir, "assistant.jsonl"),
+      JSON.stringify({ type: "metadata", workdir }) + "\n",
+      "utf-8",
+    );
+
+    const result = evaluateDreamGate({
+      home,
+      target: { ...target, lastRunAt: now - 60_000, withIssueProgress: false },
+      memoryDir: dir,
+      now,
+    });
+    expect(result.shouldRun).toBe(true);
+    expect(result.assistantActivity).toBe(true);
   });
 
   it("runs on memory change, on issue progress for the assistant, and skips otherwise", () => {
@@ -1057,5 +1088,46 @@ describe("memoryDreamEngine index ownership", () => {
     expect(result.ok).toBe(true);
     expect(result.fallbackIndex).toBe(false);
     expect(result.lint?.badType).toEqual([]);
+  });
+});
+
+describe("discardDreamRun learning rewind", () => {
+  it("restores the pre-run cursor, observations and lastRunAt", () => {
+    const home = tempHome();
+    const store = createMemoryDreamStore({ home });
+    store.ensureAssistantTarget("/assistant");
+    store.patchTarget("assistant", { lastRunAt: 200, lastStatus: "succeeded" });
+    const draftDir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-discard-"));
+    const before = { version: 1 as const, transcripts: { old: { inode: 1, offset: 10, size: 10, mtimeMs: 1 } } };
+    const after = { version: 1 as const, transcripts: { old: { inode: 1, offset: 20, size: 20, mtimeMs: 2 } } };
+    fs.writeFileSync(
+      path.join(draftDir, "skill-cursors.before.json"),
+      JSON.stringify(before),
+      "utf-8",
+    );
+    fs.mkdirSync(path.dirname(cursorsPath(home)), { recursive: true });
+    fs.writeFileSync(cursorsPath(home), JSON.stringify(after), "utf-8");
+    fs.writeFileSync(
+      observationsPath(home),
+      `${JSON.stringify({ runId: "run-discard", day: "2026-11-24" })}\n${JSON.stringify({ runId: "other", day: "2026-11-24" })}\n`,
+      "utf-8",
+    );
+    const run = store.addRun({
+      id: "run-discard",
+      targetId: "assistant",
+      status: "succeeded",
+      startedAt: 100,
+      endedAt: 200,
+      previousLastRunAt: 100,
+      draftDir,
+    });
+
+    expect(discardDreamRun({ store, runId: run.id, home })).toBe(true);
+    expect(store.getTarget("assistant")?.lastRunAt).toBe(100);
+    expect(JSON.parse(fs.readFileSync(cursorsPath(home), "utf-8"))).toEqual(before);
+    const obs = fs.readFileSync(observationsPath(home), "utf-8");
+    expect(obs).not.toContain("run-discard");
+    expect(obs).toContain("other");
+    expect(fs.existsSync(draftDir)).toBe(false);
   });
 });

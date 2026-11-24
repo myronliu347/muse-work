@@ -47,10 +47,15 @@ function mockApi(next: MemoryDreamState) {
     setMemoryDreamEnabled: vi.fn().mockResolvedValue({ ok: true, enabled: false }),
     runMemoryDream: vi.fn().mockResolvedValue({ ok: true, started: true }),
     adoptMemoryDreamRun: vi.fn().mockResolvedValue({ ok: true }),
+    adoptMemoryDreamSkill: vi.fn().mockResolvedValue({ ok: true }),
+    adoptMemoryDreamRule: vi.fn().mockResolvedValue({ ok: true, effective: "next-session" }),
+    rejectMemoryDreamDraft: vi.fn().mockResolvedValue({ ok: true }),
     getMemoryDreamReport: vi.fn().mockResolvedValue({
       report: "# 记忆整理报告\n\n- 文件数：400",
       durationMs: 407000,
-      counts: { added: 1, changed: 1, removed: 1, conflicts: 0 },
+      skills: [],
+      rules: [],
+      counts: { added: 1, changed: 1, removed: 1, conflicts: 0, skills: 0, rules: 0 },
       added: [
         {
           file: "merged_review.md",
@@ -150,6 +155,147 @@ describe("MemoryDreamSettings", () => {
     expect(
       screen.getByRole("button", { name: "收起详细报告" }),
     ).toBeTruthy();
+  });
+
+  it("adopts an assistant skill draft after confirmation", async () => {
+    const api = mockApi(state());
+    const report = await (api.getMemoryDreamReport as ReturnType<typeof vi.fn>)();
+    (report as { skills: unknown[] }).skills = [
+      {
+        name: "progress-review",
+        description: "当用户要求汇总进展时使用。",
+        action: "create",
+        evidence: [{ day: "2026-11-24" }],
+        confidence: 0.8,
+        occurrenceDays: 2,
+        content: "---\nname: progress-review\ndescription: x\n---\n\n## 步骤\n1. 做\n",
+        exists: false,
+        adopted: false,
+        lint: { ok: true, issues: [] },
+      },
+    ];
+    (report as { counts: { skills: number } }).counts.skills = 1;
+    renderPanel(api);
+    await screen.findByRole("button", { name: "查看草稿" });
+    await userEvent.click(screen.getByRole("button", { name: "查看草稿" }));
+    await screen.findByText("progress-review");
+    await userEvent.click(screen.getByRole("button", { name: "采纳" }));
+    await waitFor(() =>
+      expect(api.adoptMemoryDreamSkill).toHaveBeenCalledWith(
+        "run-1",
+        "progress-review",
+      ),
+    );
+  });
+
+  it("adopts an assistant rule draft after confirmation", async () => {
+    const api = mockApi(state());
+    const report = await (api.getMemoryDreamReport as ReturnType<typeof vi.fn>)();
+    (report as { rules: unknown[] }).rules = [
+      {
+        name: "report-timing",
+        description: "只在需要拍板时主动发消息。",
+        text: "只有失败、卡住或需要用户拍板时才主动发消息。",
+        evidence: [{ day: "2026-11-20" }],
+        confidence: 0.8,
+        occurrenceDays: 2,
+        exists: false,
+        adopted: false,
+        lint: { ok: true, issues: [] },
+      },
+    ];
+    (report as { counts: { rules: number } }).counts.rules = 1;
+    renderPanel(api);
+    await screen.findByRole("button", { name: "查看草稿" });
+    await userEvent.click(screen.getByRole("button", { name: "查看草稿" }));
+    await screen.findByText("report-timing");
+    await userEvent.click(screen.getByRole("button", { name: "采纳" }));
+    await waitFor(() =>
+      expect(api.adoptMemoryDreamRule).toHaveBeenCalledWith(
+        "run-1",
+        "report-timing",
+      ),
+    );
+  });
+
+  it("adopts all safe rule and skill drafts in one action", async () => {
+    const api = mockApi(state());
+    const report = await (api.getMemoryDreamReport as ReturnType<typeof vi.fn>)();
+    (report as { rules: unknown[] }).rules = [
+      {
+        name: "report-timing",
+        description: "只在需要拍板时主动发消息。",
+        text: "只有失败、卡住或需要用户拍板时才主动发消息。",
+        evidence: [{ day: "2026-11-20" }],
+        confidence: 0.8,
+        occurrenceDays: 2,
+        exists: false,
+        adopted: false,
+        lint: { ok: true, issues: [] },
+      },
+    ];
+    (report as { skills: unknown[] }).skills = [
+      {
+        name: "progress-review",
+        description: "当用户要求汇总进展时使用。",
+        action: "create",
+        evidence: [{ day: "2026-11-24" }],
+        confidence: 0.8,
+        occurrenceDays: 2,
+        content: "---\nname: progress-review\ndescription: x\n---\n\n## 步骤\n1. 做\n",
+        exists: false,
+        adopted: false,
+        lint: { ok: true, issues: [] },
+      },
+    ];
+    (report as { counts: { rules: number; skills: number } }).counts.rules = 1;
+    (report as { counts: { rules: number; skills: number } }).counts.skills = 1;
+    renderPanel(api);
+    await screen.findByRole("button", { name: "查看草稿" });
+    await userEvent.click(screen.getByRole("button", { name: "查看草稿" }));
+    await screen.findByRole("button", { name: "采纳全部安全项" });
+    await userEvent.click(screen.getByRole("button", { name: "采纳全部安全项" }));
+    await waitFor(() => {
+      expect(api.adoptMemoryDreamRule).toHaveBeenCalledWith(
+        "run-1",
+        "report-timing",
+      );
+      expect(api.adoptMemoryDreamSkill).toHaveBeenCalledWith(
+        "run-1",
+        "progress-review",
+      );
+    });
+  });
+
+  it("ignores a skill draft and records the rejection", async () => {
+    const api = mockApi(state());
+    const report = await (api.getMemoryDreamReport as ReturnType<typeof vi.fn>)();
+    (report as { skills: unknown[] }).skills = [
+      {
+        name: "progress-review",
+        description: "当用户要求汇总进展时使用。",
+        action: "create",
+        evidence: [{ day: "2026-11-24" }],
+        confidence: 0.8,
+        content: "---\nname: progress-review\ndescription: x\n---\n\n## 步骤\n1. 做\n",
+        exists: false,
+        adopted: false,
+        lint: { ok: true, issues: [] },
+      },
+    ];
+    (report as { counts: { skills: number } }).counts.skills = 1;
+    renderPanel(api);
+    await screen.findByRole("button", { name: "查看草稿" });
+    await userEvent.click(screen.getByRole("button", { name: "查看草稿" }));
+    await screen.findByText("progress-review");
+    await userEvent.click(screen.getByRole("button", { name: "忽略" }));
+    await waitFor(() =>
+      expect(api.rejectMemoryDreamDraft).toHaveBeenCalledWith(
+        "run-1",
+        "skill",
+        "progress-review",
+      ),
+    );
   });
 
   it("offers a confirmed replace for a failed draft that only has warnings", async () => {

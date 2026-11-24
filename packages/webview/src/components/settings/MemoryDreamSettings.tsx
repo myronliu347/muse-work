@@ -4,7 +4,9 @@ import {
   MuseApiClient,
   type MemoryDreamProgress,
   type MemoryDreamReport,
+  type MemoryDreamRuleView,
   type MemoryDreamRunView,
+  type MemoryDreamSkillView,
   type MemoryDreamState,
   type MemoryFileMeta,
 } from "../../muse/apiClient";
@@ -52,6 +54,8 @@ function phaseText(progress: MemoryDreamProgress | undefined): string {
       return progress.total
         ? `修复校验问题 ${progress.index}/${Math.max(1, progress.total - 1)}`
         : "修复校验问题";
+    case "skills":
+      return progress.detail ? `提取助手技能 · ${progress.detail}` : "提取助手技能";
     case "lint":
       return "校验草稿";
     case "done":
@@ -164,17 +168,170 @@ function FileGroup({
   );
 }
 
+function isFirstOccurrence(item: {
+  explicit?: boolean;
+  occurrenceDays?: number;
+}): boolean {
+  return !item.explicit && (item.occurrenceDays ?? 1) < 2;
+}
+
+function SkillRow({
+  skill,
+  busy,
+  onAdopt,
+  onReject,
+}: {
+  skill: MemoryDreamSkillView;
+  busy: boolean;
+  onAdopt: () => void;
+  onReject: () => void;
+}) {
+  const [preview, setPreview] = useState(false);
+  return (
+    <div className="md-skill">
+      <div className="md-skill-head">
+        <Badge size="1" variant="soft" color={skill.action === "update" ? "amber" : "green"}>
+          {skill.action === "update" ? "更新" : "新增"}
+        </Badge>
+        <span className="md-skill-name">{skill.name}</span>
+        {isFirstOccurrence(skill) ? (
+          <Badge size="1" variant="soft" color="gray">
+            首次出现
+          </Badge>
+        ) : null}
+        <span className="md-skill-confidence">
+          置信度 {Math.round(skill.confidence * 100)}%
+        </span>
+        <Button
+          size="1"
+          disabled={busy || skill.adopted || !skill.lint.ok}
+          onClick={onAdopt}
+        >
+          {skill.adopted ? "已采纳" : "采纳"}
+        </Button>
+        <Button
+          size="1"
+          variant="ghost"
+          color="gray"
+          disabled={busy || skill.adopted}
+          onClick={onReject}
+        >
+          忽略
+        </Button>
+      </div>
+      <div className="md-skill-desc">{skill.description}</div>
+      <div className="md-skill-meta">
+        {skill.evidence.length > 0
+          ? `证据：${skill.evidence
+              .map((item) => item.day)
+              .filter(Boolean)
+              .join("、")}`
+          : "证据：未标注"}
+        {isFirstOccurrence(skill) ? " · 只出现过一次，建议再观察；仍可手动采纳" : ""}
+        {skill.exists ? " · 会覆盖已有同名技能" : ""}
+        {skill.lint.ok ? "" : ` · 校验未过：${skill.lint.issues.join("；")}`}
+      </div>
+      <button
+        type="button"
+        className="md-link-btn"
+        onClick={() => setPreview((value) => !value)}
+      >
+        {preview ? "收起 SOP" : "预览 SOP"}
+      </button>
+      {preview ? <pre className="md-skill-preview">{skill.content}</pre> : null}
+    </div>
+  );
+}
+
+function RuleRow({
+  rule,
+  busy,
+  onAdopt,
+  onReject,
+}: {
+  rule: MemoryDreamRuleView;
+  busy: boolean;
+  onAdopt: () => void;
+  onReject: () => void;
+}) {
+  return (
+    <div className="md-skill">
+      <div className="md-skill-head">
+        <Badge size="1" variant="soft" color="amber">
+          规则
+        </Badge>
+        <span className="md-skill-name">{rule.name}</span>
+        {isFirstOccurrence(rule) ? (
+          <Badge size="1" variant="soft" color="gray">
+            首次出现
+          </Badge>
+        ) : null}
+        <span className="md-skill-confidence">
+          置信度 {Math.round(rule.confidence * 100)}%
+        </span>
+        <Button
+          size="1"
+          disabled={busy || rule.adopted || !rule.lint.ok}
+          onClick={onAdopt}
+        >
+          {rule.adopted ? "已采纳" : "采纳"}
+        </Button>
+        <Button
+          size="1"
+          variant="ghost"
+          color="gray"
+          disabled={busy || rule.adopted}
+          onClick={onReject}
+        >
+          忽略
+        </Button>
+      </div>
+      <div className="md-skill-desc">{rule.text}</div>
+      <div className="md-skill-meta">
+        {rule.evidence.length > 0
+          ? `证据：${rule.evidence
+              .map((item) => item.day)
+              .filter(Boolean)
+              .join("、")}`
+          : "证据：未标注"}
+        {isFirstOccurrence(rule) ? " · 只出现过一次，建议再观察；仍可手动采纳" : ""}
+        {rule.exists ? " · 会覆盖已有规则" : ""}
+        {rule.lint.ok ? "" : ` · 校验未过：${rule.lint.issues.join("；")}`}
+        {" · 采纳后下一轮或下次会话生效"}
+      </div>
+    </div>
+  );
+}
+
 function DraftReview({
   data,
   open,
   onToggleReport,
   reportOpen,
+  onAdoptSkill,
+  onAdoptRule,
+  onRejectSkill,
+  onRejectRule,
+  onAdoptAllSafe,
+  busySkill,
+  busyRule,
+  busyReject,
 }: {
   data: MemoryDreamReport;
   open: boolean;
   onToggleReport: () => void;
   reportOpen: boolean;
+  onAdoptSkill: (name: string) => void;
+  onAdoptRule: (name: string) => void;
+  onRejectSkill: (name: string) => void;
+  onRejectRule: (name: string) => void;
+  onAdoptAllSafe: () => void;
+  busySkill?: string | null;
+  busyRule?: string | null;
+  busyReject?: string | null;
 }) {
+  const skills = data.skills ?? [];
+  const rules = data.rules ?? [];
   const reportRef = useRef<HTMLPreElement>(null);
   useEffect(() => {
     if (!reportOpen) return;
@@ -191,6 +348,23 @@ function DraftReview({
           <span className="md-chip is-conflict">
             冲突 {data.counts.conflicts}
           </span>
+        ) : null}
+        <span className="md-chip is-change">规则 {rules.length}</span>
+        <span className="md-chip is-add">技能 {skills.length}</span>
+        <span className="md-chip">会话 {data.transcripts ?? 0}</span>
+        {rules.some(
+          (rule) => rule.lint.ok && !rule.adopted && !isFirstOccurrence(rule),
+        ) ||
+        skills.some(
+          (skill) => skill.lint.ok && !skill.adopted && !isFirstOccurrence(skill),
+        ) ? (
+          <button
+            type="button"
+            className="md-link-btn md-review-adopt-all"
+            onClick={onAdoptAllSafe}
+          >
+            采纳全部安全项
+          </button>
         ) : null}
         {typeof data.durationMs === "number" ? (
           <span className="md-review-duration">
@@ -243,6 +417,56 @@ function DraftReview({
           {data.counts.added + data.counts.changed + data.counts.removed ===
           0 ? (
             <p className="md-empty">这次草稿和当前记忆没有文件级差异。</p>
+          ) : null}
+
+          {rules.length === 0 && skills.length === 0 ? (
+            <p className="md-empty">
+              {data.transcripts === 0
+                ? "这次没有新的助手会话记录，所以没有规则/技能候选。先到助手（小盏）页对话一次，再重新整理。"
+                : "这次没有规则或技能草稿。旧版本生成的整理不会补生成；重启应用后重新整理一次。"}
+            </p>
+          ) : null}
+
+          {rules.length > 0 ? (
+            <div className="md-group">
+              <div className="md-group-head">
+                <span className="md-group-dot is-change" />
+                <span className="md-group-title">助手规则</span>
+                <span className="md-group-count">{rules.length}</span>
+              </div>
+              <div className="md-group-body">
+                {rules.map((rule) => (
+                  <RuleRow
+                    key={rule.name}
+                    rule={rule}
+                    busy={busyRule === rule.name || busyReject === rule.name}
+                    onAdopt={() => onAdoptRule(rule.name)}
+                    onReject={() => onRejectRule(rule.name)}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {skills.length > 0 ? (
+            <div className="md-group">
+              <div className="md-group-head">
+                <span className="md-group-dot is-add" />
+                <span className="md-group-title">助手技能</span>
+                <span className="md-group-count">{skills.length}</span>
+              </div>
+              <div className="md-group-body">
+                {skills.map((skill) => (
+                  <SkillRow
+                    key={skill.name}
+                    skill={skill}
+                    busy={busySkill === skill.name || busyReject === skill.name}
+                    onAdopt={() => onAdoptSkill(skill.name)}
+                    onReject={() => onRejectSkill(skill.name)}
+                  />
+                ))}
+              </div>
+            </div>
           ) : null}
         </>
       ) : null}
@@ -368,6 +592,142 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
     }
   };
 
+  const adoptRule = async (runId: string, name: string) => {
+    const first = report?.runId === runId
+      ? (report.data.rules ?? []).find((rule) => rule.name === name)
+      : undefined;
+    if (
+      !window.confirm(
+        `采纳规则“${name}”${first && isFirstOccurrence(first) ? "（只出现过一次，建议再观察）" : ""}？会先备份同名规则；规则在下次会话或重建助手后生效。`,
+      )
+    ) {
+      return;
+    }
+    setBusy(`rule:${name}`);
+    setNotice(null);
+    try {
+      const outcome = await client.adoptMemoryDreamRule(runId, name);
+      if (!outcome.ok) throw new Error(outcome.error ?? "采纳失败");
+      setNotice(
+        outcome.effective === "next-turn"
+          ? `已采纳规则“${name}”，下一轮生效。`
+          : `已采纳规则“${name}”，下次会话生效。`,
+      );
+      const data = await client.getMemoryDreamReport(runId);
+      setReport({ runId, data });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const adoptAllSafe = async (runId: string) => {
+    const data = report?.runId === runId ? report.data : null;
+    if (!data) return;
+    const safeRules = (data.rules ?? []).filter(
+      (rule) => rule.lint.ok && !rule.adopted && !isFirstOccurrence(rule),
+    );
+    const safeSkills = (data.skills ?? []).filter(
+      (skill) => skill.lint.ok && !skill.adopted && !isFirstOccurrence(skill),
+    );
+    if (safeRules.length + safeSkills.length === 0) return;
+    if (
+      !window.confirm(
+        `采纳 ${safeRules.length} 条规则、${safeSkills.length} 个技能？记忆仍需单独替换；规则会尽量在下一轮生效。`,
+      )
+    ) {
+      return;
+    }
+    setBusy("adopt-all");
+    setNotice(null);
+    let failed = 0;
+    for (const rule of safeRules) {
+      const outcome = await client
+        .adoptMemoryDreamRule(runId, rule.name)
+        .catch((error: unknown) => ({
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        }));
+      if (!outcome.ok) failed += 1;
+    }
+    for (const skill of safeSkills) {
+      const outcome = await client
+        .adoptMemoryDreamSkill(runId, skill.name)
+        .catch((error: unknown) => ({
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        }));
+      if (!outcome.ok) failed += 1;
+    }
+    try {
+      const next = await client.getMemoryDreamReport(runId);
+      setReport({ runId, data: next });
+      await refresh();
+      setNotice(
+        failed === 0
+          ? "已采纳全部安全项。"
+          : `已采纳；${failed} 项失败，请看错误后重试。`,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const rejectDraft = async (
+    runId: string,
+    kind: "rule" | "skill",
+    name: string,
+  ) => {
+    if (!window.confirm(`忽略“${name}”？以后相同内容不会再建议。`)) {
+      return;
+    }
+    setBusy(`reject:${name}`);
+    setNotice(null);
+    try {
+      const outcome = await client.rejectMemoryDreamDraft(runId, kind, name);
+      if (!outcome.ok) throw new Error(outcome.error ?? "忽略失败");
+      setNotice(`已忽略“${name}”。`);
+      const data = await client.getMemoryDreamReport(runId);
+      setReport({ runId, data });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const adoptSkill = async (runId: string, name: string) => {
+    const first = report?.runId === runId
+      ? (report.data.skills ?? []).find((skill) => skill.name === name)
+      : undefined;
+    if (
+      !window.confirm(
+        `采纳技能“${name}”${first && isFirstOccurrence(first) ? "（只出现过一次，建议再观察）" : ""}？会先备份同名技能，可回滚。`,
+      )
+    ) {
+      return;
+    }
+    setBusy(`skill:${name}`);
+    setNotice(null);
+    try {
+      const outcome = await client.adoptMemoryDreamSkill(runId, name);
+      if (!outcome.ok) throw new Error(outcome.error ?? "采纳失败");
+      setNotice(`已采纳技能“${name}”。`);
+      const data = await client.getMemoryDreamReport(runId);
+      setReport({ runId, data });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const adopt = async (run: MemoryDreamRunView) => {
     const warnings = run.lint && !run.lint.ok
       ? `\n\n注意：草稿校验未过（孤儿 ${run.lint.orphans}、超 4 KB ${run.lint.overCap}）。替换不会修好这些，但也不会让记忆更差；会先备份，可回滚。`
@@ -402,7 +762,13 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
   };
 
   const discard = async (run: MemoryDreamRunView) => {
-    if (!window.confirm("丢弃这次草稿？记忆不会变。")) return;
+    if (
+      !window.confirm(
+        "丢弃这次草稿？记忆不会变；下次整理会重新读取这段会话。",
+      )
+    ) {
+      return;
+    }
     setBusy(run.id);
     try {
       await client.discardMemoryDreamRun(run.id);
@@ -460,8 +826,8 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
       <header className="md-header">
         <h3>记忆整理</h3>
         <p>
-          助手会把跨会话学到的东西写进记忆。整理做三件事：收编没进索引的记忆、
-          合并重复条目、把过期结论降级。整理只在副本上做，确认后才替换。
+          助手会把跨会话学到的东西写进记忆、规则和技能。整理做三件事：收编/合并记忆、
+          提取总是适用的规则、把同一类工作沉淀成技能草稿。整理只在副本上做，确认后才替换。
         </p>
       </header>
 
@@ -637,6 +1003,9 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
                 </div>
 
                 {run.error ? <p className="md-run-error">{run.error}</p> : null}
+                {run.skillError ? (
+                  <p className="md-run-lint">技能提取失败：{run.skillError}</p>
+                ) : null}
                 {run.fallbackIndex ? (
                   <p className="md-run-lint">
                     这一轮 AI 没在轮次内补全索引，程序只补了缺失的指针，没有替它决定归档；建议看一遍草稿里的
@@ -657,6 +1026,14 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
                     open
                     reportOpen={reportOpen}
                     onToggleReport={() => setReportOpen((value) => !value)}
+                    onAdoptSkill={(name) => void adoptSkill(run.id, name)}
+                    onAdoptRule={(name) => void adoptRule(run.id, name)}
+                    onRejectSkill={(name) => void rejectDraft(run.id, "skill", name)}
+                    onRejectRule={(name) => void rejectDraft(run.id, "rule", name)}
+                    onAdoptAllSafe={() => void adoptAllSafe(run.id)}
+                    busySkill={busy?.startsWith("skill:") ? busy.slice(6) : null}
+                    busyRule={busy?.startsWith("rule:") ? busy.slice(5) : null}
+                    busyReject={busy?.startsWith("reject:") ? busy.slice(7) : null}
                   />
                 ) : null}
                 {isOpen && busy === `draft:${run.id}` ? (

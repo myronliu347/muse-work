@@ -82,6 +82,7 @@ export function createMemoryDreamScheduler(options: {
       status: "running",
       trigger,
       startedAt: now().getTime(),
+      previousLastRunAt: target.lastRunAt,
       // Written now, not on completion: the settings page needs the draft
       // directory to read progress.json while the run is still in flight.
       draftDir: dreamDraftDir(options.draftRoot, target.id, runId),
@@ -99,7 +100,9 @@ export function createMemoryDreamScheduler(options: {
       status: result.ok ? "succeeded" : "failed",
       endedAt: now().getTime(),
       summary: result.stats,
+      transcripts: result.transcripts,
       fallbackIndex: result.fallbackIndex === true,
+      ...(result.skillError ? { skillError: result.skillError } : {}),
       ...(result.lint
         ? {
             lint: {

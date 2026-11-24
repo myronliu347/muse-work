@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { resolveAutoMemoryDirectory } from "@muse-work/agent";
+import { cursorsPath, observationsPath } from "./skillDream.js";
 import type { MemoryDreamStore, MemoryDreamTarget } from "./memoryDreams.js";
 import {
   applyDream,
@@ -112,13 +113,67 @@ export function adoptDreamRun(options: {
   };
 }
 
+function restoreSkillCursors(home: string, draftDir: string | undefined): void {
+  if (!draftDir) return;
+  const before = path.join(draftDir, "skill-cursors.before.json");
+  try {
+    const snapshot = fs.readFileSync(before, "utf-8");
+    const target = cursorsPath(home);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    const tmp = `${target}.${process.pid}.restore.tmp`;
+    fs.writeFileSync(tmp, snapshot, "utf-8");
+    fs.renameSync(tmp, target);
+  } catch {
+    // No snapshot / unreadable snapshot: leave the cursor untouched.
+  }
+}
+
+/** Drop observations written by a discarded run so they do not fake recurrence. */
+function removeObservationsForRun(home: string, runId: string): void {
+  const file = observationsPath(home);
+  let lines: string[];
+  try {
+    lines = fs.readFileSync(file, "utf-8").split("\n").filter(Boolean);
+  } catch {
+    return;
+  }
+  const kept = lines.filter((line) => {
+    try {
+      return (JSON.parse(line) as { runId?: unknown }).runId !== runId;
+    } catch {
+      return true;
+    }
+  });
+  if (kept.length === lines.length) return;
+  try {
+    const tmp = `${file}.${process.pid}.discard.tmp`;
+    fs.writeFileSync(tmp, kept.length ? `${kept.join("\n")}\n` : "", "utf-8");
+    fs.renameSync(tmp, file);
+  } catch {
+    // Best effort; the cursor restore is the important part.
+  }
+}
+
 export function discardDreamRun(options: {
   store: MemoryDreamStore;
   runId: string;
+  home?: string;
   now?: () => Date;
 }): boolean {
   const run = options.store.getRun(options.runId);
   if (!run || run.adoptedAt) return false;
+  if (options.home) {
+    restoreSkillCursors(options.home, run.draftDir);
+    removeObservationsForRun(options.home, run.id);
+  }
+  const target = options.store.getTarget(run.targetId);
+  if (target && run.status === "succeeded") {
+    // Roll the window back to where this run started. A first run has no
+    // previous value; 0 makes the next run look at the full history again.
+    options.store.patchTarget(target.id, {
+      lastRunAt: run.previousLastRunAt ?? 0,
+    });
+  }
   if (run.draftDir) {
     fs.rmSync(run.draftDir, { recursive: true, force: true });
   }

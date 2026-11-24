@@ -68,6 +68,10 @@ export interface MemoryDreamRun {
   /** Per-run draft directory (`dreams/<target>/<runId>`), when the run got that far. */
   draftDir?: string;
   summary?: DreamTargetSummary;
+  /** The target's lastRunAt before this run; restored when the run is discarded. */
+  previousLastRunAt?: number;
+  /** Number of transcripts included in this run. */
+  transcripts?: number;
   /** Lint snapshot of the draft, kept so the UI can explain a failure. */
   lint?: {
     ok: boolean;
@@ -80,6 +84,8 @@ export interface MemoryDreamRun {
   error?: string;
   /** The AI left the index unusable and code rebuilt it (shown for review). */
   fallbackIndex?: boolean;
+  /** Best-effort skill pass error; the memory draft may still be usable. */
+  skillError?: string;
   /** Set when a person (or the auto path) swapped the draft into live memory. */
   adoptedAt?: number;
   /** Set when the draft was thrown away. */

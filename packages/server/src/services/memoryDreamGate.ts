@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
+import { pathEncoder } from "@muse-work/agent";
 import type {
   DreamSkipReason,
   MemoryDreamTarget,
@@ -24,6 +25,7 @@ export interface DreamGateDecision {
   since: number;
   changedFiles: string[];
   issueProgress: number;
+  assistantActivity?: boolean;
 }
 
 export function startOfLocalDay(at: number): number {
@@ -87,6 +89,37 @@ export function countIssueProgressSince(home: string, since: number): number {
   return count;
 }
 
+/**
+ * The assistant is a long-lived session: a day of chatting may not write a
+ * single memory file, yet it is exactly the material the skill pass needs. A
+ * fresh transcript therefore counts as a reason to run the assistant target.
+ */
+export function hasNewAssistantTranscript(
+  home: string,
+  workdir: string,
+  since: number,
+): boolean {
+  const dir = path.join(
+    getMuseHomeDir(home),
+    "projects",
+    pathEncoder.encodeSync(workdir),
+  );
+  let entries: string[];
+  try {
+    entries = fs.readdirSync(dir);
+  } catch {
+    return false;
+  }
+  return entries.some((entry) => {
+    if (!entry.endsWith(".jsonl")) return false;
+    try {
+      return fs.statSync(path.join(dir, entry)).mtimeMs > since;
+    } catch {
+      return false;
+    }
+  });
+}
+
 /** Memory files (one level, Markdown) modified after `since`. */
 export function listChangedMemoryFiles(
   memoryDir: string,
@@ -124,13 +157,28 @@ export function evaluateDreamGate(options: {
   const issueProgress = options.target.withIssueProgress
     ? countIssueProgressSince(options.home, since)
     : 0;
+  const assistantActivity =
+    options.target.kind === "assistant" &&
+    hasNewAssistantTranscript(options.home, options.target.workdir, since);
 
   if (options.force) {
-    return { shouldRun: true, since, changedFiles, issueProgress };
+    return {
+      shouldRun: true,
+      since,
+      changedFiles,
+      issueProgress,
+      assistantActivity,
+    };
   }
 
-  if (changedFiles.length > 0 || issueProgress > 0) {
-    return { shouldRun: true, since, changedFiles, issueProgress };
+  if (changedFiles.length > 0 || issueProgress > 0 || assistantActivity) {
+    return {
+      shouldRun: true,
+      since,
+      changedFiles,
+      issueProgress,
+      assistantActivity,
+    };
   }
 
   return {
@@ -139,5 +187,6 @@ export function evaluateDreamGate(options: {
     since,
     changedFiles,
     issueProgress,
+    assistantActivity,
   };
 }

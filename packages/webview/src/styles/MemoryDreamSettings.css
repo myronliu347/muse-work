@@ -425,3 +425,59 @@
   font-size: var(--font-size-1);
   line-height: 1.5;
 }
+
+.md-skill {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-2);
+  background: var(--surface-raised);
+}
+
+.md-skill-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.md-skill-name {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-2);
+}
+
+.md-skill-confidence {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: var(--font-size-1);
+}
+
+.md-skill-desc,
+.md-skill-meta {
+  color: var(--text-secondary);
+  font-size: var(--font-size-1);
+  line-height: 1.5;
+}
+
+.md-skill-meta {
+  color: var(--text-tertiary);
+}
+
+.md-skill-preview {
+  max-height: 240px;
+  margin: 0;
+  padding: var(--space-2);
+  overflow: auto;
+  border-radius: var(--radius-1);
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  font-family: var(--code-font-family, monospace);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.md-review-adopt-all {
+  margin-left: var(--space-2);
+}

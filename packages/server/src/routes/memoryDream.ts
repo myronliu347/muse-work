@@ -12,6 +12,19 @@ import {
 } from "../services/memoryDreamAdopt.js";
 import { defaultDreamBackupRoot } from "../services/memoryDreams.js";
 import { lintMemoryDir } from "../services/memoryDreamLint.js";
+import {
+  adoptSkillDraft,
+  readSkillDrafts,
+  skillRootForWorkdir,
+  suppressLearningContent,
+  suppressedPath,
+} from "../services/skillDream.js";
+import {
+  adoptRuleDraft,
+  readAssistantRules,
+  readRuleDrafts,
+  ruleRootForWorkdir,
+} from "../services/ruleDream.js";
 
 /**
  * Backend for the settings page's "memory tidying" section.
@@ -143,6 +156,7 @@ memoryDreamRoutes.delete("/memory-dream/runs/:id", (c) => {
   const discarded = discardDreamRun({
     store: ctx.memoryDreamStore,
     runId: c.req.param("id"),
+    home: ctx.home,
   });
   if (!discarded) return c.json({ error: "run not found or adopted" }, 404);
   ctx.hub.broadcastAll({ type: "memory-dream:changed" });
@@ -185,7 +199,15 @@ memoryDreamRoutes.post("/memory-dream/rollback", async (c) => {
 
 
 interface DreamProgressView {
-  phase: "copy" | "export" | "analyze" | "organize" | "repair" | "lint" | "done";
+  phase:
+    | "copy"
+    | "export"
+    | "analyze"
+    | "organize"
+    | "repair"
+    | "skills"
+    | "lint"
+    | "done";
   index?: number;
   total?: number;
   detail?: string;
@@ -266,6 +288,152 @@ function memoryFileHashes(dir: string): Map<string, string> {
   return hashes;
 }
 
+memoryDreamRoutes.post(
+  "/memory-dream/runs/:id/skills/:name/adopt",
+  async (c) => {
+    const ctx = c.get("ctx");
+    const run = ctx.memoryDreamStore.getRun(c.req.param("id"));
+    if (!run) return c.json({ error: "run not found" }, 404);
+    if (!run.draftDir) return c.json({ error: "run has no draft" }, 404);
+    const target = ctx.memoryDreamStore.getTarget(run.targetId);
+    if (!target || target.kind !== "assistant") {
+      return c.json({ error: "skills are assistant-only" }, 400);
+    }
+    const name = c.req.param("name");
+    const outcome = adoptSkillDraft({
+      draftDir: run.draftDir,
+      name,
+      workdir: target.workdir,
+      backupRoot: defaultDreamBackupRoot(ctx.home),
+    });
+    if (!outcome.ok) {
+      return c.json({ error: outcome.error, backupPath: outcome.backupPath }, 422);
+    }
+    const { requestSkillCatalogRefresh } = await import("@muse-work/agent");
+    await requestSkillCatalogRefresh(target.workdir).catch(() => {
+      /* the catalog refreshes on the assistant's next load anyway */
+    });
+    ctx.hub.broadcastAll({ type: "memory-dream:changed" });
+    return c.json(outcome);
+  },
+);
+
+memoryDreamRoutes.post(
+  "/memory-dream/runs/:id/rules/:name/adopt",
+  async (c) => {
+    const ctx = c.get("ctx");
+    const run = ctx.memoryDreamStore.getRun(c.req.param("id"));
+    if (!run) return c.json({ error: "run not found" }, 404);
+    if (!run.draftDir) return c.json({ error: "run has no draft" }, 404);
+    const target = ctx.memoryDreamStore.getTarget(run.targetId);
+    if (!target || target.kind !== "assistant") {
+      return c.json({ error: "rules are assistant-only" }, 400);
+    }
+    const agentsMd = (() => {
+      try {
+        return fs.readFileSync(
+          path.join(target.workdir, "AGENTS.md"),
+          "utf-8",
+        );
+      } catch {
+        return "";
+      }
+    })();
+    const outcome = adoptRuleDraft({
+      draftDir: run.draftDir,
+      name: c.req.param("name"),
+      workdir: target.workdir,
+      backupRoot: defaultDreamBackupRoot(ctx.home),
+      agentsMd,
+      existingRules: readAssistantRules(target.workdir).map((rule) => rule.text),
+    });
+    if (!outcome.ok) {
+      return c.json({ error: outcome.error, backupPath: outcome.backupPath }, 422);
+    }
+    // Rules are read by MemoryRuleManager at agent init. Drop an idle assistant
+    // agent so the next turn rebuilds with the new rule; never interrupt a turn.
+    const assistant = ctx.store
+      .list()
+      .find((session) => session.origin === "assistant");
+    let effective: "next-turn" | "next-session" = "next-session";
+    if (assistant && assistant.status !== "running") {
+      await ctx.runner.disposeAgent(assistant.id).catch(() => {
+        /* keep the next-session fallback */
+      });
+      effective = "next-turn";
+    }
+    ctx.hub.broadcastAll({ type: "memory-dream:changed" });
+    return c.json({ ...outcome, effective });
+  },
+);
+
+memoryDreamRoutes.post("/memory-dream/runs/:id/reject", async (c) => {
+  const ctx = c.get("ctx");
+  const body = (await c.req.json().catch(() => ({}))) as {
+    kind?: unknown;
+    name?: unknown;
+  };
+  if (
+    (body.kind !== "rule" && body.kind !== "skill") ||
+    typeof body.name !== "string" ||
+    !body.name
+  ) {
+    return c.json({ error: "kind (rule|skill) and name are required" }, 400);
+  }
+  const run = ctx.memoryDreamStore.getRun(c.req.param("id"));
+  if (!run) return c.json({ error: "run not found" }, 404);
+  if (!run.draftDir) return c.json({ error: "run has no draft" }, 404);
+  const target = ctx.memoryDreamStore.getTarget(run.targetId);
+  if (!target || target.kind !== "assistant") {
+    return c.json({ error: "learning drafts are assistant-only" }, 400);
+  }
+
+  let content = "";
+  if (body.kind === "skill") {
+    const file = path.join(run.draftDir, "skills", body.name, "SKILL.md");
+    try {
+      content = fs.readFileSync(file, "utf-8");
+    } catch {
+      return c.json({ error: "draft skill not found" }, 404);
+    }
+  } else {
+    try {
+      const meta = JSON.parse(
+        fs.readFileSync(
+          path.join(run.draftDir, "rules", `${body.name}.json`),
+          "utf-8",
+        ),
+      ) as { text?: unknown };
+      content = typeof meta.text === "string" ? meta.text : "";
+      if (!content) throw new Error("empty rule");
+    } catch {
+      return c.json({ error: "draft rule not found" }, 404);
+    }
+  }
+
+  suppressLearningContent({
+    file: suppressedPath(ctx.home),
+    kind: body.kind,
+    name: body.name,
+    content,
+  });
+  if (body.kind === "skill") {
+    fs.rmSync(path.join(run.draftDir, "skills", body.name), {
+      recursive: true,
+      force: true,
+    });
+  } else {
+    fs.rmSync(path.join(run.draftDir, "rules", `${body.name}.md`), {
+      force: true,
+    });
+    fs.rmSync(path.join(run.draftDir, "rules", `${body.name}.json`), {
+      force: true,
+    });
+  }
+  ctx.hub.broadcastAll({ type: "memory-dream:changed" });
+  return c.json({ ok: true });
+});
+
 memoryDreamRoutes.get("/memory-dream/runs/:id/report", (c) => {
   const ctx = c.get("ctx");
   const run = ctx.memoryDreamStore.getRun(c.req.param("id"));
@@ -299,8 +467,82 @@ memoryDreamRoutes.get("/memory-dream/runs/:id/report", (c) => {
     report = "";
   }
 
+  const skills = readSkillDrafts(run.draftDir).map((skill) => {
+    const liveFile = path.join(
+      skillRootForWorkdir(target.workdir),
+      skill.name,
+      "SKILL.md",
+    );
+    let exists = false;
+    let adopted = false;
+    try {
+      const live = fs.readFileSync(liveFile, "utf-8");
+      exists = true;
+      adopted = live === skill.content;
+    } catch {
+      // not adopted (or not present)
+    }
+    return {
+      name: skill.name,
+      description: skill.description,
+      action: skill.action,
+      intent: skill.intent,
+      evidence: skill.evidence,
+      confidence: skill.confidence,
+      explicit: skill.explicit === true,
+      occurrenceDays: skill.occurrenceDays ?? 1,
+      content: skill.content,
+      lint: skill.lint,
+      exists,
+      adopted,
+    };
+  });
+
+  const agentsMd = (() => {
+    try {
+      return fs.readFileSync(path.join(target.workdir, "AGENTS.md"), "utf-8");
+    } catch {
+      return "";
+    }
+  })();
+  const rules = readRuleDrafts(
+    run.draftDir,
+    agentsMd,
+    readAssistantRules(target.workdir).map((rule) => rule.text),
+  ).map((rule) => {
+    const liveFile = path.join(
+      ruleRootForWorkdir(target.workdir),
+      `auto-${rule.name}.md`,
+    );
+    let exists = false;
+    let adopted = false;
+    try {
+      const live = fs.readFileSync(liveFile, "utf-8");
+      exists = true;
+      adopted = live === rule.rendered;
+    } catch {
+      // not adopted (or not present)
+    }
+    return {
+      name: rule.name,
+      description: rule.description,
+      text: rule.text,
+      intent: rule.intent,
+      evidence: rule.evidence,
+      confidence: rule.confidence,
+      explicit: rule.explicit === true,
+      occurrenceDays: rule.occurrenceDays ?? 1,
+      lint: rule.lint,
+      exists,
+      adopted,
+    };
+  });
+
   return c.json({
     report,
+    transcripts: run.transcripts ?? 0,
+    skills,
+    rules,
     draftLint: {
       ok: draftLint.ok,
       orphans: draftLint.orphans,
@@ -326,6 +568,8 @@ memoryDreamRoutes.get("/memory-dream/runs/:id/report", (c) => {
       changed: changed.length,
       removed: removed.length,
       conflicts: countConflicts(draftMemory),
+      skills: skills.length,
+      rules: rules.length,
     },
     added: added.sort().map((file) => readMemoryMeta(draftMemory, file)),
     changed: changed.sort().map((file) => ({

@@ -317,6 +317,7 @@ export function createAppContext(
     sessions: sessions.store,
     runner: sessions.runner,
     draftRoot: path.join(getMuseHomeDir(home), "dreams", "drafts"),
+    skillPass: true,
   });
   const memoryDreamScheduler = createMemoryDreamScheduler({
     home,

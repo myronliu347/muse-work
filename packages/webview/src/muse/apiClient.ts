@@ -1382,6 +1382,44 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async adoptMemoryDreamSkill(
+    runId: string,
+    name: string,
+  ): Promise<{ ok: boolean; error?: string; backupPath?: string }> {
+    const res = await this.request(
+      `/memory-dream/runs/${encodeURIComponent(runId)}/skills/${encodeURIComponent(name)}/adopt`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
+  async rejectMemoryDreamDraft(
+    runId: string,
+    kind: "rule" | "skill",
+    name: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    const res = await this.request(
+      `/memory-dream/runs/${encodeURIComponent(runId)}/reject`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kind, name }),
+      },
+    );
+    return parseJson(res);
+  }
+
+  async adoptMemoryDreamRule(
+    runId: string,
+    name: string,
+  ): Promise<{ ok: boolean; error?: string; backupPath?: string; effective?: string }> {
+    const res = await this.request(
+      `/memory-dream/runs/${encodeURIComponent(runId)}/rules/${encodeURIComponent(name)}/adopt`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
   async getMemoryDreamReport(runId: string): Promise<MemoryDreamReport> {
     const res = await this.request(
       `/memory-dream/runs/${encodeURIComponent(runId)}/report`,
@@ -1439,6 +1477,7 @@ export interface MemoryDreamRunView {
   draftReady: boolean;
   summary?: { files: number; orphans: number; indexChars: number };
   error?: string;
+  skillError?: string;
   adoptedAt?: number;
   discardedAt?: number;
   fallbackIndex?: boolean;
@@ -1470,7 +1509,15 @@ export interface MemoryDreamTargetView {
 }
 
 export interface MemoryDreamProgress {
-  phase: "copy" | "export" | "analyze" | "organize" | "repair" | "lint" | "done";
+  phase:
+    | "copy"
+    | "export"
+    | "analyze"
+    | "organize"
+    | "repair"
+    | "skills"
+    | "lint"
+    | "done";
   index?: number;
   total?: number;
   detail?: string;
@@ -1497,8 +1544,40 @@ export interface MemoryDreamLintView {
   indexLines: number;
 }
 
+export interface MemoryDreamSkillView {
+  name: string;
+  description: string;
+  action: "create" | "update";
+  intent?: string;
+  evidence: Array<{ day?: string; quote?: string; episodeId?: string }>;
+  confidence: number;
+  explicit?: boolean;
+  occurrenceDays?: number;
+  content: string;
+  exists: boolean;
+  adopted: boolean;
+  lint: { ok: boolean; issues: string[] };
+}
+
+export interface MemoryDreamRuleView {
+  name: string;
+  description: string;
+  text: string;
+  intent?: string;
+  evidence: Array<{ day?: string; quote?: string; episodeId?: string }>;
+  confidence: number;
+  explicit?: boolean;
+  occurrenceDays?: number;
+  exists: boolean;
+  adopted: boolean;
+  lint: { ok: boolean; issues: string[] };
+}
+
 export interface MemoryDreamReport {
   report: string;
+  transcripts?: number;
+  skills: MemoryDreamSkillView[];
+  rules: MemoryDreamRuleView[];
   draftLint?: MemoryDreamLintView;
   liveLint?: MemoryDreamLintView;
   durationMs?: number;
@@ -1507,6 +1586,8 @@ export interface MemoryDreamReport {
     changed: number;
     removed: number;
     conflicts: number;
+    skills: number;
+    rules: number;
   };
   added: MemoryFileMeta[];
   changed: Array<MemoryFileMeta & { beforeBytes: number }>;
