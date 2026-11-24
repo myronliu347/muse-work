@@ -32,6 +32,28 @@ export interface AssistantBridge {
   enqueue: PluginContext["assistant"]["enqueue"];
 }
 
+/**
+ * Follow the process logger instead of capturing it.
+ *
+ * `configureLogger` replaces (and closes) the shared winston logger, so a
+ * plugin that held the old reference writes into a logger with no transports
+ * and its startup/degraded lines vanish. Every call here resolves the current
+ * logger, so plugin logs survive reconfiguration.
+ */
+export function livePluginLogger(get: () => PluginLogger): PluginLogger {
+  return {
+    info(message, meta) {
+      get().info(message, meta);
+    },
+    warn(message, meta) {
+      get().warn(message, meta);
+    },
+    error(message, meta) {
+      get().error(message, meta);
+    },
+  };
+}
+
 export function createAssistantBridge(): AssistantBridge {
   return {
     recordInbound() {},

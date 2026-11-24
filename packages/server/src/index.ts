@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { getMuseHomeDir, loadDeepSeekEnv } from "@muse-work/provider";
 import { createApp } from "./app.js";
-import { openHostedAppContext } from "./services/appContext.js";
+import { openHostedAppContext, resolveHome } from "./services/appContext.js";
 import { configureLogger, resolveLogDir } from "./utils/logger.js";
 import { installRuntimeStats } from "./utils/runtimeStats.js";
 import { installGracefulShutdown } from "./utils/shutdown.js";
@@ -32,10 +32,11 @@ const port = parsePort(process.argv.slice(2));
 
 async function main(): Promise<void> {
   loadDeepSeekEnv();
-  const ctx = await openHostedAppContext();
-  // configureLogger 必须先于宿主插件 start：插件启动日志要写入
-  // ctx.home 下的日志文件，而不是 getLogger() 提前创建默认 logger 时的 os.homedir()。
-  const log = configureLogger({ home: ctx.home });
+  // 先按 ctx.home 配好文件 logger，再加载宿主插件：syncNeteasePlugin 和插件
+  // start 的日志（popo 回调地址、绑定失败）都要写进同一个文件。
+  const home = resolveHome();
+  const log = configureLogger({ home });
+  const ctx = await openHostedAppContext({ home });
   await ctx.startHostPlugins(port);
 
   const server = createApp(ctx);

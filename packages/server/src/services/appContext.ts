@@ -19,6 +19,7 @@ import {
   resolveHostPluginSpecs,
   startPreparedPlugins,
   createAssistantBridge,
+  livePluginLogger,
   type PreparedPlugin,
 } from "../plugins/hostPlugins.js";
 import { selectCodeMakerProvider, syncNeteasePlugin } from "../plugins/neteaseInstall.js";
@@ -443,7 +444,9 @@ export async function openHostedAppContext(
   options?: CreateAppContextOptions,
 ): Promise<AppContext> {
   const home = resolveHome(options?.home);
-  const logger = getLogger();
+  // Resolve on every write: the entry point configures the file logger after
+  // this context exists, and a captured logger would be closed on reconfigure.
+  const logger = livePluginLogger(() => getLogger());
   if (process.env.MUSE_NETEASE_PLUGIN !== "0" && resolveHostPluginSpecs(home) !== "none") {
     await syncNeteasePlugin({ home, logger });
   }

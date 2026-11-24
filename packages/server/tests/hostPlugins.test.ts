@@ -6,6 +6,7 @@ import type { MusePlugin } from "@muse-work/plugin-sdk";
 import { getMuseHomeDir } from "@muse-work/provider";
 import { createAppContext, openHostedAppContext } from "../src/services/appContext.js";
 import {
+  livePluginLogger,
   loadHostPlugins,
   prepareHostPlugins,
   resolveHostPluginSpecs,
@@ -224,6 +225,32 @@ describe("host plugins", () => {
     } finally {
       await closeTestApp(app.server);
     }
+  });
+});
+
+describe("live plugin logger", () => {
+  it("writes through the logger that is current at call time", () => {
+    const calls: Array<[string, string, unknown]> = [];
+    const make = (tag: string) => ({
+      info: (message: string, meta?: Record<string, unknown>) =>
+        calls.push([tag, message, meta]),
+      warn: (message: string, meta?: Record<string, unknown>) =>
+        calls.push([tag, message, meta]),
+      error: (message: string, meta?: Record<string, unknown>) =>
+        calls.push([tag, message, meta]),
+    });
+    const before = make("before");
+    let current = before;
+    const logger = livePluginLogger(() => current);
+
+    logger.info("popo callback listening", { port: 3100 });
+    current = make("after");
+    logger.warn("popo callback bind failed", { error: "EADDRINUSE" });
+
+    expect(calls).toEqual([
+      ["before", "popo callback listening", { port: 3100 }],
+      ["after", "popo callback bind failed", { error: "EADDRINUSE" }],
+    ]);
   });
 });
 
