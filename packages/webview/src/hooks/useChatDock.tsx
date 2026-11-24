@@ -341,6 +341,9 @@ export function useChatDock(input: {
   // 详情只属于 Muse Bot / Issue。会话页用自己目录里正在打开的那种面板，
   // 不因为这边停在详情就把那边也打开。
   const showIssueDetail = assistantVisible;
+  const detailActive =
+    showIssueDetail &&
+    (workspace.dock === DOCK_DETAIL_TAB || chromeKindMissing);
   const sessionChromeKind =
     workspace.dock !== DOCK_DETAIL_TAB && chromeChecked.includes(workspace.dock)
       ? workspace.dock
@@ -371,12 +374,12 @@ export function useChatDock(input: {
       showIssueDetail && detailIssueGroup
         ? issueTabPresence[detailIssueGroup.issueId] ?? null
         : null,
-    detailActive:
-      showIssueDetail &&
-      (workspace.dock === DOCK_DETAIL_TAB || chromeKindMissing),
+    detailActive,
     detail: showIssueDetail ? (
       <DockDetail
         selection={detailSelection}
+        visible={detailActive}
+        recentChangedFiles={issueRecentDiffFiles.map((file) => file.path)}
         actionLabel={detailActionLabel}
         onOpenSession={workspace.openIssueSession}
         onOpenInEditor={(workdir) =>

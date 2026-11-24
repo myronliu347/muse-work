@@ -21,6 +21,7 @@ import { Tooltip } from "../shared/Tooltip";
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { issueTabSessionId } from "./botWorkspace";
 import { beginSplitDrag, widthFromLeftEdge } from "../../muse/splitDrag";
+import { markIssueSeen } from "../../muse/issueSeen";
 
 /** Issue column. Docked to the right of the detail pane, like the other panel rails. */
 export const DOCK_DETAIL_RAIL_WIDTH = 232;
@@ -302,6 +303,18 @@ export interface DockDetailProps {
   onCompleteIssue?: (issueId: string, note: string) => Promise<void>;
   onCancelIssue?: (issueId: string, note: string) => Promise<void>;
   onGenerateSummary?: (issueId: string) => Promise<string>;
+  /**
+   * Files of the newest turn, straight from the chat transcript. Progress rows
+   * written before changed files were captured (or dropped by compaction) have
+   * none; this keeps 本轮改动 visible without rewriting old progress files.
+   */
+  recentChangedFiles?: string[];
+  /**
+   * True while this detail page is the dock layer the user can actually see.
+   * Progress that lands while it is open counts as read; a hidden detail tab
+   * must not clear the unread marker.
+   */
+  visible?: boolean;
 }
 
 function priorityText(priority: string): string {
@@ -659,6 +672,8 @@ export function DockDetail({
   onCompleteIssue,
   onCancelIssue,
   onGenerateSummary,
+  recentChangedFiles = [],
+  visible = true,
 }: DockDetailProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -833,6 +848,24 @@ export function DockDetail({
     closeRequestRef.current += 1;
   }, [selection.kind === "issue" ? selection.issue.issueId : ""]);
 
+  // The catch-up bar treats every update newer than this issue's watermark as
+  // unread. While the detail page is on screen the user reads updates as they
+  // land, so advance the watermark with them; otherwise a page left open makes
+  // already-read progress resurface as soon as another issue moves.
+  const seenIssueId =
+    visible && selection.kind === "issue" ? selection.issue.issueId : null;
+  const seenUpdateAt =
+    visible && selection.kind === "issue"
+      ? (selection.issue.updates ?? []).reduce(
+          (newest, update) => Math.max(newest, update.at),
+          0,
+        )
+      : 0;
+  useEffect(() => {
+    if (!seenIssueId || !seenUpdateAt) return;
+    markIssueSeen(seenIssueId, seenUpdateAt);
+  }, [seenIssueId, seenUpdateAt]);
+
   useEffect(() => {
     // The empty page has no toolbar to reopen the list, so its auto-peek stays.
     if (!showPeek || emptyPage) return;
@@ -987,9 +1020,17 @@ export function DockDetail({
     displayUpdates.find((update) => update.kind === "assistant" && update.next)
       ?.next ??
     issue.items.find((item) => item.status !== "done")?.content;
-  const changedFiles = uniquePaths(
+  const ledgerChangedFiles = uniquePaths(
     updates.flatMap((update) => update.changedFiles ?? []),
   );
+  // A turn update written before changed files were captured (or compacted out
+  // of the visible window) leaves the ledger empty while the chat still holds
+  // the newest turn's snapshots. Fall back to those; a closed-issue preview and
+  // a different issue's session cannot leak files here.
+  const changedFiles =
+    ledgerChangedFiles.length > 0 || previewIssue
+      ? ledgerChangedFiles
+      : uniquePaths(recentChangedFiles);
   const artifactFiles = uniquePaths(updates.flatMap((update) => update.files ?? []));
   // 主卡已经展示最新一条；时间线只留历史增量。空回合标记没有信息量，
   // 全部从时间线隐藏，避免“回合结束”刷屏；最新的 turn 仍由主卡兜底。

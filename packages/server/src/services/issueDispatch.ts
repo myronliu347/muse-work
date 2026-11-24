@@ -51,11 +51,38 @@ export function lastAssistantText(
   return "";
 }
 
+/**
+ * A user message that actually starts a turn. Reminders, task notifications,
+ * and hook context are injected with `role: "user"` mid-turn; treating one as
+ * the boundary drops everything (file_history included) before it, so the
+ * turn's changed-file list goes missing whenever a background task finishes
+ * during the turn.
+ */
+function startsTurn(message: unknown): boolean {
+  if (!message || typeof message !== "object") return false;
+  const row = message as {
+    role?: string;
+    isMeta?: boolean;
+    blocks?: Array<{ type?: string; source?: string }>;
+  };
+  if (row.role !== "user" || row.isMeta) return false;
+  const blocks = Array.isArray(row.blocks) ? row.blocks : [];
+  if (
+    blocks.some(
+      (block) => block?.type === "bang" || block?.type === "task_notification",
+    )
+  ) {
+    return false;
+  }
+  if (blocks.some((block) => block?.type === "text" && block?.source === "hook")) {
+    return false;
+  }
+  return true;
+}
+
 function lastTurnMessages(messages: unknown[]): unknown[] {
   for (let i = messages.length - 1; i >= 0; i--) {
-    const message = messages[i];
-    if (!message || typeof message !== "object") continue;
-    if ((message as { role?: string }).role === "user") {
+    if (startsTurn(messages[i])) {
       return messages.slice(i);
     }
   }

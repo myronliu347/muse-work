@@ -24,6 +24,10 @@ import {
 } from "../../src/components/desktop/BotTabs";
 import { DOCK_DETAIL_TAB, PANEL_ADD_ORDER } from "../../src/muse/panelTabs";
 import {
+  isIssueUpdateUnread,
+  resetIssueSeenForTests,
+} from "../../src/muse/issueSeen";
+import {
   ASSISTANT_PANEL_GROUP_KEY,
   emptyFileTreeState,
   resetWebviewStores,
@@ -1738,6 +1742,83 @@ describe("assistant dock detail", () => {
     );
   });
 });
+
+  it("marks progress read only while the detail page is visible", async () => {
+    resetIssueSeenForTests();
+    const at = 1_700_000_000_000;
+    const radii = issue({
+      issueId: "radii",
+      title: RADII,
+      priority: "p1",
+      updateCount: 1,
+      updates: [
+        {
+          id: "u-1",
+          at,
+          kind: "assistant",
+          summary: "圆角已对齐。",
+        },
+      ],
+    });
+    const renderDetail = (current: DesktopIssueGroup, visible: boolean) => (
+      <MuseTheme>
+        <DockDetail
+          selection={{ kind: "issue", issue: current }}
+          actionLabel="打开会话"
+          onOpenSession={() => {}}
+          visible={visible}
+        />
+      </MuseTheme>
+    );
+
+    // A hidden detail tab (another dock kind on top) must not clear unread.
+    const { rerender } = render(renderDetail(radii, false));
+    expect(isIssueUpdateUnread("radii", at)).toBe(true);
+
+    rerender(renderDetail(radii, true));
+    await waitFor(() => expect(isIssueUpdateUnread("radii", at)).toBe(false));
+
+    // Progress that lands while the page is open is read as it renders, so it
+    // cannot resurface in the catch-up bar when another issue moves.
+    const later = at + 60_000;
+    const next: DesktopIssueGroup = {
+      ...radii,
+      updateCount: 2,
+      updates: [
+        { id: "u-2", at: later, kind: "assistant", summary: "按钮高度也统一了。" },
+        ...(radii.updates ?? []),
+      ],
+    };
+    rerender(renderDetail(next, true));
+    await waitFor(() => expect(isIssueUpdateUnread("radii", later)).toBe(false));
+  });
+
+  it("falls back to the newest turn's files when progress recorded none", () => {
+    const radii = issue({
+      issueId: "radii",
+      title: RADII,
+      priority: "p1",
+      updates: [
+        { id: "u-1", at: 1_700_000_000_000, kind: "turn", summary: "回合结束" },
+      ],
+      updateCount: 1,
+    });
+    render(
+      <MuseTheme>
+        <DockDetail
+          selection={{ kind: "issue", issue: radii }}
+          actionLabel="打开会话"
+          onOpenSession={() => {}}
+          recentChangedFiles={["/work/radii/src/a.ts", "/work/radii/src/b.ts"]}
+        />
+      </MuseTheme>,
+    );
+
+    expect(screen.getByTestId("dock-detail-changes")).toBeInTheDocument();
+    expect(screen.getByText("a.ts")).toBeInTheDocument();
+    expect(screen.getByText("b.ts")).toBeInTheDocument();
+    expect(screen.getByText("2 个文件")).toBeInTheDocument();
+  });
 
   it("shows progress, changed files and artifacts", async () => {
     const user = userEvent.setup();

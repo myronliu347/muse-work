@@ -9,6 +9,7 @@ import {
   formatDutyNudge,
   formatExecTurnProcess,
   formatExecTurnReport,
+  lastTurnChangedFiles,
 } from "../src/services/issueDispatch.js";
 
 describe("formatExecTurnReport", () => {
@@ -83,6 +84,52 @@ describe("formatDutyNudge", () => {
     expect(text).toContain("i1");
     expect(text).toContain("禁止派下一项");
     expect(text).not.toContain("dispatch 下一个 pending");
+  });
+});
+
+describe("lastTurnChangedFiles", () => {
+  const history = (filePath: string) => ({
+    type: "file_history",
+    snapshots: [{ filePath }],
+  });
+
+  it("keeps files when a meta reminder lands after the edits", () => {
+    const files = lastTurnChangedFiles([
+      {
+        id: "u1",
+        role: "user",
+        blocks: [{ type: "text", content: "改登录" }],
+      },
+      {
+        id: "a1",
+        role: "assistant",
+        blocks: [history("/repo/src/login.ts")],
+      },
+      {
+        // Background task finished mid-turn: the SDK injects this as a user
+        // message, but it does not start a new turn.
+        id: "u2",
+        role: "user",
+        isMeta: true,
+        blocks: [{ type: "task_notification" }],
+      },
+      {
+        id: "a2",
+        role: "assistant",
+        blocks: [{ type: "text", content: "改好了" }],
+      },
+    ]);
+    expect(files).toEqual(["/repo/src/login.ts"]);
+  });
+
+  it("does not carry an earlier turn's files into a new turn", () => {
+    const files = lastTurnChangedFiles([
+      { id: "u1", role: "user", blocks: [{ type: "text", content: "改登录" }] },
+      { id: "a1", role: "assistant", blocks: [history("/repo/src/login.ts")] },
+      { id: "u2", role: "user", blocks: [{ type: "text", content: "再补测试" }] },
+      { id: "a2", role: "assistant", blocks: [{ type: "text", content: "补了" }] },
+    ]);
+    expect(files).toEqual([]);
   });
 });
 
