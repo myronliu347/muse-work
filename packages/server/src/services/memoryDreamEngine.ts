@@ -269,10 +269,11 @@ export function createMemoryDreamEngine(options: {
       path.join(input.target.workdir, "AGENTS.md"),
       8000,
     );
+    const existingSkills = readAssistantSkills(input.target.workdir);
     const existingRules = readAssistantRules(input.target.workdir);
     const prompt = buildSkillExtractorPrompt({
       transcriptPaths: exported.files.map((file) => file.path),
-      existingSkills: readAssistantSkills(input.target.workdir),
+      existingSkills,
       existingRules,
       agentsMd,
       memoryIndex: readOptionalText(path.join(input.memoryDir, "MEMORY.md"), 12_000),
@@ -329,6 +330,7 @@ export function createMemoryDreamEngine(options: {
     const drafts = writeSkillDrafts({
       draftDir: input.draftDir,
       candidates,
+      existingSkills,
       suppressed,
       runId: input.runId,
       day,
@@ -337,7 +339,7 @@ export function createMemoryDreamEngine(options: {
       draftDir: input.draftDir,
       candidates: ruleCandidates,
       agentsMd,
-      existingRules: existingRules.map((rule) => rule.text),
+      existingRules,
       suppressed,
       runId: input.runId,
       day,

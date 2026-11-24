@@ -1561,6 +1561,7 @@ export interface MemoryDreamSkillView {
 
 export interface MemoryDreamRuleView {
   name: string;
+  action?: "create" | "update";
   description: string;
   text: string;
   intent?: string;

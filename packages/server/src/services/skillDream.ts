@@ -575,12 +575,16 @@ export function parseSkillCandidates(text: string): SkillCandidate[] {
 export function writeSkillDrafts(input: {
   draftDir: string;
   candidates: SkillCandidate[];
+  existingSkills?: Array<{ name: string; description?: string; content: string }>;
   suppressed?: Set<string>;
   runId: string;
   day: string;
 }): SkillDraft[] {
   const drafts: SkillDraft[] = [];
   const seen = new Set<string>();
+  const live = new Map(
+    (input.existingSkills ?? []).map((skill) => [skill.name, skill]),
+  );
   for (const candidate of input.candidates) {
     if (seen.has(candidate.name)) continue;
     seen.add(candidate.name);
@@ -594,6 +598,11 @@ export function writeSkillDrafts(input: {
     }
     const lint = lintSkillContent(candidate.name, candidate.content);
     if (!lint.ok) continue;
+    const exists = live.has(candidate.name);
+    const requested = candidate.action;
+    let action: "create" | "update" = requested;
+    if (requested === "update" && !exists) action = "create";
+    if (requested === "create" && exists) action = "update";
     const dir = path.join(input.draftDir, "skills", candidate.name);
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, "SKILL.md"), candidate.content, "utf-8");
@@ -603,7 +612,8 @@ export function writeSkillDrafts(input: {
         {
           name: candidate.name,
           description: candidate.description,
-          action: candidate.action,
+          action,
+          requestedAction: requested,
           intent: candidate.intent,
           evidence: candidate.evidence,
           confidence: candidate.confidence,
@@ -617,7 +627,7 @@ export function writeSkillDrafts(input: {
       ),
       "utf-8",
     );
-    drafts.push({ ...candidate, lint });
+    drafts.push({ ...candidate, action, lint });
   }
   return drafts;
 }

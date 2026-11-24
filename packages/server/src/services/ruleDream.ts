@@ -33,6 +33,7 @@ export interface RuleEvidence {
 }
 
 export interface RuleCandidate {
+  action?: "create" | "update";
   name: string;
   description: string;
   text: string;
@@ -44,6 +45,7 @@ export interface RuleCandidate {
 }
 
 export interface RuleDraft extends RuleCandidate {
+  action: "create" | "update";
   rendered: string;
   lint: { ok: boolean; issues: string[] };
 }
@@ -115,6 +117,7 @@ function normalizeCandidate(value: unknown): RuleCandidate | undefined {
   const text = typeof value.text === "string" ? value.text.trim() : "";
   if (!name || !text) return undefined;
   return {
+    action: value.action === "update" ? "update" : "create",
     name,
     text,
     description:
@@ -212,13 +215,16 @@ export function writeRuleDrafts(input: {
   draftDir: string;
   candidates: RuleCandidate[];
   agentsMd?: string;
-  existingRules?: string[];
+  existingRules?: Array<{ name: string; text: string }>;
   suppressed?: Set<string>;
   runId: string;
   day: string;
 }): RuleDraft[] {
   const drafts: RuleDraft[] = [];
   const seen = new Set<string>();
+  const live = new Map(
+    (input.existingRules ?? []).map((rule) => [rule.name, rule]),
+  );
   for (const candidate of input.candidates) {
     if (seen.has(candidate.name)) continue;
     seen.add(candidate.name);
@@ -232,9 +238,14 @@ export function writeRuleDrafts(input: {
       text: candidate.text,
       description: candidate.description,
       agentsMd: input.agentsMd,
-      existingRules: input.existingRules,
+      existingRules: (input.existingRules ?? []).map((rule) => rule.text),
     });
     if (!lint.ok) continue;
+    const exists = live.has(candidate.name);
+    const requested = candidate.action ?? "create";
+    let action: "create" | "update" = requested;
+    if (requested === "update" && !exists) action = "create";
+    if (requested === "create" && exists) action = "update";
     const rendered = renderRuleFile(candidate);
     const dir = path.join(input.draftDir, "rules");
     fs.mkdirSync(dir, { recursive: true });
@@ -243,6 +254,8 @@ export function writeRuleDrafts(input: {
       path.join(dir, `${candidate.name}.json`),
       JSON.stringify(
         {
+          action,
+          requestedAction: requested,
           name: candidate.name,
           description: candidate.description,
           text: candidate.text,
@@ -259,7 +272,7 @@ export function writeRuleDrafts(input: {
       ),
       "utf-8",
     );
-    drafts.push({ ...candidate, rendered, lint });
+    drafts.push({ ...candidate, action, rendered, lint });
   }
   return drafts;
 }
@@ -287,6 +300,7 @@ export function readRuleDrafts(
       if (typeof meta.text !== "string") continue;
       const rendered = fs.readFileSync(path.join(dir, `${name}.md`), "utf-8");
       drafts.push({
+        action: meta.action === "update" ? "update" : "create",
         name,
         description: typeof meta.description === "string" ? meta.description : "",
         text: meta.text,

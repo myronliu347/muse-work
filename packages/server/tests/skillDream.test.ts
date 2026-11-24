@@ -127,6 +127,50 @@ describe("skillDream candidates", () => {
     ).toHaveLength(0);
   });
 
+  it("forces create to update when the live skill exists, and downgrades a missing update", () => {
+    const draftDir = tempDir("muse-skill-action-");
+    const existing = [
+      {
+        name: "progress-review",
+        description: "old",
+        content: skillContent("progress-review"),
+      },
+    ];
+    const base = {
+      action: "create" as const,
+      name: "progress-review",
+      description: "new",
+      content: skillContent("progress-review", "new"),
+      evidence: [],
+      confidence: 0.8,
+      occurrenceDays: 2,
+    };
+    const updated = writeSkillDrafts({
+      draftDir,
+      candidates: [base],
+      existingSkills: existing,
+      runId: "r1",
+      day: "2026-11-24",
+    });
+    expect(updated[0]?.action).toBe("update");
+
+    const missing = writeSkillDrafts({
+      draftDir: tempDir("muse-skill-action2-"),
+      candidates: [
+        {
+          ...base,
+          action: "update",
+          name: "new-skill",
+          content: skillContent("new-skill"),
+        },
+      ],
+      existingSkills: existing,
+      runId: "r2",
+      day: "2026-11-24",
+    });
+    expect(missing[0]?.action).toBe("create");
+  });
+
   it("writes drafts and reads them back", () => {
     const draftDir = tempDir("muse-skill-draft-");
     const drafts = writeSkillDrafts({

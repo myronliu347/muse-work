@@ -1,7 +1,7 @@
 import type { SkillDraft } from "../services/skillDream.js";
 
 /**
- * Prompt for the assistant-only skill extractor.
+ * Prompt for the assistant-only learning extractor (rules + skills).
  *
  * The extractor reads exported transcripts and returns JSON candidates. It
  * never writes files: the server validates and writes drafts, so the hidden
@@ -28,7 +28,7 @@ export function buildSkillExtractorPrompt(input: {
     : "（还没有助手私有技能。）";
 
   return [
-    "你是助手的技能整理器。你只为这个助手沉淀它自己的工作方式，不服务 Issue 会话。",
+    "你是助手的学习整理器。你只为这个助手沉淀它自己的工作方式，不服务 Issue 会话。",
     "",
     "## 助手是什么",
     "助手是长期在线的协调者：它和人对话，把要办的事派给 Issue 会话，处理 issue 结束、automation 结果、权限审批这些事件。",
@@ -55,12 +55,20 @@ export function buildSkillExtractorPrompt(input: {
     "- 与现有技能重复的内容；优先 update 现有技能，而不是新建；",
     "- 与 AGENTS.md 或系统提示冲突的内容。",
     "",
+    "## 先匹配，再决定 action",
+    "输出前必须和现有规则/技能逐条对比：",
+    "1. 现有规则里已有同一条规则（同触发、同含义）→ action=update，用现有 name，把 text 改成合并后的版本，不要新建。",
+    "2. 现有技能里已有同一类（同触发、覆盖同一组步骤）→ action=update，用现有 name，保留原有仍然正确的步骤和坑，只改需要改的部分。",
+    "3. 只是参数不同（时间范围、项目、分组）→ action=update，不要新建。",
+    "4. 确实没有同类 → action=create。",
+    "不要给同一类起第二个近义 name；同名或近义必须复用现有 name。",
+    "",
     "## 判断“同一类”",
     "- 按工作意图判断，不按字面措辞；",
     "- 差异是参数（时间范围、项目、分组方式）→ 写进 SOP 的参数说明；",
     "- 差异是分支 → 写进判断条件；",
     "- 差异是特例 → 写进坑；",
-    "- 同一类至少在不同天出现 2 次，或用户明确说“以后都这样”，才值得沉淀。",
+    "- 优先沉淀不同天出现 2 次以上、或用户明确说“以后都这样”的类。",
     "",
     "## 现有助手技能",
     skills,
@@ -91,6 +99,7 @@ export function buildSkillExtractorPrompt(input: {
       {
         rules: [
           {
+            action: "create",
             name: "report-timing",
             intent: "report_timing",
             description: "只在失败、卡住或需要用户拍板时主动发消息。",
@@ -123,9 +132,9 @@ export function buildSkillExtractorPrompt(input: {
     "```",
     "",
     "occurrenceDays 填这类事在 observations + 本次 transcript 里出现过的不同天数。",
-    "即使只有 1 天，也请输出候选并把 occurrenceDays 设为 1，系统只会记 observation、不会起草；",
-    "如果用户明确说“以后都这样/记住”，把 explicit 设为 true 并给出用户原话作为证据，系统才会直接起草。",
-    "规则同样受这条约束；规则 text 要能独立成立，不要写事故叙事、命令、路径或密钥。",
+    "只出现 1 天的类也请输出候选，并把 occurrenceDays 设为 1；系统会生成带“首次出现”标记的草稿，批量采纳会跳过它，人可以逐条确认。",
+    "如果用户明确说“以后都这样/记住”，把 explicit 设为 true 并给出用户原话作为证据。",
+    "规则同样适用；update 必须复用现有 name；规则 text 要能独立成立，不要写事故叙事、命令、路径或密钥。",
     `rules 和 candidates 各最多 ${input.maxCandidates} 条；没有合格的就输出空数组。`,
     `技能会写到 ${input.skillRoot}；每条的 content 必须是完整的 SKILL.md，frontmatter 必须包含 name 和 description，name 与 candidate.name 一致。`,
     `助手 workdir：${input.workdir}`,
@@ -134,8 +143,8 @@ export function buildSkillExtractorPrompt(input: {
 
 export function buildSkillExtractorTask(transcriptPaths: string[]): string {
   return [
-    "读取上面列出的 transcript（逐个读完，可以分页），结合现有技能、AGENTS.md、memory 索引和 observations，",
-    "找出值得沉淀为助手 SOP 的“同一类工作”。",
+    "读取上面列出的 transcript（逐个读完，可以分页），结合现有技能、规则、AGENTS.md、memory 索引和 observations，",
+    "找出值得沉淀为助手规则或 SOP 的“同一类工作”。",
     "为 rules 和 candidates 分别判断；两类都没有就都输出空数组。只输出 JSON。",
   ].join("\n");
 }

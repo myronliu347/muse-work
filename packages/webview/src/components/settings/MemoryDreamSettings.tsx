@@ -257,8 +257,12 @@ function RuleRow({
   return (
     <div className="md-skill">
       <div className="md-skill-head">
-        <Badge size="1" variant="soft" color="amber">
-          规则
+        <Badge
+          size="1"
+          variant="soft"
+          color={rule.action === "update" ? "amber" : "green"}
+        >
+          {rule.action === "update" ? "更新规则" : "新增规则"}
         </Badge>
         <span className="md-skill-name">{rule.name}</span>
         {isFirstOccurrence(rule) ? (

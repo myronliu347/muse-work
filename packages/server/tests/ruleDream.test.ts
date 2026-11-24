@@ -68,6 +68,36 @@ describe("ruleDream", () => {
     ).toBe(false);
   });
 
+  it("normalizes rule create/update against existing rules", () => {
+    const draftDir = tempDir("muse-rule-action-");
+    const existing = [{ name: "report-timing", text: "old rule" }];
+    const base = {
+      name: "report-timing",
+      description: "x",
+      text: "new rule text",
+      evidence: [],
+      confidence: 0.8,
+      occurrenceDays: 2,
+    };
+    const forced = writeRuleDrafts({
+      draftDir,
+      candidates: [{ ...base, action: "create" }],
+      existingRules: existing,
+      runId: "r1",
+      day: "2026-11-24",
+    });
+    expect(forced[0]?.action).toBe("update");
+
+    const missing = writeRuleDrafts({
+      draftDir: tempDir("muse-rule-action2-"),
+      candidates: [{ ...base, action: "update", name: "new-rule" }],
+      existingRules: existing,
+      runId: "r2",
+      day: "2026-11-24",
+    });
+    expect(missing[0]?.action).toBe("create");
+  });
+
   it("writes, reads and adopts a rule with backup", () => {
     const draftDir = tempDir("muse-rule-draft-");
     const workdir = tempDir("muse-rule-work-");

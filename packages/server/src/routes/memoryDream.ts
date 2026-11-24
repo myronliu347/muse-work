@@ -525,6 +525,7 @@ memoryDreamRoutes.get("/memory-dream/runs/:id/report", (c) => {
     }
     return {
       name: rule.name,
+      action: rule.action,
       description: rule.description,
       text: rule.text,
       intent: rule.intent,
