@@ -2742,6 +2742,23 @@ body.is-panel-resizing-row * {
   width: auto;
 }
 
+/* The draft page is the one view with no header of its own, and it is
+   absolutely positioned over the whole chat column — including the titlebar
+   row. Its canvas background therefore covers the shell band, and the drag
+   strip below only starts after the sidebar toggle, so the gap between the
+   rail and the toggle showed the canvas as a white block. Paint the band on
+   the page itself (background-attachment stays at `scroll`, so the strip
+   cannot drift when the page scrolls) and leave the drag geometry alone. */
+.desktop-layout .new-session-page {
+  background-image: linear-gradient(
+    var(--surface-header),
+    var(--surface-header)
+  );
+  background-repeat: no-repeat;
+  background-position: top left;
+  background-size: 100% var(--desktop-shell-titlebar-height);
+}
+
 .desktop-layout .new-session-page::before {
   content: "";
   position: absolute;
