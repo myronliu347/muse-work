@@ -33,6 +33,22 @@ export const ASSISTANT_TOOLS = [
 
 export const ASSISTANT_TITLE = "小盏";
 
+/**
+ * The assistant's working directory. Dev uses a separate folder so its
+ * learned rules/skills and transcript never mix with a production install;
+ * MUSE_ASSISTANT_WORKDIR overrides both for tests or custom setups.
+ */
+export function resolveAssistantWorkdir(home: string): string {
+  const override = process.env.MUSE_ASSISTANT_WORKDIR?.trim();
+  if (override) {
+    return path.isAbsolute(override) ? override : path.join(home, override);
+  }
+  const devHome =
+    Boolean(process.env.MUSE_HOME_DIR) &&
+    process.env.MUSE_HOME_DIR !== ".muse-work";
+  return path.join(home, devHome ? "dev-assistant-chat" : "assistant-chat");
+}
+
 export function ensureAssistantSession(
   store: SessionStore,
   args: { home: string; systemPrompt?: string; toolNames?: readonly string[] },
@@ -40,16 +56,22 @@ export function ensureAssistantSession(
   const model = resolveScenarioModel("assistant", args.home);
   const systemPrompt = args.systemPrompt ?? ASSISTANT_SYSTEM_PROMPT;
   const toolNames = args.toolNames ?? ASSISTANT_TOOLS;
+  const workdir = resolveAssistantWorkdir(args.home);
+  fs.mkdirSync(workdir, { recursive: true });
   const existing = store.list().find((session) => session.origin === "assistant");
   if (existing) {
+    const workdirOk = existing.workdir === workdir;
     const promptOk = existing.systemPrompt === systemPrompt;
     const toolsOk = JSON.stringify(existing.tools ?? []) === JSON.stringify(toolNames);
     const denyOk = !existing.disallowedTools?.length;
     const titleOk = existing.title === ASSISTANT_TITLE;
     const modelOk = existing.model === model;
-    if (promptOk && toolsOk && denyOk && titleOk && modelOk) return existing;
+    if (promptOk && toolsOk && denyOk && titleOk && modelOk && workdirOk) {
+      return existing;
+    }
     return (
       store.update(existing.id, {
+        ...(workdirOk ? {} : { workdir }),
         ...(promptOk ? {} : { systemPrompt }),
         ...(toolsOk ? {} : { tools: [...toolNames] }),
         ...(denyOk ? {} : { disallowedTools: undefined }),
@@ -58,8 +80,6 @@ export function ensureAssistantSession(
       }) ?? existing
     );
   }
-  const workdir = path.join(args.home, "assistant-chat");
-  fs.mkdirSync(workdir, { recursive: true });
   return store.create({
     origin: "assistant",
     workdir,

@@ -7,7 +7,11 @@ import {
   defaultScenarioModels,
   saveScenarioModelsFile,
 } from "../src/services/agentConfig.js";
-import { ASSISTANT_TOOLS, ensureAssistantSession } from "../src/services/assistant/session.js";
+import {
+  ASSISTANT_TOOLS,
+  ensureAssistantSession,
+  resolveAssistantWorkdir,
+} from "../src/services/assistant/session.js";
 
 describe("ensureAssistantSession", () => {
   it("creates one assistant session and reuses it", () => {
@@ -123,5 +127,49 @@ describe("ensureAssistantSession", () => {
     expect(refreshed.systemPrompt).toContain("短回复必须用 `SendMessage`");
     expect(refreshed.tools).toEqual([...ASSISTANT_TOOLS]);
     expect(refreshed.disallowedTools).toBeUndefined();
+  });
+
+  it("uses a separate workdir for dev homes and migrates an existing session", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-dev-"));
+    const store = createSessionStore({ home });
+    const previous = process.env.MUSE_HOME_DIR;
+    const previousOverride = process.env.MUSE_ASSISTANT_WORKDIR;
+    delete process.env.MUSE_ASSISTANT_WORKDIR;
+    try {
+      delete process.env.MUSE_HOME_DIR;
+      expect(resolveAssistantWorkdir(home)).toBe(
+        path.join(home, "assistant-chat"),
+      );
+      const created = ensureAssistantSession(store, { home });
+      expect(created.workdir).toBe(path.join(home, "assistant-chat"));
+
+      process.env.MUSE_HOME_DIR = ".dev-muse-work";
+      expect(resolveAssistantWorkdir(home)).toBe(
+        path.join(home, "dev-assistant-chat"),
+      );
+      const migrated = ensureAssistantSession(store, { home });
+      expect(migrated.id).toBe(created.id);
+      expect(migrated.workdir).toBe(path.join(home, "dev-assistant-chat"));
+      expect(fs.existsSync(migrated.workdir)).toBe(true);
+    } finally {
+      if (previous === undefined) delete process.env.MUSE_HOME_DIR;
+      else process.env.MUSE_HOME_DIR = previous;
+      if (previousOverride === undefined) delete process.env.MUSE_ASSISTANT_WORKDIR;
+      else process.env.MUSE_ASSISTANT_WORKDIR = previousOverride;
+    }
+  });
+
+  it("honors MUSE_ASSISTANT_WORKDIR", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-override-"));
+    const previous = process.env.MUSE_ASSISTANT_WORKDIR;
+    try {
+      process.env.MUSE_ASSISTANT_WORKDIR = "custom-assistant";
+      expect(resolveAssistantWorkdir(home)).toBe(
+        path.join(home, "custom-assistant"),
+      );
+    } finally {
+      if (previous === undefined) delete process.env.MUSE_ASSISTANT_WORKDIR;
+      else process.env.MUSE_ASSISTANT_WORKDIR = previous;
+    }
   });
 });

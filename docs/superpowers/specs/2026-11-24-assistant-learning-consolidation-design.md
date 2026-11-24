@@ -109,7 +109,7 @@ description: 当用户要求汇总/回顾一段时间的事项进展，或周一
 ## 4. 存储与隔离
 
 ```
-~/assistant-chat/
+~/assistant-chat/          # 生产；dev 使用 ~/dev-assistant-chat/
   AGENTS.md                       # 人手写的规则
   .muse-work/rules/               # 自动提取的规则，逐条文件
     auto-report-timing.md
@@ -132,7 +132,7 @@ description: 当用户要求汇总/回顾一段时间的事项进展，或周一
 为什么这样可以隔离：
 
 - `SkillManager` 的项目级扫描是 `<workdir>/.muse-work/skills`、`.claude/skills`、`.agents/skills`；
-- 助手 workdir 固定在 `~/assistant-chat`，Issue 会话的 workdir 是各自项目目录；
+- 助手 workdir：生产是 `~/assistant-chat`，dev（`MUSE_HOME_DIR != .muse-work`）是 `~/dev-assistant-chat`；Issue 会话的 workdir 是各自项目目录；
 - 所以只有助手这条会话能扫到 `.muse-work/skills` 和 `.muse-work/rules`；
 - 目录在 home 下，不在 git 仓库里，不会脏工作区。
 
