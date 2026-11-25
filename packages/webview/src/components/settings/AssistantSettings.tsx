@@ -22,7 +22,11 @@ export function AssistantSettings({ api }: { api?: MuseApiClient }) {
   const [section, setSection] = useState<Section>("handoff");
 
   return (
-    <div className="as-root" data-testid="assistant-settings">
+    <div
+      className="as-root"
+      data-section={section}
+      data-testid="assistant-settings"
+    >
       <nav className="as-nav" aria-label="助手设置">
         {SECTIONS.map((item) => (
           <button
