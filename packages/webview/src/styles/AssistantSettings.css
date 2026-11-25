@@ -16,7 +16,7 @@
   min-height: 100%;
   padding: 8px;
   background: var(--surface-session-list);
-  border-right: var(--hairline) solid var(--border-subtle);
+  border-right: 1px solid var(--border-strong);
 }
 
 .as-nav-item {
@@ -52,7 +52,7 @@
 }
 
 .as-nav-item.is-active .codicon {
-  color: var(--accent-text);
+  color: currentColor;
   opacity: 1;
 }
 

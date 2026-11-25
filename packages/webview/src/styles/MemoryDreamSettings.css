@@ -555,9 +555,8 @@
 }
 
 .md-library-tab.is-active {
-  background: var(--surface-raised);
+  background: var(--surface-active);
   color: var(--text-primary);
-  box-shadow: 0 1px 2px var(--shadow-color-soft);
 }
 
 .md-library-body {
@@ -597,8 +596,7 @@
 
 .md-library-item.is-active {
   border-color: var(--border-subtle);
-  background: var(--surface-raised);
-  box-shadow: 0 1px 2px var(--shadow-color-soft);
+  background: var(--surface-active);
 }
 
 .md-library-item:focus,
@@ -784,7 +782,10 @@
   gap: var(--space-3);
   height: min(680px, calc(100vh - 220px));
   min-height: 420px;
-  padding: var(--space-4);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   overflow: hidden;
 }
 
