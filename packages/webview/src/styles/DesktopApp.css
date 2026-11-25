@@ -2361,6 +2361,17 @@ body.is-panel-resizing-row * {
   align-self: center;
 }
 
+/* 助手页自己排左右两栏：目录贴左，内容区居中；不要被上面的 880px
+   居中容器把目录也一起推到中间。 */
+.desktop-layout
+  > .desktop-settings-page[data-active-tab="assistant"]
+  .configuration-fields-scroll-area {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+  align-self: stretch;
+}
+
 
 @media (prefers-reduced-motion: reduce) {
   .desktop-layout > .desktop-settings-page {

@@ -364,6 +364,7 @@ const ConfigDialog = forwardRef<
         className="configuration-dialog config-dialog desktop-settings-page"
         aria-labelledby="config-dialog-title"
         data-testid="desktop-settings-page"
+        data-active-tab={activeTab}
       >
         {panel}
       </div>
