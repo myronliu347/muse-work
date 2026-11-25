@@ -85,3 +85,50 @@ assistantRoutes.post("/assistant/clear", async (c) => {
   ctx.hub.broadcastAll({ type: "assistant:cleared" });
   return c.json({ ok: true });
 });
+
+assistantRoutes.get("/assistant/handoff", (c) => {
+  return c.json(c.get("ctx").assistantHandoff.getState());
+});
+
+assistantRoutes.put("/assistant/handoff", async (c) => {
+  let body: { enabled?: unknown; hour?: unknown } = {};
+  try {
+    body = await c.req.json();
+  } catch {
+    body = {};
+  }
+  const patch: { enabled?: boolean; hour?: number } = {};
+  if (body.enabled !== undefined) {
+    if (typeof body.enabled !== "boolean") {
+      return c.json({ error: "enabled must be a boolean" }, 400);
+    }
+    patch.enabled = body.enabled;
+  }
+  if (body.hour !== undefined) {
+    if (
+      typeof body.hour !== "number" ||
+      !Number.isInteger(body.hour) ||
+      body.hour < 0 ||
+      body.hour > 23
+    ) {
+      return c.json({ error: "hour must be an integer between 0 and 23" }, 400);
+    }
+    patch.hour = body.hour;
+  }
+  try {
+    return c.json(c.get("ctx").assistantHandoff.update(patch));
+  } catch (err) {
+    return c.json({ error: runnerErrorMessage(err) }, 400);
+  }
+});
+
+assistantRoutes.post("/assistant/handoff/run", async (c) => {
+  const result = await c.get("ctx").assistantHandoff.run("manual");
+  if (!result.ok) {
+    return c.json(
+      { error: result.error },
+      result.busy ? 409 : 400,
+    );
+  }
+  return c.json(result);
+});

@@ -40,6 +40,30 @@ export interface MuseTavilyConfig {
   source: "stored" | "env" | "none";
 }
 
+/** 助手每日收工交接状态（GET/PUT /assistant/handoff）。 */
+export interface AssistantHandoffState {
+  version: 1;
+  enabled: boolean;
+  hour: number;
+  lastRunAt?: number;
+  lastAttemptAt?: number;
+  lastError?: string;
+  nextRunAt: number;
+  working: boolean;
+  handoffPath: string;
+  handoff: string | null;
+  archiveRoot: string;
+}
+
+export interface AssistantHandoffRunResult {
+  ok: true;
+  handoff: string;
+  handoffPath: string;
+  archiveDir?: string;
+  skipped?: "no_activity";
+  notice?: string;
+}
+
 export interface MuseTokenQuota {
   raw: unknown;
   user?: string;
@@ -1288,6 +1312,30 @@ export class MuseApiClient {
 
   async clearAssistantMessages(): Promise<{ ok: true }> {
     const res = await this.request("/assistant/clear", { method: "POST" });
+    return parseJson(res);
+  }
+
+  async getAssistantHandoff(): Promise<AssistantHandoffState> {
+    const res = await this.request("/assistant/handoff");
+    return parseJson(res);
+  }
+
+  async setAssistantHandoff(patch: {
+    enabled?: boolean;
+    hour?: number;
+  }): Promise<AssistantHandoffState> {
+    const res = await this.request("/assistant/handoff", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    return parseJson(res);
+  }
+
+  async runAssistantHandoff(): Promise<AssistantHandoffRunResult> {
+    const res = await this.request("/assistant/handoff/run", {
+      method: "POST",
+    });
     return parseJson(res);
   }
 

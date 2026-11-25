@@ -133,6 +133,7 @@ export type AssistantPageApi = {
     images?: Array<{ data: string; mediaType: string }>,
   ) => Promise<unknown>;
   clearAssistantMessages?: () => Promise<unknown>;
+  runAssistantHandoff?: () => Promise<unknown>;
   getAssistantSession?: () => Promise<{
     sessionId: string;
     title?: string;
@@ -1299,6 +1300,22 @@ export const AssistantPage: React.FC<{
       } catch (err) {
         const detail = err instanceof Error ? err.message : String(err);
         if (!detail.includes("409")) setError(detail);
+      }
+      return;
+    }
+    if (/^\/(?:handoff|收工)(?:\s|$)/.test(message)) {
+      if (working || !api.runAssistantHandoff) return;
+      setError(null);
+      try {
+        await api.runAssistantHandoff();
+        resetTranscript();
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        setError(
+          detail.includes("409")
+            ? "助手还在处理事情，等这一轮结束再收工。"
+            : detail,
+        );
       }
       return;
     }

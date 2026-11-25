@@ -129,6 +129,12 @@ export type WsEvent =
       };
     }
   | { type: "assistant:cleared" }
+  | {
+      type: "assistant:handoff";
+      at: number;
+      trigger: "manual" | "schedule";
+      summary: string;
+    }
   | { type: "assistant:status"; working: boolean; compacting?: boolean }
   | {
       type: "assistant:queue";

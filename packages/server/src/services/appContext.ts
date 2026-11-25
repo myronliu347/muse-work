@@ -64,6 +64,10 @@ import { resolveAutoMemoryDirectory } from "@muse-work/agent";
 import { createMemoryDreamStore } from "./memoryDreams.js";
 import { createMemoryDreamEngine } from "./memoryDreamEngine.js";
 import { createMemoryDreamScheduler } from "./memoryDreamScheduler.js";
+import {
+  createAssistantHandoff,
+  createAssistantHandoffScheduler,
+} from "./assistantHandoff.js";
 
 export { resolveHome };
 
@@ -89,6 +93,7 @@ export interface AppContext {
   issueDispatcher: ReturnType<typeof createIssueDispatcher>;
   assistantLog: ReturnType<typeof createAssistantMessageLog>;
   assistantRuntime: ReturnType<typeof createAssistantRuntime>;
+  assistantHandoff: ReturnType<typeof createAssistantHandoff>;
   pluginRoutes: import("../plugins/hostPlugins.js").PluginRoute[];
   settingsPanels: SettingsPanel[];
   /** Bind plugin listeners after the logger is configured and before the main server listens. */
@@ -248,6 +253,23 @@ export function createAppContext(
     onTurnEnd: () => {
       currentAssistantTurn = undefined;
     },
+  });
+  const assistantHandoff = createAssistantHandoff({
+    home,
+    sessions: sessions.store,
+    runner: sessions.runner,
+    issues,
+    issueProgress,
+    assistantLog,
+    hub: sessions.hub,
+    isBusy: () => assistantRuntime.working(),
+    beginAssistantExclusive: () => assistantRuntime.beginExclusive(),
+    endAssistantExclusive: () => assistantRuntime.endExclusive(),
+    now: options?.now,
+  });
+  const assistantHandoffScheduler = createAssistantHandoffScheduler({
+    service: assistantHandoff,
+    now: options?.now,
   });
   const recordIssueUpdate = (
     issueId: string,
@@ -419,6 +441,7 @@ export function createAppContext(
   automationRuntime.start();
   memoryDreams.failStaleRunning("进程退出");
   memoryDreamScheduler.start();
+  assistantHandoffScheduler.start();
   void assistantRuntime.start();
   const preparedPlugins = options?.preparedPlugins ?? [];
   return {
@@ -440,6 +463,7 @@ export function createAppContext(
     issueDispatcher: dispatcher,
     assistantLog,
     assistantRuntime,
+    assistantHandoff,
   };
 }
 

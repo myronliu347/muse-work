@@ -58,6 +58,9 @@ export function createAssistantRuntime(options: {
   onCompactionSettled(sessionId: string): void;
   working(): boolean;
   queueItems(): AssistantQueueView[];
+  /** 暂停事件泵：交接写作用，避免收工期间插进新回合。 */
+  beginExclusive(): boolean;
+  endExclusive(): void;
   start(): void;
   stop(): void;
 } {
@@ -66,6 +69,7 @@ export function createAssistantRuntime(options: {
   const schedule = options.schedule ?? defaultSchedule;
   let assistantId: string | undefined;
   let inflight = false;
+  let exclusive = false;
   let inflightSources = new Set<string>();
   let stopped = false;
   let turnStartedAt = 0;
@@ -129,7 +133,9 @@ export function createAssistantRuntime(options: {
   }
 
   function notify(): void {
-    options.onActivity?.(!stopped && (inflight || queue.peek() !== undefined));
+    options.onActivity?.(
+      !stopped && (exclusive || inflight || queue.peek() !== undefined),
+    );
     publishQueue();
   }
 
@@ -206,7 +212,7 @@ export function createAssistantRuntime(options: {
   }
 
   function pump(note?: string): void {
-    if (stopped || inflight || handoff || !assistantId) return;
+    if (stopped || exclusive || inflight || handoff || !assistantId) return;
     const batch = queue.claimBatch();
     if (batch.length === 0) return;
     beginTurn(batch, note);
@@ -300,6 +306,20 @@ export function createAssistantRuntime(options: {
     publishQueue();
   }
 
+  function beginExclusive(): boolean {
+    if (stopped || inflight) return false;
+    exclusive = true;
+    notify();
+    return true;
+  }
+
+  function endExclusive(): void {
+    if (!exclusive) return;
+    exclusive = false;
+    pump();
+    notify();
+  }
+
   function stop(): void {
     stopped = true;
     clearLimit();
@@ -330,8 +350,11 @@ export function createAssistantRuntime(options: {
       if (clock() - turnStartedAt < TURN_LIMIT_MS) return;
       armLimit();
     },
-    working: () => !stopped && (inflight || queue.peek() !== undefined),
+    working: () =>
+      !stopped && (exclusive || inflight || queue.peek() !== undefined),
     queueItems: () => queue.list(),
+    beginExclusive,
+    endExclusive,
     start,
     stop,
   };
