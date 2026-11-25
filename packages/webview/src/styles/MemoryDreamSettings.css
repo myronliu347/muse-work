@@ -557,7 +557,7 @@
 .md-library-tab.is-active {
   background: var(--surface-raised);
   color: var(--text-primary);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+  box-shadow: 0 1px 2px var(--shadow-color-soft);
 }
 
 .md-library-body {
@@ -598,7 +598,7 @@
 .md-library-item.is-active {
   border-color: var(--border-subtle);
   background: var(--surface-raised);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+  box-shadow: 0 1px 2px var(--shadow-color-soft);
 }
 
 .md-library-name {
@@ -673,9 +673,9 @@
 }
 
 .md-library-markdown a {
-  color: var(--accent-9, #b45309);
+  color: var(--accent-text);
   text-decoration: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent-9, #b45309) 35%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-text) 35%, transparent);
 }
 
 .md-library-markdown code {
@@ -761,4 +761,18 @@
     grid-template-columns: 1fr;
     grid-template-rows: minmax(120px, 30%) minmax(0, 1fr);
   }
+}
+
+.md-library-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.md-library-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
 }

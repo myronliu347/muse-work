@@ -12,7 +12,6 @@ import {
 } from "../../muse/apiClient";
 import { resolveMuseServerUrl } from "../../muse/hostBridge";
 import { MuseModelSelect } from "../shared/MuseModelSelect";
-import { AssistantLearningLibrary } from "./AssistantLearningLibrary";
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import "../../styles/MemoryDreamSettings.css";
 
@@ -492,7 +491,7 @@ function DraftReview({
 }
 
 /**
- * Settings → 记忆: nightly tidying, a manual run, and a human-gated swap.
+ * Settings → 助手 → 记忆整理: nightly tidying, a manual run, and a human-gated swap.
  *
  * The draft is the object under review: the review lists what each changed
  * file is about, not just its name, so confirming is an informed action.
@@ -1253,8 +1252,6 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
           })}
         </section>
       ) : null}
-
-      <AssistantLearningLibrary api={client} />
 
       {pendingConfirm ? (
         <ConfirmDialog

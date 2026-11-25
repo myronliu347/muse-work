@@ -20,8 +20,7 @@ import {
   type MuseProviderSettingsHandle,
 } from "../settings/MuseProviderSettings";
 import { AppearanceSettings } from "../settings/AppearanceSettings";
-import { MemoryDreamSettings } from "../settings/MemoryDreamSettings";
-import { AssistantHandoffSettings } from "../settings/AssistantHandoffSettings";
+import { AssistantSettings } from "../settings/AssistantSettings";
 import { DesktopUpdateChrome } from "../desktop/DesktopUpdateChrome";
 import { HostPluginPanel } from "../settings/HostPluginPanel";
 import {
@@ -139,7 +138,6 @@ const ConfigDialog = forwardRef<
         ["appearance", "外观", "config-appearance-panel"],
         ["agent", "Agent", "config-agent-panel"],
         ["assistant", "助手", "config-assistant-panel"],
-        ["memory", "记忆", "config-memory-panel"],
         ["provider", "供应商", "config-provider-panel"],
         ...panels.map(
           (panel) =>
@@ -298,14 +296,7 @@ const ConfigDialog = forwardRef<
               role="tabpanel"
               hidden={activeTab !== "assistant"}
             >
-              {activeTab === "assistant" ? <AssistantHandoffSettings /> : null}
-            </div>
-            <div
-              id="config-memory-panel"
-              role="tabpanel"
-              hidden={activeTab !== "memory"}
-            >
-              <MemoryDreamSettings />
+              {activeTab === "assistant" ? <AssistantSettings /> : null}
             </div>
             <div
               id="config-provider-panel"

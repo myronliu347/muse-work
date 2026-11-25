@@ -163,16 +163,6 @@ describe("MemoryDreamSettings", () => {
     );
   });
 
-  it("opens the knowledge library in a large dialog", async () => {
-    const api = mockApi(state());
-    renderPanel(api);
-    await userEvent.click(
-      await screen.findByRole("button", { name: "查看知识库" }),
-    );
-    expect(await screen.findByRole("dialog")).toBeTruthy();
-    expect(screen.getAllByText("反馈事项").length).toBeGreaterThan(0);
-  });
-
   it("starts a manual run", async () => {
     const api = mockApi(state());
     renderPanel(api);

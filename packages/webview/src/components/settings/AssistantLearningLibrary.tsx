@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Badge, Button, Dialog } from "@radix-ui/themes";
+import { useEffect, useMemo, useState } from "react";
+import { Badge, Button } from "@radix-ui/themes";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import type { MuseApiClient } from "../../muse/apiClient";
-import { getOverlayHost } from "../../utils/bodyPortal";
 import { MarkdownView } from "../message/MarkdownView";
 
 type Tab = "memory" | "rules" | "skills";
@@ -56,7 +55,6 @@ function humanize(name: string): string {
 
 export function AssistantLearningLibrary({ api }: { api: MuseApiClient }) {
   const [tab, setTab] = useState<Tab>("memory");
-  const [open, setOpen] = useState(false);
   const [data, setData] = useState<Library | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -136,129 +134,92 @@ export function AssistantLearningLibrary({ api }: { api: MuseApiClient }) {
   };
 
   return (
-    <>
-      <section className="md-card md-library is-collapsed">
-        <div className="md-library-head">
-          <div>
-            <div className="md-toggle-title">当前助手知识库</div>
-            <div className="md-target-hint">
-              记忆 {counts.memory} · 规则 {counts.rules} · 技能 {counts.skills}
-              <span className="md-library-sep"> · </span>
-              待处理草稿请到「最近整理」里采纳
-            </div>
-          </div>
-          <div className="md-library-actions">
-            <Button
-              size="1"
-              variant="soft"
-              onClick={() => {
-                setOpen(true);
-                if (!data) void load();
-              }}
-            >
-              查看知识库
-            </Button>
+    <section
+      className="md-card md-library-panel"
+      data-testid="assistant-learning-library"
+    >
+      <div className="md-library-panel-head">
+        <div>
+          <div className="md-toggle-title">当前助手知识库</div>
+          <div className="md-target-hint">
+            记忆 {counts.memory} · 规则 {counts.rules} · 技能 {counts.skills}
           </div>
         </div>
-      </section>
-
-      <Dialog.Root open={open} onOpenChange={setOpen}>
-        <Dialog.Content
-          className="md-library-dialog"
-          aria-describedby={undefined}
-          container={getOverlayHost()}
+        <Button
+          size="1"
+          variant="soft"
+          disabled={loading}
+          onClick={() => void load()}
         >
-          <div className="md-library-dialog-head">
-            <div>
-              <Dialog.Title className="md-library-dialog-title">
-                当前助手知识库
-              </Dialog.Title>
-              <div className="md-target-hint">
-                记忆 {counts.memory} · 规则 {counts.rules} · 技能 {counts.skills}
-              </div>
-            </div>
-            <div className="md-library-actions">
-              <Button
-                size="1"
-                variant="soft"
-                disabled={loading}
-                onClick={() => void load()}
-              >
-                刷新
-              </Button>
-              <Dialog.Close>
-                <Button size="1" variant="ghost" color="gray">
-                  关闭
-                </Button>
-              </Dialog.Close>
-            </div>
-          </div>
+          刷新
+        </Button>
+      </div>
 
-          {error ? <p className="md-error">{error}</p> : null}
+      {error ? <p className="md-error">{error}</p> : null}
 
-          <div className="md-library-tabs">
-            {(
-              [
-                ["memory", "记忆", counts.memory],
-                ["rules", "规则", counts.rules],
-                ["skills", "技能", counts.skills],
-              ] as const
-            ).map(([value, label, count]) => (
+      <div className="md-library-tabs">
+        {(
+          [
+            ["memory", "记忆", counts.memory],
+            ["rules", "规则", counts.rules],
+            ["skills", "技能", counts.skills],
+          ] as const
+        ).map(([value, label, count]) => (
+          <button
+            key={value}
+            type="button"
+            className={`md-library-tab${tab === value ? " is-active" : ""}`}
+            onClick={() => changeTab(value)}
+          >
+            {label}
+            <span>{count}</span>
+          </button>
+        ))}
+      </div>
+
+      {loading && !data ? (
+        <p className="md-empty">读取中…</p>
+      ) : items.length === 0 ? (
+        <p className="md-empty">还没有内容。</p>
+      ) : (
+        <div className="md-library-body">
+          <div className="md-library-list">
+            {items.map((item) => (
               <button
-                key={value}
+                key={item.id}
                 type="button"
-                className={`md-library-tab${tab === value ? " is-active" : ""}`}
-                onClick={() => changeTab(value)}
+                className={`md-library-item${item.id === active?.id ? " is-active" : ""}`}
+                onClick={() => setSelected(item.id)}
               >
-                {label}
-                <span>{count}</span>
+                <span className="md-library-name">{item.title}</span>
+                {item.description ? (
+                  <span className="md-library-desc">{item.description}</span>
+                ) : null}
               </button>
             ))}
           </div>
-
-          {items.length === 0 ? (
-            <p className="md-empty">还没有内容。</p>
-          ) : (
-            <div className="md-library-body">
-              <div className="md-library-list">
-                {items.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`md-library-item${item.id === active?.id ? " is-active" : ""}`}
-                    onClick={() => setSelected(item.id)}
-                  >
-                    <span className="md-library-name">{item.title}</span>
-                    {item.description ? (
-                      <span className="md-library-desc">{item.description}</span>
-                    ) : null}
-                  </button>
-                ))}
-              </div>
-              <div className="md-library-preview">
-                {active ? (
-                  <>
-                    <div className="md-library-preview-head">
-                      <span>{active.title}</span>
-                      {active.type ? (
-                        <Badge size="1" variant="soft" color="gray">
-                          {TYPE_LABEL[active.type] ?? active.type}
-                        </Badge>
-                      ) : null}
-                    </div>
-                    <MarkdownView
-                      className="md-library-markdown"
-                      html={toHtml(active.content)}
-                    />
-                  </>
-                ) : (
-                  <p className="md-empty">选一项查看预览。</p>
-                )}
-              </div>
-            </div>
-          )}
-        </Dialog.Content>
-      </Dialog.Root>
-    </>
+          <div className="md-library-preview">
+            {active ? (
+              <>
+                <div className="md-library-preview-head">
+                  <span>{active.title}</span>
+                  {active.type ? (
+                    <Badge size="1" variant="soft" color="gray">
+                      {TYPE_LABEL[active.type] ?? active.type}
+                    </Badge>
+                  ) : null}
+                </div>
+                <MarkdownView
+                  className="md-library-markdown"
+                  html={toHtml(active.content)}
+                />
+              </>
+            ) : (
+              <p className="md-empty">选一项查看预览。</p>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
