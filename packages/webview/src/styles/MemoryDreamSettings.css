@@ -601,10 +601,25 @@
   box-shadow: 0 1px 2px var(--shadow-color-soft);
 }
 
+.md-library-item:focus,
+.md-library-tab:focus {
+  outline: none;
+}
+
+.md-library-item:focus-visible,
+.md-library-tab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .md-library-name {
+  display: -webkit-box;
+  overflow: hidden;
   font-size: var(--font-size-2);
   font-weight: 600;
   line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .md-library-desc {
@@ -788,30 +803,13 @@
 .md-library-panel .md-library-body {
   flex: 1;
   min-height: 0;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
 }
 
 .md-library-panel .md-library-list,
 .md-library-panel .md-library-preview {
   min-height: 0;
   max-height: none;
-}
-
-.md-library-item-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.md-library-item-type {
-  flex: none;
-  margin-top: 1px;
-  padding: 1px 5px;
-  border-radius: var(--radius-1);
-  background: var(--surface-raised);
-  color: var(--text-tertiary);
-  font-size: 10px;
-  line-height: 1.5;
 }
 
 .md-library-preview-desc {

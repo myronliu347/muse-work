@@ -106,11 +106,17 @@
 
 /* 知识库要铺满设置页：内容列不再限 880，列表保持固定宽度、预览占剩余，
    面板吃满剩余高度，只有内部两栏滚动。 */
+.as-root[data-section="library"] {
+  height: 100%;
+  min-height: 0;
+}
+
 .as-root[data-section="library"] .as-content {
   display: flex;
   flex-direction: column;
   width: 100%;
   max-width: none;
+  height: 100%;
   min-height: 0;
   padding: var(--space-4);
 }
@@ -120,4 +126,9 @@
   width: 100%;
   height: auto;
   min-height: 0;
+}
+
+.desktop-settings-page[data-active-tab="assistant"]
+  .configuration-fields-scroll-area:has(.as-root[data-section="library"]) {
+  overflow: hidden;
 }
