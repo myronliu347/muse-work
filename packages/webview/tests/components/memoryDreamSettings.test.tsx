@@ -48,6 +48,7 @@ function mockApi(next: MemoryDreamState) {
     setMemoryDreamEnabled: vi.fn().mockResolvedValue({ ok: true, enabled: false }),
     runMemoryDream: vi.fn().mockResolvedValue({ ok: true, started: true }),
     adoptMemoryDreamRun: vi.fn().mockResolvedValue({ ok: true }),
+    resetMemoryDreamLearning: vi.fn().mockResolvedValue({ ok: true, removed: true }),
     adoptMemoryDreamSkill: vi.fn().mockResolvedValue({ ok: true }),
     adoptMemoryDreamRule: vi.fn().mockResolvedValue({ ok: true, effective: "next-session" }),
     rejectMemoryDreamDraft: vi.fn().mockResolvedValue({ ok: true }),
@@ -115,6 +116,17 @@ describe("MemoryDreamSettings", () => {
     expect(
       screen.getByRole("button", { name: "处理规则/技能 2" }),
     ).toBeTruthy();
+  });
+
+  it("clears the learning cursor after two confirmations", async () => {
+    const api = mockApi(state());
+    renderPanel(api);
+    await screen.findByRole("button", { name: "清空游标" });
+    await userEvent.click(screen.getByRole("button", { name: "清空游标" }));
+    await waitFor(() =>
+      expect(api.resetMemoryDreamLearning).toHaveBeenCalledWith("assistant"),
+    );
+    expect(window.confirm).toHaveBeenCalledTimes(2);
   });
 
   it("starts a manual run", async () => {

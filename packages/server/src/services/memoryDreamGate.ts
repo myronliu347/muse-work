@@ -42,6 +42,7 @@ export function startOfPreviousLocalDay(at: number): number {
 
 /** Last run wins; a target that never ran looks back one day, capped at 7. */
 export function dreamCutoff(target: MemoryDreamTarget, now: number): number {
+  if (target.fullRerun) return 0;
   const oneDayAgo = startOfPreviousLocalDay(now);
   const last = target.lastRunAt;
   if (!last) return oneDayAgo;

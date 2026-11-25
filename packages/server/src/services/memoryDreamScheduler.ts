@@ -5,7 +5,7 @@ import {
   type MemoryDreamStore,
   type MemoryDreamTarget,
 } from "./memoryDreams.js";
-import { dreamCutoff } from "./memoryDreamGate.js";
+import { dreamCutoff, evaluateDreamGate } from "./memoryDreamGate.js";
 import { planDreams } from "./memoryDreamSchedule.js";
 import type { DreamEngine } from "./memoryDreamEngine.js";
 
@@ -124,6 +124,7 @@ export function createMemoryDreamScheduler(options: {
         lastStatus: "succeeded",
         lastSummary: result.stats,
         consecutiveFailures: 0,
+        fullRerun: false,
       });
     } else {
       const failures = target.consecutiveFailures + 1;
@@ -188,8 +189,33 @@ export function createMemoryDreamScheduler(options: {
   ): Promise<MemoryDreamRun | undefined> {
     const target = options.store.getTarget(targetId);
     if (!target) return undefined;
-    const since = dreamCutoff(target, now().getTime());
-    return execute(target, since, "manual");
+    const at = now().getTime();
+    const decision = evaluateDreamGate({
+      home: options.home,
+      target,
+      memoryDir: options.memoryDirFor(target.workdir),
+      now: at,
+    });
+    if (!decision.shouldRun) {
+      // Manual runs still respect the same "something changed" gate as the
+      // nightly tick; a no-op run would only pay for a memory organizer.
+      const run = options.store.addRun({
+        id: crypto.randomUUID(),
+        targetId: target.id,
+        status: "skipped",
+        trigger: "manual",
+        skipReason: decision.skipReason,
+        startedAt: at,
+        endedAt: at,
+      });
+      options.store.patchTarget(target.id, {
+        lastAttemptAt: at,
+        lastStatus: "skipped",
+      });
+      notify();
+      return run;
+    }
+    return execute(target, decision.since, "manual");
   }
 
   return {

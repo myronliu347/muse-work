@@ -565,9 +565,14 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
   const runNow = async () => {
     if (!target) return;
     setBusy("run");
-    setNotice("已开始整理；跑完会出现在下面，等你确认。");
+    setNotice(null);
     try {
-      await client.runMemoryDream(target.id);
+      const result = await client.runMemoryDream(target.id);
+      setNotice(
+        result.started === false
+          ? "没有新的助手会话或记忆变化，已跳过这次整理。"
+          : "已开始整理；跑完会出现在下面，等你确认。",
+      );
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -786,6 +791,36 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
     }
   };
 
+  const resetLearning = async () => {
+    if (!target) return;
+    if (
+      !window.confirm(
+        "清空学习游标？下次整理会重新读取全部助手会话，不再只读新增内容。",
+      )
+    ) {
+      return;
+    }
+    if (
+      !window.confirm(
+        "确认全量重跑？这会重新消耗模型调用，并可能生成重复草稿。",
+      )
+    ) {
+      return;
+    }
+    setBusy("reset-learning");
+    setNotice(null);
+    try {
+      const result = await client.resetMemoryDreamLearning(target.id);
+      if (!result.ok) throw new Error(result.error ?? "清空失败");
+      setNotice("已清空学习游标；下次立即整理会全量重跑。");
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const saveModel = async (model: string) => {
     if (!target) return;
     setBusy("model");
@@ -862,14 +897,25 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
                 上次整理 {formatWhen(target.lastRunAt)}
               </div>
             </div>
-            <Button
-              size="2"
-              variant="soft"
-              disabled={running || busy === "run"}
-              onClick={() => void runNow()}
-            >
-              {running ? "整理中…" : "立即整理"}
-            </Button>
+            <div className="md-target-actions">
+              <Button
+                size="1"
+                variant="ghost"
+                color="gray"
+                disabled={running || busy !== null}
+                onClick={() => void resetLearning()}
+              >
+                清空游标
+              </Button>
+              <Button
+                size="2"
+                variant="soft"
+                disabled={running || busy === "run"}
+                onClick={() => void runNow()}
+              >
+                {running ? "整理中…" : "立即整理"}
+              </Button>
+            </div>
           </div>
 
           <div className="md-metrics">

@@ -1367,6 +1367,16 @@ export class MuseApiClient {
     return { ok: true, ...body };
   }
 
+  async resetMemoryDreamLearning(
+    targetId: string,
+  ): Promise<{ ok: boolean; removed?: boolean; backupPath?: string; error?: string }> {
+    const res = await this.request(
+      `/memory-dream/targets/${encodeURIComponent(targetId)}/reset-learning`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
   async updateMemoryDreamTarget(
     targetId: string,
     patch: { model?: string },

@@ -46,6 +46,8 @@ export interface MemoryDreamTarget {
    * active project does not rewrite another project's memory.
    */
   withIssueProgress: boolean;
+  /** One-shot: next run ignores lastRunAt and reads the full history. */
+  fullRerun?: boolean;
   /** Last time the scheduler actually attempted a run (success or not). */
   lastAttemptAt?: number;
   lastRunAt?: number;
@@ -121,6 +123,7 @@ export interface MemoryDreamStore {
         | "lastStatus"
         | "lastSummary"
         | "consecutiveFailures"
+        | "fullRerun"
       >
     >,
   ): MemoryDreamTarget | undefined;

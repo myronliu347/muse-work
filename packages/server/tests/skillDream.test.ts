@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import {
   adoptSkillDraft,
+  cursorsPath,
   exportIncrementalSkillTranscripts,
   lintSkillContent,
   loadSkillCursors,
@@ -12,6 +13,7 @@ import {
   observationsPath,
   parseSkillCandidates,
   readSkillDrafts,
+  resetLearningCursors,
   saveSkillCursors,
   skillRootForWorkdir,
   transcriptDirForWorkdir,
@@ -245,6 +247,17 @@ describe("skillDream incremental transcripts", () => {
     const appended = fs.readFileSync(third.files[0]!.path, "utf-8");
     expect(appended).toContain("three");
     expect(appended).not.toContain("one");
+  });
+
+  it("backs up and removes the cursor on reset", () => {
+    const home = tempDir("muse-skill-reset-");
+    const file = cursorsPath(home);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, JSON.stringify({ version: 1, transcripts: {} }), "utf-8");
+    const result = resetLearningCursors({ home });
+    expect(result.removed).toBe(true);
+    expect(fs.existsSync(file)).toBe(false);
+    expect(result.backupPath && fs.existsSync(result.backupPath)).toBe(true);
   });
 
   it("re-reads a rewritten transcript", () => {

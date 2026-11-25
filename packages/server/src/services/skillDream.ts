@@ -725,3 +725,21 @@ export function adoptSkillDraft(input: {
     };
   }
 }
+
+export function resetLearningCursors(input: {
+  home: string;
+  now?: Date;
+}): { removed: boolean; backupPath?: string } {
+  const source = cursorsPath(input.home);
+  if (!fs.existsSync(source)) return { removed: false };
+  const stamp = (input.now ?? new Date()).toISOString().replace(/[:.]/g, "-");
+  const backupPath = path.join(learningRoot(input.home), "backups", stamp, "cursors.json");
+  try {
+    fs.mkdirSync(path.dirname(backupPath), { recursive: true });
+    fs.copyFileSync(source, backupPath);
+    fs.rmSync(source, { force: true });
+    return { removed: true, backupPath };
+  } catch {
+    return { removed: false };
+  }
+}

@@ -12,9 +12,11 @@ import {
 } from "../services/memoryDreamAdopt.js";
 import { defaultDreamBackupRoot } from "../services/memoryDreams.js";
 import { lintMemoryDir } from "../services/memoryDreamLint.js";
+import { evaluateDreamGate } from "../services/memoryDreamGate.js";
 import {
   adoptSkillDraft,
   readSkillDrafts,
+  resetLearningCursors,
   skillRootForWorkdir,
   suppressLearningContent,
   suppressedPath,
@@ -108,12 +110,48 @@ memoryDreamRoutes.post("/memory-dream/targets/:id/run", (c) => {
   if (ctx.memoryDreamStore.hasRunning(target.id)) {
     return c.json({ error: "target is already running" }, 409);
   }
+  const decision = evaluateDreamGate({
+    home: ctx.home,
+    target,
+    memoryDir: resolveAutoMemoryDirectory(target.workdir),
+    now: Date.now(),
+  });
+  if (!decision.shouldRun) {
+    return c.json({
+      ok: true,
+      started: false,
+      skipped: decision.skipReason ?? "no_change",
+    });
+  }
   // A dream takes minutes; the run record carries the result.
   void ctx.memoryDreamScheduler.runNow(target.id).catch(() => {
     /* the run record already holds the failure */
   });
   return c.json({ ok: true, started: true });
 });
+
+memoryDreamRoutes.post(
+  "/memory-dream/targets/:id/reset-learning",
+  (c) => {
+    const ctx = c.get("ctx");
+    const target = ctx.memoryDreamStore.getTarget(c.req.param("id"));
+    if (!target) return c.json({ error: "target not found" }, 404);
+    if (target.kind !== "assistant") {
+      return c.json({ error: "learning state is assistant-only" }, 400);
+    }
+    if (ctx.memoryDreamStore.hasRunning(target.id)) {
+      return c.json({ error: "target is already running" }, 409);
+    }
+    const result = resetLearningCursors({ home: ctx.home });
+    ctx.memoryDreamStore.patchTarget(target.id, {
+      lastRunAt: 0,
+      lastAttemptAt: 0,
+      fullRerun: true,
+    });
+    ctx.hub.broadcastAll({ type: "memory-dream:changed" });
+    return c.json({ ok: true, ...result });
+  },
+);
 
 memoryDreamRoutes.get("/memory-dream/targets/:id/runs", (c) => {
   const ctx = c.get("ctx");

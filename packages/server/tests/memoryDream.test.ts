@@ -187,6 +187,28 @@ describe("memoryDreamGate", () => {
     ).toContain("MEMORY.md");
   });
 
+  it("forces since=0 when a full rerun is requested", () => {
+    const home = tempHome();
+    const store = createMemoryDreamStore({ home });
+    const target = store.ensureAssistantTarget("/full-rerun");
+    const dir = makeMemoryDir([{ name: "a.md" }]);
+    const now = Date.now();
+    const result = evaluateDreamGate({
+      home,
+      target: {
+        ...target,
+        lastRunAt: now,
+        lastAttemptAt: now,
+        withIssueProgress: false,
+        fullRerun: true,
+      },
+      memoryDir: dir,
+      now,
+    });
+    expect(result.shouldRun).toBe(true);
+    expect(result.since).toBe(0);
+  });
+
   it("runs the assistant target when its transcript is newer than the cutoff", () => {
     const home = tempHome();
     const store = createMemoryDreamStore({ home });
@@ -729,6 +751,40 @@ describe("memoryDreamScheduler", () => {
     });
     await ctx.scheduler.tick();
     expect(ctx.runs).toHaveLength(0);
+  });
+
+  it("skips an on-demand run when neither memory nor transcript changed", async () => {
+    const home = tempHome();
+    const store = createMemoryDreamStore({ home });
+    store.setEnabled(true);
+    const target = store.ensureAssistantTarget("/assistant");
+    const dir = makeMemoryDir([{ name: "a.md" }]);
+    store.patchTarget(target.id, { lastRunAt: Date.now() });
+    let calls = 0;
+    const scheduler = createMemoryDreamScheduler({
+      home,
+      store,
+      engine: {
+        async run() {
+          calls += 1;
+          return {
+            ok: true,
+            draftDir: "/unused",
+            transcripts: 1,
+            summaries: [],
+          };
+        },
+        handleTurnSettled() {},
+      } as unknown as DreamEngine,
+      memoryDirFor: () => dir,
+      draftRoot: path.join(home, "dreams"),
+      now: () => new Date(),
+    });
+
+    const run = await scheduler.runNow("assistant");
+    expect(run?.status).toBe("skipped");
+    expect(run?.skipReason).toBe("no_progress");
+    expect(calls).toBe(0);
   });
 
   it("runs on demand regardless of the schedule", async () => {
