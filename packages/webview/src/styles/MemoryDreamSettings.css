@@ -840,10 +840,22 @@
   grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
 }
 
-.md-library-panel .md-library-list,
+.md-library-panel .md-library-list {
+  min-height: 0;
+  max-height: none;
+}
+
 .md-library-panel .md-library-preview {
   min-height: 0;
   max-height: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.md-library-panel .md-library-markdown {
+  max-width: none;
 }
 
 .md-library-preview-desc {
