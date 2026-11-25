@@ -826,7 +826,7 @@
 }
 
 .md-library-panel .md-library-tab.is-active {
-  border-bottom-color: var(--text-primary);
+  border-bottom-color: var(--selection-indicator);
   background: transparent;
   color: var(--text-primary);
   font-weight: 500;
@@ -888,7 +888,7 @@
 
 .md-library-panel .md-library-item.is-active {
   background: transparent;
-  box-shadow: inset 2px 0 0 var(--border-emphasis);
+  box-shadow: inset 2px 0 0 var(--selection-indicator);
 }
 
 .md-library-panel .md-library-preview {
