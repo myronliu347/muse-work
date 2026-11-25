@@ -8,10 +8,10 @@ import "../../styles/AssistantSettings.css";
 
 type Section = "handoff" | "memory" | "library";
 
-const SECTIONS: Array<{ id: Section; label: string }> = [
-  { id: "handoff", label: "每日收工" },
-  { id: "memory", label: "记忆整理" },
-  { id: "library", label: "知识库" },
+const SECTIONS: Array<{ id: Section; label: string; icon: string }> = [
+  { id: "handoff", label: "每日收工", icon: "history" },
+  { id: "memory", label: "记忆整理", icon: "database" },
+  { id: "library", label: "知识库", icon: "book" },
 ];
 
 export function AssistantSettings({ api }: { api?: MuseApiClient }) {
@@ -32,7 +32,11 @@ export function AssistantSettings({ api }: { api?: MuseApiClient }) {
             aria-current={section === item.id ? "page" : undefined}
             onClick={() => setSection(item.id)}
           >
-            {item.label}
+            <i
+              className={`codicon codicon-${item.icon}`}
+              aria-hidden="true"
+            />
+            <span>{item.label}</span>
           </button>
         ))}
       </nav>
