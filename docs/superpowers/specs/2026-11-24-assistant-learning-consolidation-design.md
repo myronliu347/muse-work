@@ -425,6 +425,13 @@ conflicts: Array<{ ... }>;
 - 90 天未使用 → archive；用户 pin 的保留。
 - 冲突优先级：**system prompt > rules/AGENTS.md > skill**；技能正文写明“冲突时以系统提示/规则为准”。
 
+## 11.1 自动化与知识库
+
+- 定时整理在 `target.mode === "auto"` 时，会在成功 run 后自动采纳：记忆整体替换、lint 通过的规则/技能逐条采纳；手动「立即整理」仍只出草稿。
+- 频率支持每天 / 每周 / 每月，按 target 的本地 `hour` 判断（默认 04:00）；没有新 transcript、记忆变化或 issue progress 就跳过。
+- 设置页的「当前助手知识库」读取助手私有目录，按记忆 / 规则 / 技能分栏，支持 markdown 预览。
+- 「清空游标」会备份并删除 `cursors.json`，把 `fullRerun` 置为 true；成功后清除，失败保留。
+
 ## 12. 成本控制
 
 - 一次 extractor 读 transcript，三个 writer 只消费 candidates。

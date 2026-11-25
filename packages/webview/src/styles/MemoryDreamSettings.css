@@ -492,3 +492,273 @@
   align-items: center;
   gap: var(--space-2);
 }
+
+.md-cadence-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.md-library {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.md-library.is-collapsed {
+  padding: var(--space-2) var(--space-3);
+}
+
+.md-library-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.md-library-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.md-library-sep {
+  opacity: 0.5;
+}
+
+.md-library-tabs {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-3);
+  background: var(--surface-sunken);
+}
+
+.md-library-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: var(--radius-2);
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--font-size-1);
+  cursor: pointer;
+}
+
+.md-library-tab span {
+  opacity: 0.6;
+  font-size: 11px;
+}
+
+.md-library-tab.is-active {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+
+.md-library-body {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: var(--space-3);
+  min-height: 0;
+}
+
+.md-library-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 360px;
+  overflow: auto;
+  padding: 5px;
+  border-radius: var(--radius-3);
+  background: var(--surface-sunken);
+}
+
+.md-library-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-2);
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.md-library-item:hover {
+  background: var(--surface-raised);
+}
+
+.md-library-item.is-active {
+  border-color: var(--border-subtle);
+  background: var(--surface-raised);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+}
+
+.md-library-name {
+  font-size: var(--font-size-2);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.md-library-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--font-size-1);
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.md-library-preview {
+  min-width: 0;
+  max-height: 360px;
+  overflow: auto;
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-3);
+  background: var(--surface-raised);
+}
+
+.md-library-preview-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--font-size-3);
+  font-weight: 600;
+}
+
+.md-library-markdown {
+  max-width: 72ch;
+  color: var(--text-primary);
+  font-size: var(--font-size-2);
+  line-height: 1.7;
+}
+
+.md-library-markdown p {
+  margin: 0 0 10px;
+}
+
+.md-library-markdown h1,
+.md-library-markdown h2,
+.md-library-markdown h3 {
+  margin: 18px 0 8px;
+  line-height: 1.35;
+}
+
+.md-library-markdown h1:first-child,
+.md-library-markdown h2:first-child,
+.md-library-markdown h3:first-child {
+  margin-top: 0;
+}
+
+.md-library-markdown ul,
+.md-library-markdown ol {
+  margin: 0 0 10px;
+  padding-left: 1.3em;
+}
+
+.md-library-markdown li {
+  margin: 3px 0;
+}
+
+.md-library-markdown a {
+  color: var(--accent-9, #b45309);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-9, #b45309) 35%, transparent);
+}
+
+.md-library-markdown code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--surface-sunken);
+  font-size: 0.9em;
+}
+
+.md-library-markdown blockquote {
+  margin: 10px 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.md-run-hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-1);
+}
+
+/* Knowledge library uses a dialog so the reading area is not constrained by
+   the settings column. */
+.md-library-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(1200px, 94vw);
+  max-width: 94vw;
+  height: min(860px, 86vh);
+  padding: var(--space-5);
+  overflow: hidden;
+}
+
+.md-library-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.md-library-dialog-title {
+  margin: 0;
+  font-size: var(--font-size-5);
+  line-height: 1.25;
+}
+
+.md-library-dialog .md-library-tabs {
+  flex: none;
+}
+
+.md-library-dialog .md-library-body {
+  flex: 1;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.md-library-dialog .md-library-list,
+.md-library-dialog .md-library-preview {
+  height: 100%;
+  max-height: none;
+}
+
+.md-library-dialog .md-library-preview {
+  padding: var(--space-5);
+}
+
+.md-library-dialog .md-library-markdown {
+  max-width: 80ch;
+  font-size: var(--font-size-3);
+}
+
+@media (max-width: 720px) {
+  .md-library-dialog {
+    width: 96vw;
+    max-width: 96vw;
+    height: 90vh;
+    padding: var(--space-3);
+  }
+
+  .md-library-dialog .md-library-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(120px, 30%) minmax(0, 1fr);
+  }
+}

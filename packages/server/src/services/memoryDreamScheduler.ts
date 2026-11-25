@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import fs from "node:fs";
 import {
   dreamDraftDir,
   type MemoryDreamRun,
@@ -8,11 +9,18 @@ import {
 import { dreamCutoff, evaluateDreamGate } from "./memoryDreamGate.js";
 import { planDreams } from "./memoryDreamSchedule.js";
 import type { DreamEngine } from "./memoryDreamEngine.js";
+import { adoptDreamRun } from "./memoryDreamAdopt.js";
+import { defaultDreamBackupRoot } from "./memoryDreams.js";
+import { adoptRuleDraft, readAssistantRules, readRuleDrafts } from "./ruleDream.js";
+import { adoptSkillDraft, readSkillDrafts } from "./skillDream.js";
+import { requestSkillCatalogRefresh } from "@muse-work/agent";
+import type { SessionRunner } from "./sessionRunner/ctx.js";
 
 /**
  * The nightly driver.
  *
- * One tick checks "is it past 03:00 and did we already attempt today", plans
+ * One tick checks "is it past the target's due hour and did we already attempt
+ * this period", plans
  * the targets that need work, and runs them one at a time. A missed 03:00 (the
  * laptop was asleep) is caught on the next tick after start, once per target
  * per local day.
@@ -44,13 +52,17 @@ export function createMemoryDreamScheduler(options: {
   draftRoot: string;
   /** Resolve the assistant workdir at runtime; seeds/refreshes its target. */
   resolveAssistantWorkdir?: () => string | undefined;
+  /** Live runner used to reload rules after scheduled auto-adoption. */
+  runner?: SessionRunner;
+  /** Assistant session id, for live rule reload after auto-adoption. */
+  resolveAssistantSessionId?: () => string | undefined;
   now?: () => Date;
   hour?: number;
   maxRuns?: number;
   onChanged?: () => void;
 }): MemoryDreamScheduler {
   const now = () => options.now?.() ?? new Date();
-  const hour = options.hour ?? 3;
+  const hour = options.hour ?? 4;
   let timer: ReturnType<typeof setInterval> | undefined;
   let inFlight = false;
 
@@ -58,16 +70,103 @@ export function createMemoryDreamScheduler(options: {
     options.onChanged?.();
   }
 
-  function dueForAttempt(target: MemoryDreamTarget, at: number): boolean {
-    const start = localHourStart(new Date(at), hour);
-    if (at < start) return false;
-    const lastAttempt = target.lastAttemptAt ?? 0;
+  function periodStart(target: MemoryDreamTarget, at: number): number {
+    const start = new Date(at);
+    start.setHours(target.hour ?? hour, 0, 0, 0);
     if (target.cadence === "weekly") {
-      const week = 7 * 24 * 60 * 60 * 1000;
-      const anchor = target.lastRunAt ?? 0;
-      return at - anchor >= week && lastAttempt < start;
+      // ISO-style week starting Monday; catch up on the first tick after it.
+      const day = start.getDay();
+      start.setDate(start.getDate() - ((day + 6) % 7));
+    } else if (target.cadence === "monthly") {
+      start.setDate(1);
     }
-    return lastAttempt < start;
+    return start.getTime();
+  }
+
+  function dueForAttempt(target: MemoryDreamTarget, at: number): boolean {
+    const start = periodStart(target, at);
+    if (at < start) return false;
+    return (target.lastAttemptAt ?? 0) < start;
+  }
+
+  async function autoAdopt(
+    target: MemoryDreamTarget,
+    run: MemoryDreamRun,
+    trigger: "schedule" | "manual",
+  ): Promise<void> {
+    if (trigger !== "schedule" || target.mode !== "auto") return;
+    if (!run.draftDir) return;
+    const errors: string[] = [];
+    let adoptedMemory = false;
+    const memory = adoptDreamRun({
+      store: options.store,
+      runId: run.id,
+      backupRoot: defaultDreamBackupRoot(options.home),
+      memoryDirFor: options.memoryDirFor,
+    });
+    if (memory.ok) adoptedMemory = true;
+    else if (memory.error) errors.push(`memory: ${memory.error}`);
+
+    const skills = readSkillDrafts(run.draftDir).filter((draft) => draft.lint.ok);
+    let adoptedSkills = 0;
+    for (const skill of skills) {
+      const outcome = adoptSkillDraft({
+        draftDir: run.draftDir,
+        name: skill.name,
+        workdir: target.workdir,
+        backupRoot: defaultDreamBackupRoot(options.home),
+      });
+      if (outcome.ok) adoptedSkills += 1;
+      else if (outcome.error) errors.push(`skill ${skill.name}: ${outcome.error}`);
+    }
+    if (adoptedSkills > 0) {
+      await requestSkillCatalogRefresh(target.workdir).catch(() => {
+        /* the catalog refreshes on the assistant's next load anyway */
+      });
+    }
+
+    const agentsMd = (() => {
+      try {
+        return fs.readFileSync(`${target.workdir}/AGENTS.md`, "utf-8");
+      } catch {
+        return "";
+      }
+    })();
+    const existingRules = readAssistantRules(target.workdir);
+    const rules = readRuleDrafts(
+      run.draftDir,
+      agentsMd,
+      existingRules.map((rule) => rule.text),
+    ).filter((draft) => draft.lint.ok);
+    let adoptedRules = 0;
+    for (const rule of rules) {
+      const outcome = adoptRuleDraft({
+        draftDir: run.draftDir,
+        name: rule.name,
+        workdir: target.workdir,
+        backupRoot: defaultDreamBackupRoot(options.home),
+        agentsMd,
+        existingRules: existingRules.map((item) => item.text),
+      });
+      if (outcome.ok) adoptedRules += 1;
+      else if (outcome.error) errors.push(`rule ${rule.name}: ${outcome.error}`);
+    }
+    if (adoptedRules > 0 && options.runner) {
+      const assistantId = options.resolveAssistantSessionId?.();
+      if (assistantId) {
+        await options.runner.reloadMemoryRules(assistantId).catch(() => {
+          /* next agent rebuild will load the rules */
+        });
+      }
+    }
+
+    const at = now().getTime();
+    options.store.patchRun(run.id, {
+      ...(adoptedMemory || adoptedSkills > 0 || adoptedRules > 0
+        ? { autoAdoptedAt: at }
+        : {}),
+      ...(errors.length > 0 ? { autoAdoptError: errors.join("; ") } : {}),
+    });
   }
 
   async function execute(
@@ -126,6 +225,7 @@ export function createMemoryDreamScheduler(options: {
         consecutiveFailures: 0,
         fullRerun: false,
       });
+      if (finished) await autoAdopt(target, finished, trigger);
     } else {
       const failures = target.consecutiveFailures + 1;
       options.store.patchTarget(target.id, {

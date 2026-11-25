@@ -325,6 +325,9 @@ export function createAppContext(
     engine: memoryDreamEngine,
     memoryDirFor: (workdir) => resolveAutoMemoryDirectory(workdir),
     draftRoot: path.join(getMuseHomeDir(home), "dreams", "drafts"),
+    runner: sessions.runner,
+    resolveAssistantSessionId: () =>
+      sessions.store.list().find((session) => session.origin === "assistant")?.id,
     now: options?.now,
     onChanged: () => sessions.hub.broadcastAll({ type: "memory-dream:changed" }),
     resolveAssistantWorkdir: () =>

@@ -14,7 +14,7 @@ import { getMuseHomeDir } from "@muse-work/provider";
 
 export type DreamTargetKind = "assistant" | "project";
 export type DreamMode = "draft" | "auto";
-export type DreamCadence = "daily" | "weekly";
+export type DreamCadence = "daily" | "weekly" | "monthly";
 export type DreamRunStatus = "running" | "succeeded" | "failed" | "skipped";
 export type DreamSkipReason =
   | "no_progress"
@@ -38,6 +38,8 @@ export interface MemoryDreamTarget {
   enabled: boolean;
   mode: DreamMode;
   cadence: DreamCadence;
+  /** Local hour (0-23) this target is due; defaults to 04:00. */
+  hour?: number;
   /** Model used by this target's dream sessions; empty means the default. */
   model?: string;
   /**
@@ -88,6 +90,9 @@ export interface MemoryDreamRun {
   fallbackIndex?: boolean;
   /** Best-effort skill pass error; the memory draft may still be usable. */
   skillError?: string;
+  /** Set when a scheduled auto-mode run adopted its drafts without review. */
+  autoAdoptedAt?: number;
+  autoAdoptError?: string;
   /** Set when a person (or the auto path) swapped the draft into live memory. */
   adoptedAt?: number;
   /** Set when the draft was thrown away. */
@@ -116,6 +121,7 @@ export interface MemoryDreamStore {
         | "enabled"
         | "mode"
         | "cadence"
+        | "hour"
         | "label"
         | "model"
         | "lastAttemptAt"

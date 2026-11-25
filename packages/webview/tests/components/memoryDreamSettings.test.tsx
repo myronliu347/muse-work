@@ -44,6 +44,31 @@ function state(overrides: Partial<MemoryDreamState> = {}): MemoryDreamState {
 function mockApi(next: MemoryDreamState) {
   return {
     getMemoryDream: vi.fn().mockResolvedValue(next),
+    getMemoryDreamLearning: vi.fn().mockResolvedValue({
+      workdir: "/Users/me/assistant-chat",
+      memory: [
+        { name: "MEMORY.md", content: "# Memory\n\n- [a](a.md) — a" },
+        {
+          name: "feedback_x.md",
+          content:
+            "---\nname: 反馈事项\ndescription: 一条反馈记忆\ntype: feedback\n---\n\n正文内容。",
+        },
+      ],
+      rules: [
+        {
+          name: "report-timing",
+          description: "只在需要拍板时主动发消息。",
+          content: "只有失败、卡住或需要用户拍板时才主动发消息。",
+        },
+      ],
+      skills: [
+        {
+          name: "progress-review",
+          description: "当用户要求汇总进展时使用。",
+          content: "---\nname: progress-review\ndescription: x\n---\n\n## 步骤\n1. 做\n",
+        },
+      ],
+    }),
     listMemoryDreamBackups: vi.fn().mockResolvedValue({ backups: [] }),
     setMemoryDreamEnabled: vi.fn().mockResolvedValue({ ok: true, enabled: false }),
     runMemoryDream: vi.fn().mockResolvedValue({ ok: true, started: true }),
@@ -100,9 +125,17 @@ function renderPanel(api: MuseApiClient) {
   );
 }
 
+async function confirmDialog(confirm = true) {
+  await userEvent.click(
+    await screen.findByTestId(
+      confirm ? "confirm-dialog-confirm" : "confirm-dialog-cancel",
+    ),
+  );
+}
+
 describe("MemoryDreamSettings", () => {
   beforeEach(() => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.restoreAllMocks();
   });
 
   it("shows the target stats and the manual run entry", async () => {
@@ -123,10 +156,21 @@ describe("MemoryDreamSettings", () => {
     renderPanel(api);
     await screen.findByRole("button", { name: "清空游标" });
     await userEvent.click(screen.getByRole("button", { name: "清空游标" }));
+    await confirmDialog();
+    await confirmDialog();
     await waitFor(() =>
       expect(api.resetMemoryDreamLearning).toHaveBeenCalledWith("assistant"),
     );
-    expect(window.confirm).toHaveBeenCalledTimes(2);
+  });
+
+  it("opens the knowledge library in a large dialog", async () => {
+    const api = mockApi(state());
+    renderPanel(api);
+    await userEvent.click(
+      await screen.findByRole("button", { name: "查看知识库" }),
+    );
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+    expect(screen.getAllByText("反馈事项").length).toBeGreaterThan(0);
   });
 
   it("starts a manual run", async () => {
@@ -142,17 +186,18 @@ describe("MemoryDreamSettings", () => {
     renderPanel(api);
     await screen.findByRole("button", { name: "确认替换" });
     await userEvent.click(screen.getByRole("button", { name: "确认替换" }));
+    await confirmDialog();
     await waitFor(() =>
       expect(api.adoptMemoryDreamRun).toHaveBeenCalledWith("run-1", false),
     );
   });
 
   it("does not adopt when the confirmation is declined", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     const api = mockApi(state());
     renderPanel(api);
     await screen.findByRole("button", { name: "确认替换" });
     await userEvent.click(screen.getByRole("button", { name: "确认替换" }));
+    await confirmDialog(false);
     expect(api.adoptMemoryDreamRun).not.toHaveBeenCalled();
   });
 
@@ -196,6 +241,7 @@ describe("MemoryDreamSettings", () => {
     await userEvent.click(screen.getByRole("button", { name: "查看草稿" }));
     await screen.findByText("progress-review");
     await userEvent.click(screen.getByRole("button", { name: "采纳" }));
+    await confirmDialog();
     await waitFor(() =>
       expect(api.adoptMemoryDreamSkill).toHaveBeenCalledWith(
         "run-1",
@@ -226,6 +272,7 @@ describe("MemoryDreamSettings", () => {
     await userEvent.click(screen.getByRole("button", { name: "查看草稿" }));
     await screen.findByText("report-timing");
     await userEvent.click(screen.getByRole("button", { name: "采纳" }));
+    await confirmDialog();
     await waitFor(() =>
       expect(api.adoptMemoryDreamRule).toHaveBeenCalledWith(
         "run-1",
@@ -271,6 +318,7 @@ describe("MemoryDreamSettings", () => {
     await userEvent.click(screen.getByRole("button", { name: "查看草稿" }));
     await screen.findByRole("button", { name: "采纳全部安全项" });
     await userEvent.click(screen.getByRole("button", { name: "采纳全部安全项" }));
+    await confirmDialog();
     await waitFor(() => {
       expect(api.adoptMemoryDreamRule).toHaveBeenCalledWith(
         "run-1",
@@ -305,6 +353,7 @@ describe("MemoryDreamSettings", () => {
     await userEvent.click(screen.getByRole("button", { name: "查看草稿" }));
     await screen.findByText("progress-review");
     await userEvent.click(screen.getByRole("button", { name: "忽略" }));
+    await confirmDialog();
     await waitFor(() =>
       expect(api.rejectMemoryDreamDraft).toHaveBeenCalledWith(
         "run-1",
@@ -333,6 +382,7 @@ describe("MemoryDreamSettings", () => {
     renderPanel(api);
     await screen.findByText(/草稿校验：孤儿 213/);
     await userEvent.click(screen.getByRole("button", { name: "仍然替换" }));
+    await confirmDialog();
     await waitFor(() =>
       expect(api.adoptMemoryDreamRun).toHaveBeenCalledWith("run-1", true),
     );

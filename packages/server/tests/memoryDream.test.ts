@@ -21,6 +21,9 @@ import {
 } from "../src/services/memoryDreamApplier.js";
 import { planDreams } from "../src/services/memoryDreamSchedule.js";
 import { createMemoryDreamEngine, type DreamEngine } from "../src/services/memoryDreamEngine.js";
+import { dreamDraftDir } from "../src/services/memoryDreams.js";
+import { skillRootForWorkdir } from "../src/services/skillDream.js";
+import { ruleRootForWorkdir } from "../src/services/ruleDream.js";
 import { createMemoryDreamScheduler } from "../src/services/memoryDreamScheduler.js";
 import {
   adoptDreamRun,
@@ -785,6 +788,56 @@ describe("memoryDreamScheduler", () => {
     expect(run?.status).toBe("skipped");
     expect(run?.skipReason).toBe("no_progress");
     expect(calls).toBe(0);
+  });
+
+  it("auto-adopts scheduled drafts when the target mode is auto", async () => {
+    const home = tempHome();
+    const store = createMemoryDreamStore({ home });
+    store.setEnabled(true);
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-auto-"));
+    const target = store.ensureAssistantTarget(workdir);
+    const liveMemory = makeMemoryDir([{ name: "a.md" }]);
+    const draftRoot = path.join(home, "dreams");
+    const engine = {
+      async run(input: { runId: string }) {
+        const draftDir = dreamDraftDir(draftRoot, target.id, input.runId);
+        fs.cpSync(liveMemory, path.join(draftDir, "memory"), { recursive: true });
+        fs.mkdirSync(path.join(draftDir, "skills", "progress-review"), { recursive: true });
+        fs.writeFileSync(
+          path.join(draftDir, "skills", "progress-review", "SKILL.md"),
+          "---\nname: progress-review\ndescription: Use when reviewing.\n---\n\n## 步骤\n1. 做\n",
+        );
+        fs.writeFileSync(
+          path.join(draftDir, "skills", "progress-review", "meta.json"),
+          JSON.stringify({ name: "progress-review", description: "Use when reviewing.", action: "create" }),
+        );
+        fs.mkdirSync(path.join(draftDir, "rules"), { recursive: true });
+        fs.writeFileSync(
+          path.join(draftDir, "rules", "report-timing.md"),
+          "---\nname: report-timing\ndescription: timing\n---\n\nOnly report when blocked.",
+        );
+        fs.writeFileSync(
+          path.join(draftDir, "rules", "report-timing.json"),
+          JSON.stringify({ name: "report-timing", description: "timing", text: "Only report when blocked.", occurrenceDays: 2 }),
+        );
+        return { ok: true, draftDir, transcripts: 1, summaries: [] };
+      },
+      handleTurnSettled() {},
+    } as unknown as DreamEngine;
+    const scheduler = createMemoryDreamScheduler({
+      home,
+      store,
+      engine,
+      memoryDirFor: () => liveMemory,
+      draftRoot,
+      now: () => new Date(2026, 10, 24, 4, 0, 0),
+      hour: 4,
+    });
+    await scheduler.tick();
+    expect(fs.existsSync(path.join(liveMemory, "MEMORY.md"))).toBe(true);
+    expect(fs.existsSync(path.join(skillRootForWorkdir(workdir), "progress-review", "SKILL.md"))).toBe(true);
+    expect(fs.existsSync(path.join(ruleRootForWorkdir(workdir), "auto-report-timing.md"))).toBe(true);
+    expect(store.listRuns("assistant")[0]?.autoAdoptedAt).toBeTruthy();
   });
 
   it("runs on demand regardless of the schedule", async () => {

@@ -15,6 +15,7 @@ import { lintMemoryDir } from "../services/memoryDreamLint.js";
 import { evaluateDreamGate } from "../services/memoryDreamGate.js";
 import {
   adoptSkillDraft,
+  readAssistantSkills,
   readSkillDrafts,
   resetLearningCursors,
   skillRootForWorkdir,
@@ -87,9 +88,25 @@ memoryDreamRoutes.put("/memory-dream/enabled", async (c) => {
 memoryDreamRoutes.put("/memory-dream/targets/:id", async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as {
     model?: unknown;
+    cadence?: unknown;
+    hour?: unknown;
   };
   if (body.model !== undefined && typeof body.model !== "string") {
     return c.json({ error: "model must be a string" }, 400);
+  }
+  if (
+    body.cadence !== undefined &&
+    body.cadence !== "daily" &&
+    body.cadence !== "weekly" &&
+    body.cadence !== "monthly"
+  ) {
+    return c.json({ error: "cadence must be daily, weekly or monthly" }, 400);
+  }
+  if (
+    body.hour !== undefined &&
+    (!Number.isInteger(body.hour) || (body.hour as number) < 0 || (body.hour as number) > 23)
+  ) {
+    return c.json({ error: "hour must be an integer 0-23" }, 400);
   }
   const ctx = c.get("ctx");
   const id = c.req.param("id");
@@ -98,6 +115,10 @@ memoryDreamRoutes.put("/memory-dream/targets/:id", async (c) => {
   }
   const target = ctx.memoryDreamStore.patchTarget(id, {
     model: typeof body.model === "string" ? body.model.trim() : undefined,
+    ...(body.cadence !== undefined
+      ? { cadence: body.cadence as "daily" | "weekly" | "monthly" }
+      : {}),
+    ...(body.hour !== undefined ? { hour: body.hour as number } : {}),
   });
   ctx.hub.broadcastAll({ type: "memory-dream:changed" });
   return c.json({ ok: true, target });
@@ -505,6 +526,52 @@ memoryDreamRoutes.post("/memory-dream/runs/:id/reject", async (c) => {
   }
   ctx.hub.broadcastAll({ type: "memory-dream:changed" });
   return c.json({ ok: true });
+});
+
+memoryDreamRoutes.get("/memory-dream/learning", (c) => {
+  const ctx = c.get("ctx");
+  const assistant = ctx.store
+    .list()
+    .find((session) => session.origin === "assistant");
+  if (!assistant) return c.json({ error: "assistant session not found" }, 404);
+  const memoryDir = resolveAutoMemoryDirectory(assistant.workdir);
+  const memory: Array<{ name: string; content: string }> = [];
+  try {
+    for (const entry of fs.readdirSync(memoryDir)) {
+      if (!entry.endsWith(".md")) continue;
+      try {
+        memory.push({
+          name: entry,
+          content: fs
+            .readFileSync(path.join(memoryDir, entry), "utf-8")
+            .slice(0, 24_000),
+        });
+      } catch {
+        // unreadable memory file
+      }
+    }
+  } catch {
+    // no memory dir
+  }
+  memory.sort((a, b) => {
+    if (a.name === "MEMORY.md") return -1;
+    if (b.name === "MEMORY.md") return 1;
+    return a.name.localeCompare(b.name);
+  });
+  return c.json({
+    workdir: assistant.workdir,
+    memory,
+    rules: readAssistantRules(assistant.workdir).map((rule) => ({
+      name: rule.name,
+      description: rule.description,
+      content: rule.text,
+    })),
+    skills: readAssistantSkills(assistant.workdir).map((skill) => ({
+      name: skill.name,
+      description: skill.description,
+      content: skill.content,
+    })),
+  });
 });
 
 memoryDreamRoutes.get("/memory-dream/runs/:id/report", (c) => {

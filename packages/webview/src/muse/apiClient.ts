@@ -1367,6 +1367,16 @@ export class MuseApiClient {
     return { ok: true, ...body };
   }
 
+  async getMemoryDreamLearning(): Promise<{
+    workdir: string;
+    memory: Array<{ name: string; content: string }>;
+    rules: Array<{ name: string; description: string; content: string }>;
+    skills: Array<{ name: string; description: string; content: string }>;
+  }> {
+    const res = await this.request("/memory-dream/learning");
+    return parseJson(res);
+  }
+
   async resetMemoryDreamLearning(
     targetId: string,
   ): Promise<{ ok: boolean; removed?: boolean; backupPath?: string; error?: string }> {
@@ -1379,7 +1389,7 @@ export class MuseApiClient {
 
   async updateMemoryDreamTarget(
     targetId: string,
-    patch: { model?: string },
+    patch: { model?: string; cadence?: "daily" | "weekly" | "monthly"; hour?: number },
   ): Promise<{ ok: boolean; target: MemoryDreamTargetView }> {
     const res = await this.request(
       `/memory-dream/targets/${encodeURIComponent(targetId)}`,
@@ -1488,6 +1498,8 @@ export interface MemoryDreamRunView {
   summary?: { files: number; orphans: number; indexChars: number };
   error?: string;
   skillError?: string;
+  autoAdoptedAt?: number;
+  autoAdoptError?: string;
   adoptedAt?: number;
   discardedAt?: number;
   fallbackIndex?: boolean;
@@ -1510,7 +1522,8 @@ export interface MemoryDreamTargetView {
   label: string;
   enabled: boolean;
   mode: "draft" | "auto";
-  cadence: "daily" | "weekly";
+  cadence: "daily" | "weekly" | "monthly";
+  hour?: number;
   model?: string;
   lastRunAt?: number;
   lastAttemptAt?: number;

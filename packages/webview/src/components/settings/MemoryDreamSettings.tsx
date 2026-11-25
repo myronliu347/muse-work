@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Badge, Button, Progress, Switch } from "@radix-ui/themes";
+import { Badge, Button, Progress, Select, Switch } from "@radix-ui/themes";
 import {
   MuseApiClient,
   type MemoryDreamProgress,
@@ -12,6 +12,8 @@ import {
 } from "../../muse/apiClient";
 import { resolveMuseServerUrl } from "../../muse/hostBridge";
 import { MuseModelSelect } from "../shared/MuseModelSelect";
+import { AssistantLearningLibrary } from "./AssistantLearningLibrary";
+import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import "../../styles/MemoryDreamSettings.css";
 
 function formatWhen(at: number | undefined): string {
@@ -73,6 +75,17 @@ function statusBadge(run: MemoryDreamRunView) {
   if (run.discardedAt) return { color: "gray" as const, label: "已丢弃" };
   return { color: "amber" as const, label: "待确认" };
 }
+
+const CADENCE_LABEL: Record<string, string> = {
+  daily: "每天",
+  weekly: "每周",
+  monthly: "每月",
+};
+
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => ({
+  value: String(hour),
+  label: `${String(hour).padStart(2, "0")}:00`,
+}));
 
 const TYPE_LABEL: Record<string, string> = {
   user: "用户",
@@ -484,6 +497,13 @@ function DraftReview({
  * The draft is the object under review: the review lists what each changed
  * file is about, not just its name, so confirming is an informed action.
  */
+type PendingConfirm = {
+  title: string;
+  description?: string;
+  confirmText?: string;
+  resolve: (value: boolean) => void;
+};
+
 export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
   const client = useMemo(
     () => api ?? new MuseApiClient({ baseUrl: resolveMuseServerUrl() }),
@@ -500,7 +520,21 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
   const [reportOpen, setReportOpen] = useState(false);
   const [expandedRun, setExpandedRun] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(
+    null,
+  );
   const pollRef = useRef<number | null>(null);
+
+  const askConfirm = (options: Omit<PendingConfirm, "resolve">) =>
+    new Promise<boolean>((resolve) =>
+      setPendingConfirm({ ...options, resolve }),
+    );
+
+  const finishConfirm = (value: boolean) => {
+    const current = pendingConfirm;
+    setPendingConfirm(null);
+    current?.resolve(value);
+  };
 
   const refresh = useCallback(async () => {
     try {
@@ -606,9 +640,15 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
       ? (report.data.rules ?? []).find((rule) => rule.name === name)
       : undefined;
     if (
-      !window.confirm(
-        `采纳规则“${name}”${first && isFirstOccurrence(first) ? "（只出现过一次，建议再观察）" : ""}？会先备份同名规则；规则在下次会话或重建助手后生效。`,
-      )
+      !(await askConfirm({
+        title: `采纳规则“${name}”？`,
+        description: `${
+          first && isFirstOccurrence(first)
+            ? "只出现过一次，建议再观察。\n"
+            : ""
+        }会先备份同名规则；规则在下次会话或重建助手后生效。`,
+        confirmText: "采纳",
+      }))
     ) {
       return;
     }
@@ -643,9 +683,12 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
     );
     if (safeRules.length + safeSkills.length === 0) return;
     if (
-      !window.confirm(
-        `采纳 ${safeRules.length} 条规则、${safeSkills.length} 个技能？记忆仍需单独替换；规则会尽量在下一轮生效。`,
-      )
+      !(await askConfirm({
+        title: `采纳 ${safeRules.length} 条规则、${safeSkills.length} 个技能？`,
+        description:
+          "记忆仍需单独替换；规则会尽量在下一轮生效，技能会刷新目录。",
+        confirmText: "采纳",
+      }))
     ) {
       return;
     }
@@ -691,7 +734,13 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
     kind: "rule" | "skill",
     name: string,
   ) => {
-    if (!window.confirm(`忽略“${name}”？以后相同内容不会再建议。`)) {
+    if (
+      !(await askConfirm({
+        title: `忽略“${name}”？`,
+        description: "以后相同内容不会再建议；已生成的草稿会被删除。",
+        confirmText: "忽略",
+      }))
+    ) {
       return;
     }
     setBusy(`reject:${name}`);
@@ -715,9 +764,15 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
       ? (report.data.skills ?? []).find((skill) => skill.name === name)
       : undefined;
     if (
-      !window.confirm(
-        `采纳技能“${name}”${first && isFirstOccurrence(first) ? "（只出现过一次，建议再观察）" : ""}？会先备份同名技能，可回滚。`,
-      )
+      !(await askConfirm({
+        title: `采纳技能“${name}”？`,
+        description: `${
+          first && isFirstOccurrence(first)
+            ? "只出现过一次，建议再观察。\n"
+            : ""
+        }会先备份同名技能，可回滚。`,
+        confirmText: "采纳",
+      }))
     ) {
       return;
     }
@@ -742,9 +797,11 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
       ? `\n\n注意：草稿校验未过（孤儿 ${run.lint.orphans}、超 4 KB ${run.lint.overCap}）。替换不会修好这些，但也不会让记忆更差；会先备份，可回滚。`
       : "";
     if (
-      !window.confirm(
-        `用这次草稿替换当前记忆？会先备份现有记忆，替换后可以回滚。${warnings}`,
-      )
+      !(await askConfirm({
+        title: "用这次草稿替换当前记忆？",
+        description: `会先备份现有记忆，替换后可以回滚。${warnings}`,
+        confirmText: "替换",
+      }))
     ) {
       return;
     }
@@ -772,9 +829,11 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
 
   const discard = async (run: MemoryDreamRunView) => {
     if (
-      !window.confirm(
-        "丢弃这次草稿？记忆不会变；下次整理会重新读取这段会话。",
-      )
+      !(await askConfirm({
+        title: "丢弃这次草稿？",
+        description: "记忆不会变；下次整理会重新读取这段会话。",
+        confirmText: "丢弃",
+      }))
     ) {
       return;
     }
@@ -794,16 +853,20 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
   const resetLearning = async () => {
     if (!target) return;
     if (
-      !window.confirm(
-        "清空学习游标？下次整理会重新读取全部助手会话，不再只读新增内容。",
-      )
+      !(await askConfirm({
+        title: "清空学习游标？",
+        description: "下次整理会重新读取全部助手会话，不再只读新增内容。",
+        confirmText: "继续",
+      }))
     ) {
       return;
     }
     if (
-      !window.confirm(
-        "确认全量重跑？这会重新消耗模型调用，并可能生成重复草稿。",
-      )
+      !(await askConfirm({
+        title: "确认全量重跑？",
+        description: "这会重新消耗模型调用，并可能生成重复草稿。",
+        confirmText: "全量重跑",
+      }))
     ) {
       return;
     }
@@ -813,6 +876,32 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
       const result = await client.resetMemoryDreamLearning(target.id);
       if (!result.ok) throw new Error(result.error ?? "清空失败");
       setNotice("已清空学习游标；下次立即整理会全量重跑。");
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const saveCadence = async (cadence: "daily" | "weekly" | "monthly") => {
+    if (!target) return;
+    setBusy("cadence");
+    try {
+      await client.updateMemoryDreamTarget(target.id, { cadence });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const saveHour = async (hour: number) => {
+    if (!target) return;
+    setBusy("hour");
+    try {
+      await client.updateMemoryDreamTarget(target.id, { hour });
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -836,7 +925,13 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
 
   const rollbackLatest = async () => {
     if (!target || backups.length === 0) return;
-    if (!window.confirm("把记忆回滚到上一次替换之前的版本？当前版本也会先备份。")) {
+    if (
+      !(await askConfirm({
+        title: "回滚到上一次替换前？",
+        description: "当前记忆也会先备份，回滚后可以再恢复。",
+        confirmText: "回滚",
+      }))
+    ) {
       return;
     }
     setBusy("rollback");
@@ -865,8 +960,7 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
       <header className="md-header">
         <h3>记忆整理</h3>
         <p>
-          助手会把跨会话学到的东西写进记忆、规则和技能。整理做三件事：收编/合并记忆、
-          提取总是适用的规则、把同一类工作沉淀成技能草稿。整理只在副本上做，确认后才替换。
+          助手整理会话经验：记忆、规则、技能。整理只在副本上生成草稿，确认后才替换。
         </p>
       </header>
 
@@ -874,7 +968,7 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
         <div className="md-toggle-text">
           <div className="md-toggle-title">每晚自动整理</div>
           <div className="md-toggle-hint">
-            每天 03:00 检查一次；没有新变化就跳过。自动整理只产草稿，不直接替换。
+            按下面的频率检查；没有新变化就跳过。定时整理会直接采纳安全草稿，手动整理仍只产草稿。
           </div>
         </div>
         <Switch
@@ -930,6 +1024,48 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
             <div className="md-metric">
               <strong>{target.lastSummary?.indexChars ?? "—"}</strong>
               <span>索引字符</span>
+            </div>
+          </div>
+
+          <div className="md-model-row">
+            <span className="md-model-label">整理频率</span>
+            <div className="md-cadence-controls">
+              <Select.Root
+                value={target.cadence}
+                disabled={running || busy !== null}
+                onValueChange={(value) =>
+                  void saveCadence(value as "daily" | "weekly" | "monthly")
+                }
+              >
+                <Select.Trigger
+                  aria-label="整理频率"
+                  variant="soft"
+                />
+                <Select.Content>
+                  {(["daily", "weekly", "monthly"] as const).map((value) => (
+                    <Select.Item key={value} value={value}>
+                      {CADENCE_LABEL[value]}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Root>
+              <Select.Root
+                value={String(target.hour ?? 4)}
+                disabled={running || busy !== null}
+                onValueChange={(value) => void saveHour(Number(value))}
+              >
+                <Select.Trigger
+                  aria-label="整理时间"
+                  variant="soft"
+                />
+                <Select.Content>
+                  {HOUR_OPTIONS.map((option) => (
+                    <Select.Item key={option.value} value={option.value}>
+                      {option.label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Root>
             </div>
           </div>
 
@@ -1073,6 +1209,12 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
                 {run.skillError ? (
                   <p className="md-run-lint">技能提取失败：{run.skillError}</p>
                 ) : null}
+                {run.autoAdoptError ? (
+                  <p className="md-run-lint">自动采纳失败：{run.autoAdoptError}</p>
+                ) : null}
+                {run.autoAdoptedAt && !run.autoAdoptError ? (
+                  <p className="md-run-hint">已按自动化设置自动采纳。</p>
+                ) : null}
                 {run.fallbackIndex ? (
                   <p className="md-run-lint">
                     这一轮 AI 没在轮次内补全索引，程序只补了缺失的指针，没有替它决定归档；建议看一遍草稿里的
@@ -1110,6 +1252,18 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
             );
           })}
         </section>
+      ) : null}
+
+      <AssistantLearningLibrary api={client} />
+
+      {pendingConfirm ? (
+        <ConfirmDialog
+          title={pendingConfirm.title}
+          description={pendingConfirm.description}
+          confirmText={pendingConfirm.confirmText}
+          onConfirm={() => finishConfirm(true)}
+          onCancel={() => finishConfirm(false)}
+        />
       ) : null}
     </div>
   );
