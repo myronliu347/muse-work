@@ -55,6 +55,7 @@ function humanize(name: string): string {
 
 export function AssistantLearningLibrary({ api }: { api: MuseApiClient }) {
   const [tab, setTab] = useState<Tab>("memory");
+  const [query, setQuery] = useState("");
   const [data, setData] = useState<Library | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +119,18 @@ export function AssistantLearningLibrary({ api }: { api: MuseApiClient }) {
     });
   }, [data, tab]);
 
-  const active = items.find((item) => item.id === selected) ?? items[0];
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(
+      (item) =>
+        item.title.toLowerCase().includes(q) ||
+        item.description.toLowerCase().includes(q) ||
+        item.content.toLowerCase().includes(q),
+    );
+  }, [items, query]);
+
+  const active = filtered.find((item) => item.id === selected) ?? filtered[0];
 
   const counts = {
     memory:
@@ -139,52 +151,62 @@ export function AssistantLearningLibrary({ api }: { api: MuseApiClient }) {
       data-testid="assistant-learning-library"
     >
       <div className="md-library-panel-head">
-        <div>
+        <div className="md-library-panel-title">
           <div className="md-toggle-title">当前助手知识库</div>
           <div className="md-target-hint">
-            记忆 {counts.memory} · 规则 {counts.rules} · 技能 {counts.skills}
+            记忆、规则和技能，来自最近的整理
           </div>
         </div>
-        <Button
-          size="1"
-          variant="soft"
-          disabled={loading}
-          onClick={() => void load()}
-        >
-          刷新
-        </Button>
+        <div className="md-library-panel-tools">
+          <div className="md-library-tabs">
+            {(
+              [
+                ["memory", "记忆", counts.memory],
+                ["rules", "规则", counts.rules],
+                ["skills", "技能", counts.skills],
+              ] as const
+            ).map(([value, label, count]) => (
+              <button
+                key={value}
+                type="button"
+                className={`md-library-tab${tab === value ? " is-active" : ""}`}
+                onClick={() => changeTab(value)}
+              >
+                {label}
+                <span>{count}</span>
+              </button>
+            ))}
+          </div>
+          <input
+            className="md-library-search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="搜索记忆、规则、技能"
+            aria-label="搜索知识库"
+          />
+          <Button
+            size="1"
+            variant="soft"
+            disabled={loading}
+            onClick={() => void load()}
+          >
+            刷新
+          </Button>
+        </div>
       </div>
 
       {error ? <p className="md-error">{error}</p> : null}
 
-      <div className="md-library-tabs">
-        {(
-          [
-            ["memory", "记忆", counts.memory],
-            ["rules", "规则", counts.rules],
-            ["skills", "技能", counts.skills],
-          ] as const
-        ).map(([value, label, count]) => (
-          <button
-            key={value}
-            type="button"
-            className={`md-library-tab${tab === value ? " is-active" : ""}`}
-            onClick={() => changeTab(value)}
-          >
-            {label}
-            <span>{count}</span>
-          </button>
-        ))}
-      </div>
-
       {loading && !data ? (
         <p className="md-empty">读取中…</p>
-      ) : items.length === 0 ? (
-        <p className="md-empty">还没有内容。</p>
+      ) : filtered.length === 0 ? (
+        <p className="md-empty">
+          {query.trim() ? "没有匹配的内容。" : "还没有内容。"}
+        </p>
       ) : (
         <div className="md-library-body">
           <div className="md-library-list">
-            {items.map((item) => (
+            {filtered.map((item) => (
               <button
                 key={item.id}
                 type="button"
