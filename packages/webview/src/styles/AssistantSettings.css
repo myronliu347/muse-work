@@ -1,9 +1,9 @@
 .as-root {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
-  gap: var(--space-5);
-  align-items: start;
+  grid-template-columns: 232px minmax(0, 1fr);
+  align-items: stretch;
   width: 100%;
+  min-height: 100%;
 }
 
 .as-nav {
@@ -12,24 +12,25 @@
   gap: 2px;
   position: sticky;
   top: 0;
-  padding: 6px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-3);
-  background: var(--surface-sunken);
+  align-self: stretch;
+  min-height: 100%;
+  padding: 8px;
+  background: var(--surface-session-list);
+  border-right: var(--hairline) solid var(--border-subtle);
 }
 
 .as-nav-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   width: 100%;
-  padding: 8px 10px;
+  padding: var(--space-1) var(--space-2);
   border: 0;
   border-radius: var(--radius-2);
   background: transparent;
   color: var(--text-secondary);
   font: inherit;
-  font-size: var(--font-size-2);
+  font-size: var(--font-size-1);
   text-align: left;
   cursor: pointer;
 }
@@ -40,15 +41,14 @@
 }
 
 .as-nav-item:hover {
-  background: var(--surface-raised);
+  background: var(--surface-muted);
   color: var(--text-primary);
 }
 
 .as-nav-item.is-active {
-  background: var(--surface-raised);
+  background: var(--surface-active);
   color: var(--text-primary);
   font-weight: 500;
-  box-shadow: 0 1px 2px var(--shadow-color-soft);
 }
 
 .as-nav-item.is-active .codicon {
@@ -66,24 +66,40 @@
 }
 
 .as-content {
-  width: min(100%, 960px);
+  box-sizing: border-box;
+  width: min(100%, 880px);
   min-width: 0;
+  margin-inline: auto;
+  padding: var(--space-5) var(--space-5) var(--space-6);
 }
 
 @media (max-width: 720px) {
   .as-root {
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-3);
+    min-height: 0;
   }
 
   .as-nav {
     flex-direction: row;
     position: static;
+    min-height: 0;
     overflow-x: auto;
+    border-right: 0;
+    border-bottom: var(--hairline) solid var(--border-subtle);
   }
 
   .as-nav-item {
     width: auto;
     white-space: nowrap;
   }
+
+  .as-content {
+    padding: var(--space-4);
+  }
+}
+
+/* On the full settings page the nav should read as a docked sidebar, not a
+   card that ends where its items end. */
+.desktop-settings-page[data-active-tab="assistant"] .as-nav {
+  min-height: calc(100vh - var(--desktop-shell-titlebar-height));
 }

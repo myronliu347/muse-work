@@ -191,7 +191,14 @@ export function AssistantLearningLibrary({ api }: { api: MuseApiClient }) {
                 className={`md-library-item${item.id === active?.id ? " is-active" : ""}`}
                 onClick={() => setSelected(item.id)}
               >
-                <span className="md-library-name">{item.title}</span>
+                <span className="md-library-item-head">
+                  <span className="md-library-name">{item.title}</span>
+                  {item.type ? (
+                    <span className="md-library-item-type">
+                      {TYPE_LABEL[item.type] ?? item.type}
+                    </span>
+                  ) : null}
+                </span>
                 {item.description ? (
                   <span className="md-library-desc">{item.description}</span>
                 ) : null}
@@ -209,6 +216,11 @@ export function AssistantLearningLibrary({ api }: { api: MuseApiClient }) {
                     </Badge>
                   ) : null}
                 </div>
+                {active.description ? (
+                  <p className="md-library-preview-desc">
+                    {active.description}
+                  </p>
+                ) : null}
                 <MarkdownView
                   className="md-library-markdown"
                   html={toHtml(active.content)}
