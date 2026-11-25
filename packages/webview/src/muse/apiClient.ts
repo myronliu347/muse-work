@@ -52,14 +52,12 @@ export interface AssistantHandoffState {
   working: boolean;
   handoffPath: string;
   handoff: string | null;
-  archiveRoot: string;
 }
 
 export interface AssistantHandoffRunResult {
   ok: true;
   handoff: string;
   handoffPath: string;
-  archiveDir?: string;
   skipped?: "no_activity";
   notice?: string;
 }

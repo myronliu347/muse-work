@@ -180,7 +180,7 @@ describe("normalizeModelHandoff", () => {
 });
 
 describe("assistant handoff run", () => {
-  it("writes handoff + journal + archive, clears, and injects the handoff", async () => {
+  it("writes handoff + journal, rotates context, and keeps the chat log", async () => {
     const h = harness();
     const issue = h.issues.create({ title: "修复登录 500", priority: "p0" });
     h.issueProgress.append(issue.id, {
@@ -207,14 +207,6 @@ describe("assistant handoff run", () => {
     );
     expect(journal).toBe(`${h.written}\n`);
 
-    expect(result.archiveDir).toBeTruthy();
-    expect(
-      fs.existsSync(path.join(result.archiveDir!, "000001.jsonl")),
-    ).toBe(true);
-    expect(fs.existsSync(path.join(result.archiveDir!, "meta.json"))).toBe(
-      true,
-    );
-
     expect(h.calls[0]).toBe("begin");
     expect(h.calls).toContain("clear:assistant-1");
     expect(h.calls).toContain("note:assistant-1");
@@ -223,11 +215,27 @@ describe("assistant handoff run", () => {
     expect(h.notes[0]).toContain("修复登录 500");
     expect(h.notes[0]).toContain(path.join(h.workdir, "HANDOFF.md"));
 
-    expect(h.assistantLog.page({ limit: 10 }).messages).toHaveLength(1);
-    expect(h.assistantLog.page({ limit: 10 }).messages[0]?.message).toContain(
-      "自动交接",
+    // 用户可见的聊天记录不能被清掉，也不应该出现“已收工”通知。
+    expect(h.assistantLog.page({ limit: 10 }).messages).toHaveLength(2);
+    expect(h.assistantLog.page({ limit: 10 }).messages[0]?.message).toBe(
+      "登录那个看一下",
     );
-    expect(h.broadcasts).toContainEqual({ type: "assistant:cleared" });
+    expect(
+      h.broadcasts.some(
+        (event) =>
+          typeof event === "object" &&
+          event !== null &&
+          (event as { type?: string }).type === "assistant:cleared",
+      ),
+    ).toBe(false);
+    expect(
+      h.broadcasts.some(
+        (event) =>
+          typeof event === "object" &&
+          event !== null &&
+          (event as { type?: string }).type === "assistant:chat",
+      ),
+    ).toBe(false);
     expect(
       h.broadcasts.some(
         (event) =>
@@ -301,7 +309,6 @@ describe("assistant handoff routes", () => {
       working: false,
       handoffPath: "/tmp/HANDOFF.md",
       handoff: null,
-      archiveRoot: "/tmp/archive",
     };
     const service = {
       getState: () => state,

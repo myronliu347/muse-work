@@ -12,7 +12,7 @@ import type { WsHub } from "./wsHub.js";
  * 每日收工交接。
  *
  * 收工时把「现在在跟什么、今天有什么动静、明天先做什么、等你拍板什么」
- * 写进助手工作目录的 HANDOFF.md，同时归档聊天记录、清空助手上下文，再把
+ * 写进助手工作目录的 HANDOFF.md，只清空助手的模型上下文，再把
  * 交接作为系统注记注入新上下文。第二天助手从交接继续，不用背着几轮压缩。
  *
  * 开关默认开启；手动「立即收工」不受开关限制。
@@ -47,7 +47,6 @@ export interface AssistantHandoffState extends AssistantHandoffConfig {
   working: boolean;
   handoffPath: string;
   handoff: string | null;
-  archiveRoot: string;
 }
 
 export type AssistantHandoffTrigger = "manual" | "schedule";
@@ -57,7 +56,6 @@ export type AssistantHandoffRunResult =
       ok: true;
       handoff: string;
       handoffPath: string;
-      archiveDir?: string;
       skipped?: "no_activity";
       notice?: string;
     }
@@ -83,10 +81,7 @@ type HandoffRunner = {
   ): Promise<string>;
 };
 
-type HandoffLog = Pick<
-  ReturnType<typeof createAssistantMessageLog>,
-  "page" | "clear" | "append"
->;
+type HandoffLog = Pick<ReturnType<typeof createAssistantMessageLog>, "page">;
 
 export interface AssistantHandoffOptions {
   home: string;
@@ -137,10 +132,6 @@ function clock(date: Date): string {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function stamp(date: Date): string {
-  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
-}
-
 function localHourStart(date: Date, hour: number): number {
   const start = new Date(date);
   start.setHours(hour, 0, 0, 0);
@@ -161,14 +152,6 @@ export function nextAssistantHandoffAt(
 
 export function assistantHandoffConfigPath(home: string): string {
   return path.join(getMuseHomeDir(home), "db", "assistant-handoff.json");
-}
-
-export function assistantMessagesDir(home: string): string {
-  return path.join(getMuseHomeDir(home), "db", "assistant-messages");
-}
-
-export function assistantMessagesArchiveRoot(home: string): string {
-  return path.join(getMuseHomeDir(home), "db", "assistant-messages-archive");
 }
 
 function normalizeConfig(raw: unknown): AssistantHandoffConfig {
@@ -431,28 +414,6 @@ export function normalizeModelHandoff(raw: string): string {
   return clip(text, MAX_HANDOFF_CHARS);
 }
 
-function copyAssistantMessages(
-  home: string,
-  destDir: string,
-): { files: number } {
-  const source = assistantMessagesDir(home);
-  let names: string[] = [];
-  try {
-    names = fs
-      .readdirSync(source)
-      .filter((name) => name.endsWith(".jsonl"))
-      .sort();
-  } catch {
-    return { files: 0 };
-  }
-  if (names.length === 0) return { files: 0 };
-  fs.mkdirSync(destDir, { recursive: true });
-  for (const name of names) {
-    fs.copyFileSync(path.join(source, name), path.join(destDir, name));
-  }
-  return { files: names.length };
-}
-
 function readText(file: string, max = 20_000): string | null {
   try {
     const content = fs.readFileSync(file, "utf8");
@@ -496,7 +457,6 @@ export function createAssistantHandoff(
       working: Boolean(options.isBusy?.()),
       handoffPath,
       handoff: readText(handoffPath),
-      archiveRoot: assistantMessagesArchiveRoot(options.home),
     };
   };
 
@@ -647,25 +607,6 @@ export function createAssistantHandoff(
         "utf8",
       );
 
-      const archiveRoot = assistantMessagesArchiveRoot(options.home);
-      const archiveDir = path.join(archiveRoot, stamp(at));
-      const archived = copyAssistantMessages(options.home, archiveDir);
-      if (archived.files > 0) {
-        writeAtomically(
-          path.join(archiveDir, "meta.json"),
-          `${JSON.stringify(
-            {
-              at: atMs,
-              trigger,
-              handoffPath,
-              messages: archived.files,
-            },
-            null,
-            2,
-          )}\n`,
-        );
-      }
-
       try {
         await options.runner.clear(session.id);
       } catch (err) {
@@ -681,19 +622,11 @@ export function createAssistantHandoff(
         };
       }
 
-      options.assistantLog.clear();
-      options.hub.broadcastAll({ type: "assistant:cleared" });
-
-      const noticeLine = options.assistantLog.append(
-        "assistant",
-        `${HANDOFF_NOTICE_PREFIX}已收工。交接写在 \`${handoffPath}\`，明天从这里继续。`,
-      );
-      options.hub.broadcastAll({ type: "assistant:chat", line: noticeLine });
       options.hub.broadcastAll({
         type: "assistant:handoff",
         at: atMs,
         trigger,
-        summary: oneLine(markdown.split("\n")[0] ?? "已收工"),
+        summary: oneLine(markdown.split("\n")[0] ?? "换班完成"),
       });
 
       let warning: string | undefined;
@@ -717,7 +650,6 @@ export function createAssistantHandoff(
         ok: true,
         handoff: markdown,
         handoffPath,
-        ...(archived.files > 0 ? { archiveDir } : {}),
         ...(warning ? { notice: warning } : {}),
       };
     } catch (err) {

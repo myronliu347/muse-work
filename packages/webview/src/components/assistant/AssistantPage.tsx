@@ -1308,7 +1308,6 @@ export const AssistantPage: React.FC<{
       setError(null);
       try {
         await api.runAssistantHandoff();
-        resetTranscript();
       } catch (err) {
         const detail = err instanceof Error ? err.message : String(err);
         setError(

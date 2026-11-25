@@ -19,7 +19,6 @@ function state(overrides: Partial<AssistantHandoffState> = {}): AssistantHandoff
     working: false,
     handoffPath: "/Users/me/assistant-chat/HANDOFF.md",
     handoff: "# 交接\n\n- 修复登录 500",
-    archiveRoot: "/Users/me/.muse-work/db/assistant-messages-archive",
     ...overrides,
   };
 }
@@ -71,6 +70,6 @@ describe("AssistantHandoffSettings", () => {
     await screen.findByRole("button", { name: "立即收工" });
     await userEvent.click(screen.getByRole("button", { name: "立即收工" }));
     await waitFor(() => expect(api.runAssistantHandoff).toHaveBeenCalled());
-    expect(await screen.findByText(/已收工/)).toBeTruthy();
+    expect(await screen.findByText(/已换好上下文/)).toBeTruthy();
   });
 });

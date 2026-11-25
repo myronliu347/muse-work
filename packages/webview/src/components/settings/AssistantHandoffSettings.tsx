@@ -68,7 +68,7 @@ export function AssistantHandoffSettings({ api }: { api?: MuseApiClient }) {
     if (!state) return;
     if (
       !window.confirm(
-        "收工会先归档当前聊天记录，再清空助手上下文，然后从交接继续。现在收工？",
+        "收工只换掉助手的内部上下文，聊天记录保留。现在收工？",
       )
     ) {
       return;
@@ -82,7 +82,7 @@ export function AssistantHandoffSettings({ api }: { api?: MuseApiClient }) {
       setNotice(
         result.skipped === "no_activity"
           ? "没有新的进展，已跳过这次收工。"
-          : `已收工。交接写在 ${result.handoffPath}。`,
+          : `已换好上下文；交接写在 ${result.handoffPath}。`,
       );
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
@@ -102,7 +102,7 @@ export function AssistantHandoffSettings({ api }: { api?: MuseApiClient }) {
         <div className="ah-header">
           <h3>每日收工</h3>
           <p>
-            收工时把正在推进的事项和下一步写进交接文件，归档聊天记录，再清空助手上下文。
+            收工时把正在推进的事项和下一步写进交接文件，只换助手的内部上下文，聊天记录保留。
           </p>
         </div>
         {error ? (
@@ -121,8 +121,8 @@ export function AssistantHandoffSettings({ api }: { api?: MuseApiClient }) {
       <div className="ah-header">
         <h3>每日收工</h3>
         <p>
-          收工时让助手自己写一份交接，归档聊天记录，再清空助手上下文；写不出来就不清空。
-          第二天助手从交接继续，不再背着几轮压缩后的旧上下文。
+          收工时让助手自己写一份交接，只换掉助手的内部上下文，聊天记录不动，界面上不会出现收工通知。
+          写不出来就不换；第二天助手从交接继续，不再背着几轮压缩后的旧上下文。
         </p>
       </div>
 
@@ -130,7 +130,7 @@ export function AssistantHandoffSettings({ api }: { api?: MuseApiClient }) {
         <div className="ah-toggle-text">
           <div className="ah-toggle-title">每天自动收工</div>
           <div className="ah-toggle-hint">
-            默认 04:00。只在助手空闲时执行；当天已经用过助手、或还有事件在排队，就跳过。关闭后仍可手动收工。
+            默认 04:00。只在助手空闲时执行；当天已经用过助手、或还有事件在排队，就跳过。换班只影响内部上下文，不动聊天记录。关闭后仍可手动收工。
           </div>
         </div>
         <Switch
@@ -200,7 +200,7 @@ export function AssistantHandoffSettings({ api }: { api?: MuseApiClient }) {
           {busy === "run" ? "收工中…" : "立即收工"}
         </Button>
         <span className="ah-actions-hint">
-          会先归档聊天记录再清空；没写成交接就不会动上下文。
+          只换内部上下文，聊天记录和文件都不删；没写成交接就不会换。
         </span>
       </div>
 
