@@ -362,6 +362,17 @@ export function createActions(ctx: RunnerContext): SessionRunner {
     },
 
     /** 释放会话的 live agent（不动会话记录/消息）。agent 变更（如 agentName）后调用，下次 ensureAgent 重建。 */
+    async reloadMemoryRules(sessionId) {
+      const existing = agents.get(sessionId);
+      if (!existing?.reloadMemoryRules) return false;
+      try {
+        await existing.reloadMemoryRules();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+
     async disposeAgent(sessionId) {
       const existing = agents.get(sessionId);
       agents.delete(sessionId);

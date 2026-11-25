@@ -770,6 +770,11 @@ export class Agent {
     await this.memoryRuleManager.setWorkdir(workdir);
   }
 
+  /** Re-scan modular memory rules from disk; the next request picks them up. */
+  public async reloadMemoryRules(): Promise<void> {
+    await this.memoryRuleManager.reload();
+  }
+
   public abortAIMessage(): void {
     this.aiManager.abortAIMessage();
   }

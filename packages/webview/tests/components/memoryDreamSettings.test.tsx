@@ -34,6 +34,7 @@ function state(overrides: Partial<MemoryDreamState> = {}): MemoryDreamState {
         startedAt: Date.now(),
         draftReady: true,
         summary: { files: 400, orphans: 0, indexChars: 19000 },
+        learning: { rules: 1, skills: 1 },
       },
     ],
     ...overrides,
@@ -111,6 +112,9 @@ describe("MemoryDreamSettings", () => {
     expect(screen.getByText("文件")).toBeTruthy();
     expect(screen.getByTestId("memory-dream-model")).toBeTruthy();
     expect(screen.getByRole("button", { name: "立即整理" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "处理规则/技能 2" }),
+    ).toBeTruthy();
   });
 
   it("starts a manual run", async () => {

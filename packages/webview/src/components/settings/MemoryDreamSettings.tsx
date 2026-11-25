@@ -921,7 +921,7 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
             </div>
           ) : (
             <p className="md-target-hint">
-              手动整理只写草稿；跑完在下面确认，才会替换记忆。
+              手动整理只写草稿；跑完在下面确认才会替换记忆，规则和技能要单独采纳。
             </p>
           )}
         </div>
@@ -953,6 +953,8 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
               !run.adoptedAt &&
               !run.discardedAt;
             const isOpen = expandedRun === run.id;
+            const learning = run.learning ?? { rules: 0, skills: 0 };
+            const learningTotal = learning.rules + learning.skills;
             return (
               <div key={run.id} className="md-card md-run-card">
                 <div className="md-run-head">
@@ -967,8 +969,22 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
                     {run.skipReason ? (
                       <span className="md-run-reason">{run.skipReason}</span>
                     ) : null}
+                    {learningTotal > 0 ? (
+                      <span className="md-run-learning">
+                        规则 {learning.rules} · 技能 {learning.skills} 待处理
+                      </span>
+                    ) : null}
                   </div>
                   <div className="md-run-actions">
+                    {run.draftReady && learningTotal > 0 && !isOpen ? (
+                      <Button
+                        size="1"
+                        color="amber"
+                        onClick={() => void toggleDraft(run)}
+                      >
+                        处理规则/技能 {learningTotal}
+                      </Button>
+                    ) : null}
                     {run.draftReady ? (
                       <Button
                         size="1"
@@ -982,6 +998,7 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
                       <>
                         <Button
                           size="1"
+                          title="只替换记忆；规则和技能需要在草稿里单独采纳"
                           disabled={busy === run.id}
                           onClick={() => void adopt(run)}
                         >

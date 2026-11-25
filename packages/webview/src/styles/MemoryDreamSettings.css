@@ -481,3 +481,8 @@
 .md-review-adopt-all {
   margin-left: var(--space-2);
 }
+
+.md-run-learning {
+  color: var(--status-warning-text);
+  font-size: var(--font-size-1);
+}

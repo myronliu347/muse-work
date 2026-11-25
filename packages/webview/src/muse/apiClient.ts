@@ -1482,6 +1482,7 @@ export interface MemoryDreamRunView {
   discardedAt?: number;
   fallbackIndex?: boolean;
   progress?: MemoryDreamProgress;
+  learning?: { rules: number; skills: number };
   lint?: {
     ok: boolean;
     orphans: number;

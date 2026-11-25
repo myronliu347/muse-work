@@ -51,6 +51,7 @@ memoryDreamRoutes.get("/memory-dream", (c) => {
         run.draftDir && fs.existsSync(path.join(run.draftDir, "memory")),
       ),
       progress: readProgress(run.draftDir),
+      learning: countLearningDrafts(run.draftDir),
     })),
   });
 });
@@ -215,6 +216,31 @@ interface DreamProgressView {
   updatedAt: number;
 }
 
+function countLearningDrafts(draftDir: string | undefined): {
+  rules: number;
+  skills: number;
+} {
+  if (!draftDir) return { rules: 0, skills: 0 };
+  let rules = 0;
+  let skills = 0;
+  try {
+    rules = fs
+      .readdirSync(path.join(draftDir, "rules"))
+      .filter((entry) => entry.endsWith(".json")).length;
+  } catch {
+    // no rule drafts
+  }
+  try {
+    skills = fs
+      .readdirSync(path.join(draftDir, "skills"), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+      .length;
+  } catch {
+    // no skill drafts
+  }
+  return { rules, skills };
+}
+
 function readProgress(draftDir: string | undefined): DreamProgressView | undefined {
   if (!draftDir) return undefined;
   try {
@@ -356,11 +382,20 @@ memoryDreamRoutes.post(
       .list()
       .find((session) => session.origin === "assistant");
     let effective: "next-turn" | "next-session" = "next-session";
-    if (assistant && assistant.status !== "running") {
-      await ctx.runner.disposeAgent(assistant.id).catch(() => {
-        /* keep the next-session fallback */
-      });
-      effective = "next-turn";
+    if (assistant) {
+      // A live agent can rescan rules in place: the next request already sees
+      // them. No live agent (or a failed reload) falls back to dispose/rebuild.
+      const reloaded = await ctx.runner
+        .reloadMemoryRules(assistant.id)
+        .catch(() => false);
+      if (reloaded) {
+        effective = "next-turn";
+      } else if (assistant.status !== "running") {
+        await ctx.runner.disposeAgent(assistant.id).catch(() => {
+          /* keep the next-session fallback */
+        });
+        effective = "next-turn";
+      }
     }
     ctx.hub.broadcastAll({ type: "memory-dream:changed" });
     return c.json({ ...outcome, effective });

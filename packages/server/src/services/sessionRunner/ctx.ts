@@ -52,6 +52,8 @@ export interface SessionAgent {
   /** Single-turn non-streaming fork (reuses system prompt / model / memory). */
   askBtw?: (question: string, abortSignal?: AbortSignal) => Promise<string>;
   dispose(): Promise<void>;
+  /** Re-scan modular memory rules without rebuilding the agent. */
+  reloadMemoryRules?: () => Promise<void>;
   /** Interrupt in-flight AI / tools / bash (SDK abortMessage). */
   abortMessage?: () => void;
   /**
@@ -214,6 +216,8 @@ export interface SessionRunner {
     cb: (sessionId: string, isCompacting: boolean) => void,
   ): void;
   disposeSession(sessionId: string): Promise<void>;
+  /** Re-scan rules for a live agent; false when there is no live agent. */
+  reloadMemoryRules(sessionId: string): Promise<boolean>;
   /** 释放会话的 live agent（不动会话记录/消息）；agent 变更后调用，下次 ensureAgent 重建。 */
   disposeAgent(sessionId: string): Promise<{ ok: true }>;
   getMessages(sessionId: string): Promise<unknown[]>;
