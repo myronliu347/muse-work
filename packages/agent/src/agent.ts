@@ -232,6 +232,11 @@ export class Agent {
     this.subagentManager = this.container.get("SubagentManager")!;
     this.aiManager = this.container.get("AIManager")!;
     this.slashCommandManager = this.container.get("SlashCommandManager")!;
+    // The shared skill catalog can refresh in place when a skill is adopted or
+    // edited; keep the slash palette in sync with that snapshot.
+    this.skillManager.on("refreshed", (skills: SkillMetadata[]) => {
+      this.slashCommandManager.registerSkillCommands(skills);
+    });
     this.pluginManager = this.container.get("PluginManager")!;
     this.messageQueue = this.container.get("MessageQueue")!;
     this.asyncWorkRegistry = this.container.get("AsyncWorkRegistry")!;
