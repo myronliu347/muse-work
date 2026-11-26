@@ -1265,6 +1265,30 @@ describe("discardDreamRun learning rewind", () => {
     expect(fs.existsSync(draftDir)).toBe(false);
   });
 
+  it("drops the shared skill cursor when the draft has no pre-run snapshot", () => {
+    const home = tempHome();
+    const store = createMemoryDreamStore({ home });
+    store.ensureAssistantTarget("/assistant");
+    const draftDir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-discard-nosnap-"));
+    fs.mkdirSync(path.dirname(cursorsPath(home)), { recursive: true });
+    fs.writeFileSync(
+      cursorsPath(home),
+      JSON.stringify({ version: 1, transcripts: { old: { inode: 1, offset: 20, size: 20, mtimeMs: 2 } } }),
+      "utf-8",
+    );
+    const run = store.addRun({
+      id: "run-nosnap",
+      targetId: "assistant",
+      status: "failed",
+      startedAt: 100,
+      endedAt: 200,
+      draftDir,
+    });
+
+    expect(discardDreamRun({ store, runId: run.id, home })).toBe(true);
+    expect(fs.existsSync(cursorsPath(home))).toBe(false);
+  });
+
   it("refuses to discard an older or running run while a newer one is alive", () => {
     const home = tempHome();
     const store = createMemoryDreamStore({ home });

@@ -116,15 +116,26 @@ export function adoptDreamRun(options: {
 function restoreSkillCursors(home: string, draftDir: string | undefined): void {
   if (!draftDir) return;
   const before = path.join(draftDir, "skill-cursors.before.json");
+  const target = cursorsPath(home);
+  let snapshot: string | null = null;
   try {
-    const snapshot = fs.readFileSync(before, "utf-8");
-    const target = cursorsPath(home);
+    snapshot = fs.readFileSync(before, "utf-8");
+  } catch {
+    // Without the pre-run snapshot we cannot rewind precisely. Dropping the
+    // cursor is the safe choice: the next pass re-reads the window instead of
+    // silently skipping the skills that were just discarded with the draft.
+  }
+  try {
     fs.mkdirSync(path.dirname(target), { recursive: true });
+    if (snapshot === null) {
+      fs.rmSync(target, { force: true });
+      return;
+    }
     const tmp = `${target}.${process.pid}.restore.tmp`;
     fs.writeFileSync(tmp, snapshot, "utf-8");
     fs.renameSync(tmp, target);
   } catch {
-    // No snapshot / unreadable snapshot: leave the cursor untouched.
+    // Best effort; the next run can still retry.
   }
 }
 
