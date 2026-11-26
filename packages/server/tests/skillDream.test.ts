@@ -464,7 +464,11 @@ describe("memoryDreamEngine skill pass", () => {
     );
     const transcriptDir = transcriptDirForWorkdir(home, workdir);
     writeTranscript(transcriptDir, "assistant.jsonl", [
-      JSON.stringify({ role: "user", content: "汇总上周进展", timestamp: new Date().toISOString() }),
+      JSON.stringify({
+        role: "user",
+        content: "汇总上周进展",
+        timestamp: "2026-11-20T01:00:00Z",
+      }),
     ]);
 
     const created: Array<{ id: string; title?: string }> = [];
@@ -557,7 +561,13 @@ describe("memoryDreamEngine skill pass", () => {
       "progress-review",
     );
 
-    const second = await engine.run({ target, runId: "run-2", since: 0 });
+    // The same run window is everything before 2026-11-21; asking for a
+    // newer window must yield no transcripts for either memory or skills.
+    const second = await engine.run({
+      target,
+      runId: "run-2",
+      since: Date.parse("2026-11-21T00:00:00Z"),
+    });
     expect(second.ok).toBe(true);
     expect(second.skills ?? []).toHaveLength(0);
     expect(created.filter((item) => item.title?.includes("技能"))).toHaveLength(1);

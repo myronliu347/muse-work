@@ -39,9 +39,6 @@ import {
 } from "./ruleDream.js";
 import {
   appendSkillObservations,
-  cursorsPath,
-  exportIncrementalSkillTranscripts,
-  loadSkillCursors,
   loadSuppressed,
   loadSuppressedEntries,
   suppressedPath,
@@ -50,7 +47,6 @@ import {
   readAssistantSkills,
   readOptionalText,
   readRecentObservations,
-  saveSkillCursors,
   skillRootForWorkdir,
   writeSkillDrafts,
   type SkillDraft,
@@ -229,43 +225,23 @@ export function createMemoryDreamEngine(options: {
   async function runLearningPass(input: {
     target: MemoryDreamTarget;
     runId: string;
-    since: number;
     draftDir: string;
     sessionWorkdir: string;
     memoryDir: string;
+    /** The exact transcript slices this run fed to the memory analyzers. */
+    transcriptPaths: string[];
   }): Promise<{ drafts: SkillDraft[]; ruleDrafts: RuleDraft[]; error?: string }> {
     if (!options.skillPass || input.target.kind !== "assistant") {
       return { drafts: [], ruleDrafts: [] };
     }
-
-    const cursorFile = cursorsPath(home);
-    const cursorBefore = loadSkillCursors(cursorFile);
-    // Discarding a run must not strand the transcript it consumed: keep the
-    // pre-run cursor beside the draft so discardDreamRun can restore it.
-    try {
-      fs.writeFileSync(
-        path.join(input.draftDir, "skill-cursors.before.json"),
-        JSON.stringify(cursorBefore, null, 2),
-        "utf-8",
-      );
-    } catch {
-      // A missing snapshot only means discard cannot rewind the cursor.
-    }
-    const exported = exportIncrementalSkillTranscripts({
-      home,
-      workdir: input.target.workdir,
-      since: input.since,
-      outDir: path.join(input.draftDir, "skill-transcripts"),
-      cursors: cursorBefore,
-    });
-    if (exported.files.length === 0) {
+    if (input.transcriptPaths.length === 0) {
       return { drafts: [], ruleDrafts: [] };
     }
 
     writeProgress(input.draftDir, {
       phase: "skills",
       startedAt: Date.now(),
-      detail: `${exported.files.length} 份新会话`,
+      detail: `${input.transcriptPaths.length} 份新会话`,
     });
 
     const agentsMd = readOptionalText(
@@ -277,7 +253,7 @@ export function createMemoryDreamEngine(options: {
     const suppressed = loadSuppressed(suppressedPath(home));
     const ignored = loadSuppressedEntries(suppressedPath(home));
     const prompt = buildSkillExtractorPrompt({
-      transcriptPaths: exported.files.map((file) => file.path),
+      transcriptPaths: input.transcriptPaths,
       existingSkills,
       existingRules,
       agentsMd,
@@ -298,7 +274,7 @@ export function createMemoryDreamEngine(options: {
       title: `学习整理 · ${input.target.label} · 技能`,
       workdir: input.sessionWorkdir,
       systemPrompt: prompt,
-      task: buildSkillExtractorTask(exported.files.map((file) => file.path)),
+      task: buildSkillExtractorTask(input.transcriptPaths),
       model: input.target.model,
       tools: ["Read", "Grep", "Glob"],
       disallowedTools: [
@@ -376,7 +352,6 @@ export function createMemoryDreamEngine(options: {
       runId: input.runId,
       day,
     });
-    saveSkillCursors(cursorFile, exported.cursors);
     return { drafts, ruleDrafts };
   }
 
@@ -730,10 +705,10 @@ export function createMemoryDreamEngine(options: {
         const skillPass = await runLearningPass({
           target: input.target,
           runId: input.runId,
-          since: input.since,
           draftDir,
           sessionWorkdir,
           memoryDir: liveMemory,
+          transcriptPaths: transcripts.map((file) => file.path),
         });
         if (skillPass.drafts.length > 0) {
           result.skills = summarizeSkillDrafts(skillPass.drafts);
