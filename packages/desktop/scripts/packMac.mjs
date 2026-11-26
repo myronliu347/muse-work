@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { ensureNodePty } from "./ensureNodePty.mjs";
 import { writeBundledHot } from "./hotRelease.mjs";
 import { materializeNodePty, restoreNodePty } from "./nodePtyPackaging.mjs";
+import { verifyMacArch } from "./verifyMacArch.mjs";
 
 const desktopRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(path.join(desktopRoot, "package.json"));
@@ -43,6 +44,11 @@ process.on("SIGINT", onSignal);
 process.on("SIGTERM", onSignal);
 
 try {
+  if (process.platform !== "darwin" || process.arch !== "arm64") {
+    throw new Error(
+      "macOS 包只支持 Apple 芯片；请在 arm64 Mac 上打包（不要用 Rosetta 终端）",
+    );
+  }
   const bundled = writeBundledHot(desktopRoot);
   console.log(
     `[packMac] bundled hot version ${bundled.version} shell ${bundled.shell}`,
@@ -57,6 +63,7 @@ try {
     };
   }
   const code = await runElectronBuilder();
+  if (code === 0) verifyMacArch(desktopRoot);
   restore();
   restore = () => {};
   process.exit(code);
