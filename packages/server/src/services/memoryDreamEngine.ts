@@ -14,7 +14,7 @@ import {
   memoryDirStats,
   type MemoryLintResult,
 } from "./memoryDreamLint.js";
-import { appendMissingPointers } from "./memoryDreamIndex.js";
+import { rebuildFlatIndex } from "./memoryDreamIndex.js";
 import { lastAssistantText } from "./issueDispatch.js";
 import {
   buildAnalyzerSystemPrompt,
@@ -92,6 +92,8 @@ export interface DreamRunResult {
   summaries: string[];
   /** True when the AI did not finish the index and code had to rebuild it. */
   fallbackIndex?: boolean;
+  /** Files moved to archive.md by the mechanical fallback rebuild. */
+  fallbackArchived?: number;
   stats?: ReturnType<typeof memoryDirStats>;
   lint?: MemoryLintResult;
   /** Assistant-only SOP drafts. Never written live by the engine. */
@@ -471,6 +473,7 @@ export function createMemoryDreamEngine(options: {
     lint: MemoryLintResult;
     passes: number;
     fallbackIndex: boolean;
+    fallbackArchived: number;
   }): void {
     const lines = [
       `# 记忆整理报告 · ${input.target.label}`,
@@ -480,7 +483,11 @@ export function createMemoryDreamEngine(options: {
       `- transcript：${input.transcripts} 份`,
       `- 整理轮次：${input.passes}`,
       `- 文件数：${input.lint.files}`,
-      `- 索引维护：${input.fallbackIndex ? "程序只补齐缺失指针" : "AI 维护"}`,
+      `- 索引维护：${
+        input.fallbackIndex
+          ? `程序按优先级重建索引，归档 ${input.fallbackArchived} 个低优先级文件`
+          : "AI 维护"
+      }`,
       `- 孤儿：${input.lint.orphans}`,
       `- 索引：${input.lint.indexChars} 字符 / ${input.lint.indexLines} 行`,
       `- lint：${input.lint.ok ? "通过" : "未通过"}`,
@@ -682,18 +689,22 @@ export function createMemoryDreamEngine(options: {
         score = nextScore;
       }
 
+      let fallbackArchived = 0;
       if (hasCriticalMemoryLint(lint)) {
-        // Completeness fallback only: add pointers for files the model left
-        // unindexed and drop dead pointers. It never decides what to archive;
-        // that stays the model's judgement, so a still-broken index fails the
-        // run instead of silently reprioritising the store.
-        const appended = appendMissingPointers(draftMemory);
-        fallbackIndex = appended.added > 0 || appended.droppedDead > 0;
+        // The model owns the index, but if it ran out of passes/turn budget we
+        // rebuild mechanically: most important units stay in MEMORY.md, the
+        // overflow moves to archive.md with one pointer. This is the same
+        // type-then-recency policy the index maintenance path already uses, so
+        // a large store does not fail just because one run did not finish.
+        const rebuilt = rebuildFlatIndex(draftMemory);
+        fallbackIndex = true;
+        fallbackArchived = rebuilt.archived;
         lint = lintMemoryDir(draftMemory);
       }
 
       result.lint = lint;
       result.fallbackIndex = fallbackIndex;
+      result.fallbackArchived = fallbackArchived;
       result.stats = memoryDirStats(draftMemory);
 
       // Assistant-only SOP drafts. This is best-effort: a skill-pass failure
@@ -727,6 +738,7 @@ export function createMemoryDreamEngine(options: {
         lint,
         passes,
         fallbackIndex,
+        fallbackArchived,
       });
       result.ok = !hasCriticalMemoryLint(lint);
       if (!result.ok) result.error = "draft index is unusable";

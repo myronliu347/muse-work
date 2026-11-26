@@ -69,6 +69,9 @@ function phaseText(progress: MemoryDreamProgress | undefined): string {
 function statusBadge(run: MemoryDreamRunView) {
   if (run.status === "running") return { color: "blue" as const, label: "整理中" };
   if (run.status === "skipped") return { color: "gray" as const, label: "已跳过" };
+  if (run.status === "failed" && run.fallbackIndex && run.draftReady) {
+    return { color: "amber" as const, label: "索引未完成" };
+  }
   if (run.status === "failed") return { color: "red" as const, label: "失败" };
   if (run.adoptedAt) return { color: "green" as const, label: "已替换" };
   if (run.discardedAt) return { color: "gray" as const, label: "已丢弃" };
@@ -1204,7 +1207,23 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
                   </div>
                 </div>
 
-                {run.error ? <p className="md-run-error">{run.error}</p> : null}
+                {run.error ? (
+                  <p
+                    className={
+                      run.status === "failed" &&
+                      run.fallbackIndex &&
+                      run.draftReady
+                        ? "md-run-lint"
+                        : "md-run-error"
+                    }
+                  >
+                    {run.status === "failed" &&
+                    run.fallbackIndex &&
+                    run.draftReady
+                      ? "索引还有未修复的问题（见下面的校验）；草稿仍可用，替换前会备份。"
+                      : run.error}
+                  </p>
+                ) : null}
                 {run.skillError ? (
                   <p className="md-run-lint">技能提取失败：{run.skillError}</p>
                 ) : null}
@@ -1216,8 +1235,8 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
                 ) : null}
                 {run.fallbackIndex ? (
                   <p className="md-run-lint">
-                    这一轮 AI 没在轮次内补全索引，程序只补了缺失的指针，没有替它决定归档；建议看一遍草稿里的
-                    MEMORY.md。
+                    这一轮 AI 没在轮次内补全索引，程序按优先级重建了索引，放不下的低优先级文件已移进
+                    archive.md；建议看一遍草稿里的 MEMORY.md 和 archive.md。
                   </p>
                 ) : null}
                 {run.lint && !run.lint.ok ? (

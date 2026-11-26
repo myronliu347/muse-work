@@ -1171,6 +1171,31 @@ describe("memoryDreamEngine index ownership", () => {
     expect(index).toContain("o1.md");
   });
 
+  it("archives overflow when the model leaves a huge store unindexed", async () => {
+    const ctx = setup((mem) => {
+      for (let i = 0; i < 220; i += 1) {
+        writeMemory(
+          mem,
+          `ref_${i}.md`,
+          `reference note ${i} with enough detail to take index space and push the entrypoint over budget`,
+          "reference",
+        );
+      }
+    });
+    const result = await ctx.run();
+    expect(result.ok).toBe(true);
+    expect(result.fallbackIndex).toBe(true);
+    expect(result.fallbackArchived).toBeGreaterThan(0);
+    expect(result.lint?.orphans).toBe(0);
+    expect(result.lint?.indexChars ?? Infinity).toBeLessThanOrEqual(22_000);
+    expect(fs.existsSync(path.join(ctx.draftMemory, "archive.md"))).toBe(true);
+    const index = fs.readFileSync(
+      path.join(ctx.draftMemory, "MEMORY.md"),
+      "utf-8",
+    );
+    expect(index).toContain("archive.md");
+  });
+
   it("still runs a repair pass when frontmatter is invalid", async () => {
     const ctx = setup(
       (mem) => {
