@@ -1264,4 +1264,40 @@ describe("discardDreamRun learning rewind", () => {
     expect(obs).toContain("other");
     expect(fs.existsSync(draftDir)).toBe(false);
   });
+
+  it("refuses to discard an older or running run while a newer one is alive", () => {
+    const home = tempHome();
+    const store = createMemoryDreamStore({ home });
+    store.ensureAssistantTarget("/assistant");
+    const older = store.addRun({
+      id: "run-older",
+      targetId: "assistant",
+      status: "failed",
+      startedAt: 100,
+      endedAt: 200,
+    });
+    const running = store.addRun({
+      id: "run-running",
+      targetId: "assistant",
+      status: "running",
+      startedAt: 300,
+    });
+    expect(discardDreamRun({ store, runId: older.id, home })).toBe(false);
+    expect(discardDreamRun({ store, runId: running.id, home })).toBe(false);
+    expect(store.getRun(older.id)?.discardedAt).toBeUndefined();
+    expect(store.getRun(running.id)?.discardedAt).toBeUndefined();
+
+    store.patchRun(running.id, { status: "succeeded", endedAt: 400 });
+    const newer = store.addRun({
+      id: "run-newer",
+      targetId: "assistant",
+      status: "succeeded",
+      startedAt: 500,
+      endedAt: 600,
+    });
+    expect(discardDreamRun({ store, runId: older.id, home })).toBe(false);
+    expect(discardDreamRun({ store, runId: newer.id, home })).toBe(true);
+    expect(discardDreamRun({ store, runId: running.id, home })).toBe(true);
+    expect(discardDreamRun({ store, runId: older.id, home })).toBe(true);
+  });
 });

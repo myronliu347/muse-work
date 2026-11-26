@@ -1137,6 +1137,7 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
               !run.adoptedAt &&
               !run.discardedAt;
             const isOpen = expandedRun === run.id;
+            const isLatest = run.id === latestRuns[0]?.id;
             const learning = run.learning ?? { rules: 0, skills: 0 };
             const learningTotal = learning.rules + learning.skills;
             return (
@@ -1188,15 +1189,17 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
                         >
                           {run.status === "failed" ? "仍然替换" : "确认替换"}
                         </Button>
-                        <Button
-                          size="1"
-                          variant="ghost"
-                          color="gray"
-                          disabled={busy === run.id}
-                          onClick={() => void discard(run)}
-                        >
-                          丢弃
-                        </Button>
+                        {isLatest ? (
+                          <Button
+                            size="1"
+                            variant="ghost"
+                            color="gray"
+                            disabled={busy === run.id}
+                            onClick={() => void discard(run)}
+                          >
+                            丢弃
+                          </Button>
+                        ) : null}
                       </>
                     ) : null}
                     {!run.draftReady && run.status === "succeeded" && run.summary ? (

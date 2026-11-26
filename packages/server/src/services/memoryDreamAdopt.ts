@@ -162,6 +162,20 @@ export function discardDreamRun(options: {
 }): boolean {
   const run = options.store.getRun(options.runId);
   if (!run || run.adoptedAt) return false;
+  // A running run still owns the draft and may write the cursor after this
+  // call. An older run is not allowed to rewind while a newer one is alive:
+  // cursors are shared, so doing that makes the newer extraction re-consume or
+  // skip windows unpredictably.
+  if (run.status === "running") return false;
+  const newer = options.store
+    .listRuns(run.targetId, 200)
+    .some(
+      (item) =>
+        item.id !== run.id &&
+        item.startedAt > run.startedAt &&
+        !item.discardedAt,
+    );
+  if (newer) return false;
   if (options.home) {
     restoreSkillCursors(options.home, run.draftDir);
     removeObservationsForRun(options.home, run.id);

@@ -213,6 +213,25 @@ memoryDreamRoutes.post("/memory-dream/runs/:id/adopt", async (c) => {
 
 memoryDreamRoutes.delete("/memory-dream/runs/:id", (c) => {
   const ctx = c.get("ctx");
+  const run = ctx.memoryDreamStore.getRun(c.req.param("id"));
+  if (!run) return c.json({ error: "run not found" }, 404);
+  if (run.status === "running") {
+    return c.json({ error: "这次整理还在跑，等它结束再丢弃" }, 409);
+  }
+  const newer = ctx.memoryDreamStore
+    .listRuns(run.targetId, 200)
+    .some(
+      (item) =>
+        item.id !== run.id &&
+        item.startedAt > run.startedAt &&
+        !item.discardedAt,
+    );
+  if (newer) {
+    return c.json(
+      { error: "只能丢弃最近一次整理；更新的草稿还在，先处理它" },
+      409,
+    );
+  }
   const discarded = discardDreamRun({
     store: ctx.memoryDreamStore,
     runId: c.req.param("id"),
