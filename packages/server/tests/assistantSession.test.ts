@@ -68,6 +68,9 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("`userPresent` 为 true");
     expect(first.systemPrompt).toContain("他正在看");
     expect(first.systemPrompt).toContain("SendMessage` 带上 `issueId`");
+    expect(first.systemPrompt).toContain("进展另用 `RecordProgress` 记一条");
+    expect(first.systemPrompt).toContain("说话和记账分开");
+    expect(first.systemPrompt).toContain("`RecordProgress` 写的是 Issue 详情的时间线");
     expect(first.systemPrompt).toContain("完全做完再告诉我");
     expect(first.systemPrompt).toContain("这轮不用告诉用户");
     expect(first.tools).not.toContain("Agent");
@@ -100,7 +103,7 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("不含待关闭的");
     expect(first.systemPrompt).toContain("[@issue:id 标题]");
     expect(first.systemPrompt).toContain("SendMessage` 带 `ats`");
-    expect(first.systemPrompt).toContain("`ats` 只做引用，不写进展");
+    expect(first.systemPrompt).toContain("`ats` 只做引用；`issueId` 只做归属和撕纸条");
     expect(first.systemPrompt).toContain("跟上一条是同一条时不加");
     expect(first.systemPrompt).toContain("不用每条都加");
     expect(first.systemPrompt).not.toContain("每条都 @");

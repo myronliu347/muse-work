@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import type { ToolPlugin, ToolResult } from "@muse-work/agent";
 import type { IssueStore } from "../../issueStore.js";
 import type { SessionStore } from "../../sessionStore.js";
@@ -64,6 +66,17 @@ export function stringList(value: unknown): string[] {
     if (trimmed) items.push(trimmed);
   }
   return items;
+}
+
+/** 附件必须是存在的本地绝对路径；有问题时返回给模型看的说明。 */
+export function localFile(filePath: string): string | undefined {
+  if (!path.isAbsolute(filePath)) return `need an absolute path: ${filePath}`;
+  try {
+    if (!fs.statSync(filePath).isFile()) return `file not found: ${filePath}`;
+  } catch {
+    return `file not found: ${filePath}`;
+  }
+  return undefined;
 }
 
 export function compactText(value: unknown, max = 80): string {

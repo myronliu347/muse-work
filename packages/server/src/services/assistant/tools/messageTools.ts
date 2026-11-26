@@ -1,11 +1,11 @@
-import fs from "node:fs";
-import path from "node:path";
 import type { AssistantApp } from "@muse-work/plugin-sdk";
+import { ISSUE_UPDATE_FILES_MAX } from "../../issueProgress.js";
 import { userMessageText } from "../../sessionRunner/serialization.js";
 import { ASSISTANT_TEXT_MAX } from "../messages.js";
 import {
   compactText,
   fail,
+  localFile,
   ok,
   stringList,
   text,
@@ -14,16 +14,6 @@ import {
 } from "./toolKit.js";
 
 const SEND_MESSAGE_BODY_MAX = 200;
-const ISSUE_UPDATE_FILES_MAX = 10;
-
-function issueUpdateSummary(message: string): string {
-  const body = message
-    .split("\n")
-    .filter((line) => !line.trim().startsWith(">"))
-    .join("\n")
-    .trim();
-  return compactText(body, 280);
-}
 
 function userWantsFullText(log: AssistantToolDeps["log"]): boolean {
   const messages = log.page({ limit: 50 }).messages;
@@ -96,16 +86,6 @@ function windowSessionLines(
   return { messages: selected, omitted: oldest };
 }
 
-function localFile(filePath: string): string | undefined {
-  if (!path.isAbsolute(filePath)) return `need an absolute path: ${filePath}`;
-  try {
-    if (!fs.statSync(filePath).isFile()) return `file not found: ${filePath}`;
-  } catch {
-    return `file not found: ${filePath}`;
-  }
-  return undefined;
-}
-
 function composeOutbound(message: string, extras: string[]): string {
   const lines: string[] = [];
   for (const extra of extras) {
@@ -152,7 +132,7 @@ function truncateCodePoints(input: string, max: number): { text: string; truncat
 export function createMessageTools(deps: AssistantToolDeps) {
   const channels = deps.apps ?? [];
   const sendDescription = [
-    "人只能看见这次调用。回合正文不会发出去，写在那里等于没说。短回复也走这里。app 为 muse。ats 用来 @；引用 Issue 任何渠道都能传，@ 人的类型看各 app 说明。本地图片和文件用 files 传绝对路径，链接用 links。正文超过 200 字且没有 files 会被拒绝。",
+    "人只能看见这次调用。回合正文不会发出去，写在那里等于没说。短回复也走这里。这条只对人说话，不写 Issue 进展——进展用 RecordProgress。app 为 muse。ats 用来 @；引用 Issue 任何渠道都能传，@ 人的类型看各 app 说明。本地图片和文件用 files 传绝对路径，链接用 links。正文超过 200 字且没有 files 会被拒绝。",
     ...channels.map((app) => app.description),
   ].join("");
   return [
@@ -184,11 +164,7 @@ export function createMessageTools(deps: AssistantToolDeps) {
           issueId: {
             type: "string",
             description:
-              "这条 Issue 的显式归属。带它就把这次回复记进该 Issue 的进展；不带时，如果这一轮只被一个 Issue 事件叫醒，会继承该 Issue；多事件回合不猜。不会自动 @，要引用另外传 ats。",
-          },
-          next: {
-            type: "string",
-            description: "这一步的下一步，一句话。只在有 Issue 归属时写入进展，不写进聊天正文。",
+              "把这条回复归到某条 Issue：聊天按它分组，并撕掉它的 replyPending 纸条。不写进展，进展用 RecordProgress。不带时，如果这一轮只被一个 Issue 事件叫醒，会继承该 Issue；多事件回合不猜。不会自动 @，要引用另外传 ats。",
           },
         },
         required: ["message", "app"],
@@ -273,18 +249,6 @@ export function createMessageTools(deps: AssistantToolDeps) {
             issueId || citedIssueId,
             turn?.turnId,
           );
-          if (issueId && deps.recordIssueUpdate) {
-            deps.recordIssueUpdate(issueId, {
-              kind: "assistant",
-              summary: issueUpdateSummary(message) || (files.length ? "附上了文件" : "更新了进展"),
-              ...(recordBody.length > 280 ? { detail: recordBody } : {}),
-              messageId: line.id,
-              ...(files.length ? { files } : {}),
-              ...(text(args.next) ? { next: text(args.next) } : {}),
-              ...(turn?.turnId ? { turnId: turn.turnId } : {}),
-              sourceKey: `assistant:${line.id}`,
-            });
-          }
           if (issueId) deps.issues.clearReplyPending(issueId);
           deps.hub.broadcastAll({ type: "assistant:chat", line });
           deps.onReplySent?.();

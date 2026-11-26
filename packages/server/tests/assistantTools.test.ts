@@ -294,6 +294,7 @@ describe("assistant tools", () => {
       "SendMessage",
       "ReadSessionMessages",
       "ListMuseMessages",
+      "RecordProgress",
       "WebSearch",
     ]);
   });
