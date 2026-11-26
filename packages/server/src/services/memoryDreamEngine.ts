@@ -282,7 +282,7 @@ export function createMemoryDreamEngine(options: {
       observations: readRecentObservations(observationsPath(home)),
       workdir: input.target.workdir,
       skillRoot: skillRootForWorkdir(input.target.workdir),
-      maxCandidates: 3,
+      maxCandidates: 5,
     });
 
     const turn = await runChildSession({

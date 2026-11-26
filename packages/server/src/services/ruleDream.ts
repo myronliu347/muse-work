@@ -16,7 +16,7 @@ import {
 
 const MAX_RULE_CHARS = 500;
 const MAX_DESCRIPTION_CHARS = 200;
-const MAX_CANDIDATES = 3;
+const MAX_CANDIDATES = 5;
 const NAME_RE = /^[a-z0-9-]+$/;
 
 const SECRET_PATTERNS: RegExp[] = [

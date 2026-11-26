@@ -249,6 +249,53 @@ describe("skillDream incremental transcripts", () => {
     expect(appended).not.toContain("one");
   });
 
+  it("processes the oldest unprocessed transcripts instead of the newest batch", () => {
+    const home = tempDir("muse-skill-home-");
+    const workdir = tempDir("muse-skill-work-");
+    const dir = transcriptDirForWorkdir(home, workdir);
+    for (let i = 0; i < 8; i += 1) {
+      const file = writeTranscript(dir, `t${i}.jsonl`, [
+        JSON.stringify({
+          role: "user",
+          content: `msg-${i}`,
+          timestamp: `2026-11-2${i}T01:00:00Z`,
+        }),
+      ]);
+      const at = new Date(2026, 10, 20, 0, i, 0);
+      fs.utimesSync(file, at, at);
+    }
+    const out = tempDir("muse-skill-out-");
+    const cursors = { version: 1 as const, transcripts: {} };
+
+    const first = exportIncrementalSkillTranscripts({
+      home,
+      workdir,
+      since: 0,
+      outDir: out,
+      cursors,
+    });
+    expect(first.files).toHaveLength(6);
+    const firstText = first.files
+      .map((file) => fs.readFileSync(file.path, "utf-8"))
+      .join("\n");
+    for (let i = 0; i < 6; i += 1) expect(firstText).toContain(`msg-${i}`);
+    expect(firstText).not.toContain("msg-7");
+
+    const second = exportIncrementalSkillTranscripts({
+      home,
+      workdir,
+      since: 0,
+      outDir: out,
+      cursors: first.cursors,
+    });
+    expect(second.files).toHaveLength(2);
+    const secondText = second.files
+      .map((file) => fs.readFileSync(file.path, "utf-8"))
+      .join("\n");
+    expect(secondText).toContain("msg-6");
+    expect(secondText).toContain("msg-7");
+  });
+
   it("backs up and removes the cursor on reset", () => {
     const home = tempDir("muse-skill-reset-");
     const file = cursorsPath(home);

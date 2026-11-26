@@ -70,6 +70,12 @@ export function buildSkillExtractorPrompt(input: {
     "- 差异是特例 → 写进坑；",
     "- 优先沉淀不同天出现 2 次以上、或用户明确说“以后都这样”的类。",
     "",
+    "## 覆盖检查",
+    "- 先按工作意图给本批 transcript 分桶，再对每个桶判断是规则还是技能。",
+    "- 每份 transcript 都要看一眼；不要只总结最近、最长或最显眼的一份。",
+    "- 只出现 1 次的类也输出候选（occurrenceDays=1），由人筛；宁可多提一条，也不要把一整类漏掉。",
+    "- 但步骤必须具体到触发、操作、坑、验收；空泛的“先分析再处理”不要提。",
+    "",
     "## 现有助手技能",
     skills,
     "",
@@ -144,7 +150,7 @@ export function buildSkillExtractorPrompt(input: {
 export function buildSkillExtractorTask(transcriptPaths: string[]): string {
   return [
     "读取上面列出的 transcript（逐个读完，可以分页），结合现有技能、规则、AGENTS.md、memory 索引和 observations，",
-    "找出值得沉淀为助手规则或 SOP 的“同一类工作”。",
+    "找出值得沉淀为助手规则或 SOP 的“同一类工作”。逐个读完，不要只读最近一份；",
     "为 rules 和 candidates 分别判断；两类都没有就都输出空数组。只输出 JSON。",
   ].join("\n");
 }

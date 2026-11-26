@@ -15,8 +15,8 @@ import { getMuseHomeDir } from "@muse-work/provider";
 
 const MAX_SKILL_BYTES = 32 * 1024;
 const MAX_DESCRIPTION_CHARS = 200;
-const MAX_CANDIDATES = 3;
-const MAX_TRANSCRIPTS = 3;
+const MAX_CANDIDATES = 5;
+const MAX_TRANSCRIPTS = 6;
 const MAX_TRANSCRIPT_BYTES = 2 * 1024 * 1024;
 const OBSERVATION_DAYS = 30;
 const OBSERVATION_LIMIT = 100;
@@ -351,15 +351,31 @@ export function exportIncrementalSkillTranscripts(input: {
 
   const candidates = entries
     .filter((entry) => entry.isFile() && entry.name.endsWith(".jsonl"))
-    .map((entry) => path.join(dir, entry.name))
-    .sort((a, b) => {
+    .map((entry) => {
+      const file = path.join(dir, entry.name);
       try {
-        return fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs;
+        const stat = fs.statSync(file);
+        const cursor = input.cursors.transcripts[file];
+        const changed =
+          !cursor ||
+          stat.ino !== cursor.inode ||
+          stat.size < cursor.offset ||
+          stat.size > cursor.offset ||
+          (stat.size === cursor.offset && stat.mtimeMs > cursor.mtimeMs);
+        return changed ? { file, mtimeMs: stat.mtimeMs } : undefined;
       } catch {
-        return 0;
+        return undefined;
       }
     })
-    .slice(0, MAX_TRANSCRIPTS);
+    .filter(
+      (item): item is { file: string; mtimeMs: number } => item !== undefined,
+    )
+    // Process the oldest unprocessed transcript first. Picking the newest N
+    // every run starves older sessions forever once the store has more than
+    // N transcripts.
+    .sort((a, b) => a.mtimeMs - b.mtimeMs)
+    .slice(0, MAX_TRANSCRIPTS)
+    .map((item) => item.file);
 
   fs.mkdirSync(input.outDir, { recursive: true });
   for (const [index, file] of candidates.entries()) {
@@ -369,7 +385,22 @@ export function exportIncrementalSkillTranscripts(input: {
         cursor: input.cursors.transcripts[file],
         since: input.since,
       });
-      if (!result) continue;
+      if (!result) {
+        // Nothing in this window (or only an incomplete line). Advance the
+        // cursor so the same file does not hold a slot in every run.
+        try {
+          const stat = fs.statSync(file);
+          cursors.transcripts[file] = {
+            inode: stat.ino,
+            offset: stat.size,
+            size: stat.size,
+            mtimeMs: stat.mtimeMs,
+          };
+        } catch {
+          // The next run will try again.
+        }
+        continue;
+      }
       const outName = `${String(index + 1).padStart(2, "0")}-${path.basename(file)}`;
       const outPath = path.join(input.outDir, outName);
       fs.writeFileSync(outPath, result.text, "utf-8");
