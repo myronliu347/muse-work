@@ -13,6 +13,7 @@ export function buildSkillExtractorPrompt(input: {
   existingRules: Array<{ name: string; description: string; text: string }>;
   agentsMd: string;
   memoryIndex: string;
+  memoryDir: string;
   observations: string;
   workdir: string;
   skillRoot: string;
@@ -101,7 +102,11 @@ export function buildSkillExtractorPrompt(input: {
     "## AGENTS.md（人手写的规则，不能重复或冲突）",
     input.agentsMd || "（空）",
     "",
-    "## 记忆索引（只用来避免重复，不要把记忆写成技能）",
+    "## 记忆文件（背景，不是技能素材）",
+    `记忆目录：${input.memoryDir}`,
+    "先读 MEMORY.md 索引；候选涉及某个主题时，用 Read 打开对应记忆文件核实。记忆是背景和去重依据，不要把记忆内容本身改写成规则或技能。",
+    "",
+    "## 记忆索引（先读索引，相关文件用 Read 打开）",
     input.memoryIndex || "（空）",
     "",
     "## 最近的学习观察（跨 run 的 intent 记录）",
@@ -161,7 +166,7 @@ export function buildSkillExtractorPrompt(input: {
 
 export function buildSkillExtractorTask(transcriptPaths: string[]): string {
   return [
-    "读取上面列出的 transcript（逐个读完，可以分页），结合现有技能、规则、AGENTS.md、memory 索引和 observations，",
+    "读取上面列出的 transcript（逐个读完，可以分页），并读 MEMORY.md 索引和相关记忆文件；结合现有技能、规则、AGENTS.md 和 observations，",
     "找出值得沉淀为助手规则或 SOP 的“同一类工作”。逐个读完，不要只读最近一份；",
     "为 rules 和 candidates 分别判断；两类都没有就都输出空数组。只输出 JSON。",
   ].join("\n");

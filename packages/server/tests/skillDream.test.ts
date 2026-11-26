@@ -159,6 +159,7 @@ describe("skillDream candidates", () => {
       existingRules: [],
       agentsMd: "",
       memoryIndex: "",
+      memoryDir: "/tmp/assistant-chat/memory",
       observations: "",
       workdir: "/tmp/assistant-chat",
       skillRoot: "/tmp/assistant-chat/.muse-work/skills",
@@ -174,6 +175,8 @@ describe("skillDream candidates", () => {
     expect(prompt).toContain("用户已忽略");
     expect(prompt).toContain("progress-review");
     expect(prompt).toContain("不要再次输出");
+    expect(prompt).toContain("记忆目录：/tmp/assistant-chat/memory");
+    expect(prompt).toContain("用 Read 打开");
   });
 
   it("forces create to update when the live skill exists, and downgrades a missing update", () => {
