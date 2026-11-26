@@ -103,6 +103,36 @@ export function learningContentHash(
     .digest("hex");
 }
 
+export interface SuppressedEntry {
+  kind: "rule" | "skill";
+  name: string;
+  hash: string;
+  at: string;
+  description: string;
+}
+
+export function loadSuppressedEntries(file: string): SuppressedEntry[] {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(file, "utf-8")) as {
+      entries?: unknown;
+    };
+    if (!Array.isArray(parsed.entries)) return [];
+    return parsed.entries.filter(
+      (entry): entry is SuppressedEntry =>
+        Boolean(entry) &&
+        typeof entry === "object" &&
+        (entry as { kind?: unknown }).kind !== undefined &&
+        ((entry as { kind?: unknown }).kind === "rule" ||
+          (entry as { kind?: unknown }).kind === "skill") &&
+        typeof (entry as { name?: unknown }).name === "string" &&
+        typeof (entry as { hash?: unknown }).hash === "string" &&
+        typeof (entry as { description?: unknown }).description === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
 export function loadSuppressed(file: string): Set<string> {
   try {
     const parsed = JSON.parse(fs.readFileSync(file, "utf-8")) as {
@@ -129,19 +159,33 @@ export function suppressLearningContent(input: {
   const hash = learningContentHash(input.kind, input.content);
   const hashes = loadSuppressed(input.file);
   hashes.add(hash);
+  const at = (input.now ?? new Date()).toISOString();
+  const frontmatter =
+    input.kind === "skill" ? parseFrontmatter(input.content) : undefined;
+  const description = (
+    frontmatter?.description ||
+    input.content.replace(/\s+/g, " ").trim()
+  ).slice(0, 160);
+  const entries = loadSuppressedEntries(input.file).filter(
+    (entry) => !(entry.kind === input.kind && entry.name === input.name),
+  );
+  entries.push({
+    kind: input.kind,
+    name: input.name,
+    hash,
+    at,
+    description,
+  });
   fs.mkdirSync(path.dirname(input.file), { recursive: true });
   const tmp = `${input.file}.${process.pid}.${crypto.randomUUID()}.tmp`;
   fs.writeFileSync(
     tmp,
     JSON.stringify(
       {
-        version: 1,
+        version: 2,
         hashes: [...hashes].sort(),
-        last: {
-          kind: input.kind,
-          name: input.name,
-          at: (input.now ?? new Date()).toISOString(),
-        },
+        entries,
+        last: { kind: input.kind, name: input.name, at },
       },
       null,
       2,
@@ -608,6 +652,7 @@ export function writeSkillDrafts(input: {
   candidates: SkillCandidate[];
   existingSkills?: Array<{ name: string; description?: string; content: string }>;
   suppressed?: Set<string>;
+  suppressedNames?: Set<string>;
   runId: string;
   day: string;
 }): SkillDraft[] {
@@ -623,6 +668,7 @@ export function writeSkillDrafts(input: {
     // where a person decides whether one instance is enough. Bulk "adopt all
     // safe" excludes them; per-item adoption shows a first-occurrence warning.
     if (
+      input.suppressedNames?.has(candidate.name) ||
       input.suppressed?.has(learningContentHash("skill", candidate.content))
     ) {
       continue;

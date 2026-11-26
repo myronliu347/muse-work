@@ -17,6 +17,7 @@ export function buildSkillExtractorPrompt(input: {
   workdir: string;
   skillRoot: string;
   maxCandidates: number;
+  ignored: Array<{ kind: "rule" | "skill"; name: string; description: string }>;
 }): string {
   const skills = input.existingSkills.length
     ? input.existingSkills
@@ -85,6 +86,17 @@ export function buildSkillExtractorPrompt(input: {
           .map((rule) => `- ${rule.name}: ${rule.text}`)
           .join("\n")
       : "（还没有自动提取的规则。）",
+    "",
+    "## 用户已忽略（不要再提）",
+    "以下内容用户明确忽略过；不要再次输出，也不要换近义 name 或改写后重提。",
+    input.ignored.length
+      ? input.ignored
+          .map(
+            (entry) =>
+              `- [${entry.kind}] ${entry.name} — ${entry.description}`,
+          )
+          .join("\n")
+      : "（没有。）",
     "",
     "## AGENTS.md（人手写的规则，不能重复或冲突）",
     input.agentsMd || "（空）",

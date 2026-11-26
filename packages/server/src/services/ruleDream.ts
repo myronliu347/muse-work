@@ -217,6 +217,7 @@ export function writeRuleDrafts(input: {
   agentsMd?: string;
   existingRules?: Array<{ name: string; text: string }>;
   suppressed?: Set<string>;
+  suppressedNames?: Set<string>;
   runId: string;
   day: string;
 }): RuleDraft[] {
@@ -230,7 +231,10 @@ export function writeRuleDrafts(input: {
     seen.add(candidate.name);
     // Single occurrences still become reviewable drafts; bulk adopt excludes
     // them, per-item adoption warns.
-    if (input.suppressed?.has(learningContentHash("rule", candidate.text))) {
+    if (
+      input.suppressedNames?.has(candidate.name) ||
+      input.suppressed?.has(learningContentHash("rule", candidate.text))
+    ) {
       continue;
     }
     const lint = lintRuleContent({

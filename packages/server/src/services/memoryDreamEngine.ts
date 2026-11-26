@@ -43,6 +43,7 @@ import {
   exportIncrementalSkillTranscripts,
   loadSkillCursors,
   loadSuppressed,
+  loadSuppressedEntries,
   suppressedPath,
   observationsPath,
   parseSkillCandidates,
@@ -273,6 +274,8 @@ export function createMemoryDreamEngine(options: {
     );
     const existingSkills = readAssistantSkills(input.target.workdir);
     const existingRules = readAssistantRules(input.target.workdir);
+    const suppressed = loadSuppressed(suppressedPath(home));
+    const ignored = loadSuppressedEntries(suppressedPath(home));
     const prompt = buildSkillExtractorPrompt({
       transcriptPaths: exported.files.map((file) => file.path),
       existingSkills,
@@ -283,6 +286,11 @@ export function createMemoryDreamEngine(options: {
       workdir: input.target.workdir,
       skillRoot: skillRootForWorkdir(input.target.workdir),
       maxCandidates: 5,
+      ignored: ignored.map((entry) => ({
+        kind: entry.kind,
+        name: entry.name,
+        description: entry.description,
+      })),
     });
 
     const turn = await runChildSession({
@@ -327,13 +335,19 @@ export function createMemoryDreamEngine(options: {
     }
     const candidates = parseSkillCandidates(turn.text);
     const ruleCandidates = parseRuleCandidates(turn.text);
-    const suppressed = loadSuppressed(suppressedPath(home));
+    const ignoredSkillNames = new Set(
+      ignored.filter((entry) => entry.kind === "skill").map((entry) => entry.name),
+    );
+    const ignoredRuleNames = new Set(
+      ignored.filter((entry) => entry.kind === "rule").map((entry) => entry.name),
+    );
     const day = new Date().toISOString().slice(0, 10);
     const drafts = writeSkillDrafts({
       draftDir: input.draftDir,
       candidates,
       existingSkills,
       suppressed,
+      suppressedNames: ignoredSkillNames,
       runId: input.runId,
       day,
     });
@@ -343,6 +357,7 @@ export function createMemoryDreamEngine(options: {
       agentsMd,
       existingRules,
       suppressed,
+      suppressedNames: ignoredRuleNames,
       runId: input.runId,
       day,
     });

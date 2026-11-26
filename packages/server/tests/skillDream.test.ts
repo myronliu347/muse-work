@@ -9,6 +9,7 @@ import {
   lintSkillContent,
   loadSkillCursors,
   loadSuppressed,
+  loadSuppressedEntries,
   suppressLearningContent,
   observationsPath,
   parseSkillCandidates,
@@ -20,6 +21,7 @@ import {
   writeSkillDrafts,
 } from "../src/services/skillDream.js";
 import { createMemoryDreamEngine } from "../src/services/memoryDreamEngine.js";
+import { buildSkillExtractorPrompt } from "../src/prompts/skillDream.js";
 import type { SessionStore } from "../src/services/sessionStore.js";
 import type { SessionRunner } from "../src/services/sessionRunner/ctx.js";
 import type { MemoryDreamTarget } from "../src/services/memoryDreams.js";
@@ -118,6 +120,13 @@ describe("skillDream candidates", () => {
       content: candidate.content,
     });
     expect(loadSuppressed(file).size).toBe(1);
+    const ignored = loadSuppressedEntries(file);
+    expect(ignored).toHaveLength(1);
+    expect(ignored[0]).toMatchObject({
+      kind: "skill",
+      name: "progress-review",
+      description: "Use when testing.",
+    });
     expect(
       writeSkillDrafts({
         draftDir,
@@ -127,6 +136,44 @@ describe("skillDream candidates", () => {
         day: "2026-11-24",
       }),
     ).toHaveLength(0);
+    expect(
+      writeSkillDrafts({
+        draftDir,
+        candidates: [
+          {
+            ...candidate,
+            content: skillContent("progress-review", "A rephrased description."),
+          },
+        ],
+        suppressedNames: new Set(["progress-review"]),
+        runId: "run-1",
+        day: "2026-11-24",
+      }),
+    ).toHaveLength(0);
+  });
+
+  it("tells the extractor which skills and rules were ignored", () => {
+    const prompt = buildSkillExtractorPrompt({
+      transcriptPaths: ["/tmp/transcript.jsonl"],
+      existingSkills: [],
+      existingRules: [],
+      agentsMd: "",
+      memoryIndex: "",
+      observations: "",
+      workdir: "/tmp/assistant-chat",
+      skillRoot: "/tmp/assistant-chat/.muse-work/skills",
+      maxCandidates: 5,
+      ignored: [
+        {
+          kind: "skill",
+          name: "progress-review",
+          description: "旧的不想要的汇总技能。",
+        },
+      ],
+    });
+    expect(prompt).toContain("用户已忽略");
+    expect(prompt).toContain("progress-review");
+    expect(prompt).toContain("不要再次输出");
   });
 
   it("forces create to update when the live skill exists, and downgrades a missing update", () => {
