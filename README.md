@@ -100,7 +100,7 @@ pnpm dev:server            # 等价：pnpm -F @muse-work/server dev -- --port 87
 # 桌面端（构建 server + webview，编译 desktop，启动 Electron）
 pnpm dev:desktop
 
-# 打包 macOS 安装包（仅 Apple 芯片 arm64，不支持 Intel）
+# 打包 macOS 安装包
 pnpm dist:mac
 
 # 发布：选择 patch / minor / major，更新各包版本并推送 tag。dmg 版本跟着发布号走

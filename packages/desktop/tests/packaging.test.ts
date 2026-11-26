@@ -11,7 +11,6 @@ const pkg = JSON.parse(
 ) as {
   build?: {
     extraResources?: Array<{ from?: string; to?: string }>;
-    mac?: { target?: unknown };
   };
 };
 
@@ -33,27 +32,5 @@ describe("electron-builder extraResources", () => {
         }),
       ]),
     );
-  });
-});
-
-describe("macOS architecture", () => {
-  it("pins the dmg target to Apple silicon arm64", () => {
-    expect(pkg.build?.mac?.target).toEqual([
-      { target: "dmg", arch: ["arm64"] },
-    ]);
-  });
-
-  it("guards the pack script against non-arm64 hosts and verifies the app", () => {
-    const script = readFileSync(
-      path.join(
-        path.dirname(fileURLToPath(import.meta.url)),
-        "..",
-        "scripts",
-        "packMac.mjs",
-      ),
-      "utf8",
-    );
-    expect(script).toContain('process.arch !== "arm64"');
-    expect(script).toContain("verifyMacArch");
   });
 });

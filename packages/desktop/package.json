@@ -45,12 +45,7 @@
       "category": "public.app-category.developer-tools",
       "executableName": "Muse",
       "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "arm64"
-          ]
-        }
+        "dmg"
       ],
       "identity": null
     },
