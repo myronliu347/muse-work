@@ -200,6 +200,7 @@ export function createMemoryDreamScheduler(options: {
       endedAt: now().getTime(),
       summary: result.stats,
       transcripts: result.transcripts,
+      ...(result.pending !== undefined ? { pending: result.pending } : {}),
       fallbackIndex: result.fallbackIndex === true,
       ...(result.skillError ? { skillError: result.skillError } : {}),
       ...(result.lint
@@ -218,12 +219,16 @@ export function createMemoryDreamScheduler(options: {
     });
 
     if (result.ok) {
+      // A full rerun stays "full" until the cursor backlog is empty: the
+      // transcripts it has not reached yet must keep reading full history, not
+      // be filtered by a cutoff that has already moved past them.
+      const drained = (result.pending ?? 0) === 0;
       options.store.patchTarget(target.id, {
         lastRunAt: now().getTime(),
         lastStatus: "succeeded",
         lastSummary: result.stats,
         consecutiveFailures: 0,
-        fullRerun: false,
+        fullRerun: drained ? false : target.fullRerun === true,
       });
       if (finished) await autoAdopt(target, finished, trigger);
     } else {

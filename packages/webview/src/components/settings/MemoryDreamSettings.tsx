@@ -45,10 +45,14 @@ function phaseText(progress: MemoryDreamProgress | undefined): string {
       return "复制记忆副本";
     case "export":
       return "导出会话记录";
-    case "analyze":
-      return progress.total
-        ? `分析会话 ${progress.index ?? 0}/${progress.total}`
-        : "分析会话";
+    case "analyze": {
+      if (!progress.total) return "分析会话";
+      const backlog =
+        progress.pending && progress.pending > progress.total
+          ? ` · 共 ${progress.pending} 份待整理`
+          : "";
+      return `分析会话 ${progress.index ?? 0}/${progress.total}${backlog}`;
+    }
     case "organize":
       return "合并重复、整理索引";
     case "repair":
@@ -521,6 +525,7 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
   >(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [expandedRun, setExpandedRun] = useState<string | null>(null);
+  const [showAllRuns, setShowAllRuns] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(
     null,
@@ -582,7 +587,9 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
   }, [running, refresh]);
 
   const target = (state?.targets ?? [])[0];
-  const latestRuns = runs.slice(0, 6);
+  // A capped backlog produces one draft per batch: keep earlier drafts reachable
+  // so their skill/rule candidates can still be reviewed and adopted.
+  const latestRuns = runs.slice(0, showAllRuns ? 20 : 6);
   const runningRun = runs.find((run) => run.status === "running");
 
   const toggle = async (enabled: boolean) => {
@@ -1106,6 +1113,7 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
           ) : (
             <p className="md-target-hint">
               手动整理只写草稿；跑完在下面确认才会替换记忆，规则和技能要单独采纳。
+              一次整理会把待整理的会话全部跑完；中途失败才会留下「待整理」份数。
             </p>
           )}
         </div>
@@ -1117,16 +1125,27 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
         <section className="md-runs">
           <div className="md-section-head">
             <h4>最近整理</h4>
-            {backups.length > 0 ? (
-              <button
-                type="button"
-                className="md-link-btn"
-                disabled={busy === "rollback"}
-                onClick={() => void rollbackLatest()}
-              >
-                回滚到上一次替换前
-              </button>
-            ) : null}
+            <div className="md-section-actions">
+              {runs.length > 6 ? (
+                <button
+                  type="button"
+                  className="md-link-btn"
+                  onClick={() => setShowAllRuns((value) => !value)}
+                >
+                  {showAllRuns ? "收起更早的整理" : `查看更早的整理 ${runs.length}`}
+                </button>
+              ) : null}
+              {backups.length > 0 ? (
+                <button
+                  type="button"
+                  className="md-link-btn"
+                  disabled={busy === "rollback"}
+                  onClick={() => void rollbackLatest()}
+                >
+                  回滚到上一次替换前
+                </button>
+              ) : null}
+            </div>
           </div>
 
           {latestRuns.map((run) => {
@@ -1159,8 +1178,24 @@ export function MemoryDreamSettings({ api }: { api?: MuseApiClient }) {
                         规则 {learning.rules} · 技能 {learning.skills} 待处理
                       </span>
                     ) : null}
+                    {isLatest && (run.pending ?? 0) > 0 ? (
+                      <span className="md-run-learning">
+                        还剩 {run.pending} 份会话待整理
+                      </span>
+                    ) : null}
                   </div>
                   <div className="md-run-actions">
+                    {isLatest && (run.pending ?? 0) > 0 && !running ? (
+                      <Button
+                        size="1"
+                        color="amber"
+                        variant="soft"
+                        disabled={busy !== null}
+                        onClick={() => void runNow()}
+                      >
+                        继续整理
+                      </Button>
+                    ) : null}
                     {run.draftReady && learningTotal > 0 && !isOpen ? (
                       <Button
                         size="1"

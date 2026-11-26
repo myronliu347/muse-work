@@ -212,6 +212,46 @@ describe("memoryDreamGate", () => {
     expect(result.since).toBe(0);
   });
 
+  it("runs while transcripts are still behind their cursor", () => {
+    const home = tempHome();
+    const store = createMemoryDreamStore({ home });
+    const workdir = "/cursor-backlog";
+    const target = store.ensureAssistantTarget(workdir);
+    const dir = makeMemoryDir([{ name: "a.md" }]);
+    const now = Date.now();
+    const transcriptDir = path.join(
+      home,
+      ".muse-work",
+      "projects",
+      pathEncoder.encodeSync(workdir),
+    );
+    fs.mkdirSync(transcriptDir, { recursive: true });
+    const file = path.join(transcriptDir, "s0.jsonl");
+    fs.writeFileSync(
+      file,
+      `${JSON.stringify({ timestamp: new Date(now - 3 * 60 * 60 * 1000).toISOString() })}\n`,
+      "utf-8",
+    );
+    // Not "new activity": the file is old, only the cursor says it is unread.
+    const old = new Date(now - 3 * 60 * 60 * 1000);
+    fs.utimesSync(file, old, old);
+
+    const decision = evaluateDreamGate({
+      home,
+      target: {
+        ...target,
+        withIssueProgress: false,
+        lastRunAt: now - 1000,
+      },
+      memoryDir: dir,
+      now,
+    });
+    expect(decision.assistantActivity).toBe(false);
+    expect(decision.changedFiles).toEqual([]);
+    expect(decision.pendingTranscripts).toBe(1);
+    expect(decision.shouldRun).toBe(true);
+  });
+
   it("runs the assistant target when its transcript is newer than the cutoff", () => {
     const home = tempHome();
     const store = createMemoryDreamStore({ home });
@@ -479,7 +519,15 @@ describe("memoryDreamSchedule", () => {
 });
 
 describe("memoryDreamEngine", () => {
-  function setup(options?: { transcripts?: number; since?: number }) {
+  function setup(options?: {
+    transcripts?: number;
+    since?: number;
+    /** Settle this many analyzer turns as failed before letting them pass. */
+    failAnalyzers?: number;
+    /** Run the assistant skill pass and script its extractor answers. */
+    skillPass?: boolean;
+    extractorTexts?: string[];
+  }) {
     const home = tempHome();
     const workdir = path.join(home, "assistant-chat");
     fs.mkdirSync(workdir, { recursive: true });
@@ -549,20 +597,27 @@ describe("memoryDreamEngine", () => {
     } as unknown as SessionStore;
 
     let engine: ReturnType<typeof createMemoryDreamEngine>;
+    let failures = options?.failAnalyzers ?? 0;
+    const extractorTexts = [...(options?.extractorTexts ?? [])];
     const runner = {
       async sendMessage(sessionId: string) {
         const session = created.find((item) => item.id === sessionId);
-        order.push(session?.title?.includes("汇总") ? "organizer" : "analyzer");
-        queueMicrotask(() => engine.handleTurnSettled(sessionId, { ok: true }));
+        const organizer = session?.title?.includes("汇总") ?? false;
+        order.push(organizer ? "organizer" : "analyzer");
+        const fail = !organizer && failures > 0;
+        if (fail) failures -= 1;
+        queueMicrotask(() => engine.handleTurnSettled(sessionId, { ok: !fail }));
         return { accepted: true as const };
       },
       async abortMessage() {
         return { ok: true as const };
       },
-      async getMessages() {
-        return [
-          { role: "assistant", blocks: [{ type: "text", content: "summary" }] },
-        ];
+      async getMessages(sessionId: string) {
+        const session = created.find((item) => item.id === sessionId);
+        const content = session?.title?.includes("技能")
+          ? extractorTexts.shift() ?? ""
+          : "summary";
+        return [{ role: "assistant", blocks: [{ type: "text", content }] }];
       },
       async disposeSession() {},
     } as unknown as SessionRunner;
@@ -573,6 +628,7 @@ describe("memoryDreamEngine", () => {
       runner,
       draftRoot: path.join(home, "dreams"),
       memoryDirFor,
+      ...(options?.skillPass ? { skillPass: true } : {}),
     });
 
     return {
@@ -614,7 +670,164 @@ describe("memoryDreamEngine", () => {
     expect(result.summaries).toHaveLength(3);
   });
 
-  it("ignores transcripts older than the cutoff and still runs the organizer", async () => {
+  it("drains the whole backlog in one run", async () => {
+    const ctx = setup({ transcripts: 8 });
+    const first = await ctx.engine.run({
+      target: ctx.target,
+      runId: "run-drain-1",
+      since: ctx.since,
+    });
+    expect(first.transcripts).toBe(8);
+    expect(first.pending).toBe(0);
+    // Eight analyzers plus a single organizer for the whole drain.
+    expect(
+      ctx.created.filter((session) => !session.title?.includes("汇总")),
+    ).toHaveLength(8);
+    expect(
+      ctx.created.filter((session) => session.title?.includes("汇总")),
+    ).toHaveLength(1);
+
+    // Nothing is left for a second click.
+    const second = await ctx.engine.run({
+      target: ctx.target,
+      runId: "run-drain-2",
+      since: Date.now(),
+    });
+    expect(second.transcripts).toBe(0);
+    expect(second.pending).toBe(0);
+  });
+
+  it("extracts skills once per batch across a drain", async () => {
+    const ctx = setup({
+      transcripts: 8,
+      skillPass: true,
+      extractorTexts: [
+        '{"candidates":[],"rules":[]}',
+        '{"candidates":[],"rules":[]}',
+      ],
+    });
+    const result = await ctx.engine.run({
+      target: ctx.target,
+      runId: "run-skill-batches",
+      since: ctx.since,
+    });
+    expect(result.transcripts).toBe(8);
+    expect(
+      ctx.created.filter((session) => session.title?.includes("技能")),
+    ).toHaveLength(2);
+  });
+
+  it("retries the skill extractor instead of dropping its batch", async () => {
+    const ctx = setup({
+      transcripts: 1,
+      skillPass: true,
+      extractorTexts: ["prose only, no JSON", '{"candidates":[],"rules":[]}'],
+    });
+    const result = await ctx.engine.run({
+      target: ctx.target,
+      runId: "run-skill-retry",
+      since: ctx.since,
+    });
+    expect(result.skillError).toBeUndefined();
+    expect(
+      ctx.created.filter((session) => session.title?.includes("技能")),
+    ).toHaveLength(2);
+  });
+
+  it("retries a failed analyzer inside the same run", async () => {
+    const ctx = setup({ transcripts: 2, failAnalyzers: 1 });
+    const result = await ctx.engine.run({
+      target: ctx.target,
+      runId: "run-fail-1",
+      since: ctx.since,
+    });
+    expect(result.transcripts).toBe(2);
+    expect(result.pending).toBe(0);
+    // Two files plus the one retry: the failed transcript was not dropped.
+    expect(
+      ctx.created.filter((session) => !session.title?.includes("汇总")),
+    ).toHaveLength(3);
+  });
+
+  it("re-reads the new tail of a transcript that grew after it was analysed", async () => {
+    const ctx = setup({ transcripts: 2 });
+    const first = await ctx.engine.run({
+      target: ctx.target,
+      runId: "run-grow-1",
+      since: ctx.since,
+    });
+    expect(first.transcripts).toBe(2);
+    fs.appendFileSync(
+      path.join(
+        ctx.home,
+        ".muse-work",
+        "projects",
+        pathEncoder.encodeSync(ctx.workdir),
+        "s0.jsonl",
+      ),
+      `${JSON.stringify({
+        timestamp: new Date().toISOString(),
+        role: "user",
+        blocks: [{ type: "text", content: "one more" }],
+      })}\n`,
+      "utf-8",
+    );
+
+    const second = await ctx.engine.run({
+      target: ctx.target,
+      runId: "run-grow-2",
+      since: Date.now(),
+    });
+    expect(second.transcripts).toBe(1);
+    expect(second.pending).toBe(0);
+  });
+
+  it("reads a transcript no cursor has seen yet even when the cutoff is newer", async () => {
+    const ctx = setup({ transcripts: 2 });
+    // The lookback has moved past this content (e.g. lastRunAt was rolled back
+    // to 0 by a discard): an unseen transcript must still be read in full.
+    const result = await ctx.engine.run({
+      target: ctx.target,
+      runId: "run-unseen",
+      since: Date.now() + 60_000,
+    });
+    expect(result.transcripts).toBe(2);
+    expect(result.pending).toBe(0);
+  });
+
+  it("re-reads the same batch after the draft is discarded", async () => {
+    const ctx = setup({ transcripts: 3 });
+    const first = await ctx.engine.run({
+      target: ctx.target,
+      runId: "run-discard-1",
+      since: ctx.since,
+    });
+    expect(first.transcripts).toBe(3);
+
+    const store = createMemoryDreamStore({ home: ctx.home });
+    store.ensureAssistantTarget(ctx.workdir);
+    store.addRun({
+      id: "run-discard-1",
+      targetId: "assistant",
+      status: "succeeded",
+      startedAt: 1,
+      endedAt: 2,
+      draftDir: first.draftDir,
+    });
+    expect(
+      discardDreamRun({ store, runId: "run-discard-1", home: ctx.home }),
+    ).toBe(true);
+
+    const again = await ctx.engine.run({
+      target: ctx.target,
+      runId: "run-discard-2",
+      since: ctx.since,
+    });
+    expect(again.transcripts).toBe(3);
+  });
+
+
+  it("runs the organizer even when there are no transcripts", async () => {
     const ctx = setup({ transcripts: 0 });
     const result = await ctx.engine.run({
       target: ctx.target,
@@ -730,6 +943,49 @@ describe("memoryDreamScheduler", () => {
     );
     expect(ctx.store.getTarget("assistant")?.lastStatus).toBe("succeeded");
     expect(ctx.store.getTarget("assistant")?.lastRunAt).toBeTruthy();
+  });
+
+  it("keeps a full rerun open until the transcript backlog is drained", async () => {
+    const home = tempHome();
+    const store = createMemoryDreamStore({ home });
+    store.setEnabled(true);
+    store.ensureAssistantTarget("/assistant");
+    store.patchTarget("assistant", { fullRerun: true });
+    const dir = makeMemoryDir([{ name: "a.md" }]);
+    fs.writeFileSync(path.join(dir, "NEW.md"), "x");
+    let pending = 1;
+    let at = new Date(2026, 10, 20, 4, 0, 0);
+    const engine = {
+      async run(input: { runId: string }) {
+        return {
+          ok: true,
+          draftDir: `/drafts/${input.runId}`,
+          transcripts: 6,
+          pending,
+          summaries: [],
+          stats: { files: 2, orphans: 0, indexChars: 20 },
+        };
+      },
+      handleTurnSettled() {},
+    } as unknown as DreamEngine;
+    const scheduler = createMemoryDreamScheduler({
+      home,
+      store,
+      engine,
+      memoryDirFor: () => dir,
+      draftRoot: path.join(home, "dreams"),
+      now: () => at,
+      hour: 3,
+    });
+
+    await scheduler.tick();
+    expect(store.getTarget("assistant")?.fullRerun).toBe(true);
+    expect(store.listRuns("assistant")[0]?.pending).toBe(1);
+
+    pending = 0;
+    at = new Date(2026, 10, 21, 4, 0, 0);
+    await scheduler.tick();
+    expect(store.getTarget("assistant")?.fullRerun).toBe(false);
   });
 
   it("does not run twice in the same local day", async () => {

@@ -76,6 +76,8 @@ export interface MemoryDreamRun {
   previousLastRunAt?: number;
   /** Number of transcripts included in this run. */
   transcripts?: number;
+  /** Transcripts still pending after this run (assistant cursor backlog). */
+  pending?: number;
   /** Lint snapshot of the draft, kept so the UI can explain a failure. */
   lint?: {
     ok: boolean;

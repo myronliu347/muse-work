@@ -22,6 +22,12 @@ import {
  * always waits for the person to press the button.
  */
 
+/** Pre-run cursor snapshots, newest name first. */
+const CURSOR_SNAPSHOT_NAMES = [
+  "transcript-cursors.before.json",
+  "skill-cursors.before.json",
+];
+
 export interface AdoptOutcome {
   ok: boolean;
   error?: string;
@@ -115,19 +121,22 @@ export function adoptDreamRun(options: {
 
 function restoreSkillCursors(home: string, draftDir: string | undefined): void {
   if (!draftDir) return;
-  const before = path.join(draftDir, "skill-cursors.before.json");
   const target = cursorsPath(home);
   let snapshot: string | null = null;
-  try {
-    snapshot = fs.readFileSync(before, "utf-8");
-  } catch {
-    // Without the pre-run snapshot we cannot rewind precisely. Dropping the
-    // cursor is the safe choice: the next pass re-reads the window instead of
-    // silently skipping the skills that were just discarded with the draft.
+  for (const name of CURSOR_SNAPSHOT_NAMES) {
+    try {
+      snapshot = fs.readFileSync(path.join(draftDir, name), "utf-8");
+      break;
+    } catch {
+      // Try the older name; drafts from before the rename carry it.
+    }
   }
   try {
     fs.mkdirSync(path.dirname(target), { recursive: true });
     if (snapshot === null) {
+      // Without the pre-run snapshot we cannot rewind precisely. Dropping the
+      // cursor is the safe choice: the next pass re-reads the window instead of
+      // silently skipping the transcripts that were just discarded.
       fs.rmSync(target, { force: true });
       return;
     }

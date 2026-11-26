@@ -39,6 +39,10 @@ import {
 } from "./ruleDream.js";
 import {
   appendSkillObservations,
+  countPendingTranscripts,
+  cursorsPath,
+  exportIncrementalSkillTranscripts,
+  loadSkillCursors,
   loadSuppressed,
   loadSuppressedEntries,
   suppressedPath,
@@ -47,8 +51,10 @@ import {
   readAssistantSkills,
   readOptionalText,
   readRecentObservations,
+  saveSkillCursors,
   skillRootForWorkdir,
   writeSkillDrafts,
+  type SkillCursors,
   type SkillDraft,
 } from "./skillDream.js";
 
@@ -62,8 +68,22 @@ import {
 
 const DEFAULT_TURN_TIMEOUT_MS = 20 * 60 * 1000;
 const MAX_TRANSCRIPT_BYTES = 4 * 1024 * 1024;
+/**
+ * Analyzers per batch. This is a per-LLM-call cost cap, not a coverage cap: one
+ * triggered run keeps taking batches until the cursor backlog is empty, so
+ * nothing is skipped and nobody has to press "continue".
+ */
 const MAX_TRANSCRIPTS_PER_RUN = 6;
 const MAX_SESSIONS_PER_RUN = 12;
+/**
+ * Ceiling for one drain. Only pathological model latency should reach it; the
+ * normal path drains whatever backlog exists in one run.
+ */
+const MAX_DRAIN_MS = 6 * 60 * 60 * 1000;
+/** A transcript whose analyzer keeps failing is retried this many times. */
+const MAX_ANALYZER_ATTEMPTS = 3;
+/** Snapshot of the shared transcript cursors, restored when a draft is discarded. */
+const CURSOR_SNAPSHOT = "transcript-cursors.before.json";
 /** One initial pass plus this many repair passes, bounded by wall clock too. */
 const MAX_REPAIR_PASSES = 2;
 const MAX_RUN_DURATION_MS = 45 * 60 * 1000;
@@ -77,6 +97,8 @@ export interface DreamProgress {
   /** 1-based index for the analyze phase. */
   index?: number;
   total?: number;
+  /** Whole backlog at the start of this run, so 4/6 is not mistaken for 4/6 total. */
+  pending?: number;
   detail?: string;
   startedAt: number;
   updatedAt: number;
@@ -86,6 +108,8 @@ export interface DreamRunResult {
   ok: boolean;
   draftDir: string;
   transcripts: number;
+  /** Transcripts still waiting behind their cursors after this run. */
+  pending?: number;
   summaries: string[];
   /** True when the AI did not finish the index and code had to rebuild it. */
   fallbackIndex?: boolean;
@@ -132,6 +156,8 @@ export function createMemoryDreamEngine(options: {
   const { home, sessions, runner, draftRoot } = options;
   const pending = new Map<string, PendingTurn>();
   let sessionBudget = 0;
+  /** Grows with the backlog so one run can drain it; see `run`. */
+  let sessionBudgetLimit = MAX_SESSIONS_PER_RUN;
 
   function waitForTurn(
     sessionId: string,
@@ -183,7 +209,7 @@ export function createMemoryDreamEngine(options: {
     disallowedTools?: string[];
     maxTextChars?: number;
   }): Promise<{ ok: boolean; text: string; error?: string }> {
-    if (sessionBudget >= MAX_SESSIONS_PER_RUN) {
+    if (sessionBudget >= sessionBudgetLimit) {
       return { ok: false, text: "", error: "dream session budget exhausted" };
     }
     sessionBudget += 1;
@@ -270,24 +296,38 @@ export function createMemoryDreamEngine(options: {
       })),
     });
 
-    const turn = await runChildSession({
-      title: `学习整理 · ${input.target.label} · 技能`,
-      workdir: input.sessionWorkdir,
-      systemPrompt: prompt,
-      task: buildSkillExtractorTask(input.transcriptPaths),
-      model: input.target.model,
-      tools: ["Read", "Grep", "Glob"],
-      disallowedTools: [
-        "Bash",
-        "Write",
-        "Edit",
-        "Workflow",
-        "AskUserQuestion",
-        "WebFetch",
-        "WebSearch",
-      ],
-      maxTextChars: 24_000,
-    });
+    const extract = () =>
+      runChildSession({
+        title: `学习整理 · ${input.target.label} · 技能`,
+        workdir: input.sessionWorkdir,
+        systemPrompt: prompt,
+        task: buildSkillExtractorTask(input.transcriptPaths),
+        model: input.target.model,
+        tools: ["Read", "Grep", "Glob"],
+        disallowedTools: [
+          "Bash",
+          "Write",
+          "Edit",
+          "Workflow",
+          "AskUserQuestion",
+          "WebFetch",
+          "WebSearch",
+        ],
+        maxTextChars: 24_000,
+      });
+    const unparsable = (turn: { ok: boolean; text: string }) =>
+      turn.ok &&
+      turn.text.trim().length > 0 &&
+      !turn.text.includes('"candidates"') &&
+      !turn.text.includes('"rules"');
+
+    let turn = await extract();
+    // One retry. The transcript cursors advance after this pass whether or not
+    // the extractor succeeded, so a single failed or prose-only turn would
+    // silently drop the skills and rules of this whole window.
+    if (!turn.ok || unparsable(turn)) {
+      turn = await extract();
+    }
 
     if (!turn.ok) {
       return {
@@ -297,13 +337,9 @@ export function createMemoryDreamEngine(options: {
       };
     }
 
-    if (
-      turn.text.trim() &&
-      !turn.text.includes('"candidates"') &&
-      !turn.text.includes('"rules"')
-    ) {
-      // A prose-only answer is a parse failure, not "nothing to save": keep the
-      // cursors so the next run retries this window.
+    if (unparsable(turn)) {
+      // Still prose after the retry: report it instead of pretending the window
+      // produced no candidates.
       return {
         drafts: [],
         ruleDrafts: [],
@@ -376,6 +412,18 @@ export function createMemoryDreamEngine(options: {
       "projects",
       pathEncoder.encodeSync(workdir),
     );
+  }
+
+  function writeCursorSnapshot(draftDir: string, cursors: SkillCursors): void {
+    try {
+      fs.writeFileSync(
+        path.join(draftDir, CURSOR_SNAPSHOT),
+        JSON.stringify(cursors, null, 2),
+        "utf-8",
+      );
+    } catch {
+      // A missing snapshot only means discard cannot rewind the cursor.
+    }
   }
 
   /**
@@ -546,6 +594,7 @@ export function createMemoryDreamEngine(options: {
     since: number;
   }): Promise<DreamRunResult> {
     sessionBudget = 0;
+    sessionBudgetLimit = MAX_SESSIONS_PER_RUN;
     const draftDir = dreamDraftDir(draftRoot, input.target.id, input.runId);
     const draftMemory = path.join(draftDir, "memory");
     const result: DreamRunResult = {
@@ -565,6 +614,14 @@ export function createMemoryDreamEngine(options: {
     try {
       fs.rmSync(draftDir, { recursive: true, force: true });
       fs.mkdirSync(draftDir, { recursive: true });
+      // Assistant targets read transcripts through a per-file cursor. The
+      // cursor is what makes the per-run batch lossless: files this run does
+      // not reach stay pending instead of falling behind a moving timestamp.
+      // Project targets have no learning cursor; they keep the window export.
+      const cursorFile =
+        input.target.kind === "assistant" ? cursorsPath(home) : undefined;
+      const cursorsBefore = cursorFile ? loadSkillCursors(cursorFile) : undefined;
+      if (cursorsBefore) writeCursorSnapshot(draftDir, cursorsBefore);
       // Dream sessions run in a scratch workdir, so their own transcripts do
       // not land next to the real ones and get re-analyzed the next night.
       const sessionWorkdir = path.join(draftDir, "workdir");
@@ -575,47 +632,159 @@ export function createMemoryDreamEngine(options: {
       const transcriptsDir = path.join(draftDir, "transcripts");
       fs.mkdirSync(transcriptsDir, { recursive: true });
 
-      const transcripts = exportTranscripts({
-        target: input.target,
-        since: input.since,
-        outDir: transcriptsDir,
-      });
-      result.transcripts = transcripts.length;
+      const exportBatch = (cursors: SkillCursors | undefined): {
+        files: Array<{ path: string; name: string; source?: string }>;
+        cursors?: SkillCursors;
+        total: number;
+      } =>
+        cursors
+          ? exportIncrementalSkillTranscripts({
+              home,
+              workdir: input.target.workdir,
+              since: input.since,
+              outDir: transcriptsDir,
+              cursors,
+              limit: MAX_TRANSCRIPTS_PER_RUN,
+              maxBytes: MAX_TRANSCRIPT_BYTES,
+              // A transcript no cursor has seen yet is read in full. The cutoff
+              // is a "don't re-read history you already processed" guard, not a
+              // reason to skip a whole session the first time it shows up.
+              filterSince: false,
+            })
+          : {
+              files: exportTranscripts({
+                target: input.target,
+                since: input.since,
+                outDir: transcriptsDir,
+              }),
+              cursors: undefined,
+              total: 0,
+            };
+
+      // One triggered run drains the whole backlog: analyze a batch, persist
+      // the cursors, then take the next batch, until nothing is left. The
+      // per-batch cap bounds a single LLM call, not the coverage of the run.
+      let exported = exportBatch(cursorsBefore);
+      const backlog = cursorsBefore ? exported.total : exported.files.length;
+      sessionBudgetLimit = Math.max(MAX_SESSIONS_PER_RUN, backlog + 24);
+      const drainDeadline = startedAt + MAX_DRAIN_MS;
+      let analyzed = 0;
+      /** Distinct transcripts touched; retries must not inflate the count. */
+      const analyzedFiles = new Set<string>();
+      // With nothing to do the backlog is already zero, not "unknown".
+      let pending: number | undefined = cursorsBefore ? backlog : undefined;
+      result.pending = pending;
       writeProgress(draftDir, {
         phase: "export",
         startedAt,
         index: 0,
-        total: transcripts.length,
-        detail: `${transcripts.length} 份 transcript`,
+        total: backlog,
+        pending: backlog,
+        detail: `${backlog} 份 transcript 待整理`,
       });
 
-      for (const [index, transcript] of transcripts.entries()) {
-        writeProgress(draftDir, {
-          phase: "analyze",
-          startedAt,
-          index: index + 1,
-          total: transcripts.length,
-        });
-        const analyzer = await runChildSession({
-          title: `记忆整理 · ${input.target.label}`,
-          workdir: sessionWorkdir,
-          systemPrompt: buildAnalyzerSystemPrompt({
-            memoryDir: draftMemory,
-            transcriptPath: transcript.path,
-          }),
-          task: buildAnalyzerTask(transcript.path),
-          model: input.target.model,
-        });
-        if (analyzer.text) result.summaries.push(analyzer.text);
-        // One failed analyzer should not throw away the other transcripts'
-        // work; the organizer can still tidy what landed.
+      while (exported.files.length > 0) {
+        for (const [index, transcript] of exported.files.entries()) {
+          writeProgress(draftDir, {
+            phase: "analyze",
+            startedAt,
+            index: Math.min(backlog, analyzed + index + 1),
+            total: backlog,
+            pending: backlog,
+          });
+          analyzedFiles.add(transcript.source ?? transcript.path);
+          const analyzer = await runChildSession({
+            title: `记忆整理 · ${input.target.label}`,
+            workdir: sessionWorkdir,
+            systemPrompt: buildAnalyzerSystemPrompt({
+              memoryDir: draftMemory,
+              transcriptPath: transcript.path,
+            }),
+            task: buildAnalyzerTask(transcript.path),
+            model: input.target.model,
+          });
+          if (analyzer.ok) {
+            if (analyzer.text) result.summaries.push(analyzer.text);
+            continue;
+          }
+          // Keep the failed transcript pending and retry it (the loop may pick
+          // it up again); after a few attempts, move on and say so.
+          const source = transcript.source;
+          if (!source || !exported.cursors) continue;
+          const before = cursorsBefore?.transcripts[source];
+          const attempts = (before?.attempts ?? 0) + 1;
+          if (attempts >= MAX_ANALYZER_ATTEMPTS) {
+            result.summaries.push(
+              `（${path.basename(source)} 连续 ${attempts} 次分析失败，已跳过）`,
+            );
+            continue;
+          }
+          try {
+            const stat = fs.statSync(source);
+            exported.cursors.transcripts[source] = before
+              ? { ...before, attempts }
+              : {
+                  inode: stat.ino,
+                  offset: 0,
+                  size: stat.size,
+                  mtimeMs: stat.mtimeMs,
+                  attempts,
+                };
+          } catch {
+            // Unreadable now; the cursor stays advanced and the next run moves on.
+          }
+        }
+        analyzed += exported.files.length;
+        result.transcripts = analyzedFiles.size;
+
+        // Skills/rules read this batch's slices. One extractor per batch keeps
+        // the 5+5 candidate cap scoped to a batch instead of one call for 52.
+        try {
+          const skillPass = await runLearningPass({
+            target: input.target,
+            runId: input.runId,
+            draftDir,
+            sessionWorkdir,
+            memoryDir: liveMemory,
+            transcriptPaths: exported.files.map((file) => file.path),
+          });
+          if (skillPass.drafts.length > 0) {
+            result.skills = summarizeSkillDrafts(skillPass.drafts);
+          }
+          if (skillPass.ruleDrafts.length > 0) {
+            result.rules = summarizeRuleDrafts(skillPass.ruleDrafts);
+          }
+          if (skillPass.error) result.skillError = skillPass.error;
+        } catch (error) {
+          result.skillError =
+            error instanceof Error ? error.message : String(error);
+        }
+
+        // Persist after every batch so a crash resumes from here, not from the
+        // beginning of the drain.
+        if (!cursorFile || !exported.cursors) break;
+        try {
+          saveSkillCursors(cursorFile, exported.cursors);
+          pending = countPendingTranscripts({
+            home,
+            workdir: input.target.workdir,
+            cursors: exported.cursors,
+          });
+          result.pending = pending;
+        } catch {
+          // Failing to persist the cursor only repeats this batch next run.
+          break;
+        }
+        if ((pending ?? 0) === 0) break;
+        if (Date.now() > drainDeadline) break;
+        exported = exportBatch(exported.cursors);
       }
 
       writeProgress(draftDir, {
         phase: "organize",
         startedAt,
-        index: transcripts.length,
-        total: transcripts.length,
+        index: Math.min(backlog, analyzed),
+        total: backlog,
       });
       const organizer = await runChildSession({
         title: `记忆整理 · ${input.target.label} · 汇总`,
@@ -629,8 +798,8 @@ export function createMemoryDreamEngine(options: {
       writeProgress(draftDir, {
         phase: "lint",
         startedAt,
-        index: transcripts.length,
-        total: transcripts.length,
+        index: Math.min(backlog, analyzed),
+        total: backlog,
       });
       // The AI owns the index. Code only checks it and, when the AI cannot
       // finish, rebuilds it as a visible fallback.
@@ -642,10 +811,11 @@ export function createMemoryDreamEngine(options: {
       // One organizer pass rarely finishes a large store: it still has orphans
       // and over-cap files. Keep repairing while the lint score improves, with
       // a hard pass and wall-clock budget so a night cannot run forever.
+      const repairStartedAt = Date.now();
       while (
         hasCriticalMemoryLint(lint) &&
         passes <= MAX_REPAIR_PASSES &&
-        Date.now() - startedAt < MAX_RUN_DURATION_MS
+        Date.now() - repairStartedAt < MAX_RUN_DURATION_MS
       ) {
         writeProgress(draftDir, {
           phase: "repair",
@@ -698,33 +868,11 @@ export function createMemoryDreamEngine(options: {
       result.fallbackArchived = fallbackArchived;
       result.stats = memoryDirStats(draftMemory);
 
-      // Assistant-only SOP drafts. This is best-effort: a skill-pass failure
-      // must not discard a usable memory draft, and it must not advance the
-      // transcript cursors (the next run retries the same window).
-      try {
-        const skillPass = await runLearningPass({
-          target: input.target,
-          runId: input.runId,
-          draftDir,
-          sessionWorkdir,
-          memoryDir: liveMemory,
-          transcriptPaths: transcripts.map((file) => file.path),
-        });
-        if (skillPass.drafts.length > 0) {
-          result.skills = summarizeSkillDrafts(skillPass.drafts);
-        }
-        if (skillPass.ruleDrafts.length > 0) {
-          result.rules = summarizeRuleDrafts(skillPass.ruleDrafts);
-        }
-        if (skillPass.error) result.skillError = skillPass.error;
-      } catch (error) {
-        result.skillError = error instanceof Error ? error.message : String(error);
-      }
       writeReport({
         draftDir,
         target: input.target,
         since: input.since,
-        transcripts: transcripts.length,
+        transcripts: analyzedFiles.size,
         summaries: result.summaries,
         lint,
         passes,
@@ -736,8 +884,9 @@ export function createMemoryDreamEngine(options: {
       writeProgress(draftDir, {
         phase: "done",
         startedAt,
-        index: transcripts.length,
-        total: transcripts.length,
+        index: Math.min(backlog, analyzed),
+        total: backlog,
+        pending: result.pending ?? backlog,
         detail: lint.ok ? "draft ready" : "lint failed",
       });
       return result;

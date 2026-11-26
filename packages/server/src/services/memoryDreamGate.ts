@@ -6,6 +6,11 @@ import type {
   DreamSkipReason,
   MemoryDreamTarget,
 } from "./memoryDreams.js";
+import {
+  countPendingTranscripts,
+  cursorsPath,
+  loadSkillCursors,
+} from "./skillDream.js";
 
 /**
  * Decide whether a memory-dream run is worth starting.
@@ -14,6 +19,11 @@ import type {
  * - the target's own memory changed since the last successful run (every
  *   target; no new memory means nothing to consolidate);
  * - an issue progressed since then (assistant only, opt-in per target).
+ *
+ * A third one keeps capped runs honest: transcripts still behind their cursor
+ * are a reason to run even when memory did not change. Without it, a run that
+ * stopped after `MAX_TRANSCRIPTS_PER_RUN` would look "done" and the rest of
+ * the backlog would never be read.
  *
  * The cutoff is "since the last successful run", not a calendar day, so a run
  * that crosses midnight still sees everything.
@@ -26,6 +36,8 @@ export interface DreamGateDecision {
   changedFiles: string[];
   issueProgress: number;
   assistantActivity?: boolean;
+  /** Transcripts whose cursor is still behind (assistant only). */
+  pendingTranscripts: number;
 }
 
 export function startOfLocalDay(at: number): number {
@@ -161,6 +173,14 @@ export function evaluateDreamGate(options: {
   const assistantActivity =
     options.target.kind === "assistant" &&
     hasNewAssistantTranscript(options.home, options.target.workdir, since);
+  const pendingTranscripts =
+    options.target.kind === "assistant"
+      ? countPendingTranscripts({
+          home: options.home,
+          workdir: options.target.workdir,
+          cursors: loadSkillCursors(cursorsPath(options.home)),
+        })
+      : 0;
 
   if (options.force) {
     return {
@@ -169,16 +189,23 @@ export function evaluateDreamGate(options: {
       changedFiles,
       issueProgress,
       assistantActivity,
+      pendingTranscripts,
     };
   }
 
-  if (changedFiles.length > 0 || issueProgress > 0 || assistantActivity) {
+  if (
+    changedFiles.length > 0 ||
+    issueProgress > 0 ||
+    assistantActivity ||
+    pendingTranscripts > 0
+  ) {
     return {
       shouldRun: true,
       since,
       changedFiles,
       issueProgress,
       assistantActivity,
+      pendingTranscripts,
     };
   }
 
@@ -189,5 +216,6 @@ export function evaluateDreamGate(options: {
     changedFiles,
     issueProgress,
     assistantActivity,
+    pendingTranscripts,
   };
 }

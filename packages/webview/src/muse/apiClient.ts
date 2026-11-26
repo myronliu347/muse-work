@@ -1549,6 +1549,8 @@ export interface MemoryDreamRunView {
   adoptedAt?: number;
   discardedAt?: number;
   fallbackIndex?: boolean;
+  /** Transcripts still pending after this run; 0/undefined means fully caught up. */
+  pending?: number;
   progress?: MemoryDreamProgress;
   learning?: { rules: number; skills: number };
   lint?: {
@@ -1590,6 +1592,8 @@ export interface MemoryDreamProgress {
     | "done";
   index?: number;
   total?: number;
+  /** Whole backlog when the run started; larger than `total` when it was capped. */
+  pending?: number;
   detail?: string;
   startedAt: number;
   updatedAt: number;

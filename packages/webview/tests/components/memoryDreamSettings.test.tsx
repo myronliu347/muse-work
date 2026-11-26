@@ -171,6 +171,38 @@ describe("MemoryDreamSettings", () => {
     await waitFor(() => expect(api.runMemoryDream).toHaveBeenCalledWith("assistant"));
   });
 
+  it("keeps older batch drafts reachable after a long catch-up", async () => {
+    const next = state();
+    next.runs = Array.from({ length: 8 }, (_, index) => ({
+      id: `run-${index}`,
+      targetId: "assistant",
+      status: "succeeded" as const,
+      trigger: "manual" as const,
+      startedAt: Date.now() - index * 60_000,
+      draftReady: true,
+    }));
+    const api = mockApi(next);
+    renderPanel(api);
+    await screen.findAllByText("查看草稿");
+    expect(screen.getAllByRole("button", { name: "查看草稿" })).toHaveLength(6);
+    await userEvent.click(
+      screen.getByRole("button", { name: /查看更早的整理/ }),
+    );
+    expect(screen.getAllByRole("button", { name: "查看草稿" })).toHaveLength(8);
+  });
+
+  it("shows the remaining backlog and continues where the last run stopped", async () => {
+    const next = state();
+    next.runs = [{ ...next.runs[0], pending: 46, draftReady: false, learning: undefined }];
+    const api = mockApi(next);
+    renderPanel(api);
+    await screen.findByText("还剩 46 份会话待整理");
+    await userEvent.click(screen.getByRole("button", { name: "继续整理" }));
+    await waitFor(() =>
+      expect(api.runMemoryDream).toHaveBeenCalledWith("assistant"),
+    );
+  });
+
   it("adopts a finished draft after confirmation", async () => {
     const api = mockApi(state());
     renderPanel(api);

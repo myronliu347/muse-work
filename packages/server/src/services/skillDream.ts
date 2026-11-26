@@ -59,6 +59,8 @@ export interface SkillCursorEntry {
   size: number;
   mtimeMs: number;
   lastMessageId?: string;
+  /** Consecutive failed reads of this window; reset when it is consumed. */
+  attempts?: number;
 }
 
 export interface SkillCursors {
@@ -236,7 +238,11 @@ function readFirstLine(file: string): string {
   }
 }
 
-function readFrom(file: string, start: number): { buffer: Buffer; start: number } {
+function readFrom(
+  file: string,
+  start: number,
+  maxBytes: number,
+): { buffer: Buffer; start: number } {
   const fd = fs.openSync(file, "r");
   try {
     const stat = fs.fstatSync(fd);
@@ -244,7 +250,7 @@ function readFrom(file: string, start: number): { buffer: Buffer; start: number 
     if (available === 0) return { buffer: Buffer.alloc(0), start };
     // A very long-lived assistant transcript must not be read into memory in
     // one allocation. Keep the newest window; the cursor still advances to EOF.
-    const length = Math.min(available, MAX_TRANSCRIPT_BYTES);
+    const length = Math.min(available, maxBytes);
     const readStart = start + (available - length);
     const buffer = Buffer.alloc(length);
     let read = 0;
@@ -315,6 +321,8 @@ function readIncrementalTranscript(input: {
   file: string;
   cursor: SkillCursorEntry | undefined;
   since: number;
+  filterSince: boolean;
+  maxBytes: number;
 }): { text: string; next: SkillCursorEntry } | undefined {
   const stat = fs.statSync(input.file);
   const cursor = input.cursor;
@@ -334,16 +342,16 @@ function readIncrementalTranscript(input: {
     }
   }
 
-  const read = readFrom(input.file, start);
+  const read = readFrom(input.file, start, input.maxBytes);
   const { text: complete, consumed } = sliceCompleteLines(read.buffer);
   if (!complete.trim()) return undefined;
 
   const metadata = readFirstLine(input.file);
   const body =
-    mode === "initial"
+    mode === "initial" && input.filterSince
       ? filterSince(complete, input.since)
-      : mode === "rewrite" && complete.length > MAX_TRANSCRIPT_BYTES
-        ? complete.slice(-MAX_TRANSCRIPT_BYTES)
+      : mode === "rewrite" && complete.length > input.maxBytes
+        ? complete.slice(-input.maxBytes)
         : complete;
 
   if (!body.trim()) return undefined;
@@ -351,8 +359,8 @@ function readIncrementalTranscript(input: {
     ? `${metadata}\n${body}`
     : body;
   const bounded =
-    Buffer.byteLength(joined, "utf-8") > MAX_TRANSCRIPT_BYTES
-      ? joined.slice(-MAX_TRANSCRIPT_BYTES)
+    Buffer.byteLength(joined, "utf-8") > input.maxBytes
+      ? joined.slice(-input.maxBytes)
       : joined;
 
   return {
@@ -368,9 +376,61 @@ function readIncrementalTranscript(input: {
 }
 
 /**
- * Export only transcripts that are new, appended to, or rewritten since the
- * last successful skill pass. Returns the exported files plus the cursor state
- * the caller must persist after the pass succeeds.
+ * Transcript files whose cursor is behind their current size or inode.
+ *
+ * This is the single source of truth for "is there still something to read":
+ * a run that stops after `limit` files leaves the rest pending here, so the
+ * next run picks them up instead of the window moving past them.
+ */
+export function listPendingTranscripts(input: {
+  home: string;
+  workdir: string;
+  cursors: SkillCursors;
+}): Array<{ file: string; mtimeMs: number }> {
+  const dir = transcriptDirForWorkdir(input.home, input.workdir);
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const pending: Array<{ file: string; mtimeMs: number }> = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith(".jsonl")) continue;
+    const file = path.join(dir, entry.name);
+    try {
+      const stat = fs.statSync(file);
+      const cursor = input.cursors.transcripts[file];
+      const changed =
+        !cursor ||
+        stat.ino !== cursor.inode ||
+        stat.size !== cursor.offset ||
+        stat.mtimeMs > cursor.mtimeMs;
+      if (changed) pending.push({ file, mtimeMs: stat.mtimeMs });
+    } catch {
+      // The file vanished between readdir and stat: nothing to read.
+    }
+  }
+  // Oldest first. Picking the newest N every run starves older sessions
+  // forever once the store has more than N transcripts.
+  return pending.sort((a, b) => a.mtimeMs - b.mtimeMs);
+}
+
+export function countPendingTranscripts(input: {
+  home: string;
+  workdir: string;
+  cursors: SkillCursors;
+}): number {
+  return listPendingTranscripts(input).length;
+}
+
+/**
+ * Export only transcripts that are new, appended to, or rewritten since their
+ * cursor. Returns the exported files plus the cursor state the caller must
+ * persist after the pass succeeds.
+ *
+ * `total` is the backlog before `limit`: callers show it so a capped run is
+ * visibly "N of M" instead of looking like the store only holds N files.
  */
 export function exportIncrementalSkillTranscripts(input: {
   home: string;
@@ -378,48 +438,51 @@ export function exportIncrementalSkillTranscripts(input: {
   since: number;
   outDir: string;
   cursors: SkillCursors;
-}): { files: Array<{ path: string; name: string }>; cursors: SkillCursors } {
-  const dir = transcriptDirForWorkdir(input.home, input.workdir);
-  const files: Array<{ path: string; name: string }> = [];
+  /** Per-run cap; the rest stay pending for the next run. */
+  limit?: number;
+  /** Per-file byte cap. */
+  maxBytes?: number;
+  /**
+   * Apply the `since` cutoff to a file's first read. Off means a file no
+   * cursor has seen yet is read in full (bounded by `maxBytes`), which is what
+   * "never lose a transcript" requires once the lookback has moved on.
+   */
+  filterSince?: boolean;
+}): {
+  files: Array<{ path: string; name: string; source: string }>;
+  cursors: SkillCursors;
+  total: number;
+} {
   const cursors: SkillCursors = {
     version: 1,
     transcripts: { ...input.cursors.transcripts },
   };
+  const limit = Math.max(0, input.limit ?? MAX_TRANSCRIPTS);
+  const maxBytes = input.maxBytes ?? MAX_TRANSCRIPT_BYTES;
+  const pending = listPendingTranscripts(input);
+  const chosen = pending.slice(0, limit);
+  const deferred = pending.slice(limit);
+  const candidates = chosen.map((item) => item.file);
+  const files: Array<{ path: string; name: string; source: string }> = [];
 
-  let entries: fs.Dirent[];
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return { files, cursors };
+  // Mark never-read files that this run does not reach. Without the marker the
+  // next run would read them as "new" and apply the since cutoff, which has
+  // moved past their content by then; an offset-0 cursor makes it an append
+  // from the beginning instead, so a capped run never loses a transcript.
+  for (const item of deferred) {
+    if (cursors.transcripts[item.file]) continue;
+    try {
+      const stat = fs.statSync(item.file);
+      cursors.transcripts[item.file] = {
+        inode: stat.ino,
+        offset: 0,
+        size: stat.size,
+        mtimeMs: stat.mtimeMs,
+      };
+    } catch {
+      // A vanished file has nothing to read; the next run re-lists the dir.
+    }
   }
-
-  const candidates = entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".jsonl"))
-    .map((entry) => {
-      const file = path.join(dir, entry.name);
-      try {
-        const stat = fs.statSync(file);
-        const cursor = input.cursors.transcripts[file];
-        const changed =
-          !cursor ||
-          stat.ino !== cursor.inode ||
-          stat.size < cursor.offset ||
-          stat.size > cursor.offset ||
-          (stat.size === cursor.offset && stat.mtimeMs > cursor.mtimeMs);
-        return changed ? { file, mtimeMs: stat.mtimeMs } : undefined;
-      } catch {
-        return undefined;
-      }
-    })
-    .filter(
-      (item): item is { file: string; mtimeMs: number } => item !== undefined,
-    )
-    // Process the oldest unprocessed transcript first. Picking the newest N
-    // every run starves older sessions forever once the store has more than
-    // N transcripts.
-    .sort((a, b) => a.mtimeMs - b.mtimeMs)
-    .slice(0, MAX_TRANSCRIPTS)
-    .map((item) => item.file);
 
   fs.mkdirSync(input.outDir, { recursive: true });
   for (const [index, file] of candidates.entries()) {
@@ -428,6 +491,8 @@ export function exportIncrementalSkillTranscripts(input: {
         file,
         cursor: input.cursors.transcripts[file],
         since: input.since,
+        filterSince: input.filterSince ?? true,
+        maxBytes,
       });
       if (!result) {
         // Nothing in this window (or only an incomplete line). Advance the
@@ -448,14 +513,14 @@ export function exportIncrementalSkillTranscripts(input: {
       const outName = `${String(index + 1).padStart(2, "0")}-${path.basename(file)}`;
       const outPath = path.join(input.outDir, outName);
       fs.writeFileSync(outPath, result.text, "utf-8");
-      files.push({ path: outPath, name: outName });
+      files.push({ path: outPath, name: outName, source: file });
       cursors.transcripts[file] = result.next;
     } catch {
       // One unreadable transcript must not lose the run; leave its cursor alone.
     }
   }
 
-  return { files, cursors };
+  return { files, cursors, total: pending.length };
 }
 
 export function readAssistantSkills(workdir: string): Array<{ name: string; description: string; content: string }> {
